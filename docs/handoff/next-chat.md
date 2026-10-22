@@ -69,3 +69,13 @@
 - 承認済み（2026-10-23）: 両PC設定へ `maintenanceLocal`（そのPCのマニフェスト・検証証拠・レポートのローカル原本領域）を追加する。exampleはダミー、実値は非追跡設定、実行先/元ログ/Drive/archiveとの重複を拒否。実パスは推測しない。
 - OSD-04（Dry Run副作用）、OSD-05（Drive認証）、OSD-06/07（配布/保持）、OSD-08（予定実行）、OSD-09（最終allowlist/移行）と残る状態遷移/契約の承認・証拠は別途必要。
 - 台帳の古い「sentinelあり」「過去PRのCI待ち」などは現物と照合して関係PRで直す。台帳全体の再監査完了とはしない。
+
+## PR #12のCI停止状態と継続方針
+
+- PR #12: https://github.com/wasawo/eo-log-maintenance-public/pull/12
+- 旧HEAD 40ede6f07828942390acab4824e0906126e8c989 のValidate 39835109558はattempt 2で成功。初回はPSScriptAnalyzer外部ダウンロード失敗（全テスト後）。
+- Package Validation 39835109683は内部job 120021248758がcompleted/successでもworkflow全体はin_progress/conclusion null。前回90秒間隔5回と今回のGitHub API直接照合でも継続。job再実行はGitHubが403「workflow run already running」で拒否した。
+- この保留記録をPRへ反映し、新HEADの新しい両workflowで通常の全検証を行う。旧job成功や旧HEAD成功を流用しない。マージ前に新HEAD・両workflow成功・競合状態を照合する。
+- 次のジャンクション拒否テスト tests/test_source_inventory_reparse.py はローカル準備ファイルとして未コミット。root/ancestor/childの3拒否漏れを実ジャンクションで再現済み（意図した失敗テスト）。PR #12に混ぜない。
+- 未コミットの準備テスト込みのworking tree全体をgreenとしない。149テスト成功・2スキップはPR #12実装の検証結果。
+- PR #12マージ後に新ブランチへ準備テストを保持して移り、列挙前root/ancestorとentryのlstat reparse拒否・再確認を実装する。実ログ/Driveや設定値は使用しない。
