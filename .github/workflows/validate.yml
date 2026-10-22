@@ -78,6 +78,7 @@ jobs:
           python -m unittest discover -s tests -p "test_artifact_set_publication.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_directory_verification.py" -v
           python -m unittest discover -s tests -p "test_crash_publication_harness.py" -v
+          python -m unittest discover -s tests -p "test_owned_publication_integration.py" -v
 
       - name: Validate JSON example configurations
         shell: pwsh

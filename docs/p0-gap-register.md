@@ -242,3 +242,7 @@ The spawned-process synthetic test for competing marker-last publishers with con
 ## Actual process-crash boundary evidence (2026-10-23)
 
 P0-010/P0-012 remain open. The test-only crash harness adds fresh-process verification and idempotent retry after actual termination at each completed-file publication boundary. No runtime module, Drive operation, archive or source/Drive deletion is introduced. This is synthetic OS-temp evidence only, not Tier B/C or power-loss qualification.
+
+## Owned publication/recovery integration evidence (2026-10-23)
+
+Real Windows mutex tests now compose ownership, publication, directory revalidation and pure recovery decisions using synthetic temporary files. Contention, abandonment, owner mismatch and changed bytes fail closed; prior manifests/records remain intact. This does not implement operational stale-record adoption or close P0-010/P0-012. Tier B/C and official runtime integration remain open.
