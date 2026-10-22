@@ -1,0 +1,67 @@
+# Target-Filesystem and Crash-Recovery Acceptance Plan
+
+- Status: required acceptance gate; planning only.
+- Date: 2026-10-22.
+- Scope: local publication primitives, artifact-set marker protocol, directory verification, and eventual official entrypoint integration.
+- This document authorizes no production-log access, Google Drive writes, archive, or deletion.
+
+## 1. Evidence boundary
+
+Current CI exercises temporary directories on the hosted Windows runner. It provides useful evidence for the tested runner/filesystem and code path only. It does not establish behavior on either operator PC, a Google Drive for desktop mount, a network filesystem, after power loss, or across an actual host restart. Do not infer these properties from a green workflow.
+
+Acceptance evidence must identify the exact environment, not just say "Windows":
+- PC role (PC-A or PC-B), Windows build, PowerShell/Python versions, and repository commit.
+- Volume and filesystem type for the test root; whether it is a local fixed disk, removable disk, network path, or Google Drive for desktop sync folder.
+- Google Drive for desktop version and sync state if a mounted/synchronized path is ever tested.
+- Test timestamp, scenario ID, process exit outcomes, observed directory entries, artifact SHA-256 values, marker contents, and sanitized failure code.
+- Whether the run is a CI synthetic test, local disposable-directory test, or actual target-filesystem test.
+
+Never put credentials, user paths outside the explicitly approved test root, or production log names/content in acceptance evidence.
+
+## 2. Required test tiers
+
+### Tier A — deterministic synthetic CI tests
+
+Continue to run the current marker-last publication, directory verification, recovery classification, and spawned-process conflict tests on the Windows CI runner. These tests must be deterministic, bounded, use temporary directories, and never touch production paths. Inject failures at each publication boundary: before the first artifact, between every adjacent artifact pair, immediately before marker publication, and immediately after marker publication. After each injected failure, inspect on-disk state and verify that no incomplete set is classified as committed.
+
+### Tier B — disposable local-volume acceptance on each operator PC
+
+Before runtime integration, run an explicit opt-in harness against a newly created disposable directory on the same local volume intended for maintenance artifacts. Do not use the real maintenance root or log folders. Validate:
+1. Exclusive no-overwrite publication for identical and conflicting bytes.
+2. Two-process publication race: one winner for conflicting sets, marker hashes match the winning bytes, no unexpected/temp entries remain after process exit.
+3. Process termination at every publication boundary, then a fresh-process directory inspection; a missing/invalid marker or partial set must never be accepted as committed.
+4. Idempotent retry for identical existing bytes and fail-closed behavior for conflicting bytes.
+5. Directory verifier rejects symlinks/reparse points, unexpected entries, malformed marker, missing artifacts, and read failures.
+6. Run-lock ownership and recovery decision are tested together; a helper-only test does not prove integration.
+7. Record whether the filesystem supports the required same-volume hard-link/no-overwrite primitive. Unsupported behavior must fail closed, not silently fall back to overwrite-capable publication.
+
+The harness must refuse a path unless it is explicitly supplied as a disposable test root, and must print the resolved root before any writes. It must not accept a production log root, archive root, or shared Drive sync root.
+
+### Tier C — synchronized/network target qualification
+
+Google Drive for desktop and any network/synchronized folder require a separate qualification, only after Tier B and review of the exact test plan. Use a dedicated disposable test folder with no real logs. Record the sync client state and verify remote visibility through an approved read-only observation mechanism. A local file appearing on a mounted drive is not proof that remote content is uploaded or durable.
+
+Test concurrent writers, local process crash/restart, offline/network interruption, delayed synchronization, duplicate/conflicting names, and reconciliation of uncertain outcomes. Do not claim power-loss durability unless it has been tested with a defensible method. If a behavior cannot be observed reliably, mark it unverified and block dependent destructive actions.
+
+## 3. Required invariants
+
+- A marker is necessary but not sufficient: verify exact marker schema, transaction identity, expected artifact names, and hashes of observed bytes.
+- A partial set, markerless set, mismatched marker, unexpected entry, ambiguous transaction, or unavailable directory is never committed.
+- Publication never overwrites conflicting bytes and never removes pre-existing artifacts to "repair" a set.
+- Recovery creates a new run identity and fresh inventory; it does not rewrite a crash-left manifest into success.
+- A directory verification result is point-in-time evidence only. Any consumer must hold the approved ownership boundary and revalidate the bytes/identity at the point of use to address verification-to-use races.
+- If lock ownership, prior-owner termination, latest-manifest uniqueness, Drive reconciliation, filesystem capability, or observed state is uncertain, stop before archive or deletion.
+- No target-filesystem result grants permission to delete local source logs or Drive files. Destructive operations remain separately gated.
+
+## 4. Acceptance record and exit criteria
+
+For every tier, retain a concise record with commit SHA, OS/filesystem identity, test root category (never a sensitive full path), scenarios executed, pass/fail/unverified outcomes, sanitized reason codes, and artifact/marker digest comparisons. A green CI run satisfies Tier A only.
+
+Do not connect official entrypoints until Tier A and Tier B pass, lock/recovery/publication/verification integration has its own tests, source-change races are covered, and the runtime-entrypoint safety gate is satisfied. Tier C remains mandatory before any behavior relies on a Google Drive/network target. Any unresolved or unobservable behavior is a blocker, not an inferred pass.
+
+## 5. Current status
+
+- Tier A: historical source-repository CI passed on source commit `f979a5200d48a7ccccfed6ad31de07529bd340df`, including cross-process conflict publication. This is historical evidence, not a CI result for the new public repository or this PR; require fresh exact-head validation here.
+- Tier B: not run; no operator-PC filesystem qualification has been established.
+- Tier C: not run; Google Drive/network semantics and remote durability are unverified.
+- Official `scripts/SyncLogs.ps1` and PC-A-only `scripts/ArchiveLogs.ps1` are still absent. P0 remains open.

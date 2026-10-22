@@ -111,3 +111,8 @@ The isolated `Common/ArtifactSetPublication.py` composes the single-file no-over
 ## 11. Cross-process marker-last publication race (synthetic test)
 
 The publication tests now exercise two spawned processes concurrently publishing sets with the same manifest bytes but conflicting report bytes to one temporary directory. Acceptance requires exactly one success, one fail-closed conflict, and a commit marker that validates against the winning on-disk bytes. This only tests the host runner's temporary local filesystem; it does not prove behavior on Drive/network filesystems, power loss, cross-file atomicity, or coordination with the owned-run lock. Official integration remains gated.
+
+
+## 12. Target-filesystem qualification (required before official integration)
+
+See `docs/target-filesystem-acceptance.md` for the tiered evidence plan. Hosted Windows CI is Tier A only. Before official entrypoint integration, Tier B disposable-root tests must pass on each operator PC's intended local volume, including crash injection, conflicting concurrent publishers, strict marker/hash revalidation, and no-overwrite capability checks. Any Google Drive for desktop or network-target-dependent behavior requires separately gated Tier C evidence in a dedicated disposable folder. Do not infer remote sync completion or power-loss durability from local visibility. Unknown, ambiguous, or unobservable states block dependent archive/deletion. No production log path or Drive operation is authorized by this plan.

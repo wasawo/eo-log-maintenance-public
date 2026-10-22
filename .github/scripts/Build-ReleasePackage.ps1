@@ -197,7 +197,7 @@ try {
     [ordered]@{
         version = $version
         targetRole = $TargetRole
-        sourceRepository = 'wasawo/eo-log-maintenance'
+        sourceRepository = 'wasawo/eo-log-maintenance-public'
         sourceRef = 'local-build'
         package = (Split-Path -Leaf $zipPath)
         sha256Manifest = (Split-Path -Leaf $checksumPath)

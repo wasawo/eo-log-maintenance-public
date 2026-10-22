@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/wasawo/eo-log-maintenance/blob/main/contracts/drive-request.schema.json",
+  "$id": "https://github.com/wasawo/eo-log-maintenance-public/blob/main/contracts/drive-request.schema.json",
   "title": "ログ保守：Drive アダプター リクエスト",
   "description": "Python Google Drive アダプター向けバージョン 1.0 のリクエスト形式。削除操作は定義しない。",
   "type": "object",

@@ -80,6 +80,8 @@ try {
     Assert-True (Test-Path -LiteralPath $result.PackagePath) 'ZIP package was not created.'
     Assert-True (Test-Path -LiteralPath $result.ChecksumPath) 'Checksum manifest was not created.'
     Assert-True (Test-Path -LiteralPath $result.LatestMetadataPath) 'Latest metadata was not created.'
+    $metadata = Get-Content -LiteralPath $result.LatestMetadataPath -Raw | ConvertFrom-Json
+    Assert-True ($metadata.sourceRepository -eq 'wasawo/eo-log-maintenance-public') 'Package metadata must identify the current public repository.'
 
     $hash = (Get-FileHash -LiteralPath $result.PackagePath -Algorithm SHA256).Hash.ToLowerInvariant()
     $checksumLine = (Get-Content -LiteralPath $result.ChecksumPath -Raw).Trim()
