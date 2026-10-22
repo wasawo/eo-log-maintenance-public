@@ -78,7 +78,8 @@ def run_local_volume_checks(
         os.environ["EO_TEST_VOLUME_MODE"] = "repository-local"
         disposable_parent()
         suite = unittest.TestSuite()
-        for module in ("test_crash_publication_harness", "test_owned_publication_integration",
+        for module in ("test_crash_publication_harness", "test_internal_publication_crash",
+                       "test_owned_publication_integration",
                        "test_artifact_directory_reparse"):
             suite.addTests(unittest.defaultTestLoader.loadTestsFromName(module))
         # Retain diagnostics in memory; never emit raw traces/paths/hostnames.

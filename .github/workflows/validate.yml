@@ -78,6 +78,7 @@ jobs:
           python -m unittest discover -s tests -p "test_artifact_set_publication.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_directory_verification.py" -v
           python -m unittest discover -s tests -p "test_crash_publication_harness.py" -v
+          python -m unittest discover -s tests -p "test_internal_publication_crash.py" -v
           python -m unittest discover -s tests -p "test_owned_publication_integration.py" -v
           python -m unittest discover -s tests -p "test_local_volume_entry.py" -v
           python -m unittest discover -s tests -p "test_artifact_directory_reparse.py" -v

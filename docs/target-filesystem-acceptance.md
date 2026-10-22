@@ -147,3 +147,26 @@ without modifying existing bytes. CI runs this Windows suite; local-volume
 evidence now includes it. P0 and remaining Tier B/C gates stay open.
 
 [PC-B reparse/read-failure follow-up](../tests/evidence/pc-b-reparse-local-volume-20261023.json) records 14 passing checks with no skips, including actual junction roots/ancestors and injected read failure. It supersedes the earlier subset for these scenarios only; complete Tier B remains unaccepted.
+
+## Internal single-file crash boundaries (2026-10-23)
+
+The test-only crash harness now pauses the real single-file publisher after
+exclusive temporary creation, before/after fsync, and before/after the actual
+hard-link create. The parent terminates its own paused child without publisher
+cleanup. Each point is tested for both the first artifact and final marker:
+10 crash scenarios in 5 tests, plus invalid-scenario and missing-ack guards.
+
+A fresh spawned observer inspects the leftovers and performs an exact-byte
+low-level retry. Each crash leaves an owned test temporary file. The directory
+verifier rejects that unexpected entry before and after retry, including when
+a complete marker was already linked. Retry preserves all observed bytes and
+does not remove the orphan. Thus a low-level publish result or visible marker
+alone is not completion/recovery authorization.
+
+This supplements completed-file boundary tests; it does not change production
+publication/recovery code, authorize orphan cleanup, establish a full restart
+workflow or prove power-loss durability. Interception is limited to test child
+processes. All roots retain the existing fresh UUID/selected-parent/explicit-ack
+guards. Tests remove only their own synthetic root after assertions.
+
+[PC-B internal-crash follow-up](../tests/evidence/pc-b-internal-crash-local-volume-20261023.json) records 21 passing tests without skips on the operator-confirmed intended local fixed NTFS volume. This includes 10 internal crash scenarios and earlier boundary/ownership/reparse checks at source commit 63e5a4d5af674912940d8fa0ee26c726b06eb78b. Tier B remains incomplete; PC-A, remaining source-race and integration acceptance are still required.
