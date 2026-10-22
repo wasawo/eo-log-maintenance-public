@@ -238,3 +238,7 @@ The spawned-process synthetic test for competing marker-last publishers with con
 ## Target-filesystem acceptance gate (2026-10-22)
 
 `docs/target-filesystem-acceptance.md` defines Tier A hosted CI, Tier B disposable local-volume tests on each operator PC, and Tier C separately gated synchronized/network target qualification. Tier B and Tier C have not been run. Do not treat CI success as proof of operator-PC, Google Drive for desktop, network filesystem, remote visibility, or power-loss durability. P0 remains open.
+
+## Actual process-crash boundary evidence (2026-10-23)
+
+P0-010/P0-012 remain open. The test-only crash harness adds fresh-process verification and idempotent retry after actual termination at each completed-file publication boundary. No runtime module, Drive operation, archive or source/Drive deletion is introduced. This is synthetic OS-temp evidence only, not Tier B/C or power-loss qualification.

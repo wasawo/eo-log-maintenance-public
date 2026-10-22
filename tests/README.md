@@ -109,3 +109,40 @@ The marker-last publication test suite includes a spawned-process race in which 
 ## Target-filesystem acceptance tiers
 
 See `docs/target-filesystem-acceptance.md`. Hosted Windows CI covers Tier A synthetic tests only. Tier B disposable local-volume tests on each operator PC and Tier C synchronized/network-target qualification have not been run. A green CI result must not be reported as evidence for Google Drive for desktop semantics, remote upload completion, network filesystem behavior, or power-loss durability. Any future crash-injection harness must use an explicitly supplied disposable test root and must refuse production log, archive, and shared Drive roots.
+
+
+## Synthetic crash-boundary harness (2026-10-23)
+
+`tests/crash_publication_harness.py` terminates only its own spawned publisher
+after a checkpoint before publication and after each completed atomic publish
+(two synthetic payloads, then marker). A fresh interpreter observes the directory
+before an exact-byte retry. Missing/partial sets must not be committed; only the
+complete marker-bound set is committed, and retry must preserve existing bytes.
+This covers process termination between completed single-file publications, not
+power loss or termination inside the atomic single-file primitive.
+
+The first harness slice is deliberately Tier A only: require explicit disposable
+acknowledgement and a new `eo-crash-harness-<32 lowercase hex digits>` directory
+directly beneath the resolved OS temp directory. Existing paths (including empty
+directories), relative/traversal paths, reparse ancestors, and non-fixed Windows
+temp volumes are rejected. No arbitrary target-volume/Drive/network path is
+accepted. Scenario artifacts are retained; the harness never cleans existing
+artifacts. The unittest owns and removes only its freshly created test root.
+
+Run the regression matrix using:
+
+```powershell
+python -m unittest discover -s tests -p "test_crash_publication_harness.py" -v
+```
+
+An explicit local-only invocation is also supported:
+
+```powershell
+$disposableRoot = Join-Path ([IO.Path]::GetTempPath()) ("eo-crash-harness-" + [guid]::NewGuid().ToString("N"))
+python tests/crash_publication_harness.py --disposable-root $disposableRoot --acknowledge-disposable
+```
+
+The CLI prints the requested root locally before writes for operator review;
+never copy that line into public evidence. Machine-readable results contain
+scenario IDs, exit codes and invariants, not private paths. Tier B/Tier C, lock
+integration, operator-volume qualification and runtime entry points remain open.
