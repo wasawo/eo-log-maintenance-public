@@ -80,7 +80,7 @@ def run_local_volume_checks(
         suite = unittest.TestSuite()
         for module in ("test_crash_publication_harness", "test_internal_publication_crash",
                        "test_owned_publication_integration",
-                       "test_artifact_directory_reparse"):
+                       "test_artifact_directory_reparse", "test_source_inventory_reparse"):
             suite.addTests(unittest.defaultTestLoader.loadTestsFromName(module))
         # Retain diagnostics in memory; never emit raw traces/paths/hostnames.
         result = unittest.TextTestRunner(stream=io.StringIO(), verbosity=0).run(suite)

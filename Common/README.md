@@ -69,3 +69,5 @@ Bootstrap/create-once migration is a separate pending implementation.
 See [configuration specification](../docs/configuration-local-root.md#create-only-configuration-bootstrap-helper) for Initialize-EoMachineConfiguration, safety boundaries and pending deployment integration. Run tests/Test-MachineConfigurationBootstrap.ps1 for synthetic create-once and preservation checks.
 
 SourceInventoryEvidenceBuilder checks source pathname and open-handle identity before/after hashing. Observable mismatch or unavailable identity keeps enumeration incomplete. This is not a snapshot or a guard covering later use; see [filesystem evidence](../docs/target-filesystem-acceptance.md#source-hash-handle-identity-2026-10-23).
+
+Source inventory rejects lstat symlink/reparse root/ancestors, rechecks queued directories, classifies fresh entry attributes and checks file paths before/after hashing. Unknown attributes fail closed. See [source reparse evidence and limits](../docs/target-filesystem-acceptance.md#source-inventory-reparse-rejection-2026-10-23).

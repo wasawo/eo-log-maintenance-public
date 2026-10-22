@@ -8,20 +8,20 @@
 
 ## 最新基準
 
-- 基準main: e7d4e8e600a6f744fde4801565afe043b45d10c6（PR #11マージ）。
-- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39834657799) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39834657703) 成功を照合。
-- PR #11 HEAD 610079f7de2b1c963d572a3c2335f8471f4c8e59 のValidate 39834335518 / Package 39834335801成功後マージ。内部5境界×先頭artifact/最後markerの10クラッシュケースと残骸拒否を検証済み。
-- PC-B予定ローカル固定NTFSの21テスト成功・スキップなし。部分証拠 tests/evidence/pc-b-internal-crash-local-volume-20261023.json。Tier B全体は未受け入れ。
+- 基準main: 3ae8b76a5025c7abc43943f03915efbf8e2585e3（PR #12マージ）。
+- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39841288497) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39841288504) 成功を照合。
+- PR #12最新HEAD ee356be0e7a15de8b7e712a44ee46a69a79eae30 の39840997905 / 39840997808成功後マージ。旧HEADのPackage workflow停止はjob成功で代替せず、未反映だった引き継ぎを反映した新HEADの通常CIで検証した。
+- PR #11はe7d4e8e600a6f744fde4801565afe043b45d10c6へマージ済み。main 39834657799 / 39834657703成功。PC-B予定NTFSの21テスト部分証拠は tests/evidence/pc-b-internal-crash-local-volume-20261023.json。
 - 利用者は優先順の継続と、最新HEADの必要検査成功後のマージを承認。初回確認後90秒間隔で最大5回再確認し、未完/失敗ならマージしない。
-- 作業先は新クローン。ブランチ fix/source-hash-handle-identity。
+- 新クローンのブランチ fix/source-inventory-reparse-guards。以前の未コミット再現テストを保持して移り、今回の修正へ統合。
 
-## 現在の作業: 元ファイルhashのハンドルidentity照合
+## 現在の作業: 元ログ列挙のreparse拒否
 
-- 同サイズ/同mtimeの別ファイルへopen直前に実差し替え、close後に元へ戻すと旧helperが別内容のhashを採用する欠陥を合成テストで再現（修正前1件失敗）。
-- Common/SourceInventoryEvidenceBuilder.pyで前後pathname statとopen-handle前後fstatのdevice/inode/size/mtimeを比較。不一致はsource_mutation_detected、fstat失敗はsource_file_unavailableとして未完了にする。元ファイルへ書込/削除を追加しない。
-- 回帰5件（実差し替え復元・正常・fstat前後失敗・schema-valid未完了/非漏えい）と既存builder7件がローカル成功。全Python149テスト成功、既存symlink権限で2件スキップ。
-- CI登録と範囲/限界の文書を同じPRへ追加。最新HEAD CI・PR/マージは未確定。
-- 同一objectで内容/metadataを戻す変更、最後の確認後の変更、root/ancestor reparse、列挙全体のsnapshot、後続uploadまでの保証は未実証。source-race全体やP0を完了扱いしない。
+- SourceInventoryEvidenceBuilderでroot/ancestorをresolveせずlstatで検査。scandir前にqueued directoryを再確認し、entryをfresh lstat属性で分類。hash前後にもpath/ancestorを検査。
+- root/ancestor junctionはsource_root_invalid、属性不明rootはsource_root_unavailable。子entry拒否/属性不明はenumeration_errorsを増やし未完了。元ログへ書込/削除は追加しない。
+- 実Windows junction root/ancestor/childの修正前3件失敗を修正後成功。queued directory差し替え、root/entry属性失敗、hash直前ancestor拒否を加え7件成功。CIとopt-in local-volumeへ登録。全Python156テスト成功、既存symlink権限の2件スキップ。
+- 最新HEAD CI・PR/マージは未確定。PC-B予定ローカル固定NTFSで28テスト成功、スキップなし。tests/evidence/pc-b-source-reparse-local-volume-20261023.json にソースfecffed823e5de44c4357b18d57db293e7007f70の部分証拠を保存。実パス/ドライブ文字なし。
+- atomic snapshot、任意の敵対的namespace変更、物理approved-root/cross-root gate、後続利用までの保護、正式復旧/同期入口、Tier B全体/P0受け入れは未完了。
 
 ## 設定基盤の完了範囲
 
@@ -51,7 +51,7 @@
 |---|---|---|
 | 1: クラッシュ注入 | 成果物間の公開境界の合成ハーネス実装済み | 単一ファイル内部5境界×2公開対象と残骸拒否の合成検証はPR #11でマージ済み。電源断試験へ拡大解釈しない |
 | 2: 所有権/復旧/公開統合 | 合成統合証拠を追加済み | stale記録の実運用回復、新run/fresh inventory生成、source-race/検証から利用までの保護は未完了。記録の自動削除/引き継ぎを勝手に実装しない |
-| 3: Tier B | PC-Bの21件部分証拠のみ | PC-Aの予定ボリュームで実行、残るadversarial FS/source-race/統合条件を収集。Tier B全体は未受け入れ |
+| 3: Tier B | PC-Bの28件部分証拠のみ | PC-Aの予定ボリュームで実行、残るadversarial FS/source-race/統合条件を収集。Tier B全体は未受け入れ |
 | 4: 設定/初期導入 | maintenanceLocalと構造ローダーはマージ済み | create-only補助処理はPR #10でマージ済み。物理root gate・正式導入入口・最終allowlist/移行は未完了 |
 | 5: Drive/IPC | 未実装・契約/認証の決定待ち | Python1呼出し1試行、PowerShell再試行、不明結果照合、metadataだけの検証拒否。OSD-05と契約条項を解決 |
 | 6: 正式同期 | 未実装 | 承認済みOSD-02/03と残る遷移表を整合し、安全ゲート完了後に正式入口を統合 |
@@ -69,13 +69,3 @@
 - 承認済み（2026-10-23）: 両PC設定へ `maintenanceLocal`（そのPCのマニフェスト・検証証拠・レポートのローカル原本領域）を追加する。exampleはダミー、実値は非追跡設定、実行先/元ログ/Drive/archiveとの重複を拒否。実パスは推測しない。
 - OSD-04（Dry Run副作用）、OSD-05（Drive認証）、OSD-06/07（配布/保持）、OSD-08（予定実行）、OSD-09（最終allowlist/移行）と残る状態遷移/契約の承認・証拠は別途必要。
 - 台帳の古い「sentinelあり」「過去PRのCI待ち」などは現物と照合して関係PRで直す。台帳全体の再監査完了とはしない。
-
-## PR #12のCI停止状態と継続方針
-
-- PR #12: https://github.com/wasawo/eo-log-maintenance-public/pull/12
-- 旧HEAD 40ede6f07828942390acab4824e0906126e8c989 のValidate 39835109558はattempt 2で成功。初回はPSScriptAnalyzer外部ダウンロード失敗（全テスト後）。
-- Package Validation 39835109683は内部job 120021248758がcompleted/successでもworkflow全体はin_progress/conclusion null。前回90秒間隔5回と今回のGitHub API直接照合でも継続。job再実行はGitHubが403「workflow run already running」で拒否した。
-- この保留記録をPRへ反映し、新HEADの新しい両workflowで通常の全検証を行う。旧job成功や旧HEAD成功を流用しない。マージ前に新HEAD・両workflow成功・競合状態を照合する。
-- 次のジャンクション拒否テスト tests/test_source_inventory_reparse.py はローカル準備ファイルとして未コミット。root/ancestor/childの3拒否漏れを実ジャンクションで再現済み（意図した失敗テスト）。PR #12に混ぜない。
-- 未コミットの準備テスト込みのworking tree全体をgreenとしない。149テスト成功・2スキップはPR #12実装の検証結果。
-- PR #12マージ後に新ブランチへ準備テストを保持して移り、列挙前root/ancestorとentryのlstat reparse拒否・再確認を実装する。実ログ/Driveや設定値は使用しない。

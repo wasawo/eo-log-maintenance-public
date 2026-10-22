@@ -1,0 +1,27 @@
+{
+  "checks_passed": true,
+  "environment": {
+    "filesystem": "NTFS",
+    "os": "Windows",
+    "os_version": "10.0.26300",
+    "pc_role": "PC-B",
+    "python_version": "3.11.9",
+    "root_category": "new-disposable-repository-child",
+    "source_commit": "fecffed823e5de44c4357b18d57db293e7007f70",
+    "volume_category": "operator-confirmed-intended-local-fixed-volume"
+  },
+  "error_count": 0,
+  "evidence_limit": "synthetic-process-crashes-not-power-loss-or-Drive",
+  "failed_test_ids": [],
+  "failure_count": 0,
+  "recorded_at_utc": "2026-10-22T19:37:54.552703Z",
+  "remaining": [
+    "PC-A intended-volume evidence",
+    "remaining adversarial filesystem/source-race cases",
+    "all required integration and source-race acceptance"
+  ],
+  "schema_version": 1,
+  "skipped_count": 0,
+  "tests_run": 28,
+  "tier_b_acceptance": "incomplete"
+}

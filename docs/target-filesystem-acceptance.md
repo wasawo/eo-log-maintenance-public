@@ -192,3 +192,29 @@ content modifications that restore all compared metadata, changes after the
 last check, directory enumeration races and arbitrary hostile filesystem
 changes remain outside this evidence. No source writes or cleanup are added
 to the helper; only tests mutate their own synthetic fixtures.
+
+## Source inventory reparse rejection (2026-10-23)
+
+SourceInventoryEvidenceBuilder inspects lstat metadata without resolving away
+links: source root and all ancestors before enumeration, each queued directory
+again before scandir, each discovered entry before classification, and file
+paths/ancestors before and after hashing. Symlinks and Windows reparse attributes
+are rejected. Invalid root/ancestor fails with source_root_invalid; unavailable
+root metadata fails with source_root_unavailable. Child rejection or uncertain
+entry metadata increments enumeration_errors and keeps enumeration incomplete.
+
+Seven regressions use freshly acknowledged synthetic roots. They reproduce
+and reject actual Windows junction roots, ancestors and children, a queued
+directory changed to a junction, unavailable root/entry metadata, and a junction
+ancestor presented directly to the hash helper. Rejected roots are not scanned;
+rejected children are not hashed; synthetic target content remains unchanged.
+The tests are registered in CI and the opt-in intended-local-volume suite.
+
+These checks close observed traversal gaps, not an atomic directory snapshot,
+an approved-root/cross-root physical identity gate, or a guarantee against
+arbitrary namespace mutation between checks. Formal runtime integration,
+source revalidation until later use, PC-A evidence, Tier B completion and Tier C
+qualification remain pending. No source writes, link deletion, remote operation
+or cleanup capability is added to production helpers.
+
+[PC-B source-reparse follow-up](../tests/evidence/pc-b-source-reparse-local-volume-20261023.json) records 28 passing checks with no skips at source fecffed823e5de44c4357b18d57db293e7007f70 on the intended local fixed NTFS volume. This adds source root/ancestor/entry/queued-junction checks to prior crash, ownership and artifact reparse cases. Full Tier B remains incomplete; it is not source snapshot or later-use authorization.
