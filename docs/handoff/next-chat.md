@@ -20,7 +20,7 @@
 - SourceInventoryEvidenceBuilderでroot/ancestorをresolveせずlstatで検査。scandir前にqueued directoryを再確認し、entryをfresh lstat属性で分類。hash前後にもpath/ancestorを検査。
 - root/ancestor junctionはsource_root_invalid、属性不明rootはsource_root_unavailable。子entry拒否/属性不明はenumeration_errorsを増やし未完了。元ログへ書込/削除は追加しない。
 - 実Windows junction root/ancestor/childの修正前3件失敗を修正後成功。queued directory差し替え、root/entry属性失敗、hash直前ancestor拒否を加え7件成功。CIとopt-in local-volumeへ登録。全Python156テスト成功、既存symlink権限の2件スキップ。
-- 最新HEAD CI・PR/マージは未確定。PC-B追加部分証拠はソース確定後に記録する。
+- 最新HEAD CI・PR/マージは未確定。PC-B予定ローカル固定NTFSで28テスト成功、スキップなし。tests/evidence/pc-b-source-reparse-local-volume-20261023.json にソースfecffed823e5de44c4357b18d57db293e7007f70の部分証拠を保存。実パス/ドライブ文字なし。
 - atomic snapshot、任意の敵対的namespace変更、物理approved-root/cross-root gate、後続利用までの保護、正式復旧/同期入口、Tier B全体/P0受け入れは未完了。
 
 ## 設定基盤の完了範囲
@@ -51,7 +51,7 @@
 |---|---|---|
 | 1: クラッシュ注入 | 成果物間の公開境界の合成ハーネス実装済み | 単一ファイル内部5境界×2公開対象と残骸拒否の合成検証はPR #11でマージ済み。電源断試験へ拡大解釈しない |
 | 2: 所有権/復旧/公開統合 | 合成統合証拠を追加済み | stale記録の実運用回復、新run/fresh inventory生成、source-race/検証から利用までの保護は未完了。記録の自動削除/引き継ぎを勝手に実装しない |
-| 3: Tier B | PC-Bの21件部分証拠のみ | PC-Aの予定ボリュームで実行、残るadversarial FS/source-race/統合条件を収集。Tier B全体は未受け入れ |
+| 3: Tier B | PC-Bの28件部分証拠のみ | PC-Aの予定ボリュームで実行、残るadversarial FS/source-race/統合条件を収集。Tier B全体は未受け入れ |
 | 4: 設定/初期導入 | maintenanceLocalと構造ローダーはマージ済み | create-only補助処理はPR #10でマージ済み。物理root gate・正式導入入口・最終allowlist/移行は未完了 |
 | 5: Drive/IPC | 未実装・契約/認証の決定待ち | Python1呼出し1試行、PowerShell再試行、不明結果照合、metadataだけの検証拒否。OSD-05と契約条項を解決 |
 | 6: 正式同期 | 未実装 | 承認済みOSD-02/03と残る遷移表を整合し、安全ゲート完了後に正式入口を統合 |

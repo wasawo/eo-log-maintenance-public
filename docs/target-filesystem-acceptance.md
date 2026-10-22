@@ -216,3 +216,5 @@ arbitrary namespace mutation between checks. Formal runtime integration,
 source revalidation until later use, PC-A evidence, Tier B completion and Tier C
 qualification remain pending. No source writes, link deletion, remote operation
 or cleanup capability is added to production helpers.
+
+[PC-B source-reparse follow-up](../tests/evidence/pc-b-source-reparse-local-volume-20261023.json) records 28 passing checks with no skips at source fecffed823e5de44c4357b18d57db293e7007f70 on the intended local fixed NTFS volume. This adds source root/ancestor/entry/queued-junction checks to prior crash, ownership and artifact reparse cases. Full Tier B remains incomplete; it is not source snapshot or later-use authorization.
