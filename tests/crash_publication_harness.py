@@ -1,6 +1,6 @@
 """Synthetic process-crash evidence; never an operational recovery tool.
 
-Only a newly created, explicitly acknowledged child of the OS temporary directory
+Only a newly created, explicitly acknowledged child of the selected test parent
 is accepted. Test artifacts are retained, never cleaned up or repaired here.
 """
 from __future__ import annotations
@@ -36,11 +36,42 @@ class HarnessError(RuntimeError):
     """A fixed reason code, without paths or exception text."""
 
 
-def create_disposable_root(root: str | Path, *, acknowledged: bool = False) -> Path:
-    """Accept only a fresh UUID-named direct child of the local OS temp root.
+def disposable_parent() -> Path:
+    """Only OS temp or this checkout; never accept an arbitrary environment path."""
+    mode = os.environ.get("EO_TEST_VOLUME_MODE", "os-temp")
+    if mode == "os-temp":
+        return Path(tempfile.gettempdir()).resolve(strict=True)
+    if mode == "repository-local":
+        return Path(__file__).resolve().parents[1]
+    raise HarnessError("disposable_root_mode_invalid")
 
-    This first slice deliberately does not accept operator-selected volumes.
-    It is Tier A synthetic evidence, not Tier B qualification.
+
+def validate_disposable_parent(parent: Path) -> None:
+    for component in (parent, *parent.parents):
+        info = component.lstat()
+        if stat.S_ISLNK(info.st_mode) or (getattr(info, "st_file_attributes", 0) & 0x400):
+            raise HarnessError("disposable_root_reparse_component")
+        if component.name.casefold() in {"onedrive", "googledrive", "google drive", "my drive", "\u30de\u30a4\u30c9\u30e9\u30a4\u30d6"}:
+            raise HarnessError("disposable_root_synchronized_location")
+    for key in ("OneDrive", "OneDriveCommercial", "OneDriveConsumer", "GoogleDrive"):
+        value = os.environ.get(key)
+        if value:
+            synced = Path(value).resolve()
+            if parent == synced or synced in parent.parents:
+                raise HarnessError("disposable_root_synchronized_location")
+    if os.name == "nt":
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel.GetDriveTypeW.argtypes = [ctypes.c_wchar_p]
+        kernel.GetDriveTypeW.restype = ctypes.c_uint
+        if kernel.GetDriveTypeW(parent.anchor) != 3:
+            raise HarnessError("disposable_root_not_fixed_local_volume")
+
+
+def create_disposable_root(root: str | Path, *, acknowledged: bool = False) -> Path:
+    """Accept only a fresh UUID-named direct child of the selected test parent.
+
+    The opt-in volume runner may select this checkout instead of OS temp.
+    No arbitrary path is accepted; this alone is not full Tier B qualification.
     """
     if acknowledged is not True:
         raise HarnessError("disposable_acknowledgement_required")
@@ -50,21 +81,10 @@ def create_disposable_root(root: str | Path, *, acknowledged: bool = False) -> P
     if not re.fullmatch(r"eo-crash-harness-[0-9a-f]{32}", candidate.name):
         raise HarnessError("disposable_root_name_invalid")
     try:
-        temp = Path(tempfile.gettempdir()).resolve(strict=True)
-        if candidate.parent != temp:
-            raise HarnessError("disposable_root_not_local_temp_child")
-        for component in (temp, *temp.parents):
-            info = component.lstat()
-            if stat.S_ISLNK(info.st_mode) or (
-                getattr(info, "st_file_attributes", 0) & 0x400
-            ):
-                raise HarnessError("disposable_root_reparse_component")
-        if os.name == "nt":
-            kernel = ctypes.WinDLL("kernel32", use_last_error=True)
-            kernel.GetDriveTypeW.argtypes = [ctypes.c_wchar_p]
-            kernel.GetDriveTypeW.restype = ctypes.c_uint
-            if kernel.GetDriveTypeW(temp.anchor) != 3:  # DRIVE_FIXED
-                raise HarnessError("disposable_root_not_fixed_local_volume")
+        parent = disposable_parent()
+        if candidate.parent != parent:
+            raise HarnessError("disposable_root_not_selected_parent_child")
+        validate_disposable_parent(parent)
         # Existing folders, links and dangling links must never be adopted.
         candidate.mkdir(exist_ok=False)
     except HarnessError:

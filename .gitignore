@@ -19,3 +19,6 @@ Thumbs.db
 # Python generated files
 __pycache__/
 *.py[cod]
+
+# Fresh, test-only local-volume qualification roots (never runtime data)
+/eo-crash-harness-*/

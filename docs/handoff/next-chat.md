@@ -8,24 +8,24 @@
 ## 最新基準・完了事項
 
 - 正本: `wasawo/eo-log-maintenance-public`（Public）。元リポジトリは Private。
-- GitHub main: `feecbcc34858cbae9d6bf9d07b1f3fc3283c8ee8`。PR #3 のスカッシュマージを確認。
+- GitHub main: `44b700268a1e69284f52fcb782e1b8547c6e9f87`。PR #4 のスカッシュマージを確認。
 - main の [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39820210106) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39820210102) は同SHAで成功。
 - PR #1: 正本参照更新・旧PR #168の受け入れ計画移植がマージ済み。マージSHA `40357512cb1c1327fd1cbfdf34e7596ee20a327d` のmain CIも両方成功。
 - PR #2: リポジトリ固有ルールを AGENTS.md、進捗を本書へ分離し、長い過去記録を保存。マージ済み。
 - 実設定 `Config/PC-A.json` / `Config/PC-B.json` は .gitignore 対象。汎用名 config.json は現行の設定名ではなく除外対象でもない。
 - ローカル作業ブランチ: test/owned-publication-recovery-integration。PC-B端末で作業中。前作業の残作業整理をPR #3へ保全済み。
 
-## 現在の作業: 優先順位2の所有権・復旧・公開統合テスト
+## 現在の作業: PC-Bの予定ローカルボリュームでの部分証拠
 
-- PR #3（https://github.com/wasawo/eo-log-maintenance-public/pull/3）をマージ済み。HEAD a44adc833309706345bf0c2872927d4f16857d23 の Validate 39821756925 / Package Validation 39821757018 成功後にスカッシュマージ。
-- マージSHA feecbcc34858cbae9d6bf9d07b1f3fc3283c8ee8 の main Validate 39822076933 / Package Validation 39822077240 も成功。旧PR #2のmain CIと区別して確認。
-- ブランチ: test/owned-publication-recovery-integration（PR #3マージ済みmainから作成）。
-- 実Windows mutexと子プロセスで、競合時の公開拒否、所有権付き正常終了/再試行、実放棄状態の拒否、token不一致の記録保持、検証後の外部変更検出を追加。
-- 実際に残ったロック記録とschema-validな合成running manifestを復旧判定へ入力。否定条件は拒否し、肯定でも新run/fresh inventoryを要求。旧記録の自動引き継ぎ・削除は実装しない。
-- 新規4テストと全Python129テスト（symlink権限で2件スキップ）がローカル成功。公開PR最新HEAD CIは確認中。この統合テストPRは未マージ。
-- 順位1の最初のTier Aハーネスは完了。順位2の合成統合証拠を拡充中で、実運用の復旧・正式入口統合完了ではない。
-- 次のTier Bは端末はPC-Bと確認済み、想定ローカルボリュームの回答待ち。現在のtemp専用ハーネスを任意の実運用領域で実行しない。
-- 利用者は最新HEADの必要検査成功後のマージと次作業の継続を承認済み。CI初回確認後90秒間隔で最大5回。
+- PR #4（https://github.com/wasawo/eo-log-maintenance-public/pull/4）マージ済み。HEAD 80e1c91c35fec637a20acce9b8e80d1c0e6b71f5 の Validate 39822745714 / Package Validation 39822746256 成功後にマージ。
+- マージSHA 44b700268a1e69284f52fcb782e1b8547c6e9f87 の main Validate 39823075893 / Package Validation 39823076056 も成功。
+- ブランチ: test/opt-in-local-volume-evidence。端末はPC-B、将来の管理成果物の原本は予定ローカル固定ディスクへ保存。実パス・実ボリューム文字は公開記録に残さない。
+- tests/run_local_volume_checks.py は役割・予定ボリュームとの一致・明示ackを要求し、このcheckout直下の新規使い捨て領域だけでクラッシュ/実mutexの合成テストを実行する。任意rootは受け付けない。
+- デフォルトCIは従来のOS temp、明示local-volumeモードのみcheckoutを使用。既存root/reparse/既知同期領域を拒否し、生成rootはGit除外。
+- ローカル全Python133テスト成功（symlink権限で2件スキップ）。PC-B予定固定ボリュームのNTFS上でも対象10テストが全成功（スキップなし）。tests/evidence/pc-b-local-volume-20261023.json に実パス非公開の部分証拠を保存。PR最新HEAD CIは未確定。
+- PC-Bの部分証拠が成功しても、PC-A側、全adversarial filesystem行、source-race/残る統合条件を満たすまでTier B全体は未完了。実運用復旧・正式入口統合・Tier Cは未実施。
+- 次の順位4では、設定ローダーの確定済み条件とOSD-09の未決事項を分離して設計する。導入方式を推測しない。
+- CIは初回後90秒間隔・最大5回。最新HEADの必要検査成功後のマージと継続が承認済み。
 
 ## 実装・証拠の現在地
 

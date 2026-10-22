@@ -167,3 +167,26 @@ The tests preserve that manifest, lock record and published bytes; operational
 recovery and lock-protected use of real source/Drive data remain unimplemented.
 This is hosted/local synthetic evidence, not Tier B/C or complete runtime
 integration. P0-010/P0-012 remain open.
+
+
+## Opt-in intended-local-volume evidence
+
+`tests/run_local_volume_checks.py` requires PC role, expected local drive and
+explicit disposable acknowledgement. It accepts no arbitrary root path: the
+expected drive must match this checkout's fixed local volume. It runs the crash
+matrix and owned-publication tests using fresh UUID-named children of this
+checkout, with existing/reparse/known synchronized locations rejected.
+Default CI tests continue to use OS temp. Unknown environment modes are rejected.
+
+```powershell
+# Set $plannedVolume locally; do not commit its real value or any real paths.
+python tests/run_local_volume_checks.py --pc-role PC-B --expected-volume $plannedVolume --acknowledge-disposable
+```
+
+Generated root directories are Git-ignored. The unittest removes only roots it
+created. JSON output includes role, source commit, UTC timestamp, Windows/Python
+versions, filesystem type, counts and sanitized result identifiers. It excludes
+absolute paths, volume letters/labels/serials, usernames, hostnames and lock tokens.
+A passing subset is explicitly recorded as incomplete Tier B acceptance:
+PC-A evidence, complete adversarial filesystem cases and remaining required
+integration/source-race acceptance are not inferred from these checks.
