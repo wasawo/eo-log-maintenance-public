@@ -206,3 +206,27 @@ roots, asserts that root/ancestor rejection occurs before artifact read, rejects
 a junction under an expected artifact name, and injects a sanitized read failure
 without modifying existing bytes. CI runs this Windows suite; local-volume
 evidence now includes it. P0 and remaining Tier B/C gates stay open.
+
+
+## Read-only configuration structure loader
+
+`Common/MachineConfiguration.ps1` provides
+`ConvertFrom-EoMachineConfigurationJson` and `Read-EoMachineConfiguration`.
+The reader accepts strict UTF-8 (optional BOM), returns a fresh validated object,
+and never creates configuration, root directories, manifests or other artifacts.
+
+The parser rejects non-object/malformed JSON, duplicate/unknown/missing keys,
+wrong primitive types, role mismatch, non-drive-qualified/ambiguous path syntax,
+and maintenanceLocal equality/ancestor/descendant overlap after normalization.
+PC-B must omit allowArchive; PC-A may explicitly set a boolean true or false.
+A true value is configuration data only, never archive authorization.
+
+Errors are fixed reason codes without rejected values, file contents or private
+paths. The package builder shares this structural parser and additionally
+requires safe template defaults (PC-A allowArchive false).
+
+This is structural/lexical evidence, not an approved-root filesystem gate.
+It does not inspect actual target volumes, resolve short-name/reparse aliases,
+prove cross-root physical separation, acquire a runtime lock, contact Drive,
+or integrate official entry points. Those checks remain mandatory before effects.
+Bootstrap/create-once migration is a separate pending implementation.

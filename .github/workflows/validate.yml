@@ -99,6 +99,10 @@ jobs:
         shell: pwsh
         run: ./tests/Test-LogFunctions.ps1
 
+      - name: Run read-only machine configuration tests
+        shell: pwsh
+        run: ./tests/Test-MachineConfiguration.ps1
+
       - name: Run aggregation report internal consistency tests
         shell: pwsh
         run: ./tests/Test-AggregationReportValidation.ps1

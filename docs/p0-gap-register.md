@@ -246,3 +246,7 @@ P0-010/P0-012 remain open. The test-only crash harness adds fresh-process verifi
 ## Owned publication/recovery integration evidence (2026-10-23)
 
 Real Windows mutex tests now compose ownership, publication, directory revalidation and pure recovery decisions using synthetic temporary files. Contention, abandonment, owner mismatch and changed bytes fail closed; prior manifests/records remain intact. This does not implement operational stale-record adoption or close P0-010/P0-012. Tier B/C and official runtime integration remain open.
+
+## Read-only active configuration structure slice (2026-10-23)
+
+Common/MachineConfiguration.ps1 adds a shared strict structure parser/read-only UTF-8 reader and 285 synthetic assertions for required fields, duplicate/unknown/type/role failures, maintenanceLocal overlap and non-mutation. P0-006/P0-009/P0-010/P0-012 remain open: no physical approved-root gate, actual-volume authorization, bootstrap/migration or official runtime integration is established. Template defaults remain separately restricted.
