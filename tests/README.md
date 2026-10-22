@@ -230,3 +230,7 @@ It does not inspect actual target volumes, resolve short-name/reparse aliases,
 prove cross-root physical separation, acquire a runtime lock, contact Drive,
 or integrate official entry points. Those checks remain mandatory before effects.
 Bootstrap/create-once migration is a separate pending implementation.
+
+## Create-only configuration bootstrap helper
+
+See [configuration specification](../docs/configuration-local-root.md#create-only-configuration-bootstrap-helper) for Initialize-EoMachineConfiguration, safety boundaries and pending deployment integration. Run tests/Test-MachineConfigurationBootstrap.ps1 for synthetic create-once and preservation checks.

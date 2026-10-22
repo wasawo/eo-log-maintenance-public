@@ -250,3 +250,5 @@ Real Windows mutex tests now compose ownership, publication, directory revalidat
 ## Read-only active configuration structure slice (2026-10-23)
 
 Common/MachineConfiguration.ps1 adds a shared strict structure parser/read-only UTF-8 reader and 285 synthetic assertions for required fields, duplicate/unknown/type/role failures, maintenanceLocal overlap and non-mutation. P0-006/P0-009/P0-010/P0-012 remain open: no physical approved-root gate, actual-volume authorization, bootstrap/migration or official runtime integration is established. Template defaults remain separately restricted.
+
+Create-only bootstrap helper (2026-10-23): Common/MachineConfigurationBootstrap.ps1 adds opt-in safe-example initialization and byte-preservation for existing settings. Tests cover both PC roles and sanitized failures. This is not a production installer, migration/OSD-09 approval, physical runtime gate, or P0 closure; the earlier read-only-loader note describes PR #9 scope.
