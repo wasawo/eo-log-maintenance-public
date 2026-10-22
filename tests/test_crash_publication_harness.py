@@ -7,21 +7,21 @@ import unittest
 from uuid import uuid4
 
 from crash_publication_harness import (
-    HarnessError, MARKER, PAYLOADS, create_disposable_root,
+    HarnessError, MARKER, PAYLOADS, create_disposable_root, disposable_parent,
     observe_fresh, run_crash_matrix,
 )
 
 
 class CrashPublicationHarnessTests(unittest.TestCase):
     def setUp(self):
-        self.root = Path(tempfile.gettempdir()).resolve() / (
+        self.root = disposable_parent() / (
             "eo-crash-harness-" + uuid4().hex
         )
         self.addCleanup(self.cleanup_owned_root)
 
     def cleanup_owned_root(self):
         if self.root.exists():
-            assert self.root.parent == Path(tempfile.gettempdir()).resolve()
+            assert self.root.parent == disposable_parent()
             assert self.root.name.startswith("eo-crash-harness-")
             assert not self.root.is_symlink()
             shutil.rmtree(self.root)

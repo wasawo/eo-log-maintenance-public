@@ -17,7 +17,7 @@ from uuid import uuid4
 
 from crash_publication_harness import (
     HarnessError, PAYLOADS, TRANSACTION_ID, _hashes, _receive, _stop,
-    create_disposable_root,
+    create_disposable_root, disposable_parent,
 )
 from Common.ArtifactSetDirectoryVerification import verify_published_artifact_set
 from Common.ArtifactSetPublication import publish_artifact_set_marker_last
@@ -77,7 +77,7 @@ def _owned_worker(scope, record, artifacts, prior, connection, mode):
 @unittest.skipUnless(os.name == "nt", "real Windows named mutex required")
 class OwnedPublicationIntegrationTests(unittest.TestCase):
     def setUp(self):
-        self.root = Path(tempfile.gettempdir()).resolve() / (
+        self.root = disposable_parent() / (
             "eo-crash-harness-" + uuid4().hex
         )
         create_disposable_root(self.root, acknowledged=True)
@@ -90,7 +90,7 @@ class OwnedPublicationIntegrationTests(unittest.TestCase):
         self.context = multiprocessing.get_context("spawn")
 
     def cleanup_owned_root(self):
-        assert self.root.parent == Path(tempfile.gettempdir()).resolve()
+        assert self.root.parent == disposable_parent()
         assert self.root.name.startswith("eo-crash-harness-")
         assert not self.root.is_symlink()
         shutil.rmtree(self.root)
