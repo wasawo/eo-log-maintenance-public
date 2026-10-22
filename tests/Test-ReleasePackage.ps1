@@ -44,8 +44,8 @@ try {
     Set-Content (Join-Path $fixture 'contracts/aggregation-report-v1.schema.json') '{}'
     Set-Content (Join-Path $fixture 'contracts/manifest-v1.schema.json') '{}'
     Set-Content (Join-Path $fixture 'contracts/run-input-evidence-v1.schema.json') '{}'
-    Set-Content (Join-Path $fixture 'Config/PC-A.example.json') '{"machineId": "PC-A","role": "primary","runtimeRoot": "C:\\Example\\PCA\\Runtime","battleLogLocal": "C:\\Example\\PCA\\Source\\BattleLog","errorLogLocal": "C:\\Example\\PCA\\Source\\ErrorReport","battleLogDrive": "G:\\ExampleDrive\\SharedLogs\\BattleLog","errorLogDrive": "G:\\ExampleDrive\\SharedLogs\\ErrorReport","maintenanceDrive": "G:\\ExampleDrive\\SharedLogs\\_maintenance","battleLogArchive": "C:\\Example\\PCA\\Archive\\BattleLog","errorLogArchive": "C:\\Example\\PCA\\Archive\\ErrorReport","allowArchive": false}'
-    Set-Content (Join-Path $fixture 'Config/PC-B.example.json') '{"machineId": "PC-B","role": "secondary","runtimeRoot": "C:\\Example\\PCB\\Runtime","battleLogLocal": "C:\\Example\\PCB\\Source\\BattleLog","errorLogLocal": "C:\\Example\\PCB\\Source\\ErrorReport","battleLogDrive": "G:\\ExampleDrive\\SharedLogs\\BattleLog","errorLogDrive": "G:\\ExampleDrive\\SharedLogs\\ErrorReport","maintenanceDrive": "G:\\ExampleDrive\\SharedLogs\\_maintenance"}'
+    Set-Content (Join-Path $fixture 'Config/PC-A.example.json') '{"machineId":"PC-A","role":"primary","runtimeRoot":"C:\\Example\\PCA\\Runtime","battleLogLocal":"C:\\Example\\PCA\\Source\\BattleLog","errorLogLocal":"C:\\Example\\PCA\\Source\\ErrorReport","battleLogDrive":"G:\\ExampleDrive\\SharedLogs\\BattleLog","errorLogDrive":"G:\\ExampleDrive\\SharedLogs\\ErrorReport","maintenanceDrive":"G:\\ExampleDrive\\SharedLogs\\_maintenance","battleLogArchive":"C:\\Example\\PCA\\Archive\\BattleLog","errorLogArchive":"C:\\Example\\PCA\\Archive\\ErrorReport","allowArchive":false,"maintenanceLocal":"C:\\Example\\PCA\\Maintenance"}'
+    Set-Content (Join-Path $fixture 'Config/PC-B.example.json') '{"machineId":"PC-B","role":"secondary","runtimeRoot":"C:\\Example\\PCB\\Runtime","battleLogLocal":"C:\\Example\\PCB\\Source\\BattleLog","errorLogLocal":"C:\\Example\\PCB\\Source\\ErrorReport","battleLogDrive":"G:\\ExampleDrive\\SharedLogs\\BattleLog","errorLogDrive":"G:\\ExampleDrive\\SharedLogs\\ErrorReport","maintenanceDrive":"G:\\ExampleDrive\\SharedLogs\\_maintenance","maintenanceLocal":"C:\\Example\\PCB\\Maintenance"}'
     Set-Content (Join-Path $fixture 'scripts/README.md') '# Scripts'
     Set-Content (Join-Path $fixture 'Common/README.md') '# Common'
     Set-Content (Join-Path $fixture 'scripts/ArchiveAndUploadLogs.ps1') 'Write-Output "legacy"'
@@ -161,6 +161,29 @@ try {
         @{ Name = 'pc-b-missing-path'; Path = 'Config/PC-B.example.json'; Mutation = { param($c) $c.PSObject.Properties.Remove('runtimeRoot') } },
         @{ Name = 'pc-b-relative-path'; Path = 'Config/PC-B.example.json'; Mutation = { param($c) $c.runtimeRoot = 'relative\runtime' } }
     )
+
+    foreach ($exampleRole in @('PC-A', 'PC-B')) {
+        $fixtureConfig = Get-Content (Join-Path $fixture "Config/$exampleRole.example.json") -Raw | ConvertFrom-Json
+        $rootProperties = @($fixtureConfig.PSObject.Properties.Name | Where-Object { $_ -notin @('machineId', 'role', 'allowArchive', 'maintenanceLocal') })
+        foreach ($pathProperty in $rootProperties) {
+            $capturedProperty = $pathProperty
+            $invalidConfigCases += @{
+                Name = "$exampleRole-maintenance-overlap-$pathProperty"
+                Path = "Config/$exampleRole.example.json"
+                Mutation = { param($c) $c.maintenanceLocal = $c.$capturedProperty }.GetNewClosure()
+            }
+        }
+        $invalidConfigCases += @(
+            @{ Name = "$exampleRole-maintenance-missing"; Path = "Config/$exampleRole.example.json"; Mutation = { param($c) $c.PSObject.Properties.Remove('maintenanceLocal') } },
+            @{ Name = "$exampleRole-maintenance-relative"; Path = "Config/$exampleRole.example.json"; Mutation = { param($c) $c.maintenanceLocal = 'relative\maintenance' } },
+            @{ Name = "$exampleRole-maintenance-wrong-type"; Path = "Config/$exampleRole.example.json"; Mutation = { param($c) $c.maintenanceLocal = 123 } },
+            @{ Name = "$exampleRole-maintenance-child"; Path = "Config/$exampleRole.example.json"; Mutation = { param($c) $c.maintenanceLocal = $c.runtimeRoot + '\child' } },
+            @{ Name = "$exampleRole-maintenance-parent"; Path = "Config/$exampleRole.example.json"; Mutation = { param($c) $c.maintenanceLocal = [IO.Path]::GetDirectoryName($c.runtimeRoot) } },
+            @{ Name = "$exampleRole-maintenance-case-trailing"; Path = "Config/$exampleRole.example.json"; Mutation = { param($c) $c.maintenanceLocal = $c.runtimeRoot.ToUpperInvariant() + '\' } },
+            @{ Name = "$exampleRole-maintenance-normalized"; Path = "Config/$exampleRole.example.json"; Mutation = { param($c) $c.maintenanceLocal = $c.runtimeRoot + '\child\..' } }
+        )
+    }
+
     foreach ($case in $invalidConfigCases) {
         $invalidRoot = Join-Path $tempRoot $case.Name
         New-Item -ItemType Directory -Path $invalidRoot -Force | Out-Null
@@ -179,6 +202,19 @@ try {
         }
         Assert-True $configRejected "Invalid example config was not rejected: $($case.Name)"
     }
+
+
+    # A common string prefix without a directory boundary is not containment.
+    $siblingRoot = Join-Path $tempRoot 'maintenance-sibling-root'
+    New-Item -ItemType Directory -Path $siblingRoot -Force | Out-Null
+    Copy-Item -Path (Join-Path $fixture '*') -Destination $siblingRoot -Recurse -Force
+    $siblingConfigPath = Join-Path $siblingRoot 'Config/PC-A.example.json'
+    $siblingConfig = Get-Content -LiteralPath $siblingConfigPath -Raw | ConvertFrom-Json
+    $siblingConfig.maintenanceLocal = $siblingConfig.runtimeRoot + '-data'
+    Set-Content -LiteralPath $siblingConfigPath -Value ($siblingConfig | ConvertTo-Json -Depth 10)
+    $siblingResult = & $builder -SourceRoot $siblingRoot -TargetRole PC-A -OutputDirectory (Join-Path $tempRoot 'maintenance-sibling-output')
+    Assert-True ($siblingResult.Status -eq 'deployable') 'A separate sibling prefix must be accepted.'
+
 
     # PC-A must not be treated as deployable without its archive entry point.
     $pcAWithoutArchive = Join-Path $tempRoot 'pc-a-without-archive'

@@ -16,6 +16,8 @@ ElectronicObserver の BattleLog / ErrorReport を、Windows PC-A と PC-B 間�
 
 ## PCごとの役割と実行パス
 
+maintenanceLocal は各PC自身のマニフェスト・検証証拠・レポートのローカル原本領域です。両PCの example に必須項目として追加し、実行先・元ログ・Drive・アーカイブとの重複を拒否します。[設定仕様](docs/configuration-local-root.md)を参照してください。実設定ローダー・初回生成と実ファイルシステムの分離検証は今後の実装です。
+
 以下と `Config/*.example.json` のパスは公開用のダミー値です。実運用値は Git 管理外の `Config/PC-A.json` / `Config/PC-B.json` に保存します。
 
 導入処理の要件は、対象PCの example 設定から実設定を未作成時のみ生成し、利用者の手動設定を実パスの入力だけにすることです。コピー・リネームは導入処理側で行い、更新時は既存の実設定を保持します。PC別の役割と安全な既定値はテンプレートで定義します。この導入処理と実設定のランタイム読み込みは未実装です。

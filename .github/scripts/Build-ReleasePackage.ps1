@@ -115,7 +115,7 @@ foreach ($exampleRole in @('PC-A', 'PC-B')) {
     $propertyNames = @($config.PSObject.Properties.Name)
     $commonProperties = @(
         'machineId', 'role', 'runtimeRoot', 'battleLogLocal', 'errorLogLocal',
-        'battleLogDrive', 'errorLogDrive', 'maintenanceDrive'
+        'battleLogDrive', 'errorLogDrive', 'maintenanceDrive', 'maintenanceLocal'
     )
     $allowedProperties = if ($exampleRole -eq 'PC-A') {
         @($commonProperties + @('battleLogArchive', 'errorLogArchive', 'allowArchive'))
@@ -144,6 +144,25 @@ foreach ($exampleRole in @('PC-A', 'PC-B')) {
         if ($pathValue -isnot [string] -or [string]::IsNullOrWhiteSpace($pathValue) -or $pathValue -notmatch '^[A-Za-z]:\\') {
             throw "Example configuration $relative property '$pathProperty' must be a non-empty absolute Windows drive path."
         }
+    }
+
+
+    # Template-level lexical separation only; runtime must also validate actual
+    # volume, reparse/alias, access and point-of-use identity constraints.
+    try {
+        $localRoot = [System.IO.Path]::GetFullPath($config.maintenanceLocal).TrimEnd([char[]]'\/')
+        foreach ($otherProperty in @($requiredProperties | Where-Object { $_ -notin @('machineId', 'role', 'allowArchive', 'maintenanceLocal') })) {
+            $otherRoot = [System.IO.Path]::GetFullPath($config.$otherProperty).TrimEnd([char[]]'\/')
+            $comparison = [System.StringComparison]::OrdinalIgnoreCase
+            if ($localRoot.Equals($otherRoot, $comparison) -or
+                $localRoot.StartsWith($otherRoot + '\', $comparison) -or
+                $otherRoot.StartsWith($localRoot + '\', $comparison)) {
+                throw 'root_overlap'
+            }
+        }
+    }
+    catch {
+        throw "Example configuration $relative maintenanceLocal must be a separate absolute root."
     }
 
     if ('allowDelete' -in $propertyNames) {
