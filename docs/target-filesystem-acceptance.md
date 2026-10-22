@@ -125,3 +125,7 @@ absolute paths, volume letters/labels/serials, usernames, hostnames and lock tok
 A passing subset is explicitly recorded as incomplete Tier B acceptance:
 PC-A evidence, complete adversarial filesystem cases and remaining required
 integration/source-race acceptance are not inferred from these checks.
+
+### Recorded partial PC-B evidence
+
+See [sanitized result](../tests/evidence/pc-b-local-volume-20261023.json): 10 synthetic crash/ownership checks passed on the operator-confirmed intended local fixed NTFS volume, with no skips. The result names the exact tested source commit. It is not complete Tier B acceptance; PC-A and the remaining adversarial filesystem/integration/source-race matrix remain open. The evidence contains no real paths or volume letters.

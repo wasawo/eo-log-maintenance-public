@@ -22,7 +22,7 @@
 - ブランチ: test/opt-in-local-volume-evidence。端末はPC-B、将来の管理成果物の原本は予定ローカル固定ディスクへ保存。実パス・実ボリューム文字は公開記録に残さない。
 - tests/run_local_volume_checks.py は役割・予定ボリュームとの一致・明示ackを要求し、このcheckout直下の新規使い捨て領域だけでクラッシュ/実mutexの合成テストを実行する。任意rootは受け付けない。
 - デフォルトCIは従来のOS temp、明示local-volumeモードのみcheckoutを使用。既存root/reparse/既知同期領域を拒否し、生成rootはGit除外。
-- ローカル全Python133テスト成功（symlink権限で2件スキップ）。対象ボリューム実行とその証跡はこれから確認。PR最新HEAD CIも未確定。
+- ローカル全Python133テスト成功（symlink権限で2件スキップ）。PC-B予定固定ボリュームのNTFS上でも対象10テストが全成功（スキップなし）。tests/evidence/pc-b-local-volume-20261023.json に実パス非公開の部分証拠を保存。PR最新HEAD CIは未確定。
 - PC-Bの部分証拠が成功しても、PC-A側、全adversarial filesystem行、source-race/残る統合条件を満たすまでTier B全体は未完了。実運用復旧・正式入口統合・Tier Cは未実施。
 - 次の順位4では、設定ローダーの確定済み条件とOSD-09の未決事項を分離して設計する。導入方式を推測しない。
 - CIは初回後90秒間隔・最大5回。最新HEADの必要検査成功後のマージと継続が承認済み。
