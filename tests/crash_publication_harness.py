@@ -246,6 +246,134 @@ def run_crash_matrix(root: str | Path, *, acknowledged: bool = False) -> dict:
     return {"evidence_tier": "synthetic-local-temp", "scenarios": outcomes}
 
 
+
+# Internal single-file boundaries are test-only interception points. The real
+# publisher still performs mkstemp, write/flush/fsync and hard-link publication.
+INTERNAL_STAGES = ("temp-created", "before-fsync", "after-fsync", "before-link", "after-link")
+
+
+def _internal_publisher(directory: str, target: str, stage: str, connection) -> None:
+    real_publish = atomic.publish_bytes_no_overwrite
+    real_mkstemp = atomic.tempfile.mkstemp
+    real_fsync = atomic.os.fsync
+    real_link = atomic.os.link
+    current = None
+
+    def checkpoint(point):
+        if current == target and stage == point:
+            connection.send(("internal-boundary", target, point))
+            # Parent terminates this process while paused; no finally executes.
+            connection.recv()
+            raise HarnessError("unexpected_checkpoint_resume")
+
+    def publish(destination, data):
+        nonlocal current
+        current = Path(destination).name
+        return real_publish(destination, data)
+
+    def mkstemp(*args, **kwargs):
+        result = real_mkstemp(*args, **kwargs)
+        checkpoint("temp-created")
+        return result
+
+    def fsync(fd):
+        checkpoint("before-fsync")
+        real_fsync(fd)
+        checkpoint("after-fsync")
+
+    def link(*args, **kwargs):
+        checkpoint("before-link")
+        real_link(*args, **kwargs)
+        checkpoint("after-link")
+
+    try:
+        with patch.object(atomic, "publish_bytes_no_overwrite", side_effect=publish),              patch.object(atomic.tempfile, "mkstemp", side_effect=mkstemp),              patch.object(atomic.os, "fsync", side_effect=fsync),              patch.object(atomic.os, "link", side_effect=link):
+            publish_artifact_set_marker_last(directory, PAYLOADS, transaction_id=TRANSACTION_ID)
+        connection.send(("error", "internal_boundary_not_reached"))
+    except Exception:
+        connection.send(("error", "internal_publisher_failed"))
+    finally:
+        connection.close()
+
+
+def _internal_observer(directory: str, target: str, connection) -> None:
+    def inspect(root):
+        try:
+            result = verify_published_artifact_set(root, _hashes())
+            return "committed" if result.may_report_committed else "incomplete"
+        except Exception as exc:
+            # Only known verifier reason codes cross IPC.
+            if getattr(exc, "reason_code", None) == "unexpected_directory_entry":
+                return "unexpected_directory_entry"
+            raise HarnessError("internal_inspection_failed")
+
+    try:
+        root = Path(directory)
+        before = {p.name: p.read_bytes() for p in root.iterdir()}
+        initial = inspect(root)
+        # Low-level exact-byte retry does not authorize or clean orphan files.
+        publish_artifact_set_marker_last(directory, PAYLOADS, transaction_id=TRANSACTION_ID)
+        after = {p.name: p.read_bytes() for p in root.iterdir()}
+        temporary = [name for name in before if name.startswith("." + target + ".tmp-")]
+        connection.send({
+            "initial": initial,
+            "after_retry": inspect(root),
+            "orphan_count": len(temporary),
+            "orphan_empty": len(temporary) == 1 and before[temporary[0]] == b"",
+            "target_visible": target in before,
+            "marker_visible": MARKER in before,
+            "preserved": all(after.get(name) == data for name, data in before.items()),
+            "published_payloads_match": all(after.get(name) == data for name, data in PAYLOADS.items()),
+            "orphan_names_unchanged": sorted(name for name in after if name.startswith(".")) == sorted(temporary),
+        })
+    except Exception:
+        connection.send({"error": "internal_observer_failed"})
+    finally:
+        connection.close()
+
+
+def run_internal_crash_scenario(root: str | Path, target: str, stage: str, *,
+                                acknowledged: bool = False) -> dict:
+    """Terminate an owned publisher inside one file; retain every crash leftover."""
+    if target not in ("manifest.json", MARKER) or stage not in INTERNAL_STAGES:
+        raise HarnessError("internal_scenario_invalid")
+    destination = create_disposable_root(root, acknowledged=acknowledged)
+    context = multiprocessing.get_context("spawn")
+    parent, child = context.Pipe()
+    process = context.Process(target=_internal_publisher,
+                              args=(str(destination), target, stage, child))
+    try:
+        process.start()
+        child.close()
+        if _receive(parent) != ("internal-boundary", target, stage):
+            raise HarnessError("internal_checkpoint_invalid")
+        _stop(process)
+        if process.exitcode in (None, 0):
+            raise HarnessError("publisher_not_terminated")
+        exit_code = process.exitcode
+    finally:
+        if process.pid is not None:
+            _stop(process)
+        parent.close()
+        child.close()
+
+    parent, child = context.Pipe()
+    observer = context.Process(target=_internal_observer,
+                               args=(str(destination), target, child))
+    try:
+        observer.start()
+        child.close()
+        result = _receive(parent)
+        observer.join(timeout=5)
+        if observer.is_alive() or observer.exitcode != 0 or "error" in result:
+            raise HarnessError("internal_observer_failed")
+        return {"target": target, "stage": stage, "publisher_exit_code": exit_code, **result}
+    finally:
+        if observer.pid is not None:
+            _stop(observer)
+        parent.close()
+        child.close()
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--disposable-root", required=True)
