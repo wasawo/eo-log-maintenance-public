@@ -72,6 +72,7 @@ jobs:
           python -m unittest discover -s tests -p "test_run_input_evidence_integrity.py" -v
           python -m unittest discover -s tests -p "test_source_inventory_evidence_builder.py" -v
           python -m unittest discover -s tests -p "test_source_hash_identity.py" -v
+          python -m unittest discover -s tests -p "test_source_inventory_reparse.py" -v
           python -m unittest discover -s tests -p "test_atomic_artifact_publication.py" -v
           python -m unittest discover -s tests -p "test_owned_run_lock.py" -v
           python -m unittest discover -s tests -p "test_crash_recovery_decision.py" -v

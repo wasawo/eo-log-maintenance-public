@@ -63,10 +63,25 @@ def _classify_filename(name: str, log_type: str) -> date | None:
         return None
 
 
+def _is_source_reparse(info: os.stat_result) -> bool:
+    return stat.S_ISLNK(info.st_mode) or bool(
+        getattr(info, "st_file_attributes", 0) & 0x400
+    )
+
+
+def _reject_source_reparse(path: Path) -> None:
+    # Resolving first would erase junction/symlink evidence.
+    absolute = path.absolute()
+    for component in (absolute, *absolute.parents):
+        if _is_source_reparse(component.lstat()):
+            raise InventoryBuildError("source_reparse_component")
+
+
 def _hash_stable_file(path: Path) -> tuple[int, str]:
     """Hash exact bytes and reject observable metadata changes during the read."""
     try:
-        before = path.stat(follow_symlinks=False)
+        _reject_source_reparse(path)
+        before = path.lstat()
         if not path.is_file() or path.is_symlink():
             raise InventoryBuildError("source_entry_not_regular_file")
         digest = hashlib.sha256()
@@ -82,7 +97,8 @@ def _hash_stable_file(path: Path) -> tuple[int, str]:
                 byte_count += len(block)
                 digest.update(block)
             finished = os.fstat(stream.fileno())
-        after = path.stat(follow_symlinks=False)
+        _reject_source_reparse(path)
+        after = path.lstat()
     except InventoryBuildError:
         raise
     except OSError as exc:
@@ -126,13 +142,14 @@ def build_run_input_evidence(
     if not isinstance(relative_scope, str) or not relative_scope or relative_scope.startswith("/") or "\\" in relative_scope or any(p in ("", ".", "..") for p in relative_scope.split("/")):
         raise InventoryBuildError("invalid_relative_scope")
 
-    root = Path(source_root)
+    root = Path(source_root).absolute()
     try:
-        root_stat = root.stat()
-        if not root.is_dir() or root.is_symlink():
+        _reject_source_reparse(root)
+        root_stat = root.lstat()
+        if not stat.S_ISDIR(root_stat.st_mode):
             raise InventoryBuildError("source_root_invalid")
-    except InventoryBuildError:
-        raise
+    except InventoryBuildError as exc:
+        raise InventoryBuildError("source_root_invalid") from exc
     except OSError as exc:
         raise InventoryBuildError("source_root_unavailable") from exc
 
@@ -151,20 +168,22 @@ def build_run_input_evidence(
     while pending:
         directory = pending.pop()
         try:
+            _reject_source_reparse(directory)
             entries = sorted(os.scandir(directory), key=lambda item: item.name.encode("utf-8", errors="strict"))
-        except (OSError, UnicodeError):
+        except (OSError, UnicodeError, InventoryBuildError):
             enumeration_errors += 1
             continue
         for entry in entries:
             try:
-                if entry.is_symlink():
+                entry_info = Path(entry.path).lstat()
+                if _is_source_reparse(entry_info):
                     enumeration_errors += 1
                     continue
-                if entry.is_dir(follow_symlinks=False):
+                if stat.S_ISDIR(entry_info.st_mode):
                     pending.append(Path(entry.path))
                     continue
                 observed += 1
-                if not entry.is_file(follow_symlinks=False):
+                if not stat.S_ISREG(entry_info.st_mode):
                     ignored += 1
                     continue
                 name = entry.name
