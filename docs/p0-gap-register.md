@@ -231,6 +231,10 @@ Adds a bounded helper composing the single-artifact atomic no-overwrite primitiv
 The isolated `Common/ArtifactSetDirectoryVerification.py` helper verifies a single on-disk directory snapshot using observed file bytes and strict marker parsing; synthetic tests cover valid, missing-marker, partial, tampered, malformed, unexpected-entry, and symlink states. It is read-only and does not close P0 runtime safety gaps. Verification is point-in-time only; lock-protected use, target-filesystem durability/concurrency, official entrypoint integration, Drive revalidation, end-to-end acceptance, archive, and deletion remain open. Do not mark P0 complete from these helper tests.
 
 
-## Cross-process artifact publication evidence (PR #167; 2026-10-22)
+## Cross-process artifact publication evidence (PR #167; verified 2026-10-22)
 
-A spawned-process synthetic test is being added for competing marker-last publishers with conflicting bytes. It is intended to prove only the local test runner's no-overwrite/conflict behavior for this scenario. It does not close P0: network/Drive semantics, power-loss durability, lock integration, verification-to-use race prevention, official entrypoint integration, runtime no-deletion proof, and E2E acceptance remain open until separately evidenced.
+The spawned-process synthetic test for competing marker-last publishers with conflicting bytes is merged. PR-head Validate `39701085065` and Package Validation `39701084975` succeeded; post-merge main Validate `39702034526` and Package Validation `39702034521` succeeded on merge commit `f979a5200d48a7ccccfed6ad31de07529bd340df`. This evidence is limited to the hosted Windows runner's temporary local filesystem. It does not close network/Drive semantics, power-loss durability, lock integration, verification-to-use race prevention, official entrypoint integration, runtime no-deletion proof, or E2E acceptance.
+
+## Target-filesystem acceptance gate (2026-10-22)
+
+`docs/target-filesystem-acceptance.md` defines Tier A hosted CI, Tier B disposable local-volume tests on each operator PC, and Tier C separately gated synchronized/network target qualification. Tier B and Tier C have not been run. Do not treat CI success as proof of operator-PC, Google Drive for desktop, network filesystem, remote visibility, or power-loss durability. P0 remains open.

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/wasawo/eo-log-maintenance/blob/main/contracts/aggregation-report-v1.schema.json",
+  "$id": "https://github.com/wasawo/eo-log-maintenance-public/blob/main/contracts/aggregation-report-v1.schema.json",
   "title": "EO Log Maintenance Derived Aggregation Report v1",
   "description": "Strict structural contract for derived aggregation reports. Cross-artifact identity, digest, inventory, count, and state consistency must be validated by runtime code; this schema alone does not authorize any side effects.",
   "type": "object",

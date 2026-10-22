@@ -157,3 +157,8 @@ The new `Common/ArtifactSetDirectoryVerification.py` module performs read-only h
 ## Cross-process publication test boundary (PR #167; 2026-10-22)
 
 The new synthetic test races two spawned publishers against a temporary directory with conflicting content for one artifact. Its intended assertion is one valid committed winner and one conflict, with marker hashes matching the observed winner. It does not test official entry points, Google Drive/network storage, power-loss recovery, lock ownership integration, or any archive/delete path. P0 remains open.
+
+
+## Target-filesystem acceptance boundary (2026-10-22)
+
+PR #167 post-merge Validate (`39702034526`) and Package Validation (`39702034521`) succeeded on `f979a5200d48a7ccccfed6ad31de07529bd340df`. This is hosted Windows CI evidence for synthetic temporary-directory behavior only. `docs/target-filesystem-acceptance.md` separates CI, disposable local-volume qualification on PC-A/PC-B, and synchronized/network target qualification. Tier B and Tier C are not run; Google Drive/network semantics, remote visibility, power-loss durability, and verification-to-use stability remain unverified. This does not alter the finding that official sync/archive entrypoints are absent and does not authorize production logs, Drive operations, archive, or deletion. P0 remains open.

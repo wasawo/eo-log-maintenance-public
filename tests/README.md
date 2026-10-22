@@ -104,3 +104,8 @@ The allocator mutates a caller-owned per-run Int32/Int64 sequence by reference, 
 ### Cross-process artifact publication race
 
 The marker-last publication test suite includes a spawned-process race in which two publishers target the same directory with conflicting bytes for one artifact. The expected result is one complete committed winner and one fail-closed destination conflict, with the marker matching the winner's actual bytes. This is synthetic local-filesystem coverage, not evidence for network shares, Google Drive, power-loss durability, run-lock integration, or runtime entrypoint safety.
+
+
+## Target-filesystem acceptance tiers
+
+See `docs/target-filesystem-acceptance.md`. Hosted Windows CI covers Tier A synthetic tests only. Tier B disposable local-volume tests on each operator PC and Tier C synchronized/network-target qualification have not been run. A green CI result must not be reported as evidence for Google Drive for desktop semantics, remote upload completion, network filesystem behavior, or power-loss durability. Any future crash-injection harness must use an explicitly supplied disposable test root and must refuse production log, archive, and shared Drive roots.

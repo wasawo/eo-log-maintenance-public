@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/wasawo/eo-log-maintenance/blob/main/contracts/drive-response.schema.json",
+  "$id": "https://github.com/wasawo/eo-log-maintenance-public/blob/main/contracts/drive-response.schema.json",
   "title": "ログ保守：Drive アダプター レスポンス",
   "description": "Python Google Drive アダプター向けバージョン 1.0 のレスポンス形式。",
   "type": "object",

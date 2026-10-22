@@ -1,5 +1,7 @@
 # ElectronicObserver Log Maintenance
 
+管理原本: [wasawo/eo-log-maintenance-public](https://github.com/wasawo/eo-log-maintenance-public)。旧リポジトリの PR・CI リンクは過去の証跡として残しており、閲覧権限が必要な場合があります。
+
 ElectronicObserver の BattleLog / ErrorReport を、Windows PC-A と PC-B 間で安全に同期・検証・アーカイブするための PowerShell 管理プロジェクトです。
 
 > **現在の段階:** リポジトリ初期化。既存スクリプトの移行と本番実行は未完了です。P0受け入れは未完了で、正式な同期／アーカイブ入口とランタイム検証も未実装です。初期実装にはローカル元ファイル削除・Drive削除の機能自体を含めません。P0の判定基準は [`docs/implementation-workflow.md`](docs/implementation-workflow.md) §4 と [`docs/p0-gap-register.md`](docs/p0-gap-register.md) を参照してください。

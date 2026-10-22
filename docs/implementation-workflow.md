@@ -1,7 +1,7 @@
 # Implementation Workflow: ElectronicObserver Log Maintenance
 
 - Status: Proposed implementation plan
-- Repository: `wasawo/eo-log-maintenance`
+- Repository: `wasawo/eo-log-maintenance-public`
 - Canonical source: GitHub
 - Runtime deployment: Manual download/review on each PC
 - Last updated: 2026-10-18

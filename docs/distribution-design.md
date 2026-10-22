@@ -2,7 +2,7 @@
 
 - Status: Proposed baseline
 - Last updated: 2026-10-18
-- Repository: `wasawo/eo-log-maintenance`
+- Repository: `wasawo/eo-log-maintenance-public`
 - Canonical source: GitHub repository, `main` branch plus reviewed release tag
 - Distribution target: Google Drive `_distribution/releases/<version>/`
 - Direction: GitHub → Google Drive only
@@ -56,7 +56,7 @@ Example `latest.json`:
 ```json
 {
   "version": "0.1.0",
-  "sourceRepository": "wasawo/eo-log-maintenance",
+  "sourceRepository": "wasawo/eo-log-maintenance-public",
   "releaseTag": "v0.1.0",
   "package": "releases/0.1.0/release.zip",
   "sha256Manifest": "releases/0.1.0/SHA256SUMS.txt"
