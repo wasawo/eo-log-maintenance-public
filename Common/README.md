@@ -67,3 +67,5 @@ Bootstrap/create-once migration is a separate pending implementation.
 ## Create-only configuration bootstrap helper
 
 See [configuration specification](../docs/configuration-local-root.md#create-only-configuration-bootstrap-helper) for Initialize-EoMachineConfiguration, safety boundaries and pending deployment integration. Run tests/Test-MachineConfigurationBootstrap.ps1 for synthetic create-once and preservation checks.
+
+SourceInventoryEvidenceBuilder checks source pathname and open-handle identity before/after hashing. Observable mismatch or unavailable identity keeps enumeration incomplete. This is not a snapshot or a guard covering later use; see [filesystem evidence](../docs/target-filesystem-acceptance.md#source-hash-handle-identity-2026-10-23).

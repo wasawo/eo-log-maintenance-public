@@ -170,3 +170,25 @@ processes. All roots retain the existing fresh UUID/selected-parent/explicit-ack
 guards. Tests remove only their own synthetic root after assertions.
 
 [PC-B internal-crash follow-up](../tests/evidence/pc-b-internal-crash-local-volume-20261023.json) records 21 passing tests without skips on the operator-confirmed intended local fixed NTFS volume. This includes 10 internal crash scenarios and earlier boundary/ownership/reparse checks at source commit 63e5a4d5af674912940d8fa0ee26c726b06eb78b. Tier B remains incomplete; PC-A, remaining source-race and integration acceptance are still required.
+
+## Source hash handle identity (2026-10-23)
+
+SourceInventoryEvidenceBuilder now compares device, inode/file identity, size
+and nanosecond mtime across four observations: pathname before open, opened
+handle before read, the same handle after read, and pathname after close. A
+difference rejects the file as source_mutation_detected. Unavailable fstat
+fails as source_file_unavailable; enumeration remains incomplete with no
+eligible target for that file. Errors do not include private exception details.
+
+The regression reproduces an actual same-size/same-mtime replacement between
+the initial path stat and open, restoring the original after close. Before the
+fix, the wrong content hash was accepted; after the fix, it is rejected. Tests
+also cover unchanged content, both handle-stat failure points and propagation
+to schema-valid incomplete evidence without private path/exception leakage.
+
+This narrows an observed ABA pathname gap. It is not a filesystem snapshot,
+approved-root/reparse gate or protection until later upload/use. Same-object
+content modifications that restore all compared metadata, changes after the
+last check, directory enumeration races and arbitrary hostile filesystem
+changes remain outside this evidence. No source writes or cleanup are added
+to the helper; only tests mutate their own synthetic fixtures.
