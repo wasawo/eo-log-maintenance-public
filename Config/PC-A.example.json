@@ -1,0 +1,13 @@
+{
+  "machineId": "PC-A",
+  "role": "primary",
+  "runtimeRoot": "C:\\Example\\PCA\\Runtime",
+  "battleLogLocal": "C:\\Example\\PCA\\Source\\BattleLog",
+  "errorLogLocal": "C:\\Example\\PCA\\Source\\ErrorReport",
+  "battleLogDrive": "G:\\ExampleDrive\\SharedLogs\\BattleLog",
+  "errorLogDrive": "G:\\ExampleDrive\\SharedLogs\\ErrorReport",
+  "maintenanceDrive": "G:\\ExampleDrive\\SharedLogs\\_maintenance",
+  "battleLogArchive": "C:\\Example\\PCA\\Archive\\BattleLog",
+  "errorLogArchive": "C:\\Example\\PCA\\Archive\\ErrorReport",
+  "allowArchive": false
+}

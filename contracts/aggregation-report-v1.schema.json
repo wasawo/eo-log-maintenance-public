@@ -1,0 +1,291 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/wasawo/eo-log-maintenance/blob/main/contracts/aggregation-report-v1.schema.json",
+  "title": "EO Log Maintenance Derived Aggregation Report v1",
+  "description": "Strict structural contract for derived aggregation reports. Cross-artifact identity, digest, inventory, count, and state consistency must be validated by runtime code; this schema alone does not authorize any side effects.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_schema_version",
+    "run_id",
+    "pc_id",
+    "log_type",
+    "manifest_ref",
+    "evidence_ref",
+    "generated_at_utc",
+    "inventory_ref",
+    "run_aggregation",
+    "periods",
+    "run_scope_errors"
+  ],
+  "properties": {
+    "report_schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "pc_id": {
+      "type": "string",
+      "enum": [
+        "PC-A",
+        "PC-B"
+      ]
+    },
+    "log_type": {
+      "type": "string",
+      "enum": [
+        "BattleLog",
+        "ErrorReport"
+      ]
+    },
+    "manifest_ref": {
+      "$ref": "#/$defs/artifact_ref"
+    },
+    "evidence_ref": {
+      "$ref": "#/$defs/artifact_ref"
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$",
+      "maxLength": 32
+    },
+    "inventory_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "eligible_target_count",
+        "inventory_sha256"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "b2_run_input_evidence_inventory"
+        },
+        "eligible_target_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "inventory_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "run_aggregation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "outcome",
+        "verified_count",
+        "failed_count",
+        "unknown_count",
+        "run_scope_error_count",
+        "enumeration_complete",
+        "validation_complete"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "success",
+            "partial_failure",
+            "failure"
+          ]
+        },
+        "outcome": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "const": "no_work"
+            }
+          ]
+        },
+        "verified_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unknown_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "run_scope_error_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "enumeration_complete": {
+          "type": "boolean"
+        },
+        "validation_complete": {
+          "type": "boolean"
+        }
+      }
+    },
+    "periods": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/period_summary"
+      },
+      "uniqueItems": true
+    },
+    "run_scope_errors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/run_scope_error"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "canonical_relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.?(/|$))(?!.*\\\\)[^\\u0000-\\u001F]+$"
+    },
+    "artifact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "schema_version",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/canonical_relative_path"
+        },
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "period": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+    },
+    "period_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "period",
+        "completion",
+        "eligible_count",
+        "verified_count",
+        "failed_count",
+        "unknown_count",
+        "relevant_error_count"
+      ],
+      "properties": {
+        "period": {
+          "$ref": "#/$defs/period"
+        },
+        "completion": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "incomplete",
+            "indeterminate"
+          ]
+        },
+        "eligible_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "verified_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unknown_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "relevant_error_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "run_scope_error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "error_id",
+        "code",
+        "filename",
+        "relative_path",
+        "period",
+        "affects_run",
+        "affects_periods",
+        "message"
+      ],
+      "properties": {
+        "error_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,127}$"
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "relative_path": {
+          "$ref": "#/$defs/canonical_relative_path"
+        },
+        "period": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/period"
+            }
+          ]
+        },
+        "affects_run": {
+          "type": "boolean"
+        },
+        "affects_periods": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/period"
+          },
+          "uniqueItems": true
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      }
+    }
+  }
+}

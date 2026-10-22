@@ -1,0 +1,2 @@
+# Runtime dependency for validating derived reports and their referenced JSON artifacts.
+jsonschema>=4.23,<5

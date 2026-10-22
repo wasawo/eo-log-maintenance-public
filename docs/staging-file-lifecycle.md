@@ -1,0 +1,304 @@
+# Staging File Lifecycle
+
+## 1. Purpose and Scope
+
+This document defines the immutable staging-copy lifecycle used before uploading ElectronicObserver log files to Google Drive.
+
+The same lifecycle applies to both PC-A and PC-B and to both `BattleLog` and `ErrorReport` uploads. Only the PC identifier and local paths differ.
+
+This is a specification for the initial implementation. It defines staging creation, verification, upload gating, metadata updates, and normal-flow cleanup. Automatic recovery of leftovers from an interrupted run is deferred. The initial implementation must not delete local source logs or Google Drive source files.
+
+Related specifications:
+- `docs/implementation-workflow.md`
+- `docs/powershell-python-contract.md`
+- `docs/runtime-safety-test-scenarios.md`
+
+## 2. Runtime Requirements
+
+- PC-A and PC-B must run PowerShell **7.6.7**.
+- Windows PowerShell 5.1 compatibility is out of scope.
+- Batch entry points must invoke `pwsh.exe`, not `powershell.exe`.
+- At startup, validate that the running PowerShell version satisfies the required version. If validation fails, stop before processing files.
+- Python remains a Drive API adapter. It performs one API attempt per request and must not implement implicit retries. PowerShell owns retry and recovery decisions.
+
+Example sync invocation (illustrative until the official batch entry point is implemented):
+
+```bat
+pwsh.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0SyncLogs.ps1"
+```
+
+The exact entry-point script can differ by operation, but all supported batch entry points must use the same PowerShell runtime policy.
+
+## 3. Staging Location and Naming
+
+Staging is local to each PC and must not be synchronized to Google Drive.
+
+Default directory:
+
+```text
+%LOCALAPPDATA%\eo-log-maintenance\staging
+```
+
+Staging file name:
+
+```text
+<run_id>_<sequence>_<original_filename>
+```
+
+- `run_id` identifies one execution on one PC and is unique per execution.
+- `sequence` distinguishes files within a run and supports alternate names if a collision occurs.
+- `original_filename` preserves the source filename.
+- Never overwrite an existing staging file.
+- Use atomic create-new semantics (for example, .NET `FileMode.CreateNew`) at the time of creation. A pre-check alone is insufficient.
+- If a name is occupied, try another sequence number. If a free name cannot be allocated, mark that file `failed` and do not upload it.
+
+A JSON metadata file is stored alongside each staging file. It records at least:
+
+- `run_id`
+- original relative path
+- original filename
+- size in bytes
+- SHA-256
+- status
+- staging path
+
+Metadata must be written through a temporary file, re-read and validated as JSON, and then replace the official metadata file. Do not assume this local atomic-replacement guarantee applies to Google Drive.
+
+## 4. Target Inventory Freeze
+
+After the per-PC global maintenance lock has been acquired and residual staging inspection has completed, freeze the eligible upload target list for the run. Record the target list in the run manifest.
+
+Each target entry contains:
+
+- filename
+- relative path
+- size in bytes
+- SHA-256
+
+Files added after the target list is frozen are deferred to the next run. A file that disappears after target-list creation is marked `failed`; processing may continue for other frozen targets. Files that were not part of the frozen list are not failures for the current run.
+
+Before staging each target, recompute the source file's size and SHA-256. If either differs from the frozen inventory, mark the file `failed` and do not upload it.
+
+## 5. Capacity Checks
+
+Check available staging capacity:
+1. Once at the start, using the total size of the frozen target list.
+2. Again immediately before creating each staging copy.
+3. Handle a copy failure caused by capacity changing after a check.
+
+The initial safety reserve is:
+
+```text
+required_free_bytes = remaining_target_bytes + ceil(remaining_target_bytes * 0.10) + 100000000
+```
+
+The fixed reserve is exactly **100,000,000 bytes** (decimal MB, not 100 MiB). All internal calculations use bytes. Human-readable logs may additionally show decimal MB.
+
+If capacity is insufficient, mark the affected file `failed`, do not upload it, and continue processing other files where safe. If a copy fails, attempt to delete only the incomplete staging file created by the current operation. If that cleanup fails, retain the file and emit a warning.
+
+## 6. Per-File State Machine
+
+Allowed staging/upload states:
+
+- `staging`: metadata has been written before the staging copy is created.
+- `ready`: staging copy exists and its size and SHA-256 match the frozen target.
+- `pending`: upload has not been confirmed as started/successful.
+- `uploaded`: the upload API reported success, but cloud content verification is not yet complete.
+- `verified`: the cloud object has been verified to contain the expected bytes.
+- `failed`: a failure is confirmed.
+- `unknown`: upload outcome cannot be determined reliably.
+
+The metadata-first sequence is mandatory. The run manifest initially records each frozen target as `pending` to mean “registered for processing; staging has not begun.” When processing that target begins, the per-file state transitions to `staging` before the staging copy is created. After staging verification, `ready` means the copy is prepared; immediately before an upload attempt, transition `ready → pending` again. These two `pending` states are distinguished by their preceding state and recorded transition history; `pending` alone never proves that upload was attempted or succeeded.
+
+1. Write staging metadata with status `staging`.
+2. Create the staging copy without overwriting any existing file.
+3. Verify the copy's size and SHA-256 against the frozen target inventory.
+4. Update metadata to `ready`.
+5. Upload only the verified staging copy. Once ready, do not read the original source file for upload.
+6. Update the run manifest as the upload progresses and after cloud verification.
+7. Remove the staging copy and its metadata only after upload success, cloud content verification, and the required manifest update have all been confirmed.
+
+If creation or verification fails, do not upload the copy. Attempt to remove only the incomplete staging file created by that operation; if deletion fails, retain it and warn.
+
+## 7. Cloud Verification and Unknown Outcomes
+
+A successful upload API response is not by itself proof that cloud content is correct. Verify the Drive object using the strongest available method:
+- If Drive provides a trustworthy SHA-256, compare it to the expected hash.
+- Otherwise download the cloud object through the API and calculate SHA-256 locally.
+- Metadata-only retrieval is not content verification.
+
+If upload communication fails or times out and the result is uncertain, set the file state to `unknown`. Do not treat it as success or convert it to `failed` merely because the retry limit was reached. Set `failed` only when reliable evidence confirms that the operation did not succeed and the failure is definitive (for example, an explicit non-retryable rejection that guarantees no object was created, or a confirmed content mismatch). A timeout, communication failure, incomplete Drive enumeration, or exhausted retry budget alone is not enough. For verification results, use the approved mapping: `mismatch → failed`; `unavailable`, `ambiguous`, or verification-operation `failed` → `unknown`; `not_checked` leaves the current file state unchanged. A verification operation failure is not proof of a content mismatch.
+
+Before retrying an upload with an unknown outcome, PowerShell must inspect the current Drive state:
+- Object exists and content hash matches: transition to `verified`.
+- Object is confirmed absent: re-upload may proceed.
+- Object exists with a different hash, or its state/content cannot be confirmed: retain `unknown` and stop processing that file.
+
+Python performs one API attempt per request. PowerShell owns retry policy, with at most four total attempts and waits of 1, 5, and 15 minutes between attempts. Before a retry when the previous upload outcome is uncertain, inspect Drive state first. Reaching four attempts does not itself classify the file as `failed`: use `failed` only when reliable evidence establishes definitive non-success; otherwise retain `unknown`.
+
+If a staging file is `unknown`, cloud content is unverified/mismatched, or the required manifest update fails, retain the staging file and metadata. Do not delete them.
+
+If staging deletion fails after the upload, cloud verification, and manifest update have succeeded, log a warning and continue. Do not change the successful upload outcome to `failed`; retain the remaining staging artifacts.
+
+## 8. Manifest and Run Status
+
+### 8.1 Schema version and compatibility
+
+- Every operational maintenance manifest must include a required integer `schema_version` field. The initial schema version is `1`.
+- Reject a manifest when `schema_version` is missing, malformed, or unsupported. Stop the affected processing safely; never interpret the manifest as successful or archive-eligible.
+- Do not implicitly migrate, rewrite, or convert existing manifests. Any future schema migration requires an explicitly approved, versioned migration design and tests.
+- The field names, types, enums, nullability, verification object, and listed field-level constraints in `docs/manifest-schema-v1-proposal.md` were approved on 2026-10-21. Implementations must not infer missing fields or silently default invalid values.
+- The verification-result-to-file-state mapping was approved on 2026-10-21: `verified → verified`; `mismatch → failed`; `unavailable`, `ambiguous`, and verification-operation `failed` → `unknown`; `not_checked` leaves the current file status unchanged. The retry-exhaustion rule was also approved on 2026-10-21: retry exhaustion alone does not imply failure; `failed` requires reliable evidence of definitive non-success, otherwise retain `unknown`. These approvals do not settle every verification method/time/hash combination.
+- The exhaustive allowed/forbidden transition table is still pending OSD-02. `docs/manifest-state-transition-v1-proposal.md` remains a discussion proposal for all unapproved rows and rules; it is not wholly normative.
+- Run/period aggregation remains subject to OSD-03; timestamp freshness/clock skew remains subject to EOLM-MAN-011; crash/concurrency and latest-manifest tie-breaking remain unresolved. Approval of fields does not authorize runtime implementation or establish runtime evidence.
+
+Each maintenance execution creates a new manifest with a unique `run_id`. A run manifest is first written with status `running` after lock acquisition and before file processing, then updated to its final status using the same `run_id`.
+
+Run status values are:
+- `running`
+- `success`
+- `partial_failure`
+- `failure`
+
+A zero-work run uses `status: success` and `outcome: no_work`; do not add a separate `skipped` run status.
+
+File-level states are recorded separately from run status. If any file remains `unknown` after retry/reconciliation, the run is `partial_failure` when other files were verified, or `failure` when the overall process did not succeed. An uncertain file must never be counted as a success.
+
+A new run uses a new `run_id` and fresh per-file states beginning at `pending` (target registered, staging not yet started); do not copy forward prior file states. On beginning staging for a target, transition `pending → staging`, then `staging → ready` after copy verification, and `ready → pending` immediately before upload. Older manifests remain unchanged. The latest run for a given PC, period, and log type takes precedence: if it is `running`, hold; if it is `partial_failure` or `failure`, do not fall back to an older success. Even with a successful latest manifest, archive decisions must re-verify the current Drive state.
+
+Manifest location:
+
+```text
+_maintenance/manifests/PC-A/
+_maintenance/manifests/PC-B/
+```
+
+Manifest file naming:
+
+```text
+<PC-ID>_<LogType>_<TargetPeriod>_<run_id>.json
+```
+
+Example: `PC-A_BattleLog_2026-09_<run_id>.json`
+
+Validate that the filename identity matches the internal JSON identity. Keep manifests indefinitely in the initial implementation; no automatic retention/deletion is permitted.
+
+For local manifest updates, write to a temporary file, re-read and validate the JSON, then replace the official manifest. If a crash leaves a manifest in `running`, leave it incomplete; do not automatically rewrite it to `failure`. The next execution uses a new `run_id`.
+
+## 9. Residual Staging Artifacts
+
+At every maintenance-run startup, after acquiring the global per-PC maintenance lock and before beginning uploads, inspect the staging directory.
+
+If even one residual artifact exists, emit a warning. The initial implementation must not automatically upload, recover, or delete residual artifacts.
+
+Cases that require warning and retention:
+- staging file without metadata
+- metadata without staging file
+- malformed JSON metadata
+- inconsistent metadata or file state
+- leftovers from an interrupted run
+
+For malformed metadata, log the path and issue, and include `run_id` only if it can be parsed safely. Do not process affected artifacts automatically.
+
+Merely detecting residual artifacts is warning-only and does not by itself change the run status. If residual inspection cannot complete (for example, access denied or enumeration failure), do not start uploads; set run status to `failure` and preserve existing files and metadata.
+
+Automatic recovery of leftovers is deferred to a later phase. No time-based cleanup is allowed in the initial implementation.
+
+## 10. Locking and Concurrency
+
+One global lock serializes all maintenance operations on each PC. PC-A and PC-B use independent locks.
+
+Lock acquisition waits/retries for up to 60 seconds. If the lock remains unavailable, log that another process is running and exit; do not force-kill or steal the lock. This contention exit is not a business failure. If an abandoned mutex is detected after a process crash, log it and verify the prior state before continuing.
+
+## 11. Explicit Non-Goals for the Initial Implementation
+
+The initial implementation must not:
+- delete local source logs
+- delete Google Drive source files
+- overwrite existing staging files
+- automatically recover, upload, or delete residual staging artifacts
+- automatically clean up staging artifacts based on age
+- treat metadata-only cloud retrieval as content verification
+- upload directly from a mutable source file instead of the verified staging copy
+- implement implicit retries in Python
+
+## 12. Acceptance Test Perspectives
+
+Use `docs/runtime-safety-test-scenarios.md` for the shared test catalog and add/trace test coverage for at least:
+
+- PowerShell version mismatch blocks processing before any file operation.
+- Both PC-A and PC-B use `pwsh.exe` entry points.
+- Frozen inventory records filename, relative path, size, and SHA-256.
+- Source mutation after inventory freeze blocks upload.
+- Staging metadata is written before the copy and transitions from `staging` to `ready` only after size/hash verification.
+- A staging-name collision never overwrites an existing file and tries another sequence.
+- Insufficient capacity at initial or per-file checks prevents that file's upload.
+- Capacity loss during copy attempts cleanup only for the incomplete file created by the current operation.
+- Only the verified staging copy is used as upload input.
+- Unknown upload outcome triggers Drive-state inspection before retry.
+- Cloud verification or manifest-update failure retains staging file and metadata.
+- Normal successful flow removes staging file only after upload, cloud verification, and manifest update are confirmed.
+- Failed staging deletion after otherwise successful flow produces a warning without changing the upload result.
+- Any residual artifact triggers a warning and is retained.
+- Residual inspection failure blocks uploads and produces run status `failure`.
+- No local-source or Drive-source deletion path is introduced.
+
+This document specifies behavior and acceptance perspectives; test implementation should reference the shared runtime test catalog rather than duplicate its full scenario descriptions.
+
+
+## 13. OSD-03 aggregation policy approved — 2026-10-21
+
+- `success` requires every eligible target to be verified and no relevant validation/processing errors.
+- A zero-work run is `success` with `outcome: no_work` only when enumeration and validation completed successfully and there are no eligible targets. Enumeration failure/access denial or only-invalid relevant names must not be classified as no-work.
+- When verified work coexists with an eligible file in `failed`/`unknown` or a relevant unclassifiable filename, use `partial_failure`. If no eligible work is verified and a processing/validation failure exists, or valid no-work cannot be established, use `failure`.
+- Period completion requires every eligible file assigned to that period to be `verified`, with no relevant error affecting that period. A `failed` or `unknown` file blocks its period's completion.
+- Unclassifiable names remain run-scope validation errors; never infer a period from `LastWriteTime`. They block run-level success but do not automatically invalidate a separately complete known period with an established inventory.
+- Continue safe processing of independent valid files, but do not hide errors or count `unknown` as success. Do not add run status or outcome enum values.
+- **Representation approved on 2026-10-21:** keep the approved manifest v1 field set unchanged. Store period summaries and unassigned run-scope validation errors in a separate durable derived aggregation report linked by `run_id`. The report must be validated against the frozen eligible inventory; missing, malformed, stale, or inconsistent report data must not certify period completion. Review/approval of `docs/aggregation-report-v1-proposal.md`, publication/recovery rules, implementation, and table-driven test evidence remain required.
+
+
+## OSD-02 approved crash/concurrency/latest-manifest policy (2026-10-21)
+
+Maintainer approved C1-A/C2-C/C3-B/C4-A. C1-A requires validated same-directory temporary writes, atomic create-if-absent, compare-before-replace, and fail-closed behavior when guarantees are unavailable. C2-C requires a per-scope OS named mutex plus exclusive ownership-token lock record; stale lock recovery is explicit and must verify the owner is gone. C3-B preserves crash-left `running` history and creates a new `run_id` only after recovery checks, with a fresh inventory and reconciliation of uncertain uploads. C4-A selects only a unique maximum validated `started_at_utc` for the exact PC/log-type/period scope; ties, malformed/conflicting candidates, read errors, or incomplete enumeration block operation, and there is no fallback to an older success. Timestamp freshness/future tolerance are not lock or retry timeouts.
+
+Synthetic tests for crash points, concurrent create/update, lock ownership/recovery, interrupted runs, uncertain uploads, and resolver ambiguity are required but **not yet executed/evidenced**. These decisions do not claim runtime implementation or close P0-008/P0-010/P0-012.
+
+
+## OSD-02 crash/concurrency test requirements — pending execution
+
+- Inject crashes before/during temporary write, after flush/validation, before publication, and after publication; prove incomplete temp files are never authoritative and failed publication leaves prior content unchanged.
+- Race concurrent first publishers and concurrent updates; prove create-if-absent and compare-before-replace prevent overwrite.
+- Test named-mutex contention/failure, process termination, lock ownership-token mismatch, and stale-lock recovery. Age/PID alone must not authorize lock removal.
+- Preserve crash-left `running` manifest byte-for-byte; after verified owner recovery, create a new `run_id` with a fresh inventory; reconcile uncertain uploads before retry.
+- Test unique latest timestamp, equal maxima, malformed or identity-mismatched candidates, read/enumeration failure, and latest non-success blocking fallback to older success.
+- Use synthetic fixtures and temporary directories only. Evidence status: **not run / not yet evidenced**; no runtime acceptance is implied.
+
+
+## Maintainer-approved OSD-03 report contract (2026-10-21)
+
+The maintainer explicitly approved **R1-B, R2-A, R3-B, R4-A, R5-A, R6-A, R7-A**. This settles the report-contract options but does not constitute an executable JSON Schema, runtime implementation, or test evidence.
+
+- **R1-B — summaries only:** period entries contain counts and completion state, not duplicated per-target rows. Validate the eligible inventory and per-file outcomes against immutable run-input evidence and the originating manifest.
+- **R2-A — tuple identity:** report identity is exactly (pc_id, log_type, run_id, report_schema_version). Omit report_id; derive the canonical filename from that tuple. Do not add fields to manifest v1.
+- **R3-B — content-bound references:** manifest_ref and evidence_ref each include canonical relative path, schema version, and lowercase 64-character SHA-256 of exact validated bytes. Validate referenced artifact identity against the report tuple. Reject absolute paths, traversal, identity mismatch, malformed digest, or changed bytes.
+- **R4-A — reuse OSD-02 controls:** use unique same-directory temp files, flush/close, read-back validation, and atomic create-if-absent; reuse the existing per-PC maintenance lock during normal publication. Regeneration/recovery must acquire the same named mutex plus ownership-token lock record. Existing same-identity identical bytes are idempotent; different bytes are a conflict and are never overwritten. Remove a temp file only when ownership is proven; orphan temp files are non-authoritative and must not be removed based on age alone.
+- **R5-A — deterministic regeneration:** regenerate only from the exact validated manifest plus immutable B2 run-input evidence. Never re-scan mutable source directories to reconstruct historical inventory. Validate identity, inventory digest, all counts, and error scope. If inputs are incomplete/unavailable, remain unresolved. Identical output is idempotent; different content for the same identity is a conflict.
+- **R6-A — three-state period completion:** complete only if all eligible targets for the period are verified and no relevant error affects it; incomplete for known failed/unknown targets or known relevant errors; indeterminate if required evidence is missing, malformed, conflicting, or unverifiable. Never map indeterminate to complete. These are report-only values and must not be added to manifest run-status enums.
+- **R7-A — separate local/Drive states:** local validated publication is authoritative. Drive replication is a separate verified step; replication failure does not invalidate/delete the local artifact. Do not claim cross-PC availability until the Drive copy's identity and exact content are verified.
+- Recompute all summary counts from the referenced manifest and B2 evidence. Reject missing/duplicate period rows, target accounting mismatch, inventory digest/count mismatch, report/manifest/evidence identity mismatch, and inconsistent error scope. generated_at_utc uses UTC ISO 8601 uppercase Z and approved future-time validation; report age alone does not invalidate immutable historical evidence.
+- Required synthetic acceptance tests are specified but **not yet executed/evidenced**. Runtime implementation, executable schema, and operational evidence remain pending. No P0 item is closed by this documentation change.
+
+
+## OSD-03 report-contract acceptance tests — approved design, execution pending
+
+1. Required fields, strict integer schema version, unsupported versions, no implicit migration, and absence of report_id.
+2. Canonical report identity tuple and filename agreement for PC/log type/run/schema version.
+3. Canonical relative manifest_ref and evidence_ref; exact bytes SHA-256; malformed digest, absolute/traversal path, identity mismatch, and stable-path content replacement all fail closed.
+4. R1-B: report period rows contain summaries only; counts recompute from the referenced manifest and B2 evidence; no duplicated per-target inventory is trusted from the report.
+5. Inventory digest/count mismatch; missing, extra, duplicate, or multiply assigned target; missing/duplicate period row; report/manifest/evidence identity mismatch; inconsistent error scope.
+6. R6-A: complete, incomplete, and indeterminate boundaries; indeterminate never becomes complete and these values never enter manifest v1 run-status enums.
+7. R4-A publication crash points, concurrent create, identical idempotent retry, conflicting retry, unsupported atomic primitive, mutex/lock ownership, and temp-file ownership cleanup. Orphan cleanup cannot rely on age alone.
+8. R5-A regeneration only from exact immutable manifest and B2 evidence; refuse if evidence is missing, corrupt, incomplete, or inconsistent; never rescan mutable source.
+9. R7-A local publication succeeds independently of Drive replication; replication failure preserves local report; cross-PC use is blocked until identity and content verification succeeds.
+10. UTC timestamp format/future tolerance, historical age, zero-work versus failed enumeration versus only-invalid filenames, known-period completion with unrelated run-scope errors, and all approved OSD-03 aggregation cases.
+11. Synthetic fixtures and temporary directories only. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion. Evidence status: **not run / not yet evidenced**.

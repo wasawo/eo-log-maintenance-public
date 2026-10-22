@@ -1,0 +1,21 @@
+# Machine-specific runtime configuration
+Config/PC-A.json
+Config/PC-B.json
+
+# Runtime logs, manifests and temporary data
+logs/
+runtime/
+manifests/
+*.log
+*.tmp
+*.bak
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Python generated files
+__pycache__/
+*.py[cod]

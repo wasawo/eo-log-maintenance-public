@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/wasawo/eo-log-maintenance/blob/main/contracts/drive-request.schema.json",
+  "title": "ログ保守：Drive アダプター リクエスト",
+  "description": "Python Google Drive アダプター向けバージョン 1.0 のリクエスト形式。削除操作は定義しない。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "operation",
+    "dry_run",
+    "parameters"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "request_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "list_files",
+        "get_file_metadata",
+        "upload_file",
+        "download_file"
+      ]
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "parameters": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": { "const": "list_files" }
+        },
+        "required": ["operation"]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["parent_id"],
+            "properties": {
+              "parent_id": { "type": "string", "minLength": 1 },
+              "name": { "type": "string", "minLength": 1 },
+              "page_token": { "type": "string", "minLength": 1 },
+              "page_size": { "type": "integer", "minimum": 1, "maximum": 1000 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": { "const": "get_file_metadata" }
+        },
+        "required": ["operation"]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["file_id"],
+            "properties": {
+              "file_id": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": { "const": "upload_file" }
+        },
+        "required": ["operation"]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["local_path", "parent_id", "file_name", "expected_sha256"],
+            "properties": {
+              "local_path": { "type": "string", "minLength": 3 },
+              "parent_id": { "type": "string", "minLength": 1 },
+              "file_name": { "type": "string", "minLength": 1 },
+              "expected_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": { "const": "download_file" }
+        },
+        "required": ["operation"]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["file_id", "staging_path"],
+            "properties": {
+              "file_id": { "type": "string", "minLength": 1 },
+              "staging_path": { "type": "string", "minLength": 3 }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

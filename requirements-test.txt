@@ -1,0 +1,2 @@
+# JSON Schema 契約テスト用の依存関係
+jsonschema>=4.23,<5

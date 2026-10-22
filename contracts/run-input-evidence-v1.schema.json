@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eo-log-maintenance.invalid/contracts/run-input-evidence-v1.schema.json",
+  "title": "EO Log Maintenance Run Input Evidence v1",
+  "description": "Strict structural contract for immutable B2 run-input evidence. Cross-artifact identity, inventory digest, exhaustive count reconciliation, and exact-byte checks remain runtime responsibilities.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "evidence_schema_version",
+    "evidence_id",
+    "run_id",
+    "pc_id",
+    "log_type",
+    "source_scope",
+    "enumeration",
+    "validation",
+    "inventory",
+    "integrity"
+  ],
+  "properties": {
+    "evidence_schema_version": {
+      "const": 1
+    },
+    "evidence_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9._-]+$"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._-]+$"
+    },
+    "pc_id": {
+      "enum": [
+        "PC-A",
+        "PC-B"
+      ]
+    },
+    "log_type": {
+      "enum": [
+        "BattleLog",
+        "ErrorReport"
+      ]
+    },
+    "source_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "root_id",
+        "relative_scope"
+      ],
+      "properties": {
+        "root_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[A-Za-z0-9._-]+$"
+        },
+        "relative_scope": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "pattern": "^(?!/)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$)).*$"
+        }
+      }
+    },
+    "enumeration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "started_at_utc",
+        "finished_at_utc",
+        "entries_observed",
+        "eligible_target_count",
+        "inventory_sha256",
+        "enumeration_errors"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "completed",
+            "incomplete",
+            "failed"
+          ]
+        },
+        "started_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "finished_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "entries_observed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "eligible_target_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "inventory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "enumeration_errors": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "valid_eligible_count",
+        "valid_ineligible_count",
+        "invalid_relevant_count",
+        "ignored_entries_count",
+        "errors"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "completed",
+            "incomplete",
+            "failed"
+          ]
+        },
+        "valid_eligible_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_ineligible_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalid_relevant_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ignored_entries_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/validationError"
+          }
+        }
+      }
+    },
+    "inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "targets"
+      ],
+      "properties": {
+        "kind": {
+          "const": "embedded"
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/target"
+          }
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "canonicalization",
+        "digest"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "sha256"
+        },
+        "canonicalization": {
+          "const": "EO-LOG-MAINTENANCE-RUN-INPUT-EVIDENCE-V1"
+        },
+        "digest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "safeRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^(?!/)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$))(?![A-Za-z]:).*$"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "filename",
+        "relative_path",
+        "size_bytes",
+        "expected_sha256"
+      ],
+      "properties": {
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "pattern": "^[^/\\\\\\x00-\\x1f]+$"
+        },
+        "relative_path": {
+          "$ref": "#/$defs/safeRelativePath"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "validationError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "error_id",
+        "code",
+        "filename",
+        "relative_path"
+      ],
+      "properties": {
+        "error_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._-]+$"
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "pattern": "^[^/\\\\\\x00-\\x1f]+$"
+        },
+        "relative_path": {
+          "$ref": "#/$defs/safeRelativePath"
+        }
+      }
+    }
+  }
+}

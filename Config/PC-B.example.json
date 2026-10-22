@@ -1,0 +1,10 @@
+{
+  "machineId": "PC-B",
+  "role": "secondary",
+  "runtimeRoot": "C:\\Example\\PCB\\Runtime",
+  "battleLogLocal": "C:\\Example\\PCB\\Source\\BattleLog",
+  "errorLogLocal": "C:\\Example\\PCB\\Source\\ErrorReport",
+  "battleLogDrive": "G:\\ExampleDrive\\SharedLogs\\BattleLog",
+  "errorLogDrive": "G:\\ExampleDrive\\SharedLogs\\ErrorReport",
+  "maintenanceDrive": "G:\\ExampleDrive\\SharedLogs\\_maintenance"
+}

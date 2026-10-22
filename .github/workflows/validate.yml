@@ -1,0 +1,166 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PowerShell 7.6.7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '7.6.7'
+          $archive = Join-Path $env:RUNNER_TEMP "PowerShell-$version-win-x64.zip"
+          $installDir = Join-Path $env:RUNNER_TEMP "PowerShell-$version"
+          $uri = "https://github.com/PowerShell/PowerShell/releases/download/v$version/PowerShell-$version-win-x64.zip"
+          Invoke-WebRequest -Uri $uri -OutFile $archive
+          $expectedHash = 'D2F952EBDBF24386CB8923553AA58E41A846DB35A6155EA04C58142A4B16DBB7'
+          $actualHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
+          if ($actualHash -ne $expectedHash) {
+            throw "PowerShell archive SHA-256 mismatch: $actualHash"
+          }
+          New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+          Expand-Archive -LiteralPath $archive -DestinationPath $installDir -Force
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value $installDir
+          $installed = & (Join-Path $installDir 'pwsh.exe') -NoLogo -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
+          if ($installed.Trim() -ne $version) {
+            throw "Expected PowerShell $version, installed $installed"
+          }
+          Write-Host "Installed PowerShell $installed"
+
+      - name: Verify PowerShell version
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $expected = [version]'7.6.7'
+          $actual = $PSVersionTable.PSVersion
+          Write-Host "PowerShell version: $actual"
+          if ($actual -ne $expected) {
+            throw "PowerShell $expected is required; found $actual"
+          }
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install contract test dependencies
+        shell: pwsh
+        run: python -m pip install -r requirements-test.txt
+
+      - name: Validate PowerShell/Python JSON contracts
+        shell: pwsh
+        run: python -m unittest discover -s tests -p "test_contract_schemas.py" -v
+
+      - name: Validate referenced aggregation artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -m pip install -r requirements-runtime.txt
+          python -m unittest discover -s tests -p "test_aggregation_referenced_artifacts.py" -v
+          python -m unittest discover -s tests -p "test_run_input_evidence_integrity.py" -v
+          python -m unittest discover -s tests -p "test_source_inventory_evidence_builder.py" -v
+          python -m unittest discover -s tests -p "test_atomic_artifact_publication.py" -v
+          python -m unittest discover -s tests -p "test_owned_run_lock.py" -v
+          python -m unittest discover -s tests -p "test_crash_recovery_decision.py" -v
+          python -m unittest discover -s tests -p "test_artifact_set_recovery.py" -v
+          python -m unittest discover -s tests -p "test_artifact_set_publication.py" -v
+          python -m unittest discover -s tests -p "test_artifact_set_directory_verification.py" -v
+
+      - name: Validate JSON example configurations
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = Get-ChildItem -Path Config -Filter '*.example.json' -File
+          if (-not $files) {
+            throw 'No example JSON configuration files found.'
+          }
+          foreach ($file in $files) {
+            Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json | Out-Null
+            Write-Host "Valid JSON: $($file.Name)"
+          }
+
+      - name: Run PowerShell log-function tests
+        shell: pwsh
+        run: ./tests/Test-LogFunctions.ps1
+
+      - name: Run aggregation report internal consistency tests
+        shell: pwsh
+        run: ./tests/Test-AggregationReportValidation.ps1
+
+      - name: Run aggregation artifact reference tests
+        shell: pwsh
+        run: ./tests/Test-AggregationArtifactReference.ps1
+
+      - name: Run C-54 approved pattern-contract tests
+        shell: pwsh
+        run: ./tests/Test-C54PatternContract.ps1
+
+      - name: Run C-53/C-54 diagnostic path sanitizer tests
+        shell: pwsh
+        run: ./tests/Test-DiagnosticPathSanitization.ps1
+
+      - name: Run diagnostic record finalizer tests
+        shell: pwsh
+        run: ./tests/Test-DiagnosticRecordFinalizer.ps1
+
+      - name: Run C-50 diagnostic error-code classifier tests
+        shell: pwsh
+        run: ./tests/Test-DiagnosticErrorCodeClassifier.ps1
+
+      - name: Run C-51 diagnostic phase/operation resolver tests
+        shell: pwsh
+        run: ./tests/Test-DiagnosticPhaseOperationResolver.ps1
+
+      - name: Run diagnostic event ID allocation tests
+        shell: pwsh
+        run: ./tests/Test-DiagnosticErrorId.ps1
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+            Register-PSRepository -Default
+          }
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -Repository PSGallery
+
+      - name: Parse and analyze PowerShell files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = Get-ChildItem -Path . -Recurse -Filter '*.ps1' -File |
+            Where-Object { $_.FullName -notmatch '[\\/](\.git|\.github)[\\/]' }
+          if (-not $files) {
+            Write-Host 'No PowerShell scripts yet; analysis will become active when scripts are added.'
+            exit 0
+          }
+          $failed = $false
+          foreach ($file in $files) {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $file.FullName, [ref]$tokens, [ref]$parseErrors
+            ) | Out-Null
+            if ($parseErrors.Count -gt 0) {
+              $failed = $true
+              $parseErrors | ForEach-Object { Write-Error "$($file.FullName): $_" }
+            }
+            $issues = Invoke-ScriptAnalyzer -Path $file.FullName -Severity Error
+            if ($issues) {
+              $failed = $true
+              $issues | Format-Table -AutoSize | Out-String | Write-Host
+            }
+          }
+          if ($failed) { throw 'PowerShell validation failed.' }

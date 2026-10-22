@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eo-log-maintenance.invalid/contracts/manifest-v1.schema.json",
+  "title": "EO Log Maintenance Manifest v1",
+  "description": "Strict structural contract for the approved manifest v1 field set. Filename identity, cross-artifact identity, transitions, timestamps' future/freshness policy, and archive authorization remain runtime responsibilities.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "pc_id",
+    "log_type",
+    "target_period",
+    "status",
+    "outcome",
+    "started_at_utc",
+    "finished_at_utc",
+    "files"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+    },
+    "pc_id": { "enum": ["PC-A", "PC-B"] },
+    "log_type": { "enum": ["BattleLog", "ErrorReport"] },
+    "target_period": { "type": "string", "minLength": 4, "maxLength": 7 },
+    "status": { "enum": ["running", "success", "partial_failure", "failure"] },
+    "outcome": { "enum": [null, "no_work"] },
+    "started_at_utc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$",
+      "maxLength": 32
+    },
+    "finished_at_utc": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$",
+          "maxLength": 32
+        }
+      ]
+    },
+    "files": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/file" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "log_type": { "const": "BattleLog" } }, "required": ["log_type"] },
+      "then": { "properties": { "target_period": { "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$" } } }
+    },
+    {
+      "if": { "properties": { "log_type": { "const": "ErrorReport" } }, "required": ["log_type"] },
+      "then": { "properties": { "target_period": { "pattern": "^[0-9]{4}$" } } }
+    },
+    {
+      "if": { "properties": { "status": { "const": "running" } }, "required": ["status"] },
+      "then": { "properties": { "finished_at_utc": { "type": "null" } } },
+      "else": { "properties": { "finished_at_utc": { "type": "string" } } }
+    },
+    {
+      "if": { "properties": { "outcome": { "const": "no_work" } }, "required": ["outcome"] },
+      "then": {
+        "properties": {
+          "status": { "const": "success" },
+          "files": { "maxItems": 0 }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "safeRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^(?!/)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$))(?![A-Za-z]:)(?!.*[\\x00-\\x1f\\x7f]).+$"
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relative_path", "filename", "size_bytes", "sha256", "status", "drive_file_id", "verification"],
+      "properties": {
+        "relative_path": { "$ref": "#/$defs/safeRelativePath" },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "pattern": "^[^/\\\\\\x00-\\x1f]+$"
+        },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "status": { "enum": ["staging", "ready", "pending", "uploaded", "verified", "failed", "unknown"] },
+        "drive_file_id": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "minLength": 1, "maxLength": 1024 }
+          ]
+        },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "method", "checked_at_utc", "observed_sha256"],
+          "properties": {
+            "status": { "enum": ["not_checked", "verified", "mismatch", "unavailable", "ambiguous", "failed"] },
+            "method": { "enum": ["not_performed", "drive_sha256", "download_sha256"] },
+            "checked_at_utc": {
+              "oneOf": [
+                { "type": "null" },
+                { "type": "string", "format": "date-time", "pattern": "Z$", "maxLength": 32 }
+              ]
+            },
+            "observed_sha256": {
+              "oneOf": [
+                { "type": "null" },
+                { "$ref": "#/$defs/sha256" }
+              ]
+            }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "status": { "const": "not_checked" } }, "required": ["status"] },
+              "then": {
+                "properties": {
+                  "method": { "const": "not_performed" },
+                  "checked_at_utc": { "type": "null" },
+                  "observed_sha256": { "type": "null" }
+                }
+              }
+            },
+            {
+              "if": { "properties": { "status": { "enum": ["verified", "mismatch"] } }, "required": ["status"] },
+              "then": {
+                "properties": {
+                  "method": { "enum": ["drive_sha256", "download_sha256"] },
+                  "checked_at_utc": { "type": "string" },
+                  "observed_sha256": { "$ref": "#/$defs/sha256" }
+                }
+              }
+            },
+            {
+              "if": { "properties": { "status": { "enum": ["unavailable", "ambiguous", "failed"] } }, "required": ["status"] },
+              "then": {
+                "properties": {
+                  "method": { "const": "not_performed" },
+                  "checked_at_utc": { "type": "string" },
+                  "observed_sha256": { "type": "null" }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/wasawo/eo-log-maintenance/blob/main/contracts/drive-response.schema.json",
+  "title": "ログ保守：Drive アダプター レスポンス",
+  "description": "Python Google Drive アダプター向けバージョン 1.0 のレスポンス形式。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "operation",
+    "success",
+    "result",
+    "error"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "request_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "list_files",
+        "get_file_metadata",
+        "upload_file",
+        "download_file"
+      ]
+    },
+    "success": {
+      "type": "boolean"
+    },
+    "result": {
+      "type": ["object", "null"]
+    },
+    "error": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message", "retryable"],
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "INVALID_REQUEST",
+                "AUTHENTICATION_FAILED",
+                "DRIVE_PERMISSION_DENIED",
+                "DRIVE_RESOURCE_NOT_FOUND",
+                "DRIVE_TRANSIENT_FAILURE",
+                "VERIFICATION_FAILED",
+                "INTERNAL_ERROR",
+                "OPERATION_TIMEOUT",
+                "CONFLICT_OR_AMBIGUOUS"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            },
+            "retryable": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "success": { "const": true },
+        "result": { "type": "object" },
+        "error": { "type": "null" }
+      }
+    },
+    {
+      "properties": {
+        "success": { "const": false },
+        "result": { "type": "null" },
+        "error": { "type": "object" }
+      }
+    }
+  ]
+}

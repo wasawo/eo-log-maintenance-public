@@ -1,0 +1,70 @@
+name: Package Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-package-builder:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PowerShell 7.6.7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '7.6.7'
+          $archive = Join-Path $env:RUNNER_TEMP "PowerShell-$version-win-x64.zip"
+          $installDir = Join-Path $env:RUNNER_TEMP "PowerShell-$version"
+          $uri = "https://github.com/PowerShell/PowerShell/releases/download/v$version/PowerShell-$version-win-x64.zip"
+          Invoke-WebRequest -Uri $uri -OutFile $archive
+          $expectedHash = 'D2F952EBDBF24386CB8923553AA58E41A846DB35A6155EA04C58142A4B16DBB7'
+          $actualHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
+          if ($actualHash -ne $expectedHash) {
+            throw "PowerShell archive SHA-256 mismatch: $actualHash"
+          }
+          New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+          Expand-Archive -LiteralPath $archive -DestinationPath $installDir -Force
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value $installDir
+          $installed = & (Join-Path $installDir 'pwsh.exe') -NoLogo -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
+          if ($installed.Trim() -ne $version) {
+            throw "Expected PowerShell $version, installed $installed"
+          }
+          Write-Host "Installed PowerShell $installed"
+
+      - name: Verify PowerShell version
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $expected = [version]'7.6.7'
+          $actual = $PSVersionTable.PSVersion
+          Write-Host "PowerShell version: $actual"
+          if ($actual -ne $expected) {
+            throw "PowerShell $expected is required; found $actual"
+          }
+
+      - name: Run package builder tests
+        shell: pwsh
+        run: ./tests/Test-ReleasePackage.ps1
+
+      - name: Build non-deployable review artifact
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & ./.github/scripts/Build-ReleasePackage.ps1 -TargetRole PC-A -AllowNonDeployable -OutputDirectory (Join-Path $env:RUNNER_TEMP 'eo-package')
+
+      - name: Upload review artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: eo-log-maintenance-review-package
+          path: ${{ runner.temp }}/eo-package/*
+          if-no-files-found: error
