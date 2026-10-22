@@ -116,3 +116,24 @@ The publication tests now exercise two spawned processes concurrently publishing
 ## 12. Target-filesystem qualification (required before official integration)
 
 See `docs/target-filesystem-acceptance.md` for the tiered evidence plan. Hosted Windows CI is Tier A only. Before official entrypoint integration, Tier B disposable-root tests must pass on each operator PC's intended local volume, including crash injection, conflicting concurrent publishers, strict marker/hash revalidation, and no-overwrite capability checks. Any Google Drive for desktop or network-target-dependent behavior requires separately gated Tier C evidence in a dedicated disposable folder. Do not infer remote sync completion or power-loss durability from local visibility. Unknown, ambiguous, or unobservable states block dependent archive/deletion. No production log path or Drive operation is authorized by this plan.
+
+
+## Owned publication/recovery integration evidence (2026-10-23)
+
+`tests/test_owned_publication_integration.py` uses real Windows machine-wide
+named mutexes and spawned processes in a fresh harness-owned temp root. It
+verifies competing-publisher timeout without artifact changes, normal token
+cleanup plus exact-byte retry, actual abandoned-mutex fail-closed behavior,
+ownership-token mismatch preservation, and revalidation after an external writer
+changes previously verified bytes. A parent handle keeps the mutex object alive
+so the abandonment assertion does not accidentally test a newly created mutex.
+
+A schema-valid synthetic crash-left running manifest and actual surviving lock
+record are supplied to the pure recovery classifier. Missing termination proof,
+ambiguous latest candidate, incomplete reconciliation, unresolved uploads and
+record-identity mismatch all block. A positive result still requires fresh
+inventory/new run identity and does not authorize stale-record deletion/adoption.
+The tests preserve that manifest, lock record and published bytes; operational
+recovery and lock-protected use of real source/Drive data remain unimplemented.
+This is hosted/local synthetic evidence, not Tier B/C or complete runtime
+integration. P0-010/P0-012 remain open.

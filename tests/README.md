@@ -146,3 +146,24 @@ The CLI prints the requested root locally before writes for operator review;
 never copy that line into public evidence. Machine-readable results contain
 scenario IDs, exit codes and invariants, not private paths. Tier B/Tier C, lock
 integration, operator-volume qualification and runtime entry points remain open.
+
+
+## Owned publication/recovery integration evidence (2026-10-23)
+
+`tests/test_owned_publication_integration.py` uses real Windows machine-wide
+named mutexes and spawned processes in a fresh harness-owned temp root. It
+verifies competing-publisher timeout without artifact changes, normal token
+cleanup plus exact-byte retry, actual abandoned-mutex fail-closed behavior,
+ownership-token mismatch preservation, and revalidation after an external writer
+changes previously verified bytes. A parent handle keeps the mutex object alive
+so the abandonment assertion does not accidentally test a newly created mutex.
+
+A schema-valid synthetic crash-left running manifest and actual surviving lock
+record are supplied to the pure recovery classifier. Missing termination proof,
+ambiguous latest candidate, incomplete reconciliation, unresolved uploads and
+record-identity mismatch all block. A positive result still requires fresh
+inventory/new run identity and does not authorize stale-record deletion/adoption.
+The tests preserve that manifest, lock record and published bytes; operational
+recovery and lock-protected use of real source/Drive data remain unimplemented.
+This is hosted/local synthetic evidence, not Tier B/C or complete runtime
+integration. P0-010/P0-012 remain open.

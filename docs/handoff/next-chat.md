@@ -8,21 +8,24 @@
 ## 最新基準・完了事項
 
 - 正本: `wasawo/eo-log-maintenance-public`（Public）。元リポジトリは Private。
-- GitHub main: `d2094f83692c354c0c7f776e01a87d350181209c`。PR #2 のスカッシュマージを再確認。
+- GitHub main: `feecbcc34858cbae9d6bf9d07b1f3fc3283c8ee8`。PR #3 のスカッシュマージを確認。
 - main の [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39820210106) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39820210102) は同SHAで成功。
 - PR #1: 正本参照更新・旧PR #168の受け入れ計画移植がマージ済み。マージSHA `40357512cb1c1327fd1cbfdf34e7596ee20a327d` のmain CIも両方成功。
 - PR #2: リポジトリ固有ルールを AGENTS.md、進捗を本書へ分離し、長い過去記録を保存。マージ済み。
 - 実設定 `Config/PC-A.json` / `Config/PC-B.json` は .gitignore 対象。汎用名 config.json は現行の設定名ではなく除外対象でもない。
-- ローカルは確認時点で `docs/codex-project-rules` の `3ce37399b2babf6cc9542784f8e3586ebc217a0c`。今回の残作業整理は本書のみの未コミット変更で、mainへ切り替え・同期・PR作成は未実施。
+- ローカル作業ブランチ: test/owned-publication-recovery-integration。PC-B端末で作業中。前作業の残作業整理をPR #3へ保全済み。
 
-## 現在の作業: 優先順位1の合成クラッシュハーネス
+## 現在の作業: 優先順位2の所有権・復旧・公開統合テスト
 
-- ブランチ: test/crash-publication-harness。既存の残作業整理を保全して最新mainから作成。
-- tests/crash_publication_harness.py と専用テストを追加。4つの公開境界で自分の子プロセスを実終了し、新プロセスで検証・同一内容再試行・既存bytes保持を確認。
-- 明示ackとOS一時領域直下の新規UUID名rootのみ。既存/相対/親参照/Windows非固定ドライブ/reparse祖先を拒否。任意ボリューム、実ログ、Drive、ネットワーク領域へは実行しない。
-- ローカル新規6テスト、全Python125テスト（symlink権限で2件スキップ）、配布テストが成功。AST構文解析・実値残存チェック・差分検査も成功。PR最新HEADのCIとマージ結果は未確定。
-- CI確認ルールは今回の利用者指示で90秒間隔・最大5回。マージ承認あり、必要検査成功と実際のHEAD/競合状態を確認してから実施。
-- 次は優先順位2のロック・復旧・公開の統合合成検証。Tier B/Cや本番処理は未承認/未実施のまま。
+- PR #3（https://github.com/wasawo/eo-log-maintenance-public/pull/3）をマージ済み。HEAD a44adc833309706345bf0c2872927d4f16857d23 の Validate 39821756925 / Package Validation 39821757018 成功後にスカッシュマージ。
+- マージSHA feecbcc34858cbae9d6bf9d07b1f3fc3283c8ee8 の main Validate 39822076933 / Package Validation 39822077240 も成功。旧PR #2のmain CIと区別して確認。
+- ブランチ: test/owned-publication-recovery-integration（PR #3マージ済みmainから作成）。
+- 実Windows mutexと子プロセスで、競合時の公開拒否、所有権付き正常終了/再試行、実放棄状態の拒否、token不一致の記録保持、検証後の外部変更検出を追加。
+- 実際に残ったロック記録とschema-validな合成running manifestを復旧判定へ入力。否定条件は拒否し、肯定でも新run/fresh inventoryを要求。旧記録の自動引き継ぎ・削除は実装しない。
+- 新規4テストと全Python129テスト（symlink権限で2件スキップ）がローカル成功。公開PR最新HEAD CIは確認中。この統合テストPRは未マージ。
+- 順位1の最初のTier Aハーネスは完了。順位2の合成統合証拠を拡充中で、実運用の復旧・正式入口統合完了ではない。
+- 次のTier Bは端末はPC-Bと確認済み、想定ローカルボリュームの回答待ち。現在のtemp専用ハーネスを任意の実運用領域で実行しない。
+- 利用者は最新HEADの必要検査成功後のマージと次作業の継続を承認済み。CI初回確認後90秒間隔で最大5回。
 
 ## 実装・証拠の現在地
 
@@ -63,5 +66,5 @@
 
 - P0台帳には古い「SyncLogs sentinelあり」等の表現が残るが、現物のscriptsにはREADMEのみ。未決事項台帳にも過去PRの「CI待ち」記載がある。後続でソースと最新承認記録に照合して修正する。台帳全文を再監査済みとは扱わない。
 - P0-010（要件→実装→実行テスト→証拠）、P0-012（削除機能不在）は引き続き未完了。各実装PRで関係行を更新する。
-- 今回は文書・現物・GitHubのマージ/CIを照合し、本書の整理だけを実施。ランタイムテスト・実端末検証・Drive操作は未実行。新規コミット/push/PR/マージなし。
+- この作業では合成プロセスクラッシュと実Windows mutexの統合テストを追加。実端末ボリュームのTier B適格性検証・Drive操作・正式ランタイムは未実行。PR #3のマージとCIを確認し、次の統合テストPRを準備中。
 - 次に着手する最小単位の推奨: 順位1の安全なroot受付とクラッシュ注入シナリオの実装計画を、既存出版ヘルパー/テストと照合して具体化する。
