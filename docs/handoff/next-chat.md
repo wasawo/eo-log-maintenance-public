@@ -17,12 +17,12 @@
 
 ## 現在の作業: Tier B異常系で再現したジャンクション拒否漏れ
 
-- PR #5（https://github.com/wasawo/eo-log-maintenance-public/pull/5）マージ済み。HEAD 30a62cac9d594d45880774d28811b8f6b2f95ae7 の Validate 39824117058 / Package Validation 39824117153 が成功後にマージ。マージSHA f96607cea72ffa8e25c1a5874b18d272379fa974。
+- PR #5（https://github.com/wasawo/eo-log-maintenance-public/pull/5）マージ済み。HEAD 30a62cac9d594d45880774d28811b8f6b2f95ae7 の Validate 39824117058 / Package Validation 39824117153 が成功後にマージ。マージSHA f96607cea72ffa8e25c1a5874b18d272379fa974 のmain Validate 39824401046 / Package Validation 39824401199 も成功。
 - ブランチ: fix/reparse-artifact-directory-verification。
 - 実Windowsジャンクションで、検証rootと祖先がis_symlinkだけでは拒否されずbytes読取へ到達する2件の不具合を先に再現。
 - Common/ArtifactSetDirectoryVerification.py をlstatのreparse属性と祖先チェックで強化。既存仕様のfail-closed条件を維持し、弱めない。TOCTOU完全防御ではない。
 - 実ジャンクション3件と読取失敗1件を追加。ローカル全Python137テスト成功（既存symlink権限2件スキップ）。CI登録と予定ボリュームrunnerにも追加。
-- PC-Bの実パス・ドライブ文字は公開しない。前回の部分証拠はtests/evidence/pc-b-local-volume-20261023.jsonに保持。修正版での14件の予定ボリューム証拠をこれから記録。
+- PC-Bの実パス・ドライブ文字は公開しない。前回の部分証拠はtests/evidence/pc-b-local-volume-20261023.jsonに保持。修正版での14件が予定固定NTFSボリュームでも全成功（スキップなし）。tests/evidence/pc-b-reparse-local-volume-20261023.json に実パスなしで記録。
 - 最新PR HEAD CI・この修正のマージは未確定。各PRは90秒間隔・最大5回確認し、最新HEADの必要検査成功後にマージする承認あり。
 - 次の設定基盤ではローカル原本領域 maintenanceLocal の追加案を利用者へ確認中。既存exampleには対応項目がなく、未承認の保存場所を推測しない。PC-A側証拠・残るsource-race/統合・Tier Cは未実施。
 

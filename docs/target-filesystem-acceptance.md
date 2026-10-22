@@ -145,3 +145,5 @@ roots, asserts that root/ancestor rejection occurs before artifact read, rejects
 a junction under an expected artifact name, and injects a sanitized read failure
 without modifying existing bytes. CI runs this Windows suite; local-volume
 evidence now includes it. P0 and remaining Tier B/C gates stay open.
+
+[PC-B reparse/read-failure follow-up](../tests/evidence/pc-b-reparse-local-volume-20261023.json) records 14 passing checks with no skips, including actual junction roots/ancestors and injected read failure. It supersedes the earlier subset for these scenarios only; complete Tier B remains unaccepted.
