@@ -236,3 +236,5 @@ Bootstrap/create-once migration is a separate pending implementation.
 See [configuration specification](../docs/configuration-local-root.md#create-only-configuration-bootstrap-helper) for Initialize-EoMachineConfiguration, safety boundaries and pending deployment integration. Run tests/Test-MachineConfigurationBootstrap.ps1 for synthetic create-once and preservation checks.
 
 Internal publication crash tests: python -m unittest discover -s tests -p test_internal_publication_crash.py -v. See [filesystem acceptance](../docs/target-filesystem-acceptance.md#internal-single-file-crash-boundaries-2026-10-23) for the 10 crash scenarios, orphan rejection and evidence limits. Included in opt-in local-volume checks.
+
+Source hash identity regressions: python -m unittest discover -s tests -p test_source_hash_identity.py -v. These use synthetic file replacement/restoration and injected fstat failures; see [scope and limitations](../docs/target-filesystem-acceptance.md#source-hash-handle-identity-2026-10-23).

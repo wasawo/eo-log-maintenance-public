@@ -8,18 +8,20 @@
 
 ## 最新基準
 
-- 基準main: 2096a428d7fcef81dda64650c5af223c13f4c02b（PR #10マージ）。
-- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39831559487) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39831559362) 成功を照合。
+- 基準main: e7d4e8e600a6f744fde4801565afe043b45d10c6（PR #11マージ）。
+- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39834657799) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39834657703) 成功を照合。
+- PR #11 HEAD 610079f7de2b1c963d572a3c2335f8471f4c8e59 のValidate 39834335518 / Package 39834335801成功後マージ。内部5境界×先頭artifact/最後markerの10クラッシュケースと残骸拒否を検証済み。
+- PC-B予定ローカル固定NTFSの21テスト成功・スキップなし。部分証拠 tests/evidence/pc-b-internal-crash-local-volume-20261023.json。Tier B全体は未受け入れ。
 - 利用者は優先順の継続と、最新HEADの必要検査成功後のマージを承認。初回確認後90秒間隔で最大5回再確認し、未完/失敗ならマージしない。
-- 作業先は新クローン。ブランチ test/internal-publication-crash-boundaries。
+- 作業先は新クローン。ブランチ fix/source-hash-handle-identity。
 
-## 現在の作業: 単一ファイル公開内部のクラッシュ境界
+## 現在の作業: 元ファイルhashのハンドルidentity照合
 
-- tests/crash_publication_harness.py にテスト専用の内部境界検証を追加。実mkstemp直後、fsync前後、実link前後で所有する子プロセスを実終了し、別プロセスで観測/同一bytes再試行。
-- 先頭artifactと最後のmarkerそれぞれ5境界、計10クラッシュケース。7テスト（不正scenario/ack欠落の無書込ガードを含む）がローカル成功。全Pythonは144テスト成功（既存symlink権限の2件スキップ）。
-- temp残骸を自動削除せず、marker公開済みの場合も再試行後もdirectory verifierがunexpected_directory_entryで拒否。既存bytes/残骸の保持を確認。
-- 本番Commonコード・復旧ポリシーは変更しない。CIとopt-in local-volume suiteへ登録。電源断・敵対的FS race・正式復旧フローの受け入れではない。
-- 最新HEADのCI・マージは未確定。PC-B予定ローカル固定NTFS上で21テスト成功・スキップなし。部分証拠 tests/evidence/pc-b-internal-crash-local-volume-20261023.json は実パス/ドライブ文字を含まない。
+- 同サイズ/同mtimeの別ファイルへopen直前に実差し替え、close後に元へ戻すと旧helperが別内容のhashを採用する欠陥を合成テストで再現（修正前1件失敗）。
+- Common/SourceInventoryEvidenceBuilder.pyで前後pathname statとopen-handle前後fstatのdevice/inode/size/mtimeを比較。不一致はsource_mutation_detected、fstat失敗はsource_file_unavailableとして未完了にする。元ファイルへ書込/削除を追加しない。
+- 回帰5件（実差し替え復元・正常・fstat前後失敗・schema-valid未完了/非漏えい）と既存builder7件がローカル成功。全Python149テスト成功、既存symlink権限で2件スキップ。
+- CI登録と範囲/限界の文書を同じPRへ追加。最新HEAD CI・PR/マージは未確定。
+- 同一objectで内容/metadataを戻す変更、最後の確認後の変更、root/ancestor reparse、列挙全体のsnapshot、後続uploadまでの保証は未実証。source-race全体やP0を完了扱いしない。
 
 ## 設定基盤の完了範囲
 
@@ -47,9 +49,9 @@
 
 | 順位 | 現在地 | 次の具体作業 |
 |---|---|---|
-| 1: クラッシュ注入 | 成果物間の公開境界の合成ハーネス実装済み | 単一ファイル内部5境界×2公開対象と残骸拒否の合成検証を追加中。電源断試験へ拡大解釈しない |
+| 1: クラッシュ注入 | 成果物間の公開境界の合成ハーネス実装済み | 単一ファイル内部5境界×2公開対象と残骸拒否の合成検証はPR #11でマージ済み。電源断試験へ拡大解釈しない |
 | 2: 所有権/復旧/公開統合 | 合成統合証拠を追加済み | stale記録の実運用回復、新run/fresh inventory生成、source-race/検証から利用までの保護は未完了。記録の自動削除/引き継ぎを勝手に実装しない |
-| 3: Tier B | PC-Bの14件部分証拠のみ | PC-Aの予定ボリュームで実行、残るadversarial FS/source-race/統合条件を収集。Tier B全体は未受け入れ |
+| 3: Tier B | PC-Bの21件部分証拠のみ | PC-Aの予定ボリュームで実行、残るadversarial FS/source-race/統合条件を収集。Tier B全体は未受け入れ |
 | 4: 設定/初期導入 | maintenanceLocalと構造ローダーはマージ済み | create-only補助処理はPR #10でマージ済み。物理root gate・正式導入入口・最終allowlist/移行は未完了 |
 | 5: Drive/IPC | 未実装・契約/認証の決定待ち | Python1呼出し1試行、PowerShell再試行、不明結果照合、metadataだけの検証拒否。OSD-05と契約条項を解決 |
 | 6: 正式同期 | 未実装 | 承認済みOSD-02/03と残る遷移表を整合し、安全ゲート完了後に正式入口を統合 |
@@ -67,3 +69,13 @@
 - 承認済み（2026-10-23）: 両PC設定へ `maintenanceLocal`（そのPCのマニフェスト・検証証拠・レポートのローカル原本領域）を追加する。exampleはダミー、実値は非追跡設定、実行先/元ログ/Drive/archiveとの重複を拒否。実パスは推測しない。
 - OSD-04（Dry Run副作用）、OSD-05（Drive認証）、OSD-06/07（配布/保持）、OSD-08（予定実行）、OSD-09（最終allowlist/移行）と残る状態遷移/契約の承認・証拠は別途必要。
 - 台帳の古い「sentinelあり」「過去PRのCI待ち」などは現物と照合して関係PRで直す。台帳全体の再監査完了とはしない。
+
+## PR #12のCI停止状態と継続方針
+
+- PR #12: https://github.com/wasawo/eo-log-maintenance-public/pull/12
+- 旧HEAD 40ede6f07828942390acab4824e0906126e8c989 のValidate 39835109558はattempt 2で成功。初回はPSScriptAnalyzer外部ダウンロード失敗（全テスト後）。
+- Package Validation 39835109683は内部job 120021248758がcompleted/successでもworkflow全体はin_progress/conclusion null。前回90秒間隔5回と今回のGitHub API直接照合でも継続。job再実行はGitHubが403「workflow run already running」で拒否した。
+- この保留記録をPRへ反映し、新HEADの新しい両workflowで通常の全検証を行う。旧job成功や旧HEAD成功を流用しない。マージ前に新HEAD・両workflow成功・競合状態を照合する。
+- 次のジャンクション拒否テスト tests/test_source_inventory_reparse.py はローカル準備ファイルとして未コミット。root/ancestor/childの3拒否漏れを実ジャンクションで再現済み（意図した失敗テスト）。PR #12に混ぜない。
+- 未コミットの準備テスト込みのworking tree全体をgreenとしない。149テスト成功・2スキップはPR #12実装の検証結果。
+- PR #12マージ後に新ブランチへ準備テストを保持して移り、列挙前root/ancestorとentryのlstat reparse拒否・再確認を実装する。実ログ/Driveや設定値は使用しない。
