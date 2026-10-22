@@ -9,20 +9,20 @@
 ## 最新基準
 
 - 基準main: `fa13cf655b786b3caeecd2f61685b06e18b38b4f`（PR #8 スカッシュマージ）。
-- PR #6 mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39825147373) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39825147040) は同基準SHAで成功を確認。
-- ローカル作業先は新クローン。文書整理ブランチ: `docs/completed-crash-validation-handoff`。旧エクスポート用ディレクトリは使わない。
+- PR #9 mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39829840930) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39829840979) は同基準SHAで成功を確認。
+- ローカル作業先は新クローン。作業ブランチ: `feat/create-only-machine-configuration`。旧エクスポート用ディレクトリは使わない。
 - 利用者は優先順の継続と、必要検査成功後のマージを承認。CIは初回確認後90秒間隔で最大5回、最新HEADの両ワークフロー成功と競合状態を確認する。
 
-## 現在の作業: 読み取り専用の実設定構造ローダー
+## 現在の作業: 初回だけ設定を生成する補助処理
 
 - PR #8（https://github.com/wasawo/eo-log-maintenance-public/pull/8）マージ済み。HEAD 2c517caec33ee517a2454eabe4bdd418271dc6e1 のValidate 39828401343 / Package 39828401425成功後にマージ。main fa13cf655b786b3caeecd2f61685b06e18b38b4f の39828675074 / 39828675339も成功。
-- ブランチ feat/read-only-machine-configuration。
+- 構造ローダーの旧ブランチ feat/read-only-machine-configuration はマージ済み。現在は feat/create-only-machine-configuration。
 - Common/MachineConfiguration.ps1: strict UTF-8（BOM可）のreaderとJSON構造/役割/型/maintenanceLocal分離parser。unknown/missing/duplicateキー、不正JSON/型/パス/PC役割を固定reasonで拒否。設定値・実パスはエラーへ出さない。
 - PC-AのallowArchive trueは明示booleanデータとして許容するが、実行許可ではない。PC-Bはプロパティ自体を拒否。exampleは引き続きfalse既定をbuilderで要求。
 - builderも同じ構造parserを使用。実設定・ディレクトリ・成果物を作成せず、元設定bytesを変更しない。285アサーションと配布テストがPowerShell 7.6.7でローカル成功。
-- CI登録、配布への補助モジュール同梱fixture、仕様/README/P0説明を同じPRに追加。最新HEAD CI・マージは未確定。
-- 未実装: 物理的approved-root/reparse/短縮名alias/ボリューム分離確認、初回だけ実設定生成/更新保持、正式入口接続。構造ローダー成功をruntime認可にしない。
-- 次は導入時のcreate-only設定生成（既存ファイルを変更しない）の限定実装を検討。OSD-09の未決定部分を推測しない。90秒間隔・最大5回で最新HEAD CI成功時のみマージ。
+- PR #9はHEAD 5be3bc95122de75ab9680188d7d1bef96d489ccf のValidate 39829546581 / Package 39829546536成功後、main 0cfb0926bb4def84840bff991650abc069423a30 へマージ。マージ後CIはValidate 39829840930 / Package 39829840979成功。
+- 未実装: 物理的approved-root/reparse/短縮名alias/ボリューム分離確認、正式入口接続。初回生成/既存保持の補助処理は今回の追加範囲を参照。構造ローダー成功をruntime認可にしない。
+- 今回は導入時のcreate-only設定生成（既存ファイルを変更しない）の限定補助処理を追加。OSD-09の未決定部分を推測しない。90秒間隔・最大5回で最新HEAD CI成功時のみマージ。
 
 ## この作業でマージした内容
 
@@ -45,7 +45,7 @@
 | 1: クラッシュ注入 | 成果物間の公開境界の合成ハーネス実装済み | 必要な追加の単一ファイル内部境界・クラッシュ残骸は別ケースとして評価。電源断試験へ拡大解釈しない |
 | 2: 所有権/復旧/公開統合 | 合成統合証拠を追加済み | stale記録の実運用回復、新run/fresh inventory生成、source-race/検証から利用までの保護は未完了。記録の自動削除/引き継ぎを勝手に実装しない |
 | 3: Tier B | PC-Bの14件部分証拠のみ | PC-Aの予定ボリュームで実行、残るadversarial FS/source-race/統合条件を収集。Tier B全体は未受け入れ |
-| 4: 設定/初期導入 | 仕様確認・承認待ち | ローカル原本保存先を設定する項目が現在のexampleにない。下記maintenanceLocal案の回答後、確定スキーマ・root分離・unknown/duplicate key拒否・安全既定値・初回だけ生成/更新保持を実装 |
+| 4: 設定/初期導入 | maintenanceLocalと構造ローダーはマージ済み | create-only補助処理を追加中。物理root gate・正式導入入口・最終allowlist/移行は未完了 |
 | 5: Drive/IPC | 未実装・契約/認証の決定待ち | Python1呼出し1試行、PowerShell再試行、不明結果照合、metadataだけの検証拒否。OSD-05と契約条項を解決 |
 | 6: 正式同期 | 未実装 | 承認済みOSD-02/03と残る遷移表を整合し、安全ゲート完了後に正式入口を統合 |
 | 7: Tier C/PC-A archive | 未実施・未実装 | Tier B/専用計画の承認後、使い捨て同期領域で検証。両PCの証拠と直前Drive内容検証を要求。copy/verify/recordのみ |
@@ -62,3 +62,11 @@
 - 承認済み（2026-10-23）: 両PC設定へ `maintenanceLocal`（そのPCのマニフェスト・検証証拠・レポートのローカル原本領域）を追加する。exampleはダミー、実値は非追跡設定、実行先/元ログ/Drive/archiveとの重複を拒否。実パスは推測しない。
 - OSD-04（Dry Run副作用）、OSD-05（Drive認証）、OSD-06/07（配布/保持）、OSD-08（予定実行）、OSD-09（最終allowlist/移行）と残る状態遷移/契約の承認・証拠は別途必要。
 - 台帳の古い「sentinelあり」「過去PRのCI待ち」などは現物と照合して関係PRで直す。台帳全体の再監査完了とはしない。
+
+### 今回の追加範囲
+
+- feat/create-only-machine-configuration: Common/MachineConfigurationBootstrap.ps1。
+- 明示的な既存Configディレクトリだけを対象とし、対象PCの設定が存在すれば内容を変えずpreserved。未作成時だけ安全なexampleを検証し、専用tempへ書込/flush後に非上書きmove。PC-A allowArchive trueテンプレートは拒否。
+- 既存設定（不正bytesを含む）の保持、PC別の新規生成、失敗時の未作成/残骸なしを合成領域で22アサーション成功。構造285アサーション・配布テストも成功。CI/マージは未確定。
+- ソースcheckoutや実導入先で実行していない。実設定/実ログ/Driveへは触れていない。正式インストーラー、自動移行、物理root gate、敵対的race/クラッシュ/電源断の受け入れは含まない。
+- 次は残る安全ゲートと未決定事項を照合する。PC-A/Tier Cや本番適用を推測で進めない。

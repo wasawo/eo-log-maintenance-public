@@ -68,3 +68,34 @@ It does not inspect actual target volumes, resolve short-name/reparse aliases,
 prove cross-root physical separation, acquire a runtime lock, contact Drive,
 or integrate official entry points. Those checks remain mandatory before effects.
 Bootstrap/create-once migration is a separate pending implementation.
+
+## Create-only configuration bootstrap helper
+
+Common/MachineConfigurationBootstrap.ps1 provides Initialize-EoMachineConfiguration
+with explicit ConfigDirectory and MachineId. It operates only on an existing,
+trusted extracted-package configuration directory, never by dot-sourcing alone.
+It preserves any existing active entry without interpreting or changing its bytes.
+A new configuration is validated from the matching safe example (PC-A
+allowArchive must be false), staged in an exclusively created sibling temporary
+file, flushed, and published with a non-overwriting same-directory move.
+
+The helper creates no log/maintenance/Drive/archive directories and performs no
+synchronization or archive. The operator edits actual paths only in the generated
+untracked PC-A.json or PC-B.json. A preserved result does not validate old settings;
+use the read-only loader separately. Missing maintenanceLocal requires an explicit
+operator edit, never automatic migration. Do not run this helper in the source
+checkout: the package builder intentionally rejects active configurations there.
+
+Normal completion/failure cleans up only its own temporary file. Abrupt process
+termination may leave a private .configuration-*.tmp containing configuration:
+do not publish/package such leftovers, and do not infer permission to delete
+unknown files. Flush/move does not establish power-loss durability. Reparse
+ancestors/template are rejected at inspection time; this does not defend against
+concurrent hostile directory replacement. Trusted package-directory ownership is
+a prerequisite, and a physical runtime path gate remains separate. Concurrent
+publication uses the non-overwrite API but adversarial race/crash acceptance is
+not claimed by the basic bootstrap tests.
+
+This is an opt-in helper with synthetic tests, not an installer invocation,
+production deployment approval, final OSD-09 allowlist/migration decision or P0
+closure. Active config remains excluded from source control and distribution.
