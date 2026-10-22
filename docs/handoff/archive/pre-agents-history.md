@@ -933,8 +933,8 @@ Every PR that changes project artifacts must update `docs/handoff/next-chat.md` 
 - Package Validation succeeded on PR #48 HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39394695287
 - Next bounded task: audit IPC-01–06 against the PowerShell/Python contract, JSON schemas, schema tests, and CI evidence. Keep all runtime IPC cases not implemented/not run until a process-boundary harness exists; do not treat schema tests as runtime evidence.
 - P0-010 remains open. OSD-02, OSD-03, and EOLM-MAN-011 remain blocked. No real logs, production paths, Google Drive operations, or deletion capability are authorized.
-  
-対象リポジトリ: https://github.com/wasawo/eo-log-maintenance  
+
+対象リポジトリ: https://github.com/wasawo/eo-log-maintenance
 既定ブランチ: `main`
 
 - PR #17「docs: add next-chat handoff and PR update policy」: **merged**
