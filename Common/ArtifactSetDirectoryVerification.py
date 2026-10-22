@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import stat
 from typing import Mapping
 
 from Common.ArtifactSetRecovery import ArtifactSetDecision, classify_artifact_set
@@ -28,6 +29,13 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]
             raise ValueError("duplicate_json_key")
         result[key] = value
     return result
+
+
+def _is_link_or_reparse(path: Path) -> bool:
+    info = path.lstat()
+    return stat.S_ISLNK(info.st_mode) or bool(
+        getattr(info, "st_file_attributes", 0) & 0x400
+    )
 
 
 def verify_published_artifact_set(
@@ -54,9 +62,11 @@ def verify_published_artifact_set(
     ):
         raise ArtifactSetDirectoryVerificationError("commit_marker_name_invalid")
 
-    root = Path(directory)
+    root = Path(directory).absolute()
     try:
         if root.is_symlink() or not root.is_dir():
+            raise ArtifactSetDirectoryVerificationError("directory_unavailable")
+        if any(_is_link_or_reparse(component) for component in (root, *root.parents)):
             raise ArtifactSetDirectoryVerificationError("directory_unavailable")
         if not isinstance(expected_sha256, Mapping):
             raise ArtifactSetDirectoryVerificationError("expected_artifact_set_invalid")
@@ -70,7 +80,7 @@ def verify_published_artifact_set(
         for entry in root.iterdir():
             if entry.name not in allowed_names:
                 raise ArtifactSetDirectoryVerificationError("unexpected_directory_entry")
-            if entry.is_symlink() or not entry.is_file():
+            if _is_link_or_reparse(entry) or not entry.is_file():
                 raise ArtifactSetDirectoryVerificationError("non_regular_artifact")
             try:
                 content = entry.read_bytes()

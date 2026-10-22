@@ -183,3 +183,19 @@ The tests preserve that manifest, lock record and published bytes; operational
 recovery and lock-protected use of real source/Drive data remain unimplemented.
 This is hosted/local synthetic evidence, not Tier B/C or complete runtime
 integration. P0-010/P0-012 remain open.
+
+
+## Windows junction rejection regression (2026-10-23)
+
+The directory verifier now checks lstat-based symlink/reparse attributes on the
+requested directory, every lexical ancestor, and each observed entry before
+reading artifact bytes. This closes a reproduced Windows junction-root/ancestor
+gap where is_symlink alone did not detect junctions. Reparse uncertainty fails
+closed with sanitized reasons; no files are changed by verification.
+Checks are point-in-time defense-in-depth, not race-free path containment.
+
+The regression suite creates real junctions only inside fresh owned synthetic
+roots, asserts that root/ancestor rejection occurs before artifact read, rejects
+a junction under an expected artifact name, and injects a sanitized read failure
+without modifying existing bytes. CI runs this Windows suite; local-volume
+evidence now includes it. P0 and remaining Tier B/C gates stay open.

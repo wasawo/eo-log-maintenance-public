@@ -78,7 +78,8 @@ def run_local_volume_checks(
         os.environ["EO_TEST_VOLUME_MODE"] = "repository-local"
         disposable_parent()
         suite = unittest.TestSuite()
-        for module in ("test_crash_publication_harness", "test_owned_publication_integration"):
+        for module in ("test_crash_publication_harness", "test_owned_publication_integration",
+                       "test_artifact_directory_reparse"):
             suite.addTests(unittest.defaultTestLoader.loadTestsFromName(module))
         # Retain diagnostics in memory; never emit raw traces/paths/hostnames.
         result = unittest.TextTestRunner(stream=io.StringIO(), verbosity=0).run(suite)
@@ -95,7 +96,7 @@ def run_local_volume_checks(
             "tier_b_acceptance": "incomplete",
             "remaining": [
                 "PC-A intended-volume evidence",
-                "complete adversarial reparse/read-failure filesystem matrix",
+                "remaining adversarial filesystem/source-race cases",
                 "all required integration and source-race acceptance",
             ],
             "evidence_limit": "synthetic-process-crashes-not-power-loss-or-Drive",
