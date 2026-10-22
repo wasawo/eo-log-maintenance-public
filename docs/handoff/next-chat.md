@@ -1,10 +1,11 @@
 ## Current continuation — clean public-repository snapshot (2026-10-23)
 
+- Hosting follow-up (2026-10-23): the operator authorized GitHub repository creation and push, explicitly requiring Private visibility initially. Created https://github.com/wasawo/eo-log-maintenance-public with `private: true` and no generated files. Publish only this independent repository's `main`; keep the original repository private. Public visibility is not authorized. This handoff commit accompanies the initial push; verify the remote tip and Private visibility after pushing.
 - Exported only the 88 tracked files from verified latest source main `a0760d6e223659e8a8c62101bb0768270c7e683b` using `git archive`. PR #169 was squash-merged into that source commit; earlier sections below are historical records, not current PR/CI status.
 - This repository starts a new independent history. Source Git metadata, old branches, active configurations, local edits, and untracked files were not copied. All exported files were verified byte-for-byte before this handoff-only update.
 - Initial commit identity uses the operator's GitHub noreply address. No remote is configured and no GitHub repository creation, push, or public-visibility change is performed in this work unit. Old repository links remain historical references; select the new hosting destination before updating canonical repository/schema links.
 - Known source private-path/Drive-URL signatures and personal email addresses must be absent from this snapshot. The source repository's previous local package tests passed; no new runtime code is introduced. GitHub CI is not run here; source private Actions quota was exhausted and local verification was accepted for PR #169.
-- Next: choose the new GitHub repository name/visibility, review the snapshot and canonical links, then publish only this independent repository when authorized. Keep the original repository private. Runtime entry points/configuration bootstrap, Drive integration, and production acceptance remain incomplete; all existing sync/verification/archive/deletion safety gates remain in force.
+- Next: review canonical repository/schema links for the new hosting destination before any later Public visibility change. Keep the original repository private. Runtime entry points/configuration bootstrap, Drive integration, and production acceptance remain incomplete; all existing sync/verification/archive/deletion safety gates remain in force.
 
 ---
 
