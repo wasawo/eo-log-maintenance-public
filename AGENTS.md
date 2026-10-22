@@ -57,7 +57,7 @@ git diff --check
 - Python依存は `requirements-test.txt` / `requirements-runtime.txt`、PowerShell構文解析・PSScriptAnalyzer はCI定義を参照する。
 - 文書だけの変更ではリンク・記述整合・差分検査を行う。関連しない全テストの実行や新規テスト追加を義務化しない。
 - CI利用可能時は最新PR HEADに対する Validate と Package Validation を確認する。コミット後は古いSHAの成功を流用しない。
-- CI待ちは初回確認後、約60秒間隔で最大5回再確認。未完なら状態・URLを報告し、マージしない。
+- CI待ちは初回確認後、90秒間隔で最大5回再確認。未完なら状態・URLを報告し、マージしない。
 - CI不可時は対象に必要なローカル検証を実施し、実施範囲・環境差・未実行CI・理由を明記する。代替をCI成功と記載せず、マージ条件を勝手に緩和しない。
 - マージが別途承認された場合も最新HEADの必要検査を確認し、マージ後の実SHAとmainのCIを確認する。利用者が承認した特定PRのCI代替は他PRへ自動適用しない。
 
