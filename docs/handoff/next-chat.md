@@ -8,24 +8,23 @@
 ## 最新基準・完了事項
 
 - 正本: `wasawo/eo-log-maintenance-public`（Public）。元リポジトリは Private。
-- GitHub main: `44b700268a1e69284f52fcb782e1b8547c6e9f87`。PR #4 のスカッシュマージを確認。
+- GitHub main: `f96607cea72ffa8e25c1a5874b18d272379fa974`。PR #5 のスカッシュマージを確認。
 - main の [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39820210106) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39820210102) は同SHAで成功。
 - PR #1: 正本参照更新・旧PR #168の受け入れ計画移植がマージ済み。マージSHA `40357512cb1c1327fd1cbfdf34e7596ee20a327d` のmain CIも両方成功。
 - PR #2: リポジトリ固有ルールを AGENTS.md、進捗を本書へ分離し、長い過去記録を保存。マージ済み。
 - 実設定 `Config/PC-A.json` / `Config/PC-B.json` は .gitignore 対象。汎用名 config.json は現行の設定名ではなく除外対象でもない。
 - ローカル作業ブランチ: test/owned-publication-recovery-integration。PC-B端末で作業中。前作業の残作業整理をPR #3へ保全済み。
 
-## 現在の作業: PC-Bの予定ローカルボリュームでの部分証拠
+## 現在の作業: Tier B異常系で再現したジャンクション拒否漏れ
 
-- PR #4（https://github.com/wasawo/eo-log-maintenance-public/pull/4）マージ済み。HEAD 80e1c91c35fec637a20acce9b8e80d1c0e6b71f5 の Validate 39822745714 / Package Validation 39822746256 成功後にマージ。
-- マージSHA 44b700268a1e69284f52fcb782e1b8547c6e9f87 の main Validate 39823075893 / Package Validation 39823076056 も成功。
-- ブランチ: test/opt-in-local-volume-evidence。端末はPC-B、将来の管理成果物の原本は予定ローカル固定ディスクへ保存。実パス・実ボリューム文字は公開記録に残さない。
-- tests/run_local_volume_checks.py は役割・予定ボリュームとの一致・明示ackを要求し、このcheckout直下の新規使い捨て領域だけでクラッシュ/実mutexの合成テストを実行する。任意rootは受け付けない。
-- デフォルトCIは従来のOS temp、明示local-volumeモードのみcheckoutを使用。既存root/reparse/既知同期領域を拒否し、生成rootはGit除外。
-- ローカル全Python133テスト成功（symlink権限で2件スキップ）。PC-B予定固定ボリュームのNTFS上でも対象10テストが全成功（スキップなし）。tests/evidence/pc-b-local-volume-20261023.json に実パス非公開の部分証拠を保存。PR最新HEAD CIは未確定。
-- PC-Bの部分証拠が成功しても、PC-A側、全adversarial filesystem行、source-race/残る統合条件を満たすまでTier B全体は未完了。実運用復旧・正式入口統合・Tier Cは未実施。
-- 次の順位4では、設定ローダーの確定済み条件とOSD-09の未決事項を分離して設計する。導入方式を推測しない。
-- CIは初回後90秒間隔・最大5回。最新HEADの必要検査成功後のマージと継続が承認済み。
+- PR #5（https://github.com/wasawo/eo-log-maintenance-public/pull/5）マージ済み。HEAD 30a62cac9d594d45880774d28811b8f6b2f95ae7 の Validate 39824117058 / Package Validation 39824117153 が成功後にマージ。マージSHA f96607cea72ffa8e25c1a5874b18d272379fa974 のmain Validate 39824401046 / Package Validation 39824401199 も成功。
+- ブランチ: fix/reparse-artifact-directory-verification。
+- 実Windowsジャンクションで、検証rootと祖先がis_symlinkだけでは拒否されずbytes読取へ到達する2件の不具合を先に再現。
+- Common/ArtifactSetDirectoryVerification.py をlstatのreparse属性と祖先チェックで強化。既存仕様のfail-closed条件を維持し、弱めない。TOCTOU完全防御ではない。
+- 実ジャンクション3件と読取失敗1件を追加。ローカル全Python137テスト成功（既存symlink権限2件スキップ）。CI登録と予定ボリュームrunnerにも追加。
+- PC-Bの実パス・ドライブ文字は公開しない。前回の部分証拠はtests/evidence/pc-b-local-volume-20261023.jsonに保持。修正版での14件が予定固定NTFSボリュームでも全成功（スキップなし）。tests/evidence/pc-b-reparse-local-volume-20261023.json に実パスなしで記録。
+- 最新PR HEAD CI・この修正のマージは未確定。各PRは90秒間隔・最大5回確認し、最新HEADの必要検査成功後にマージする承認あり。
+- 次の設定基盤ではローカル原本領域 maintenanceLocal の追加案を利用者へ確認中。既存exampleには対応項目がなく、未承認の保存場所を推測しない。PC-A側証拠・残るsource-race/統合・Tier Cは未実施。
 
 ## 実装・証拠の現在地
 
