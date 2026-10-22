@@ -22,6 +22,8 @@ Implement safe synchronization, verification, retention, and archival for Electr
 
 ### 2.2 Paths
 
+Both PC configurations require maintenanceLocal for that PC's authoritative local maintenance artifacts. Keep it disjoint from runtime, source, Drive and archive roots. See configuration-local-root.md for the approved field and template/runtime evidence boundary.
+
 All paths and distribution folder URLs below are non-operational public examples. Keep actual values in private operator configuration. The distribution-folder placeholder is not a usable folder ID.
 
 Installation requirement: deployment creates the target PC's active `Config/PC-A.json` or `Config/PC-B.json` from its example only when absent; the operator manually enters actual paths without copying or renaming files. Preserve existing active configuration on updates. Role fields and safe capability defaults remain template-defined. This installer/configuration flow is not implemented yet; it does not authorize runtime deployment or alter release approval gates.

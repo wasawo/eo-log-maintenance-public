@@ -6,5 +6,6 @@
   "errorLogLocal": "C:\\Example\\PCB\\Source\\ErrorReport",
   "battleLogDrive": "G:\\ExampleDrive\\SharedLogs\\BattleLog",
   "errorLogDrive": "G:\\ExampleDrive\\SharedLogs\\ErrorReport",
-  "maintenanceDrive": "G:\\ExampleDrive\\SharedLogs\\_maintenance"
+  "maintenanceDrive": "G:\\ExampleDrive\\SharedLogs\\_maintenance",
+  "maintenanceLocal": "C:\\Example\\PCB\\Maintenance"
 }

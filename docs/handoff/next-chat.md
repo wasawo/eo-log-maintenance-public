@@ -8,10 +8,20 @@
 
 ## 最新基準
 
-- 基準main: `19abd3f88a04cdc251ad93bd6a7e42f977e567a8`（PR #6 スカッシュマージ）。
+- 基準main: `a80c5c1cc4137785986b88d8df9f308d8812f715`（PR #7 スカッシュマージ）。
 - PR #6 mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39825147373) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39825147040) は同基準SHAで成功を確認。
 - ローカル作業先は新クローン。文書整理ブランチ: `docs/completed-crash-validation-handoff`。旧エクスポート用ディレクトリは使わない。
 - 利用者は優先順の継続と、必要検査成功後のマージを承認。CIは初回確認後90秒間隔で最大5回、最新HEADの両ワークフロー成功と競合状態を確認する。
+
+## 現在の作業: maintenanceLocalの承認反映
+
+- ブランチ feat/maintenance-local-config。両PC exampleと配布fixtureへ maintenanceLocal を追加。
+- builderの許可/必須フィールドと絶対パス検査に登録し、正規化したWindowsパスの同一・親子・大小文字・末尾separator重複を拒否。他領域は承認どおりruntime/source/Drive/archive。
+- 両PCの欠落/型違い/相対/全root同一/親子/大小文字/正規化と、prefixだけ共有する別領域の正負テストを追加。PowerShell 7.6.7配布テストは成功。
+- 仕様・決定記録・READMEと同じPRに含める。実設定は未作成、runtimeの物理パス検証・ローダー・初回生成は未実装。テンプレート検査だけをruntime受け入れにしない。
+- PR #7 main Validate 39825803155 は全テスト後PSScriptAnalyzer取得で初回失敗し、同SHAのattempt 2が成功。Package Validation 39825803142も成功。検査条件は緩和していない。
+- この変更はPR準備中、最新HEAD CIとマージ結果は未確定。利用者承認に従い90秒間隔・最大5回確認後、必要検査成功時のみマージする。
+- 次の最小単位は確定フィールドのread-only実設定構造ローダー。unknown/duplicateキーと役割・maintenanceLocal分離を検証し、実ボリューム/alias検査や本番起動点は別ゲート。
 
 ## この作業でマージした内容
 
@@ -48,6 +58,6 @@
 
 - 現在の端末はPC-B。管理成果物とは、そのPCが生成するマニフェスト・一覧/検証証拠・集計レポート・marker/lock等。PC-Aの原本はPC-A側に置き、両PC向けの検証済みコピーをDriveへ公開する方針。
 - PC-B予定固定ディスク上に新規合成領域を作る検証を実施した。実パスや実ボリューム文字は公開しない。実設定はGit管理外のConfig/PC-B.jsonへ将来入力する。
-- 未回答: 両PC設定へ `maintenanceLocal`（そのPCのマニフェスト・検証証拠・レポートのローカル原本領域）を追加してよいか。exampleはダミー、実値は非追跡設定、実行先/元ログ/Drive/archiveとの重複拒否を提案。回答までは設定項目・実パス・導入方法を確定しない。
+- 承認済み（2026-10-23）: 両PC設定へ `maintenanceLocal`（そのPCのマニフェスト・検証証拠・レポートのローカル原本領域）を追加する。exampleはダミー、実値は非追跡設定、実行先/元ログ/Drive/archiveとの重複を拒否。実パスは推測しない。
 - OSD-04（Dry Run副作用）、OSD-05（Drive認証）、OSD-06/07（配布/保持）、OSD-08（予定実行）、OSD-09（最終allowlist/移行）と残る状態遷移/契約の承認・証拠は別途必要。
 - 台帳の古い「sentinelあり」「過去PRのCI待ち」などは現物と照合して関係PRで直す。台帳全体の再監査完了とはしない。

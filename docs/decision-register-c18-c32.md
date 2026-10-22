@@ -393,3 +393,7 @@ The maintainer explicitly approved **R1-B, R2-A, R3-B, R4-A, R5-A, R6-A, R7-A**.
 - **R7-A — separate local/Drive states:** local validated publication is authoritative. Drive replication is a separate verified step; replication failure does not invalidate/delete the local artifact. Do not claim cross-PC availability until the Drive copy's identity and exact content are verified.
 - Recompute all summary counts from the referenced manifest and B2 evidence. Reject missing/duplicate period rows, target accounting mismatch, inventory digest/count mismatch, report/manifest/evidence identity mismatch, and inconsistent error scope. generated_at_utc uses UTC ISO 8601 uppercase Z and approved future-time validation; report age alone does not invalidate immutable historical evidence.
 - Required synthetic acceptance tests are specified but **not yet executed/evidenced**. Runtime implementation, executable schema, and operational evidence remain pending. No P0 item is closed by this documentation change.
+
+## Local authoritative maintenance root approval (2026-10-23)
+
+The operator approved adding required maintenanceLocal to both PC configurations, with public dummy defaults and actual paths kept only in untracked active configs. It denotes that PC's local authoritative manifests/evidence/reports; it must not equal, contain or be contained by runtime/source/Drive/archive roots. See configuration-local-root.md. This approval does not authorize production filesystem access or resolve all OSD-09 migration decisions.
