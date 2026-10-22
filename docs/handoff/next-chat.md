@@ -8,20 +8,21 @@
 
 ## 最新基準
 
-- 基準main: `a80c5c1cc4137785986b88d8df9f308d8812f715`（PR #7 スカッシュマージ）。
+- 基準main: `fa13cf655b786b3caeecd2f61685b06e18b38b4f`（PR #8 スカッシュマージ）。
 - PR #6 mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39825147373) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39825147040) は同基準SHAで成功を確認。
 - ローカル作業先は新クローン。文書整理ブランチ: `docs/completed-crash-validation-handoff`。旧エクスポート用ディレクトリは使わない。
 - 利用者は優先順の継続と、必要検査成功後のマージを承認。CIは初回確認後90秒間隔で最大5回、最新HEADの両ワークフロー成功と競合状態を確認する。
 
-## 現在の作業: maintenanceLocalの承認反映
+## 現在の作業: 読み取り専用の実設定構造ローダー
 
-- ブランチ feat/maintenance-local-config。両PC exampleと配布fixtureへ maintenanceLocal を追加。
-- builderの許可/必須フィールドと絶対パス検査に登録し、正規化したWindowsパスの同一・親子・大小文字・末尾separator重複を拒否。他領域は承認どおりruntime/source/Drive/archive。
-- 両PCの欠落/型違い/相対/全root同一/親子/大小文字/正規化と、prefixだけ共有する別領域の正負テストを追加。PowerShell 7.6.7配布テストは成功。
-- 仕様・決定記録・READMEと同じPRに含める。実設定は未作成、runtimeの物理パス検証・ローダー・初回生成は未実装。テンプレート検査だけをruntime受け入れにしない。
-- PR #7 main Validate 39825803155 は全テスト後PSScriptAnalyzer取得で初回失敗し、同SHAのattempt 2が成功。Package Validation 39825803142も成功。検査条件は緩和していない。
-- この変更はPR準備中、最新HEAD CIとマージ結果は未確定。利用者承認に従い90秒間隔・最大5回確認後、必要検査成功時のみマージする。
-- 次の最小単位は確定フィールドのread-only実設定構造ローダー。unknown/duplicateキーと役割・maintenanceLocal分離を検証し、実ボリューム/alias検査や本番起動点は別ゲート。
+- PR #8（https://github.com/wasawo/eo-log-maintenance-public/pull/8）マージ済み。HEAD 2c517caec33ee517a2454eabe4bdd418271dc6e1 のValidate 39828401343 / Package 39828401425成功後にマージ。main fa13cf655b786b3caeecd2f61685b06e18b38b4f の39828675074 / 39828675339も成功。
+- ブランチ feat/read-only-machine-configuration。
+- Common/MachineConfiguration.ps1: strict UTF-8（BOM可）のreaderとJSON構造/役割/型/maintenanceLocal分離parser。unknown/missing/duplicateキー、不正JSON/型/パス/PC役割を固定reasonで拒否。設定値・実パスはエラーへ出さない。
+- PC-AのallowArchive trueは明示booleanデータとして許容するが、実行許可ではない。PC-Bはプロパティ自体を拒否。exampleは引き続きfalse既定をbuilderで要求。
+- builderも同じ構造parserを使用。実設定・ディレクトリ・成果物を作成せず、元設定bytesを変更しない。285アサーションと配布テストがPowerShell 7.6.7でローカル成功。
+- CI登録、配布への補助モジュール同梱fixture、仕様/README/P0説明を同じPRに追加。最新HEAD CI・マージは未確定。
+- 未実装: 物理的approved-root/reparse/短縮名alias/ボリューム分離確認、初回だけ実設定生成/更新保持、正式入口接続。構造ローダー成功をruntime認可にしない。
+- 次は導入時のcreate-only設定生成（既存ファイルを変更しない）の限定実装を検討。OSD-09の未決定部分を推測しない。90秒間隔・最大5回で最新HEAD CI成功時のみマージ。
 
 ## この作業でマージした内容
 

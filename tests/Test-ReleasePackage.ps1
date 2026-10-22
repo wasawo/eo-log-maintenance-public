@@ -52,6 +52,7 @@ try {
     Set-Content (Join-Path $fixture 'scripts/ArchiveLogs.ps1') 'Write-Output "archive fixture"'
     Set-Content (Join-Path $fixture 'Common/Hash-File.ps1') 'Get-FileHash -Algorithm SHA256'
     Set-Content (Join-Path $fixture 'Common/LogFunctions.ps1') '# Log filename and period functions'
+    Set-Content (Join-Path $fixture 'Common/MachineConfiguration.ps1') '# Read-only configuration structure loader'
     Set-Content (Join-Path $fixture 'Common/AggregationReportValidation.ps1') '# Aggregation report validation functions'
     Set-Content (Join-Path $fixture 'Common/AggregationArtifactReference.ps1') '# Aggregation artifact reference verification functions'
     Set-Content (Join-Path $fixture 'Common/AggregationReferencedArtifacts.ps1') '# Referenced artifact schema validation entry point'
@@ -112,6 +113,7 @@ try {
         'Common/README.md',
         'Common/Hash-File.ps1',
         'Common/LogFunctions.ps1',
+        'Common/MachineConfiguration.ps1',
         'Common/AggregationReportValidation.ps1',
         'Common/AggregationArtifactReference.ps1',
         'Common/AggregationReferencedArtifacts.ps1',

@@ -11,6 +11,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot '..\..\Common\LogFunctions.ps1')
+. (Join-Path $PSScriptRoot '..\..\Common\MachineConfiguration.ps1')
 
 function Get-RelativePath {
     param(
@@ -106,7 +107,13 @@ if ($missingRuntimeScripts.Count -gt 0 -and -not $AllowNonDeployable) {
 foreach ($exampleRole in @('PC-A', 'PC-B')) {
     $relative = "Config/$exampleRole.example.json"
     $path = Join-Path $source ($relative.Replace('/', [System.IO.Path]::DirectorySeparatorChar))
-    $config = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    try {
+        $rawConfiguration = Get-Content -LiteralPath $path -Raw
+        $config = ConvertFrom-EoMachineConfigurationJson -Json $rawConfiguration -ExpectedMachineId $exampleRole
+    }
+    catch {
+        throw "Example configuration $relative failed structural validation."
+    }
     $expectedRole = if ($exampleRole -eq 'PC-A') { 'primary' } else { 'secondary' }
     if ($config.machineId -ne $exampleRole -or $config.role -ne $expectedRole) {
         throw "Example configuration $relative must identify machineId '$exampleRole' and role '$expectedRole'."
