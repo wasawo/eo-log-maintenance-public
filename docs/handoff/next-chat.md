@@ -16,10 +16,10 @@
 ## 現在の作業: 単一ファイル公開内部のクラッシュ境界
 
 - tests/crash_publication_harness.py にテスト専用の内部境界検証を追加。実mkstemp直後、fsync前後、実link前後で所有する子プロセスを実終了し、別プロセスで観測/同一bytes再試行。
-- 先頭artifactと最後のmarkerそれぞれ5境界、計10クラッシュケース。7テスト（不正scenario/ack欠落の無書込ガードを含む）がローカル成功。
+- 先頭artifactと最後のmarkerそれぞれ5境界、計10クラッシュケース。7テスト（不正scenario/ack欠落の無書込ガードを含む）がローカル成功。全Pythonは144テスト成功（既存symlink権限の2件スキップ）。
 - temp残骸を自動削除せず、marker公開済みの場合も再試行後もdirectory verifierがunexpected_directory_entryで拒否。既存bytes/残骸の保持を確認。
 - 本番Commonコード・復旧ポリシーは変更しない。CIとopt-in local-volume suiteへ登録。電源断・敵対的FS race・正式復旧フローの受け入れではない。
-- 最新HEADのCI・マージは未確定。PC-B予定ボリュームの追加部分証拠は確定後に記録する。
+- 最新HEADのCI・マージは未確定。PC-B予定ローカル固定NTFS上で21テスト成功・スキップなし。部分証拠 tests/evidence/pc-b-internal-crash-local-volume-20261023.json は実パス/ドライブ文字を含まない。
 
 ## 設定基盤の完了範囲
 

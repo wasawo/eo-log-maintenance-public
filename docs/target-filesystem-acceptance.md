@@ -168,3 +168,5 @@ publication/recovery code, authorize orphan cleanup, establish a full restart
 workflow or prove power-loss durability. Interception is limited to test child
 processes. All roots retain the existing fresh UUID/selected-parent/explicit-ack
 guards. Tests remove only their own synthetic root after assertions.
+
+[PC-B internal-crash follow-up](../tests/evidence/pc-b-internal-crash-local-volume-20261023.json) records 21 passing tests without skips on the operator-confirmed intended local fixed NTFS volume. This includes 10 internal crash scenarios and earlier boundary/ownership/reparse checks at source commit 63e5a4d5af674912940d8fa0ee26c726b06eb78b. Tier B remains incomplete; PC-A, remaining source-race and integration acceptance are still required.
