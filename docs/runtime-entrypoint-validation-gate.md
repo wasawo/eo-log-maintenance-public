@@ -30,7 +30,7 @@ The eventual implementation must perform these gates in order. Any failure, exce
 8. Before archive, independently validate both PCs' manifests and evidence. Then re-query current Drive state and verify content by trusted Drive SHA-256 or download-and-local-hash; metadata-only identity is insufficient. A stale manifest or prior successful run is not current archive authorization.
 9. Only after all required checks succeed may the implementation enter a separately approved archive transaction. Archive/delete capabilities remain disabled until their own explicit policy, tests, and approval are complete.
 
-The current validator helpers cover only parts of steps 4–6. They do not perform source enumeration, lock/recovery, current Drive verification, or archive authorization.
+The validators cover parts of steps 4–6. Separate source-inventory, lock, publication and recovery helpers now also exist; they are not an integrated official runtime. Current Drive verification and archive authorization remain absent. See [current inventory](first-release-readiness-20261024.md) for implemented scope and remaining environment qualification.
 
 ## 4. Publication and recovery requirements
 

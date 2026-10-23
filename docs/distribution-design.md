@@ -1,11 +1,13 @@
 # Distribution Design: GitHub to Google Drive
 
 - Status: Proposed baseline
-- Last updated: 2026-10-18
+- Last updated: 2026-10-24 (implementation inventory; release policies remain proposed)
 - Repository: `wasawo/eo-log-maintenance-public`
 - Canonical source: GitHub repository, `main` branch plus reviewed release tag
 - Distribution target: Google Drive `_distribution/releases/<version>/`
 - Direction: GitHub → Google Drive only
+
+Current implementation/readiness: [2026-10-24 inventory](first-release-readiness-20261024.md). The builder supports review packages and role guards; production release/authentication/upload/deployment remains incomplete.
 
 ## 1. Purpose and scope
 
@@ -77,6 +79,12 @@ Only the following repository paths may be included in `release.zip`.
 | `scripts/**/*.ps1` | Yes, when present | Runtime and local update scripts |
 | `scripts/README.md` | Yes | Script usage notes |
 | `Common/**/*.ps1` | Yes, when present | Shared runtime functions |
+| `Common/**/*.py` | Yes, when present | Implemented shared validation/publication helpers; final runtime scope still requires review |
+| `requirements-runtime.txt` | Yes | Runtime JSON Schema validation dependency |
+| `contracts/aggregation-report-v1.schema.json` | Yes | Implemented report contract |
+| `contracts/manifest-v1.schema.json` | Yes | Implemented manifest structural contract |
+| `contracts/run-input-evidence-v1.schema.json` | Yes | Implemented run-input evidence contract |
+| `contracts/private-recovery-evidence-v1.schema.json` | Yes | Static preservation metadata schema only; never private runtime evidence |
 | `Common/README.md` | Yes | Shared-function notes |
 | `Config/PC-A.example.json` | Yes | Example/template only; never use as an automatic overwrite of a real config |
 | `Config/PC-B.example.json` | Yes | Example/template only; never use as an automatic overwrite of a real config |
@@ -134,7 +142,7 @@ The release workflow must fail closed if any of these checks fails:
 8. The release version is valid and agrees with the repository's `VERSION` and release tag.
 9. The ZIP is created successfully and its SHA-256 is recorded.
 
-The current repository has not yet implemented the runtime PowerShell scripts or behavioral test suite. Therefore, initial CI success alone must not be treated as permission to deploy. Test success does not authorize implementing or enabling deletion.
+The repository has synthetic behavioral tests and isolated helpers, but no official runtime scripts or full runtime acceptance. Therefore, CI success alone must not be treated as permission to deploy. Test success does not authorize implementing or enabling deletion.
 
 ## 8. Google Drive upload safety
 
@@ -192,3 +200,11 @@ Open items before production distribution:
 - Implement runtime scripts and meaningful tests before calling a package deployable.
 - Define release-tag/versioning and release approval procedures.
 - Define retention for old release packages.
+
+## 12. Observed implementation limits (2026-10-24)
+
+- The builder uses role-specific official entrypoint presence, not a legacy sentinel. Its deployable status is a structural check, not proof that the scripts are operationally safe. Both official entrypoints are currently absent.
+- The tracked workflows are Validate and Package Validation; workflow_dispatch can build an explicitly non-deployable review artifact. No tracked production release or Drive upload workflow exists.
+- Generated metadata currently uses sourceRef=local-build; reviewed tag/commit provenance and immutable publication still need implementation and acceptance (OSD-06).
+- Drive request/response schemas are repository contracts but are not in the current package allowlist. Their role and any new adapter dependency must be reviewed before the adapter is distributed.
+- Retention/cleanup policy for release packages (OSD-07) is separate from the approved no-auto-deletion policy for private recovery evidence. No release cleanup is authorized by that approval.

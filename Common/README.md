@@ -2,16 +2,18 @@
 
 PC-A / PC-Bで共有する関数と、レポートの参照先を検証するローカル補助モジュールを配置します。
 
-- ファイル一覧の取得とファイル名からの対象期間判定
-- SHA-256 の算出とコピー後の検証
-- 実行マニフェストの作成・読み込み・スキーマ検証
-- 集約レポートの参照先 manifest / B2 evidence の実バイト検証と identity 照合
-- ログ出力と終了コードの統一
-- エラー時に後続の破壊的処理を停止する共通制御
+現時点の実装状況と初回配布の実行順は [棚卸し](../docs/first-release-readiness-20261024.md) を参照してください。以下は補助処理の責務であり、正式ランタイムの完成を意味しません。
+
+- ファイル名の実日付・保持期間判定、PowerShell版ガード、診断コード
+- 設定の厳密な読込・未作成時のみ生成、既存rootの分離メタデータ検査
+- 読み取り専用source inventory・A2/B2 digest・参照JSONの実バイト照合
+- 単一/複数成果物の公開・検証、所有token lockと復旧分類
+- 最新manifestの選択・読取、診断結果、private証拠形式と限定ACL形状
+- 月次境界とPC-A確認予算の副作用なし観測
 
 `AggregationReferencedArtifacts.ps1` は `validate_aggregation_artifacts.py` を呼び出し、`contracts/` の Draft 2020-12 schemaでレポートと参照先JSONを検証します。Python環境には `requirements-runtime.txt` の依存関係が必要です。検証対象は明示された信頼済みmaintenance root配下に限定し、失敗時は拒否します。
 
-これらの補助関数は現時点で正式な同期・アーカイブエントリーポイントには未接続です。ロック、Drive再検証、アーカイブ許可、ソース列挙の完全性証明、原子的公開は未実装です。実ログ・Drive書き込み・削除は行いません。
+これらの補助関数は現時点で正式な同期・アーカイブエントリーポイントには未接続です。ロック・ソース列挙・公開には分離した部分実装がありますが、正式な制御経路への統合と実環境の受け入れは未完了です。Driveアダプター・現在内容の再検証・アーカイブ入口は未実装です。実ログ・Drive書き込み・削除は行いません。
 
 PCごとのパスや権限は設定ファイルで与え、PC-Bではアーカイブ・削除機能を呼び出せない設計を維持します。
 
@@ -62,7 +64,7 @@ This is structural/lexical evidence, not an approved-root filesystem gate.
 It does not inspect actual target volumes, resolve short-name/reparse aliases,
 prove cross-root physical separation, acquire a runtime lock, contact Drive,
 or integrate official entry points. Those checks remain mandatory before effects.
-Bootstrap/create-once migration is a separate pending implementation.
+The create-only bootstrap helper is implemented below; official installation/update integration and migration remain pending.
 
 ## Create-only configuration bootstrap helper
 
