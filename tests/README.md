@@ -248,3 +248,5 @@ Run pwsh -NoProfile -File tests/Test-MachineConfigurationRootInspection.ps1 for 
 Run python -m unittest discover -s tests -p test_latest_manifest_selection.py -v for 32 in-memory C4 naming/identity/ambiguity/no-fallback/time regressions. No filesystem enumeration or production data is used.
 
 `test_manifest_directory_reader.py` exercises synthetic local manifest enumeration/read binding, opened-file replacement, final rescan changes, partial enumeration and real Windows junction rejection. It never uses operational roots and does not establish full Tier B or runtime acceptance.
+
+`test_manifest_recovery_integration.py` adds seven synthetic compositions of checked manifest-directory snapshots and pure recovery classification. The real Windows abandonment scenario in `test_owned_publication_integration.py` also uses the disk reader. A positive classification never adopts/removes the stale record; later external changes require fresh observations. These tests do not authorize operational recovery or extend the recorded PC-B Tier B result.

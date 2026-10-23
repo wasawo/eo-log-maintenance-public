@@ -8,22 +8,22 @@
 
 ## 最新基準
 
-- 基準main: 1547bcb45063ae969af0b4c9921ab936f18415c9（PR #16マージ）。
-- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39952367905) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39952367993) 成功を照合。
+- 基準main: 37102d2ea2a413a9adf571592d56b18d6fa11364（PR #17マージ）。
+- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39954011903) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39954011904) 成功を照合。
 - PR #15 HEAD f82aa2860ab3510a9002bc5bb771a3f0a48badb5 の39944930803 / 39944930629成功後マージ。existing-root metadata helper、142合成アサーション（短縮名skip 0）を追加。既存PC-B予定volume証拠を拡張しない。
 - PR #14（13503f6）はstrict lock/recovery evidence、#13（41811bd）はsource reparse拒否、#12（3ae8b76）はhash handle identity、#11（e7d4e8e）は公開内部クラッシュ境界。各main両CI成功。
 - 利用者は優先順の継続と、最新HEADの必要検査成功後のマージを承認。初回確認後90秒間隔で最大5回再確認し、未完/失敗ならマージしない。
-- 新クローンのブランチ feat/read-only-manifest-directory-reader。
+- 新クローンのブランチ test/latest-manifest-recovery-integration。
 
-## 現在の作業: 最新manifestの読み取り専用ディレクトリ接続
+## 現在の作業: 最新ディレクトリ選択と復旧分類の合成接続
 
-- PR #16のC4選択コアはHEAD 1e033e9b3d8f927c04095fbd9b9764833d82ad22でValidate 39952078739 / Package 39952078763成功後マージ。main両CIも上記のとおり成功。全Python195件成功、既存symlink権限で2件skip。
-- Common/ManifestDirectoryReader.pyを追加。指定maintenanceLocalの既定PC別領域のみを読み、全entryの名前・schema・識別・時刻を検証してから対象log/期間を絞る。不正な別期間も無視しない。最新未成功から旧successへ後退しない。
-- root/祖先とentryのreparseを拒否し、列挙時・open前・descriptor読取前後・close後のidentity/size/timeを照合。選択後に全体を再走査する。列挙途中/読取失敗は固定reasonで中止。
-- 戻り値はbasename/run_id/status/SHA-256と検証済みbytesの不変snapshot。bytesは通常reprに表示しない。後続は別途pathを開き直さずsnapshotを使う。書込・mkdir・修復・削除・実clock取得・正式入口接続は追加しない。
-- 新規19合成テスト（実Windows junction 3件、open時差し替え、列挙途中失敗、最終scan変更、内容保全、例外詳細非表示など）。UTC小数点の正規表現もliteral dotへ厳格化し回帰検証。
-- ローカルPython 3.11.9で全214件成功（既存symlink権限により2件skip）。PowerShell 7.6.7の配布回帰も成功。CIはPython 3.12で検証する。最新HEAD CI・PR/マージは未確定。コード・CI・配布fixture・仕様・要件対応・引き継ぎを同じPRへまとめる。
-- これは一点時点の観測防御。approved-root権限/FS資格、任意の敵対的変更・metadata復元/利用までの保護、実clock信頼性、per-file/集約/Driveの全意味検証、stale disposition/新run・正式復旧、Tier B/P0受け入れは未完了。実ログ/Driveへ触れない。既存PC-B部分証拠を拡張しない。
+- PR #17はHEAD c4cc4dc749ca350655373386bd76584628536e76のValidate 39953762034 / Package 39953762033成功後マージ。main両CIも上記のとおり成功。read-only disk adapterは実装済み。正式入口ではない。
+- 新規tests/test_manifest_recovery_integration.pyの7件で、検証済み最新bytesだけを既存の純粋な復旧判定へ渡す接続を検証。最新runningと旧successの混在、最新failure、同率最大、旧候補破損、read不明、owner/Drive証拠未成立、snapshot後の変更を扱う。
+- tests/test_owned_publication_integration.pyの実Windows mutex放棄ケースも、定義済みPC別領域の実ファイル選択へ変更。肯定的な分類後でも通常取得は旧recordで停止し、record/manifest/成果物bytesを保持する。
+- ローカルPython 3.11.9: 全221件成功（既存symlink権限で2件skip）。新規7件と実mutex統合5件も個別成功。PowerShell 7.6.7。配布コード変更なし、Package ValidationはCIで確認する。CI登録・関連文書・引き継ぎを同じPRにまとめる。PR/最新HEAD CI・マージはこの記録時点では未確定。
+- 利用者は判断が必要な箇所までPR作成・必要検査成功後のマージを繰り返すことを承認（2026-10-23）。最新HEAD固定、90秒ごと最大5回確認、main両CI確認の条件を維持する。
+- 次は運用判断: [stale lock明示回復フロー案](../recovery-disposition-proposal.md)。推奨は通常同期の停止を維持し、独立した明示回復コマンドを設計する方式。未承認。通常取得への自動回復、旧lock削除/退避/引継ぎ、新run作成は追加していない。
+- approved-root権限/FS資格、任意の敵対的変更・metadata復元/利用までの保護、実clock信頼性、per-file/集約/Driveの全意味検証、owner終了証拠/永続disposition/正式復旧、Tier B/P0受け入れは未完了。実設定/実ログ/Driveへ触れず、PC-B部分証拠も拡張しない。
 
 ## 設定基盤の完了範囲
 
@@ -52,7 +52,7 @@
 | 順位 | 現在地 | 次の具体作業 |
 |---|---|---|
 | 1: クラッシュ注入 | 成果物間の公開境界の合成ハーネス実装済み | 単一ファイル内部5境界×2公開対象と残骸拒否の合成検証はPR #11でマージ済み。電源断試験へ拡大解釈しない |
-| 2: 所有権/復旧/公開統合 | 合成統合証拠を追加済み | 最新候補選択コアはPR #16済み、read-only disk adapterを追加中。stale記録の実運用回復、新run/fresh inventory生成、source-race/検証から利用までの保護は未完了。記録の自動削除/引き継ぎを勝手に実装しない |
+| 2: 所有権/復旧/公開統合 | 合成統合証拠を追加済み | 最新候補選択コアはPR #16、read-only disk adapterはPR #17済み。復旧分類との合成接続を検証。回復入口方式は利用者判断待ち。stale記録の実運用回復、新run/fresh inventory生成、source-race/検証から利用までの保護は未完了。記録の自動削除/引き継ぎを勝手に実装しない |
 | 3: Tier B | PC-Bの29件部分証拠のみ | PC-Aの予定ボリュームで実行、残るadversarial FS/source-race/統合条件を収集。Tier B全体は未受け入れ |
 | 4: 設定/初期導入 | maintenanceLocalと構造ローダーはマージ済み | create-only補助処理はPR #10でマージ済み。物理root gate・正式導入入口・最終allowlist/移行は未完了 |
 | 5: Drive/IPC | 未実装・契約/認証の決定待ち | Python1呼出し1試行、PowerShell再試行、不明結果照合、metadataだけの検証拒否。OSD-05と契約条項を解決 |

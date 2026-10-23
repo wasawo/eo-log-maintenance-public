@@ -5,6 +5,7 @@ No stale record is adopted/removed and no operational entry point is provided.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 import multiprocessing
 import os
@@ -22,6 +23,7 @@ from crash_publication_harness import (
 from Common.ArtifactSetDirectoryVerification import verify_published_artifact_set
 from Common.ArtifactSetPublication import publish_artifact_set_marker_last
 from Common.CrashRecoveryDecision import decide_crash_recovery
+from Common.ManifestDirectoryReader import read_latest_manifest
 from Common.OwnedRunLock import (
     LockAcquisitionError, _NamedMutex, _mutex_name, acquire_owned_lock,
 )
@@ -169,6 +171,9 @@ class OwnedPublicationIntegrationTests(unittest.TestCase):
     def test_actual_abandonment_blocks_adoption_and_preserves_recovery_evidence(self):
         # Keep an OS handle open, otherwise the named object may disappear when
         # the terminated process's last handle closes and abandonment is lost.
+        directory = self.root / "_maintenance" / "manifests" / "PC-A"
+        directory.mkdir(parents=True)
+        self.prior = directory / ("PC-A_BattleLog_2026-09_" + TRANSACTION_ID + ".json")
         keeper = _NamedMutex(_mutex_name(self.scope))
         self.addCleanup(keeper.close)
         owner, channel = self.start_worker("owner")
@@ -187,13 +192,22 @@ class OwnedPublicationIntegrationTests(unittest.TestCase):
             ):
                 self.fail("abandoned mutex must not enter operational code")
         self.assertTrue(probe.abandoned)
+        observed = read_latest_manifest(
+            self.root, expected_pc_id="PC-A", expected_log_type="BattleLog",
+            expected_target_period="2026-09",
+            current_utc=datetime(2026, 10, 23, 10, tzinfo=timezone.utc),
+            current_utc_reliable=True, require_current_success=False,
+        )
+        self.assertEqual(observed.content, original_prior)
+        self.assertEqual(observed.run_id, TRANSACTION_ID)
+        self.assertEqual(observed.status, "running")
         kwargs = dict(
             mutex_abandoned=probe.abandoned,
             lock_record=json.loads(original_record),
             expected_scope=self.scope,
             expected_host=socket.gethostname(),
             owner_termination_confirmed=owner.exitcode is not None,
-            prior_manifest_bytes=original_prior,
+            prior_manifest_bytes=observed.content,
             expected_pc_id="PC-A",
             expected_log_type="BattleLog",
             expected_target_period="2026-09",
