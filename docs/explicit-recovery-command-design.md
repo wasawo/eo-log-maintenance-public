@@ -91,3 +91,7 @@ Common/RecoveryDiagnostic.py now implements only the pure supplied-observation r
 ## 8. Implemented record-free lease slice
 
 Common/RecoveryDiagnosticMutex.py adds an isolated lease using the same global mutex name as normal ownership. It waits at most 60 seconds, does not create/read/modify a lock record or token, yields abandonment evidence with may_change_state=false, and attempts release/close on exception/interruption. Timeout/OS/cleanup failures use fixed reasons; errors raised by the caller inside the lease must be sanitized by that caller. Thirteen tests include actual Windows contention, abandonment consumption, repeated diagnosis and a different-process probe proving release after a body failure. This is partial DIAG-03/04/05 evidence only. Root/clock/owner proof, live command/output, the full DIAG matrix, protected disposition and runtime acceptance remain incomplete.
+
+## 9. Approved owner-evidence compatibility direction
+
+Maintainer approved v1 diagnosis/preservation and v2-only future recovery design. The [logical owner-evidence contract](recovery-owner-evidence-v2-contract.md) keeps unknown PID/boot/query cases blocked and distinguishes same-handle termination observation from recovery authorization. It does not add a v2 schema, provider, writer or runtime connection. [Private evidence preservation policy](recovery-private-evidence-policy-proposal.md) is still a proposal requiring maintainer judgment.

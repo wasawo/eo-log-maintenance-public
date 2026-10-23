@@ -8,22 +8,23 @@
 
 ## 最新基準
 
-- 基準main: 4c0a64e887f81f428c5c823879a97c0989c56d18（PR #20マージ）。
-- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39958795772) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39958795737) 成功を照合。
+- 基準main: eb666c94f7be51b52914f4d5d5c15ea5974b51e9（PR #21マージ）。
+- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39959969466) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39959969534) 成功を照合。
 - PR #15 HEAD f82aa2860ab3510a9002bc5bb771a3f0a48badb5 の39944930803 / 39944930629成功後マージ。existing-root metadata helper、142合成アサーション（短縮名skip 0）を追加。既存PC-B予定volume証拠を拡張しない。
 - PR #14（13503f6）はstrict lock/recovery evidence、#13（41811bd）はsource reparse拒否、#12（3ae8b76）はhash handle identity、#11（e7d4e8e）は公開内部クラッシュ境界。各main両CI成功。
 - 利用者は優先順の継続と、最新HEADの必要検査成功後のマージを承認。初回確認後90秒間隔で最大5回再確認し、未完/失敗ならマージしない。
-- 新クローンのブランチ feat/diagnostic-mutex-lease。
+- 新クローンのブランチ docs/recovery-owner-evidence-v2-contract。
 
-## 現在の作業: record-free診断mutex lease
+## 現在の作業: v2 owner証拠の論理契約
 
-- PR #20 HEAD 127cf1c5c531299871fdc9c40b588d0613d8833cのValidate 39958504356 / Package 39958504365成功後マージ。mainも上記両CI成功。非認可の診断結果モデル12テスト済み、当時全Python233件成功（2skip）。
-- PR #19で明示回復入口の承認済み方針と診断設計を記録済み。同じ方針を再確認しない。既定診断、通常同期の停止維持、旧lock変更/本番適用は未承認。
-- Common/RecoveryDiagnosticMutex.py: 通常ownershipと同じGlobal scope mutexを0〜60秒で取得。record/path/tokenのI/Oなし。abandonedを非認可の観測として返し、may_change_stateはfalse。完了/例外/取得中断でrelease/closeを試み、timeout/OS/cleanup失敗は固定reason。
-- 新規13テスト成功。実Windowsの競合、放棄通知消費後の再診断、body失敗後の別process再取得を検証。合成record bytesを保持し、新recordを作らない。呼出元bodyの例外秘匿化は呼出元の責務。
-- Python 3.11.9全246件成功（既存symlink権限で2件skip）、PowerShell 7.6.7配布回帰成功。CIはPython 3.12。CI・配布fixture・関連設計・引き継ぎを同じPRへ含める。PR/最新HEAD CI・マージは記録時点で未確定。既存PC-B部分Tier B証拠を拡張しない。
-- 次の判断案: [owner証拠v2とv1互換方針](../recovery-owner-evidence-v2-proposal.md)。推奨はv1を診断/保全に限定し、取得時から必要証拠を持つv2だけを将来の明示回復対象に設計する。未承認。v1 writer/reader/正常releaseは変更していない。
-- root/clock/owner終了証拠、v2 schema、disposition方式/保管・ACL・保持、正式CLI/実read統合/本番復旧は未確定/未実装。旧lock/旧running変更、新run、Drive操作は追加しない。DIAG-03/04/05は補助処理の部分証拠のみで、DIAG全体/P0/Tier Bは未完了。
+- PR #21 HEAD 0348431f3c0805e53dfb114245a9978c95247a23のValidate 39959694396 / Package 39959694379成功後マージ。mainも上記両CI成功。ローカルPython 3.11.9全246件成功（既存symlink権限で2skip）、PowerShell 7.6.7配布回帰成功。
+- この継続でPR #19（明示回復診断設計）、#20（非認可resultモデル）、#21（record-free診断mutex）を順次マージし、各main両CI成功を確認済み。正式CLIは未実装。
+- 利用者は「v1は診断・保全に限定し、v2の証拠契約を設計する」を承認（2026-10-23）。v1の正常release維持、旧record自動変換/削除・本番適用なし。同じ判断を再確認しない。
+- [方針記録](../recovery-owner-evidence-v2-proposal.md)に回答を反映。[owner論理証拠契約](../recovery-owner-evidence-v2-contract.md)で端末/起動/process identity・recordへの結び付け、same-handle終了観測、unknown維持、未実行OWNER-01〜06を定義。Microsoft一次資料を確認し参照リンクを付記。
+- PID不在/生成identity不一致/起動不明/query失敗/abandoned単独を終了証明にしない。この初期候補で終了済みprocessすべてを回復できるとは保証しない。v2 schema/provider/writerは未実装。
+- 次の判断案: [非公開証拠保管方針](../recovery-private-evidence-policy-proposal.md)。推奨は既存maintenanceLocal配下で旧lock元bytesを非公開保全し、当面自動削除なし。診断自体は保存せず、将来の別明示操作に限定。保存コード/ACL/実設定/旧recordは変更していない。
+- 今回は文書変更のみ。差分とローカルリンクを検証し、最新HEAD両CI成功とclean確認後にPRをマージする。PR/最新HEAD CIは記録時点で未確定。
+- approved-root/clock/終了証拠provider、private保管schema/ACL、dispositionと対象固定、実read/正式入口・新run・Drive・本番復旧は未完了。OWNER表もDIAG全体も未受け入れで、P0/Tier Bの完了を主張しない。
 - 判断が必要になるまでPR作成・最新HEAD両CI成功とclean確認後のマージを継続する承認あり。90秒間隔で最大5回再確認、main両CIとローカル同期を確認する。
 
 ## 設定基盤の完了範囲
