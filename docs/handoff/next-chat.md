@@ -8,24 +8,23 @@
 
 ## 最新基準
 
-- 基準main: 1a0717ad979b24f1f2701447b3d5446ea1069feb（PR #24マージ）。
-- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39964781082) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39964781061) 成功を照合。
+- 基準main: 6baedf168f2a3dd85b89ee2ca23e9004a4dff236（PR #25マージ）。
+- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39967169932) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39967169893) 成功を照合。
 - PR #15 HEAD f82aa2860ab3510a9002bc5bb771a3f0a48badb5 の39944930803 / 39944930629成功後マージ。existing-root metadata helper、142合成アサーション（短縮名skip 0）を追加。既存PC-B予定volume証拠を拡張しない。
 - PR #14（13503f6）はstrict lock/recovery evidence、#13（41811bd）はsource reparse拒否、#12（3ae8b76）はhash handle identity、#11（e7d4e8e）は公開内部クラッシュ境界。各main両CI成功。
 - 利用者は優先順の継続と、最新HEADの必要検査成功後のマージを承認。初回確認後90秒間隔で最大5回再確認し、未完/失敗ならマージしない。
-- 新クローンのブランチ feat/private-acl-descriptor-normalization。
+- 新クローンのブランチ feat/monthly-schedule-observation。
 
-## 現在の作業: 合成binary descriptorの正規化接続
+## 現在の作業: 承認済み月次時刻の分離観測
 
-- PR #24 HEAD 8194808ebe132c7472f3bf4012f78bfcc6b06da5のValidate 39964467263 / Package 39964467165成功後マージ。mainも上記両CI成功。
-- 利用者は「初期タスクはログオン中のみ」を承認（2026-10-23）。同一account/interactive sessionで設計し、ログオフ実行は初期対象にしない。同じ判断を再確認しない。task登録・資格情報取得・本番操作・時刻の承認ではない。
-- [ログオン方式記録](../task-logon-mode-policy-proposal.md)を更新。C-24の月次・未実行時補完・PC-A毎時確認は維持し、日次へ変えない。起動後のinteractive sessionで実行可能になった時の補完trigger/retry実装は未完了。
-- Common/PrivateFileSecurityDescriptor.ps1のConvertFrom-EoPrivateFileSecurityDescriptorは渡されたbytesをcloneしてRawSecurityDescriptorで正規化。exact binary roundtripを要求。owner/deny/ACE順序/flags/unsigned maskを保持し、object/callback ACE、SACL、owner欠落、未知control flags、破損/余分なbytesを固定reasonで拒否。
-- 正規化出力にはSIDが含まれるためprivate内部用。公開診断へ出さず、既存Python profileの秘匿化assessmentだけを使う。actual file/token/ACLを取得・変更しない。fileという種別も呼出元の前提で、bytesから出所/実object型を証明しない。
-- 新規6cross-runtimeテスト（16合成descriptor）成功。Python 3.11.9全278件成功（既存symlink権限で2件skip）、PowerShell 7.6.7配布回帰/新規構文確認成功。ローカルPSScriptAnalyzerは未導入で、CIの既存Error検査を使う。
-- CI・配布fixture・コード・テスト・仕様・引き継ぎは同じPRへ。PR/最新HEAD CIは記録時点で未確定。実効ACL/actual token/provider/祖先/対象固定/safe creation/保存、STORE-01/P0/Tier Bは未完了。
-- 次の運用判断案: [C-24月次日時](../task-monthly-schedule-policy-proposal.md)。候補は毎月1日 PC-B 20:00 / PC-A 21:00（日本時間Asia/Tokyo）。未承認。静かで稼働する日・時刻を利用者が選ぶ。task/実設定へ入れず、時刻で完了やarchive許可を推測しない。
-- 明示回復・v1保全/v2対象・private保管/自動削除なし・同一accountは承認済み。旧lock処分、新run、Drive、本番復旧は未実装/未承認。
+- PR #25 HEAD 68df27afe05053287bd947c3e1cd949c3c6c4721のValidate 39966728835 / Package 39966728940成功後マージ。mainも上記両CI成功。PowerShell Error検査もCI成功。
+- 利用者は毎月1日 PC-B 20:00 / PC-A 21:00（日本時間Asia/Tokyo）を「それでOK」と承認（2026-10-23）。同じ日時を再確認しない。ログオン中のみ・同一account・月次未実行時補完・PC-A毎時確認を維持。task登録/本番操作の承認ではない。
+- [日時承認記録](../task-monthly-schedule-policy-proposal.md)、C-24要約、OSD-08/要件表の古い時刻未確定記述を対象範囲で更新。OSD-08全体を完了にしない。
+- Common/MonthlyScheduleObservation.pyは渡された明示UTC/時計信頼性/session/account申告からJST当月境界を観測。時刻到達でもmay_start_run=false。schedule_monthはlog target_periodではない。ホストclock/task/完了記録/IOを使わない。
+- 新規12合成テスト成功。JST/UTC月・年・うるう月跨ぎ、両PC時刻、microsecond境界、非UTC/不明clock、ログオフ、account不明、overflow、繰返し/不変結果を確認。Python 3.11.9全290件成功（既存symlink権限で2skip）、PowerShell 7.6.7配布回帰成功。
+- CI・配布fixture・コード・仕様・引き継ぎを同じPRへ。PR/最新HEAD CIは記録時点で未確定。[分離観測の境界](../monthly-schedule-observation.md)を参照。actual session/clock資格、完了記録、missed-run/毎時確認/retry/正式taskは未実装。
+- 次の運用判断案: [PC-Aの完了確認上限](../pc-a-completion-wait-budget-proposal.md)。候補は初回適格待ち判定から24時間、1時間以上の間隔・初回含め最大25回、上限後は保留/要確認。未承認。manifest書換え・古いsuccess代用・自動lock回復/unknown upload retryの許可にしない。
+- これまでの明示回復・v1保全/v2対象・private保管/削除なし・同一account・ログオン中のみは承認済み。実効ACL/provider/祖先/safe creation/実保存、旧lock処分、新run、Drive/本番復旧、P0/Tier Bは未完了。
 - 判断が必要になるまでPR作成・最新HEAD両CI成功とclean確認後のマージを継続する承認あり。90秒間隔で最大5回再確認、main両CIとローカル同期を確認する。
 
 ## 設定基盤の完了範囲

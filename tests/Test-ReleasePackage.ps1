@@ -69,6 +69,7 @@ try {
     Set-Content (Join-Path $fixture 'Common/PrivateRecoveryEvidence.py') '# Private metadata byte-binding'
     Set-Content (Join-Path $fixture 'Common/PrivateEvidenceAclProfile.py') '# Pure restrictive ACL profile'
     Set-Content (Join-Path $fixture 'Common/PrivateFileSecurityDescriptor.ps1') '# Internal descriptor normalizer'
+    Set-Content (Join-Path $fixture 'Common/MonthlyScheduleObservation.py') '# Non-authorizing schedule observation'
     Set-Content (Join-Path $fixture 'docs/design.md') 'must not ship'
     Set-Content (Join-Path $fixture 'tests/test.ps1') 'must not ship'
     Set-Content (Join-Path $fixture '.github/workflows/validate.yml') 'must not ship'
@@ -142,6 +143,7 @@ try {
         'Common/PrivateRecoveryEvidence.py'
         'Common/PrivateEvidenceAclProfile.py'
         'Common/PrivateFileSecurityDescriptor.ps1'
+        'Common/MonthlyScheduleObservation.py'
     )) {
         Assert-True ($expected -in $entries) "Expected allowlisted file missing from ZIP: $expected"
     }
