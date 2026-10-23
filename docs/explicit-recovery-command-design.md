@@ -95,3 +95,7 @@ Common/RecoveryDiagnosticMutex.py adds an isolated lease using the same global m
 ## 9. Approved owner-evidence compatibility direction
 
 Maintainer approved v1 diagnosis/preservation and v2-only future recovery design. The [logical owner-evidence contract](recovery-owner-evidence-v2-contract.md) keeps unknown PID/boot/query cases blocked and distinguishes same-handle termination observation from recovery authorization. It does not add a v2 schema, provider, writer or runtime connection. [Private evidence preservation policy](recovery-private-evidence-policy-proposal.md) is still a proposal requiring maintainer judgment.
+
+## 10. Approved private evidence direction
+
+Private maintenanceLocal preservation without automatic deletion is approved. [Storage/validation contract](recovery-private-evidence-contract.md) separates in-memory metadata/raw-byte binding from unimplemented ACL-protected persistence and disposition. Diagnosis remains non-persistent. Execution-account policy is the next operational decision.
