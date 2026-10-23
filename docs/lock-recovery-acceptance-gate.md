@@ -137,3 +137,30 @@ The tests preserve that manifest, lock record and published bytes; operational
 recovery and lock-protected use of real source/Drive data remain unimplemented.
 This is hosted/local synthetic evidence, not Tier B/C or complete runtime
 integration. P0-010/P0-012 remain open.
+
+## Strict lock and recovery evidence (2026-10-23)
+
+OwnedRunLock rejects duplicate JSON keys before checking ownership. A matching
+token does not make a malformed record removable: schema_version must be an
+actual integer equal to 1, pid an actual positive integer (not boolean), and
+host a nonempty string. Non-ASCII tokens are rejected before constant-time
+comparison. Unverified or malformed records remain byte-for-byte unchanged;
+the mutex is normally released. No stale-record adoption/removal is introduced.
+
+CrashRecoveryDecision also rejects duplicate manifest keys, including when the
+last duplicate would otherwise overwrite an invalid value with a valid one.
+Only boolean true proves the supplied abandoned-mutex observation. Invalid
+manifest/reconciliation primitive types return the existing fixed block reasons
+rather than escaping as unhandled type errors. The decision remains pure; no
+prior manifest is rewritten and no actual recovery/run starts here.
+
+Regressions reproduced unintended malformed-record deletion and acceptance of
+ambiguous recovery evidence before the fix. A spawned Windows worker verifies
+duplicate/boolean/non-ASCII malformed records remain intact, stays alive after
+release, and a parent acquires the same non-abandoned mutex while that worker
+is alive. Subsequent acquisition remains blocked by the preserved record.
+These are synthetic evidence checks, not proof of atomic compare/delete against
+arbitrary external writers, validated stale-lock disposition, or complete REC-04
+new-run/fresh-inventory integration. LOCK/REC and P0 acceptance remain open.
+
+[PC-B strict-lock follow-up](../tests/evidence/pc-b-lock-validation-local-volume-20261023.json) records 29 passing disposable-root checks without skips at source 302682abb7fd3b45b6745247dfa5297542f81c4b on the intended local fixed NTFS volume. This adds real-mutex malformed-record preservation/release to earlier crash/reparse cases. Pure lock/recovery unit regressions are covered separately by the full Python suite. Complete Tier B and operational recovery remain unaccepted.
