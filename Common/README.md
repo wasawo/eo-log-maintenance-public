@@ -91,3 +91,5 @@ PrivateEvidenceAclProfile.py classifies a narrow supplied file-ACL shape using f
 PrivateFileSecurityDescriptor.ps1 normalizes supplied binary file descriptors for the narrow Python ACL profile. It preserves deny/order/flags/unsigned masks, rejects unsupported features, and performs no filesystem/token query or ACL writes. Its SID-bearing output is private internal data, not a public diagnostic.
 
 MonthlyScheduleObservation.py observes the approved monthly boundary from supplied reliable UTC/session/account claims. It uses day 1 PC-B 20:00 / PC-A 21:00 JST; all results keep may_start_run=false. It never queries the host, reads completion records, creates tasks or starts work. See [observation scope](../docs/monthly-schedule-observation.md).
+
+CompletionWaitBudget.py assesses the approved PC-A 24-hour/25-attempt hourly budget and returns immutable updated attempt histories only after revalidation. All advice denies archive/state-change authority. It performs no waits/tasks/Drive/persistence; trusted state binding and durable crash-safe accounting remain pending. See [budget scope](../docs/completion-wait-budget.md).

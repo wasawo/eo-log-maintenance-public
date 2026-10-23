@@ -278,3 +278,5 @@ Private ACL profile slice (2026-10-23): same-account-per-PC direction is approve
 Descriptor normalization slice (2026-10-23): six PowerShell/Python tests use sixteen synthetic binary descriptors to connect normalization to the conservative file ACL profile. SID-bearing observations remain internal; real OS ACL/token acquisition, effective access, ancestors, safe creation and STORE-01 remain unimplemented. Initial logged-on-only operation is approved; exact C-24 staggered monthly times remain a maintainer decision.
 
 Monthly-time observation slice (2026-10-23): C-24 monthly dates/times are approved and a pure non-authorizing boundary helper has 12 fixed-clock tests. Task/completion records, missed-run compensation, PC-A hourly budget, retry and runtime rollout remain incomplete. No P0/Tier B closure.
+
+PC-A confirmation-budget slice (2026-10-23): the 24-hour/25-attempt upper bound is approved and a pure assessment/immutable-history helper has 16 synthetic tests. Runtime persistence/binding, atomic attempt accounting, latest-manifest/Drive integration, actual hourly tasks and explicit resume remain incomplete. Deadline expiry only holds; P0/Tier B stay open.

@@ -8,24 +8,32 @@
 
 ## 最新基準
 
-- 基準main: 6baedf168f2a3dd85b89ee2ca23e9004a4dff236（PR #25マージ）。
-- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39967169932) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39967169893) 成功を照合。
+- 基準main: a0d99f097c6a291876c13ae3fdc4330c4ba8db10（PR #26マージ）。
+- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39968901406) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39968901349) 成功を照合。
 - PR #15 HEAD f82aa2860ab3510a9002bc5bb771a3f0a48badb5 の39944930803 / 39944930629成功後マージ。existing-root metadata helper、142合成アサーション（短縮名skip 0）を追加。既存PC-B予定volume証拠を拡張しない。
 - PR #14（13503f6）はstrict lock/recovery evidence、#13（41811bd）はsource reparse拒否、#12（3ae8b76）はhash handle identity、#11（e7d4e8e）は公開内部クラッシュ境界。各main両CI成功。
 - 利用者は優先順の継続と、最新HEADの必要検査成功後のマージを承認。初回確認後90秒間隔で最大5回再確認し、未完/失敗ならマージしない。
-- 新クローンのブランチ feat/monthly-schedule-observation。
+- 新クローンのブランチ feat/pc-a-completion-wait-budget。
 
-## 現在の作業: 承認済み月次時刻の分離観測
+## 今回の作業と中断位置: PC-A確認予算の実装・マージまで
 
-- PR #25 HEAD 68df27afe05053287bd947c3e1cd949c3c6c4721のValidate 39966728835 / Package 39966728940成功後マージ。mainも上記両CI成功。PowerShell Error検査もCI成功。
-- 利用者は毎月1日 PC-B 20:00 / PC-A 21:00（日本時間Asia/Tokyo）を「それでOK」と承認（2026-10-23）。同じ日時を再確認しない。ログオン中のみ・同一account・月次未実行時補完・PC-A毎時確認を維持。task登録/本番操作の承認ではない。
-- [日時承認記録](../task-monthly-schedule-policy-proposal.md)、C-24要約、OSD-08/要件表の古い時刻未確定記述を対象範囲で更新。OSD-08全体を完了にしない。
-- Common/MonthlyScheduleObservation.pyは渡された明示UTC/時計信頼性/session/account申告からJST当月境界を観測。時刻到達でもmay_start_run=false。schedule_monthはlog target_periodではない。ホストclock/task/完了記録/IOを使わない。
-- 新規12合成テスト成功。JST/UTC月・年・うるう月跨ぎ、両PC時刻、microsecond境界、非UTC/不明clock、ログオフ、account不明、overflow、繰返し/不変結果を確認。Python 3.11.9全290件成功（既存symlink権限で2skip）、PowerShell 7.6.7配布回帰成功。
-- CI・配布fixture・コード・仕様・引き継ぎを同じPRへ。PR/最新HEAD CIは記録時点で未確定。[分離観測の境界](../monthly-schedule-observation.md)を参照。actual session/clock資格、完了記録、missed-run/毎時確認/retry/正式taskは未実装。
-- 次の運用判断案: [PC-Aの完了確認上限](../pc-a-completion-wait-budget-proposal.md)。候補は初回適格待ち判定から24時間、1時間以上の間隔・初回含め最大25回、上限後は保留/要確認。未承認。manifest書換え・古いsuccess代用・自動lock回復/unknown upload retryの許可にしない。
-- これまでの明示回復・v1保全/v2対象・private保管/削除なし・同一account・ログオン中のみは承認済み。実効ACL/provider/祖先/safe creation/実保存、旧lock処分、新run、Drive/本番復旧、P0/Tier Bは未完了。
-- 判断が必要になるまでPR作成・最新HEAD両CI成功とclean確認後のマージを継続する承認あり。90秒間隔で最大5回再確認、main両CIとローカル同期を確認する。
+- PR #26 HEAD a13dee25c21f1769caf2d863bfcf3116a2234ed2のValidate 39968593998 / Package 39968594091成功後マージ。mainも上記両CI成功。
+- 利用者は「最大24時間・初回含め25回で保留」を承認（2026-10-23）。同じ上限を再確認しない。期限到達をmanifest失敗/成功、archiveやlock回復/upload retry許可へ変換しない。
+- 最新指示: いったん「次PR作成で中断」とした後、今回の確認予算について「実装とマージまで進めてよい」と変更。今回はこのPRの検証・マージ・main確認まで実施し、そこで一時中断する。以前の自動継続承認で次の作業を始めず、明示的な再開指示を待つ。
+- Common/CompletionWaitBudget.py: PC-A/log/period/元run_idと最初の適格観測UTC・全試行UTCの不変履歴にbinding。24時間、1時間以上、最大25回を検証し、check_due/wait/holdだけ返す。結果は常にmay_archive/may_change_state=false。
+- 期限ちょうどの最終適格確認は許可候補に含め、それ以降は保留。遅い確認の次も1時間空け、機会不足で回数が余っても期限を延長しない。clock逆行/不明、scope/履歴不正、未確認gateも保留。
+- record_completion_check_attemptは全条件を再検証し、候補時だけ新しいtupleを返す。IO/待機/task/Drive/保存は行わない。実確認前の信頼できる永続更新が必要で、失敗試行も消費する。履歴喪失・巻き戻し耐性はこのhelperだけでは実装しない。
+- 新規16合成テスト成功。Python 3.11.9全306件成功（既存symlink権限で2件skip）、PowerShell 7.6.7配布回帰成功。CI・配布fixture・コード・関連仕様・引き継ぎを同じPRへ。PR/最新HEAD CI・マージ結果は記録時点では未確定。確定結果は本PRと実main/CIを照合する。
+- [承認記録](../pc-a-completion-wait-budget-proposal.md)、[実装の契約と限界](../completion-wait-budget.md)を更新。OSD-08の予算未承認という記述は解消するが、runtime qualification/rolloutやP0/Tier Bは未完了。
+
+## 再開時の具体手順
+
+1. 本PRの状態・最新main SHA・両CIを確認し、未コミット変更を保全する。中断指示は再開指示があるまで維持。
+2. 次の実装候補は確認予算の信頼できる永続化/読取・scope/run binding・原子的試行計上とクラッシュ/再試行検証。元の開始時刻・試行履歴を失った場合は停止し、新しい予算へ黙って置き換えない。
+3. その後、最新manifest/Drive内容検証・実clock/session/account・mutexと統合する。待ち時間の間ずっとmutexを保持せず、不正manifestを時間待ちに読み替えない。
+4. 正式task登録、実効ACL/provider/祖先/safe creation/実保存、旧lock処分、新run、Drive/本番復旧は未実装/未承認。公開schema/helper/CI成功で本番受け入れを済ませない。
+
+承認済み: 明示回復、v1保全/v2対象、private maintenanceLocal保管/自動削除なし、同一account、ログオン中のみ、毎月1日PC-B20:00/PC-A21:00 JST、PC-A確認24時間/25回。これらを同じ内容で再質問しない。
 
 ## 設定基盤の完了範囲
 

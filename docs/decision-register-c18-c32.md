@@ -422,3 +422,7 @@ Maintainer approved initial scheduled operation only while the target account is
 ## C-24 monthly date/time approval (2026-10-23)
 
 Maintainer approved day 1 each month: PC-B 20:00, PC-A 21:00 in Japan time (Asia/Tokyo/JST). See [recorded answer](task-monthly-schedule-policy-proposal.md). Logged-on-only, same-account-per-PC, monthly missed-startup compensation and PC-A hourly completion checks remain. Exact PC-A wait budget, trigger/state/retry implementation and rollout are still pending; this approves design/test assumptions, not task registration or production archive.
+
+## PC-A hourly completion-confirmation budget (2026-10-23)
+
+Maintainer approved at most 24 hours from the first qualified wait observation, hourly with at most 25 attempts including the initial check, then hold/review. See [recorded answer](pc-a-completion-wait-budget-proposal.md) and [isolated implementation](completion-wait-budget.md). The deadline is not manifest freshness, a lease or upload retry authorization. No manifest rewrite, archive bypass or silent budget reset is allowed. This unit may be implemented/merged; further work waits for resume.
