@@ -73,3 +73,5 @@ SourceInventoryEvidenceBuilder checks source pathname and open-handle identity b
 Source inventory rejects lstat symlink/reparse root/ancestors, rechecks queued directories, classifies fresh entry attributes and checks file paths before/after hashing. Unknown attributes fail closed. See [source reparse evidence and limits](../docs/target-filesystem-acceptance.md#source-inventory-reparse-rejection-2026-10-23).
 
 Lock/recovery evidence parsing rejects duplicate JSON keys and wrong primitive types; malformed lock records are preserved while the mutex is released. See [strict evidence scope](../docs/lock-recovery-acceptance-gate.md#strict-lock-and-recovery-evidence-2026-10-23). This does not implement stale-lock disposition or operational recovery.
+
+MachineConfigurationRootInspection.ps1 adds opt-in read-only metadata inspection of existing configuration roots. It is not runtime authorization; see [configuration scope](../docs/configuration-local-root.md#read-only-existing-root-metadata-inspection).

@@ -67,7 +67,7 @@ This is structural/lexical evidence, not an approved-root filesystem gate.
 It does not inspect actual target volumes, resolve short-name/reparse aliases,
 prove cross-root physical separation, acquire a runtime lock, contact Drive,
 or integrate official entry points. Those checks remain mandatory before effects.
-Bootstrap/create-once migration is a separate pending implementation.
+The create-only bootstrap helper below is implemented; formal deployment/migration remains pending.
 
 ## Create-only configuration bootstrap helper
 
@@ -99,3 +99,47 @@ not claimed by the basic bootstrap tests.
 This is an opt-in helper with synthetic tests, not an installer invocation,
 production deployment approval, final OSD-09 allowlist/migration decision or P0
 closure. Active config remains excluded from source control and distribution.
+
+## Read-only existing-root metadata inspection
+
+Common/MachineConfigurationRootInspection.ps1 provides
+Test-EoMachineConfigurationRoots -Json ... -ExpectedMachineId PC-A/PC-B.
+It first runs the existing strict structure parser. Invoking it explicitly then
+inspects every configured root as an existing directory; missing, non-directory,
+unreadable, reparse/symlink or unsupported-provider roots fail closed. Nothing
+happens by dot-sourcing except loading definitions and the existing version guard.
+
+Components are checked before and after metadata lookup. Windows OPEN_EXISTING
+directory handles request zero data access, inspect directory/reparse attributes,
+and obtain normalized paths in the volume-GUID namespace. The helper compares
+maintenanceLocal against each other root for equality or containment in either
+direction, without exposing paths or metadata in its result. It does not impose
+different physical disks or prove all other root pairs disjoint.
+
+Success returns only Status=existing_roots_separated, MachineId and RootCount.
+Structural errors retain their fixed codes; inspection errors use the fixed
+configuration_root_inspection_failed code. Non-Windows invocation is unsupported.
+No files/directories/configuration are created or changed, no contents are read,
+and no lock, Drive, synchronization or archive operation is performed.
+
+This is a partial metadata gate for existing directories, not an approved-root
+authority, filesystem/provider allowlist, production installer or runtime
+authorization. Handle lifetimes end during inspection; snapshots do not protect
+later uses. Rechecking components is not proof against arbitrary concurrent
+namespace/ABA changes. Unsupported volume-GUID lookup fails without a weaker
+fallback. Real Drive/network targets, other alias mechanisms and PC-A/intended
+volume qualification remain separate; do not infer cloud visibility or upload.
+
+Tests use private fresh OS-temp fixtures for both PCs: all root fields,
+missing/file roots without creation, actual junction roots/ancestors,
+preserved sentinel bytes, path-free results, actual 8.3 canonical equality and
+combined lexical/metadata overlap rejection when short aliases are available.
+Three injected canonical-overlap observations and an injected metadata failure
+per PC cover later-layer rejection independently of lexical normalization.
+Unavailable 8.3 fixtures are explicitly counted as skips. These tests do not
+expand the earlier PC-B intended-volume Tier B evidence.
+
+API references:
+- [CreateFileW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew)
+- [GetFinalPathNameByHandleW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew)
+- [Handle information](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/ns-fileapi-by_handle_file_information)
