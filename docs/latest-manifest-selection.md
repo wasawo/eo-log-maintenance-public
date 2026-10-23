@@ -86,3 +86,14 @@ Nineteen synthetic tests include three actual Windows junction cases, descriptor
 replacement before read, partial enumeration, final rescan mutation, no fallback,
 scope filtering, byte preservation and sanitized errors. No Tier B extension or
 P0 closure is claimed.
+
+## Recovery composition evidence
+
+`tests/test_manifest_recovery_integration.py` passes the selected exact bytes to
+the existing pure recovery classifier. Seven synthetic tests cover latest running
+versus older success, terminal failure, ambiguous/corrupt/unreadable candidates,
+independent ownership/Drive evidence and changes after observation. The real
+Windows abandoned-mutex integration also reads the defined per-PC directory.
+A positive classifier result remains evidence about its supplied snapshot only;
+it does not transfer ownership, dispose of stale records or prove later path
+state. No operational recovery adapter or new-run creation is introduced.

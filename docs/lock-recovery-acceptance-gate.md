@@ -168,3 +168,15 @@ new-run/fresh-inventory integration. LOCK/REC and P0 acceptance remain open.
 ## Latest candidate selection evidence (2026-10-23)
 
 The read-only [C4 core](latest-manifest-selection.md) independently parses the defined filename and selects only a unique validated latest start time. It rejects ambiguous/malformed/unreadable candidates and never falls back from a newer incomplete run to old success. It does not enumerate/read operational manifests, establish owner termination, dispose stale locks or start a new run; REC-04/REC-07 runtime acceptance remains open.
+
+## Latest-directory composition evidence (2026-10-23)
+
+Seven synthetic composition tests feed the exact latest-directory byte snapshot
+into the existing pure recovery classifier. Latest failure, equal maxima, older
+corruption and read uncertainty never permit recovery via an older candidate.
+The actual Windows abandoned-mutex test now selects its prior running manifest
+from the defined PC directory and confirms that a subsequent normal acquisition
+still refuses the unchanged stale record even after a positive classification.
+Changes after a snapshot demonstrate why classification is not a current-use
+permit. This extends bounded evidence only; REC-04 operational new-run creation,
+explicit disposition, termination proof and protection through use remain open.
