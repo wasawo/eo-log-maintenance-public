@@ -266,3 +266,5 @@ Recovery composition slice (2026-10-23): seven synthetic latest-directory/classi
 Explicit recovery design (2026-10-23): the dedicated-command direction is approved, with normal sync refusal retained. [Diagnosis/planning contract](explicit-recovery-command-design.md) defines DIAG-01 through DIAG-10 as pending tests, not executed evidence. No stale-lock state change or runtime entrypoint is added. P0-010/P0-012 remain open.
 
 Recovery diagnostic model slice (2026-10-23): a pure non-authorizing result model accepts explicit fixed gate observations and exports allowlisted scope/reasons only. Twelve synthetic boundary tests do not establish real evidence acquisition, diagnostic mutex lifecycle, the full DIAG command matrix, runtime acceptance or P0 closure.
+
+Diagnostic lease slice (2026-10-23): record-free mutex helper and 13 synthetic tests add bounded DIAG-03/04/05 evidence. Existing normal ownership refusal, old records, formal entrypoint/role guards and P0 gaps remain. Legacy v1 records still lack persistent process identity; the proposed v2-only recovery direction needs maintainer judgment.
