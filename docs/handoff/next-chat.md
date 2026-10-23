@@ -8,23 +8,24 @@
 
 ## 最新基準
 
-- 基準main: f4ee5da17500f6da4776e804b3fb224116933fd1（PR #23マージ）。
-- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39963017278) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39963017228) 成功を照合。
+- 基準main: 1a0717ad979b24f1f2701447b3d5446ea1069feb（PR #24マージ）。
+- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39964781082) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39964781061) 成功を照合。
 - PR #15 HEAD f82aa2860ab3510a9002bc5bb771a3f0a48badb5 の39944930803 / 39944930629成功後マージ。existing-root metadata helper、142合成アサーション（短縮名skip 0）を追加。既存PC-B予定volume証拠を拡張しない。
 - PR #14（13503f6）はstrict lock/recovery evidence、#13（41811bd）はsource reparse拒否、#12（3ae8b76）はhash handle identity、#11（e7d4e8e）は公開内部クラッシュ境界。各main両CI成功。
 - 利用者は優先順の継続と、最新HEADの必要検査成功後のマージを承認。初回確認後90秒間隔で最大5回再確認し、未完/失敗ならマージしない。
-- 新クローンのブランチ feat/private-evidence-acl-profile。
+- 新クローンのブランチ feat/private-acl-descriptor-normalization。
 
-## 現在の作業: 同一accountと限定file ACL形状
+## 現在の作業: 合成binary descriptorの正規化接続
 
-- PR #23 HEAD 3d02f0832218de6a862fc4744d2b7406f8db2309のValidate 39962724824 / Package 39962724899成功後マージ。mainも上記両CI成功。
-- 利用者は「各PC内では手動と将来タスクを同一アカウントにする」を承認（2026-10-23）。PC-A/B同士で同じaccountは不要。同じ判断を再確認しない。task/ACL/実設定変更・自動昇格や資格情報取得の承認ではない。
-- [account承認記録](../recovery-execution-account-policy-proposal.md)とprivate保管契約を更新。[限定ACL形状](../private-evidence-acl-profile.md)を追加。Common/PrivateEvidenceAclProfile.pyは渡された観測のみを分類し、実file/account/token/ACLに触れない。
-- file/owner/explicit protected non-null DACL/限定trustee/明示user read-writeを初期profileとし、world/foreign owner/grant、deny/継承/generic/未知ACE/mask、directoryを保留。実効アクセスを計算せず、profile一致でも変更許可はfalse。user SIDの申告を認証する処理ではない。
-- 新規13合成テスト成功。Python 3.11.9全272件成功（既存symlink権限で2件skip）、PowerShell 7.6.7配布回帰成功。固定ダミーSIDのみ使用。MicrosoftのDACL/AccessCheck一次資料を参照し、複雑なACLとnull/emptyを誤認しない。
-- CI・配布fixture・コード・仕様・引き継ぎは同じPRへ。PR/最新HEAD CIは記録時点で未確定。STORE-01/実効ACL全体、provider、directory/祖先、safe creation、root/利用までの保護、実保存/ACL変更は未実装。
-- 次の運用判断案: [OSD-08 taskログオン方式](../task-logon-mode-policy-proposal.md)。推奨は初期taskをログオン中のみとし、ログオフ実行を初期対象にしない。未承認。同一accountでもsession/権限・Drive/auth/root条件は自動的には確定しない。
-- 専用明示回復、v1診断保全/v2対象、private maintenanceLocal保全/自動削除なしは承認済み。旧lock処分/新run/Drive/本番復旧・P0/Tier Bは未完了。実運用path/実identityを公開しない。
+- PR #24 HEAD 8194808ebe132c7472f3bf4012f78bfcc6b06da5のValidate 39964467263 / Package 39964467165成功後マージ。mainも上記両CI成功。
+- 利用者は「初期タスクはログオン中のみ」を承認（2026-10-23）。同一account/interactive sessionで設計し、ログオフ実行は初期対象にしない。同じ判断を再確認しない。task登録・資格情報取得・本番操作・時刻の承認ではない。
+- [ログオン方式記録](../task-logon-mode-policy-proposal.md)を更新。C-24の月次・未実行時補完・PC-A毎時確認は維持し、日次へ変えない。起動後のinteractive sessionで実行可能になった時の補完trigger/retry実装は未完了。
+- Common/PrivateFileSecurityDescriptor.ps1のConvertFrom-EoPrivateFileSecurityDescriptorは渡されたbytesをcloneしてRawSecurityDescriptorで正規化。exact binary roundtripを要求。owner/deny/ACE順序/flags/unsigned maskを保持し、object/callback ACE、SACL、owner欠落、未知control flags、破損/余分なbytesを固定reasonで拒否。
+- 正規化出力にはSIDが含まれるためprivate内部用。公開診断へ出さず、既存Python profileの秘匿化assessmentだけを使う。actual file/token/ACLを取得・変更しない。fileという種別も呼出元の前提で、bytesから出所/実object型を証明しない。
+- 新規6cross-runtimeテスト（16合成descriptor）成功。Python 3.11.9全278件成功（既存symlink権限で2件skip）、PowerShell 7.6.7配布回帰/新規構文確認成功。ローカルPSScriptAnalyzerは未導入で、CIの既存Error検査を使う。
+- CI・配布fixture・コード・テスト・仕様・引き継ぎは同じPRへ。PR/最新HEAD CIは記録時点で未確定。実効ACL/actual token/provider/祖先/対象固定/safe creation/保存、STORE-01/P0/Tier Bは未完了。
+- 次の運用判断案: [C-24月次日時](../task-monthly-schedule-policy-proposal.md)。候補は毎月1日 PC-B 20:00 / PC-A 21:00（日本時間Asia/Tokyo）。未承認。静かで稼働する日・時刻を利用者が選ぶ。task/実設定へ入れず、時刻で完了やarchive許可を推測しない。
+- 明示回復・v1保全/v2対象・private保管/自動削除なし・同一accountは承認済み。旧lock処分、新run、Drive、本番復旧は未実装/未承認。
 - 判断が必要になるまでPR作成・最新HEAD両CI成功とclean確認後のマージを継続する承認あり。90秒間隔で最大5回再確認、main両CIとローカル同期を確認する。
 
 ## 設定基盤の完了範囲

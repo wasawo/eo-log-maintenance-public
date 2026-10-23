@@ -83,6 +83,7 @@ jobs:
           python -m unittest discover -s tests -p "test_recovery_diagnostic_mutex.py" -v
           python -m unittest discover -s tests -p "test_private_recovery_evidence.py" -v
           python -m unittest discover -s tests -p "test_private_evidence_acl_profile.py" -v
+          python -m unittest discover -s tests -p "test_private_acl_descriptor_normalization.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_recovery.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_publication.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_directory_verification.py" -v
