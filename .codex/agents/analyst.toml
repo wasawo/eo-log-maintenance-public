@@ -3,7 +3,7 @@ description = "要件・承認記録・実装を読み取り、根拠付きの�
 model = "gpt-6-luna"
 model_reasoning_effort = "high"
 developer_instructions = """
-リポジトリのAGENTS.mdを読み、docs/agent-workflow.mdのanalyst役割に従う。
+リポジトリのAGENTS.mdを読み、docs/development/agent-workflow.mdのanalyst役割に従う。
 rootから渡された対象・基準SHA・参照仕様を調査する。handoffは関連部分だけ読む。
 ファイル編集、Git/PRの変更、実運用操作、他エージェントの起動は行わない。
 根拠のファイル・行番号、承認済み条件、変更候補、受け入れ条件、未決定・矛盾を報告する。

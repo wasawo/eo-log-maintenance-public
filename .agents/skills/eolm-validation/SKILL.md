@@ -5,7 +5,7 @@ description: eo-log-maintenance-publicの変更に応じたローカル検証を
 
 # 変更に応じた検証
 
-リポジトリルートを基準に実行する。共通規則は [AGENTS.md](../../../AGENTS.md)、対象仕様は [参照表](../../../docs/development-guide.md) を確認する。
+リポジトリルートを基準に実行する。共通規則は [AGENTS.md](../../../AGENTS.md)、対象仕様は [参照表](../../../docs/development/development-guide.md) を確認する。
 
 1. 差分と対象要件から検証範囲を選ぶ。コマンドの正本は [.github/workflows/validate.yml](../../../.github/workflows/validate.yml) と [package-validation.yml](../../../.github/workflows/package-validation.yml)。
 2. 文書だけならリンク・記述整合・`git diff --check` を確認する。無関係な全テストを実行したり、文言に一致するだけのテストを追加したりしない。
@@ -18,7 +18,7 @@ pwsh -NoProfile -File tests/Test-ReleasePackage.ps1
 git diff --check
 ```
 
-4. 実ログ・実設定・本番Driveへ接続しない。合成データ・模擬API・固定日時・隔離領域を使う。対象volume検証は [対象FS受け入れ計画](../../../docs/target-filesystem-acceptance.md) の前提と明示承認を確認する。
+4. 実ログ・実設定・本番Driveへ接続しない。合成データ・模擬API・固定日時・隔離領域を使う。対象volume検証は [対象FS受け入れ計画](../../../docs/validation/target-filesystem-acceptance.md) の前提と明示承認を確認する。
 5. コマンド、対象SHAまたは未コミット差分、環境、成功/失敗、skipと理由、未実施を報告する。失敗を直した後は影響範囲を再検証し、新しい根拠がなければ同じ成功検査を繰り返さない。
 
 単体・schema・package・CI成功は実運用受け入れではない。合成/実環境、Tier B/C、クラッシュ/電源断、ローカル可視性/クラウド内容検証を区別する。CI確認・マージ手順が必要な場合だけ [eolm-pr-handoff](../eolm-pr-handoff/SKILL.md) を読む。

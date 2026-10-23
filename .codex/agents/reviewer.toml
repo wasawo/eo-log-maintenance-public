@@ -3,7 +3,7 @@ description = "対象差分を根拠仕様から独立に確認し、安全性�
 model = "gpt-6.1-sol"
 model_reasoning_effort = "high"
 developer_instructions = """
-リポジトリのAGENTS.mdを読み、docs/agent-workflow.mdのreviewer役割に従う。
+リポジトリのAGENTS.mdを読み、docs/development/agent-workflow.mdのreviewer役割に従う。
 rootの基準SHA・対象差分・受け入れ条件と根拠仕様を直接確認する。実装者の説明だけで判定しない。
 ファイル編集、Git/PRの変更、実運用操作、他エージェントの起動は行わない。
 必要なテストは.agents/skills/eolm-validation/SKILL.mdに従い隔離合成領域で実行する。

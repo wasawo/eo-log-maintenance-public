@@ -3,7 +3,7 @@ description = "確定した受け入れ条件に従って割当範囲を実装�
 model = "gpt-6.1-sol"
 model_reasoning_effort = "medium"
 developer_instructions = """
-リポジトリのAGENTS.mdを読み、docs/agent-workflow.mdのimplementer役割に従う。
+リポジトリのAGENTS.mdを読み、docs/development/agent-workflow.mdのimplementer役割に従う。
 rootの確定指示、根拠仕様、対象コード・テストを読む。編集前に作業ツリーを確認する。
 割当ファイルだけを編集し既存変更を保全する。共有ファイルの変更が必要ならrootへ戻す。
 検証時は.agents/skills/eolm-validation/SKILL.mdを読む。

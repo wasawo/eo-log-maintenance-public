@@ -4,11 +4,13 @@
 
 ElectronicObserver の BattleLog / ErrorReport を、Windows PC-A と PC-B 間で安全に同期・検証・アーカイブするための PowerShell 管理プロジェクトです。
 
-> **現在の段階:** 安全基盤・検証補助処理を実装中です。実運用可能な初回リリースには未到達です。P0受け入れは未完了で、正式な同期／アーカイブ入口とランタイム検証も未実装です。初期実装にはローカル元ファイル削除・Drive削除の機能自体を含めません。P0の判定基準は [`docs/implementation-workflow.md`](docs/implementation-workflow.md) §4 と [`docs/p0-gap-register.md`](docs/p0-gap-register.md) を参照してください。
+ファイルの配置と分野別文書は [リポジトリ構成・文書索引](docs/README.md) を参照してください。
 
-2026-10-24時点の[実装棚卸しと初回配布までの作業順序](docs/first-release-readiness-20261024.md)を参照してください。レビュー用ZIPを生成できることと、本番導入できることは別です。
+> **現在の段階:** 安全基盤・検証補助処理を実装中です。実運用可能な初回リリースには未到達です。P0受け入れは未完了で、正式な同期／アーカイブ入口とランタイム検証も未実装です。初期実装にはローカル元ファイル削除・Drive削除の機能自体を含めません。P0の判定基準は [`docs/development/implementation-workflow.md`](docs/development/implementation-workflow.md) §4 と [`docs/requirements/p0-gap-register.md`](docs/requirements/p0-gap-register.md) を参照してください。
 
-Codexでの開発は [AGENTS.md](AGENTS.md) から開始します。[役割別運用](docs/agent-workflow.md) と [詳細仕様への参照表](docs/development-guide.md) を必要時に確認してください。進捗は [引き継ぎ](docs/handoff/next-chat.md) に記録します。
+2026-10-24時点の[実装棚卸しと初回配布までの作業順序](docs/status/first-release-readiness-20261024.md)を参照してください。レビュー用ZIPを生成できることと、本番導入できることは別です。
+
+Codexでの開発は [AGENTS.md](AGENTS.md) から開始します。[役割別運用](docs/development/agent-workflow.md) と [詳細仕様への参照表](docs/development/development-guide.md) を必要時に確認してください。進捗は [引き継ぎ](docs/handoff/next-chat.md) に記録します。
 
 ## 目的
 
@@ -20,7 +22,7 @@ Codexでの開発は [AGENTS.md](AGENTS.md) から開始します。[役割別�
 
 ## PCごとの役割と実行パス
 
-maintenanceLocal は各PC自身のマニフェスト・検証証拠・レポートのローカル原本領域です。両PCの example に必須項目として追加し、実行先・元ログ・Drive・アーカイブとの重複を拒否します。[設定仕様](docs/configuration-local-root.md)を参照してください。読み取り専用の構造検証ローダーは追加済みです。初回だけ生成して既存設定を保持する補助処理も追加済みです。既存ディレクトリのメタデータを読む分離検査も補助処理として追加済みです。物理領域の承認・利用直前までの保護・正式導入入口への接続は未完了です。
+maintenanceLocal は各PC自身のマニフェスト・検証証拠・レポートのローカル原本領域です。両PCの example に必須項目として追加し、実行先・元ログ・Drive・アーカイブとの重複を拒否します。[設定仕様](docs/design/configuration-local-root.md)を参照してください。読み取り専用の構造検証ローダーは追加済みです。初回だけ生成して既存設定を保持する補助処理も追加済みです。既存ディレクトリのメタデータを読む分離検査も補助処理として追加済みです。物理領域の承認・利用直前までの保護・正式導入入口への接続は未完了です。
 
 以下と `Config/*.example.json` のパスは公開用のダミー値です。実運用値は Git 管理外の `Config/PC-A.json` / `Config/PC-B.json` に保存します。
 
