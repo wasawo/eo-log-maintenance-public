@@ -402,3 +402,7 @@ The operator approved adding required maintenanceLocal to both PC configurations
 
 Maintainer selected a dedicated explicit recovery command, separate from normal synchronization. Default behavior is read-only diagnosis/planning; state changes require a separate explicit operation and all safety gates. See [recorded response](recovery-disposition-proposal.md) and [command design](explicit-recovery-command-design.md).
 This approves the entrypoint design direction only, not stale-record disposition, persistent evidence schema, owner-termination proof, formal runtime integration or production use. Existing automatic-recovery refusal and P0 gaps remain.
+
+## Recovery owner-evidence compatibility direction (2026-10-23)
+
+Maintainer approved limiting existing v1 stale records to diagnosis/preservation and designing future explicit recovery only for v2 records that carry evidence from acquisition time. Existing normal v1-owner release is unchanged; no automatic conversion, deletion or production use is authorized. See [recorded response](recovery-owner-evidence-v2-proposal.md) and [logical evidence contract](recovery-owner-evidence-v2-contract.md). Machine-readable schema, OS provider, private storage/ACL/retention, disposition and operational acceptance remain incomplete.

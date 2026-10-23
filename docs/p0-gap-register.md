@@ -268,3 +268,5 @@ Explicit recovery design (2026-10-23): the dedicated-command direction is approv
 Recovery diagnostic model slice (2026-10-23): a pure non-authorizing result model accepts explicit fixed gate observations and exports allowlisted scope/reasons only. Twelve synthetic boundary tests do not establish real evidence acquisition, diagnostic mutex lifecycle, the full DIAG command matrix, runtime acceptance or P0 closure.
 
 Diagnostic lease slice (2026-10-23): record-free mutex helper and 13 synthetic tests add bounded DIAG-03/04/05 evidence. Existing normal ownership refusal, old records, formal entrypoint/role guards and P0 gaps remain. Legacy v1 records still lack persistent process identity; the proposed v2-only recovery direction needs maintainer judgment.
+
+Owner-evidence design (2026-10-23): approved v1-preserve/v2-only direction now has a logical evidence contract and pending OWNER-01 through OWNER-06. No executable provider/schema/migration or production recovery is added. Private evidence storage/ACL/retention policy is the next maintainer decision; P0 remains open.
