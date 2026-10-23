@@ -397,3 +397,8 @@ The maintainer explicitly approved **R1-B, R2-A, R3-B, R4-A, R5-A, R6-A, R7-A**.
 ## Local authoritative maintenance root approval (2026-10-23)
 
 The operator approved adding required maintenanceLocal to both PC configurations, with public dummy defaults and actual paths kept only in untracked active configs. It denotes that PC's local authoritative manifests/evidence/reports; it must not equal, contain or be contained by runtime/source/Drive/archive roots. See configuration-local-root.md. This approval does not authorize production filesystem access or resolve all OSD-09 migration decisions.
+
+## Explicit recovery entrypoint direction (2026-10-23)
+
+Maintainer selected a dedicated explicit recovery command, separate from normal synchronization. Default behavior is read-only diagnosis/planning; state changes require a separate explicit operation and all safety gates. See [recorded response](recovery-disposition-proposal.md) and [command design](explicit-recovery-command-design.md).
+This approves the entrypoint design direction only, not stale-record disposition, persistent evidence schema, owner-termination proof, formal runtime integration or production use. Existing automatic-recovery refusal and P0 gaps remain.

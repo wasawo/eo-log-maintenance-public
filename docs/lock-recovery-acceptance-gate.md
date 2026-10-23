@@ -180,3 +180,7 @@ still refuses the unchanged stale record even after a positive classification.
 Changes after a snapshot demonstrate why classification is not a current-use
 permit. This extends bounded evidence only; REC-04 operational new-run creation,
 explicit disposition, termination proof and protection through use remain open.
+
+## Explicit recovery entrypoint direction (2026-10-23)
+
+Maintainer approved designing a dedicated explicit recovery command while normal synchronization continues to stop on stale records. [The command design](explicit-recovery-command-design.md) defines read-only diagnosis/planning, non-authorizing results, safe mutex lifetime and a pending synthetic test matrix. It does not implement an entrypoint or authorize disposition. Persistent owner identity, root/clock qualification, private evidence storage and protected state changes remain open.
