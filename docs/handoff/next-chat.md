@@ -8,6 +8,11 @@
 
 ## 最新基準と今回の作業
 
+- 今回の基準main: `cca45d620c87b1dc4a41e93bbcda818a7e684dc8`（PR #30マージ済み、main Validate 40028284291 / Package Validation 40028284250成功）。以下の旧基準・作業記録よりこの項目を優先する。
+- 現作業ブランチ: `docs/dry-run-execution-design`。利用者の次作業指示により、Aのfile-free実行経路・事前ゲート・既存helperと不足責務・DRY対応を具体化する1PRを作成し、最新HEAD CI成功後にマージする。IPC全体/C-01/C-02・認証・runtime受け入れは未完了のまま。
+- 省消費方針に従い追加analystは起動せず、具体設計担当はSol/medium。rootは統合とhandoff/Gitを担当。現在のA方針を再質問せず、本番接続・実処理を追加しない。
+- [Dry Run実行経路](../design/dry-run-execution-design.md) を追加。Sol/mediumの独立レビューはブロッカーなし、全68文書リンク・差分検査成功。fixture/runtimeは未実装・未実行。次の単位は合成fixture内の専用dispatch/依存境界の拒否経路検証で、IPC接続や仮のroot認可を追加しない。本PRの最終CI/マージは実GitHub状態を照合する。
+
 - 基準main: `ec12f9e0c7c2a9aab933efc161649475672be25e`（[PR #29](https://github.com/wasawo/eo-log-maintenance-public/pull/29) スカッシュマージ済み）。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40025793060) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40025793004) 成功。
 - 作業ブランチ: `docs/approve-dry-run-a-reduce-effort`。最新指示（2026-10-24）はAの明示承認と、品質を大きく落とさない思考量削減。今回は承認反映とプロジェクト設定の調整を1単位とし、既存指示どおり1PR作成・CI成功確認後にマージする。runtime実装・本番適用は行わない。
 - 調査でIPC契約自体のレビューとC-01/C-02が承認待ちと確認。未承認の契約を規範とするadapter/validator実装は行わず、先にDry Runの具体的な判断資料を作成する。

@@ -62,6 +62,7 @@ docs/
 - [Derived Aggregation Report v1 Proposal](design/aggregation-report-v1-proposal.md)
 - [PC-A確認予算の分離実装](design/completion-wait-budget.md)
 - [Local maintenance artifact root](design/configuration-local-root.md)
+- [Dry Run A: 実行分岐と副作用境界の設計](design/dry-run-execution-design.md)
 - [明示回復コマンドの設計契約](design/explicit-recovery-command-design.md)
 - [Filename and Period Selection Specification](design/filename-and-period-selection.md)
 - [Latest manifest selection core](design/latest-manifest-selection.md)
