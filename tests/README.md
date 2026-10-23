@@ -240,3 +240,5 @@ Internal publication crash tests: python -m unittest discover -s tests -p test_i
 Source hash identity regressions: python -m unittest discover -s tests -p test_source_hash_identity.py -v. These use synthetic file replacement/restoration and injected fstat failures; see [scope and limitations](../docs/target-filesystem-acceptance.md#source-hash-handle-identity-2026-10-23).
 
 Source reparse regressions: python -m unittest discover -s tests -p test_source_inventory_reparse.py -v. Seven tests include real Windows junction root/ancestor/child/queued replacement and metadata failures. Included in opt-in local-volume checks; synthetic fixtures only.
+
+Strict lock/recovery regressions run in the existing test_owned_run_lock.py, test_crash_recovery_decision.py and test_owned_publication_integration.py suites. They cover duplicate JSON, boolean/integer confusion, invalid state types, record byte preservation and real-mutex normal release while the publisher remains alive.

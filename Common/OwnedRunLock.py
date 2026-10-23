@@ -109,23 +109,36 @@ def _strict_record_bytes(scope_id: str, token: str) -> bytes:
     return (json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
 
 
+def _reject_duplicate_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate_json_key")
+        result[key] = value
+    return result
+
+
 def _record_matches(path: Path, scope_id: str, token: str) -> bool:
     try:
         raw = path.read_bytes()
-        record = json.loads(raw.decode("utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError):
+        record = json.loads(raw.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
+    except (OSError, UnicodeError, ValueError):
         return False
     if not isinstance(record, dict):
         return False
     if set(record) != {"schema_version", "scope_id", "owner_token", "pid", "host"}:
         return False
     return (
-        record.get("schema_version") == 1
+        type(record.get("schema_version")) is int
+        and record["schema_version"] == 1
         and record.get("scope_id") == scope_id
         and isinstance(record.get("owner_token"), str)
+        and record["owner_token"].isascii()
         and secrets.compare_digest(record["owner_token"], token)
-        and isinstance(record.get("pid"), int)
+        and type(record.get("pid")) is int
+        and record["pid"] > 0
         and isinstance(record.get("host"), str)
+        and bool(record["host"])
     )
 
 

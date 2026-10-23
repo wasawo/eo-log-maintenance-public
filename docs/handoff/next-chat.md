@@ -8,20 +8,21 @@
 
 ## 最新基準
 
-- 基準main: 3ae8b76a5025c7abc43943f03915efbf8e2585e3（PR #12マージ）。
-- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39841288497) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39841288504) 成功を照合。
-- PR #12最新HEAD ee356be0e7a15de8b7e712a44ee46a69a79eae30 の39840997905 / 39840997808成功後マージ。旧HEADのPackage workflow停止はjob成功で代替せず、未反映だった引き継ぎを反映した新HEADの通常CIで検証した。
-- PR #11はe7d4e8e600a6f744fde4801565afe043b45d10c6へマージ済み。main 39834657799 / 39834657703成功。PC-B予定NTFSの21テスト部分証拠は tests/evidence/pc-b-internal-crash-local-volume-20261023.json。
+- 基準main: 41811bd23c9ef3d0b25e8e2ec47d9d5c43973e1c（PR #13マージ）。
+- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39842150040) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39842150020) 成功を照合。
+- PR #13最新HEAD 745cd5284505121aea6d2901378ef8483b3db324 のValidate 39841877997 / Package 39841877840成功後マージ。source root/ancestor/entry/queued reparse拒否7件を追加。PC-B予定NTFSの28件部分証拠は tests/evidence/pc-b-source-reparse-local-volume-20261023.json。
+- PR #12（3ae8b76）は元ファイルhashのopen-handle identity照合、PR #11（e7d4e8e）は公開内部10クラッシュケースを追加してマージ済み。いずれもmain両CI成功。
 - 利用者は優先順の継続と、最新HEADの必要検査成功後のマージを承認。初回確認後90秒間隔で最大5回再確認し、未完/失敗ならマージしない。
-- 新クローンのブランチ fix/source-inventory-reparse-guards。以前の未コミット再現テストを保持して移り、今回の修正へ統合。
+- 新クローンのブランチ fix/strict-lock-recovery-evidence。
 
-## 現在の作業: 元ログ列挙のreparse拒否
+## 現在の作業: 不正ロック記録/曖昧な復旧証拠の拒否
 
-- SourceInventoryEvidenceBuilderでroot/ancestorをresolveせずlstatで検査。scandir前にqueued directoryを再確認し、entryをfresh lstat属性で分類。hash前後にもpath/ancestorを検査。
-- root/ancestor junctionはsource_root_invalid、属性不明rootはsource_root_unavailable。子entry拒否/属性不明はenumeration_errorsを増やし未完了。元ログへ書込/削除は追加しない。
-- 実Windows junction root/ancestor/childの修正前3件失敗を修正後成功。queued directory差し替え、root/entry属性失敗、hash直前ancestor拒否を加え7件成功。CIとopt-in local-volumeへ登録。全Python156テスト成功、既存symlink権限の2件スキップ。
-- 最新HEAD CI・PR/マージは未確定。PC-B予定ローカル固定NTFSで28テスト成功、スキップなし。tests/evidence/pc-b-source-reparse-local-volume-20261023.json にソースfecffed823e5de44c4357b18d57db293e7007f70の部分証拠を保存。実パス/ドライブ文字なし。
-- atomic snapshot、任意の敵対的namespace変更、物理approved-root/cross-root gate、後続利用までの保護、正式復旧/同期入口、Tier B全体/P0受け入れは未完了。
+- 修正前に、重複JSONキーとbool型schema_version/pidなどの不正lockが正常解放時に削除される欠陥を再現。重複manifestキーと非boolのabandonmentも復旧許可にされていた。
+- OwnedRunLock: duplicate keyをrejectし、schema_version/pidの厳密intと正値、非空host、ASCII tokenを確認。不正記録はbytes保持、mutexは解放。新しい削除/古いロックの自動採用は追加しない。
+- CrashRecoveryDecision: duplicate key、想定外型、真偽値の暗黙解釈を拒否。既存の固定reasonでblockし、manifestを書き換えない。想定外型で未処理TypeErrorになる欠陥も回帰で再現/修正。
+- 実Windowsの子プロセスを正常解放後も生かし、親が同mutexを取得できabandonedではないこと、不正記録が保持され後続処理を拒否することを検証。
+- 最新HEAD CI・PR/マージは未確定。全Python163テスト成功、既存symlink権限で2件スキップ。PC-B追加部分証拠はソース確定後に記録する。
+- 残る制約: 任意の外部writerに対するcompare/deleteの原子性、stale記録の安全なdisposition、REC-04の新run/fresh inventory正式統合、物理root gate、Tier B/P0全体は未完了。
 
 ## 設定基盤の完了範囲
 
@@ -40,7 +41,7 @@
 | [#5](https://github.com/wasawo/eo-log-maintenance-public/pull/5) | 役割/予定ボリューム一致/明示ackを要求する実行入口。checkout直下の新規使い捨て領域だけを使用。PC-Bで10件の部分証拠 | HEAD 30a62ca の39824117058 / 39824117153成功。マージf96607c、main 39824401046 / 39824401199成功 |
 | [#6](https://github.com/wasawo/eo-log-maintenance-public/pull/6) | 実ジャンクションroot/祖先の拒否漏れ2件を再現し、lstatのreparse属性・祖先・entryチェックでbytes読取前に拒否。実junction3件+読取失敗1件を追加 | HEAD 66162b9 の39824877670 / 39824877595成功。マージ19abd3f、main Validate 39825147373 / Package 39825147040成功 |
 
-- 最新ローカル全Python: 137テスト成功、既存symlink権限のため2件スキップ。PowerShellは7.6.7、配布テストもPR #3準備時に成功。各PRの公開CIはPython 3.12等のCI環境で成功。
+- PR #3〜6当時のローカル全Python: 137テスト成功、既存symlink権限のため2件スキップ。PowerShellは7.6.7、配布テストもPR #3準備時に成功。各PRの公開CIはPython 3.12等のCI環境で成功。
 - PC-Bの予定ローカル固定NTFSボリューム: 修正後14件すべて成功、スキップなし。[部分証拠](../../tests/evidence/pc-b-reparse-local-volume-20261023.json)は実パス・ボリューム文字・ホスト名・tokenを含まない。
 - 実設定・実ログ・Drive・アーカイブ・元ログ/Drive削除へは触れていない。ジャンクションは新規合成領域内だけに作成・除去。
 - 検証は一点時点の防御。電源断耐久性、原子的な複数ファイル更新、任意の敵対的FS変更への完全防御、実運用復旧を証明しない。

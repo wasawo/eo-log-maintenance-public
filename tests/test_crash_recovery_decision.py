@@ -112,5 +112,43 @@ class CrashRecoveryDecisionTests(unittest.TestCase):
                          "unresolved_upload_count_invalid")
 
 
+    def test_duplicate_manifest_keys_block_without_mutating_bytes(self):
+        raw = self.kwargs["prior_manifest_bytes"]
+        for prefix in (b'{"status":"failure",', b'{"run_id":"untrusted",'):
+            with self.subTest(prefix=prefix):
+                ambiguous = prefix + raw[1:]
+                result = self.decide(prior_manifest_bytes=ambiguous)
+                self.assertFalse(result.may_start_new_run)
+                self.assertEqual(result.reason_code, "prior_manifest_invalid_or_not_running")
+                self.assertEqual(self.kwargs["prior_manifest_bytes"], raw)
+
+    def test_truthy_non_boolean_abandonment_is_not_proof(self):
+        for value in (1, "true", [True], {"abandoned": True}):
+            with self.subTest(kind=type(value).__name__):
+                result = self.decide(mutex_abandoned=value)
+                self.assertFalse(result.may_start_new_run)
+                self.assertEqual(result.reason_code, "mutex_not_abandoned")
+
+
+
+    def test_wrong_manifest_primitive_types_block_with_stable_reason(self):
+        original = self.kwargs["prior_manifest_bytes"]
+        for field in ("pc_id", "log_type", "status"):
+            for value in ([], {}, None, True, 1):
+                with self.subTest(field=field, kind=type(value).__name__):
+                    raw = json.dumps({**self.manifest, field: value}).encode("utf-8")
+                    result = self.decide(prior_manifest_bytes=raw)
+                    self.assertFalse(result.may_start_new_run)
+                    self.assertEqual(result.reason_code, "prior_manifest_invalid_or_not_running")
+        self.assertEqual(self.kwargs["prior_manifest_bytes"], original)
+
+    def test_wrong_reconciliation_primitive_types_block_with_stable_reason(self):
+        for value in ([], {}, None, True, 1):
+            with self.subTest(kind=type(value).__name__):
+                result = self.decide(drive_reconciliation=value)
+                self.assertFalse(result.may_start_new_run)
+                self.assertEqual(result.reason_code, "drive_reconciliation_state_invalid")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -74,6 +74,33 @@ def _owned_worker(scope, record, artifacts, prior, connection, mode):
         connection.close()
 
 
+
+def _malformed_release_worker(scope, record_path, kind, connection):
+    try:
+        path = Path(record_path)
+        with acquire_owned_lock(scope, path, timeout_seconds=0):
+            raw = path.read_bytes()
+            if kind == "duplicate":
+                altered = b'{"owner_token":"other",' + raw[1:]
+            else:
+                record = json.loads(raw)
+                if kind == "boolean":
+                    record["schema_version"] = True
+                else:
+                    record["owner_token"] = "\u975eASCII"
+                altered = json.dumps(record).encode("utf-8")
+            path.write_bytes(altered)
+        # Stay alive after release so the parent tests normal release, not
+        # process exit/abandonment. No private record fields cross IPC.
+        connection.send(("preserved", path.exists() and path.read_bytes() == altered))
+        if connection.recv() != "exit":
+            raise HarnessError("worker_protocol_invalid")
+    except Exception:
+        connection.send(("error", "malformed_release_worker_failed"))
+    finally:
+        connection.close()
+
+
 @unittest.skipUnless(os.name == "nt", "real Windows named mutex required")
 class OwnedPublicationIntegrationTests(unittest.TestCase):
     def setUp(self):
@@ -224,6 +251,41 @@ class OwnedPublicationIntegrationTests(unittest.TestCase):
         self.assertEqual(contender.exitcode, 0)
         self.assertEqual(self.snapshot(), before)
         self.assertEqual(self.record.read_bytes(), replacement)
+
+
+
+    def test_malformed_record_is_preserved_and_real_mutex_normally_released(self):
+        for kind in ("duplicate", "boolean", "non-ascii"):
+            with self.subTest(kind=kind):
+                scope = self.scope + "-" + kind
+                path = self.root / (kind + ".lock")
+                keeper = _NamedMutex(_mutex_name(scope))
+                self.addCleanup(keeper.close)
+                parent, child = self.context.Pipe()
+                process = self.context.Process(
+                    target=_malformed_release_worker,
+                    args=(scope, str(path), kind, child),
+                )
+                process.start()
+                child.close()
+                self.addCleanup(parent.close)
+                self.addCleanup(_stop, process)
+                self.assertEqual(_receive(parent), ("preserved", True))
+                before = path.read_bytes()
+                try:
+                    self.assertTrue(keeper.acquire(0), "mutex_must_be_released_while_worker_alive")
+                    self.assertFalse(keeper.abandoned)
+                finally:
+                    keeper.release()
+                with self.assertRaisesRegex(LockAcquisitionError, "lock_record_already_exists"):
+                    with acquire_owned_lock(scope, path, timeout_seconds=0):
+                        self.fail("malformed record must block new work")
+                self.assertTrue(path.read_bytes() == before, "malformed_bytes_must_be_preserved")
+                self.assertEqual(self.snapshot(), {})
+                self.assertFalse(self.prior.exists())
+                parent.send("exit")
+                process.join(timeout=5)
+                self.assertEqual(process.exitcode, 0)
 
 
 if __name__ == "__main__":

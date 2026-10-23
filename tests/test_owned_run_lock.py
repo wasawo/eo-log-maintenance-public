@@ -157,5 +157,37 @@ class OwnedRunLockTests(unittest.TestCase):
         self.assertTrue(self.mutexes[0].released)
 
 
+    def test_duplicate_record_keys_preserved_on_release(self):
+        with acquire_owned_lock(
+            "PC-A", self.path, mutex_factory=self.factory(),
+            token_factory=lambda: "a" * 64,
+        ):
+            raw = self.path.read_bytes()
+            altered = raw.replace(b'{', b'{"owner_token":"other",', 1)
+            self.path.write_bytes(altered)
+        self.assertTrue(self.path.exists(), "ambiguous_record_must_be_preserved")
+        self.assertEqual(self.path.read_bytes(), altered)
+        self.assertTrue(self.mutexes[0].released)
+        self.assertTrue(self.mutexes[0].closed)
+
+    def test_invalid_record_types_preserved_on_release(self):
+        for field, value in (("schema_version", True), ("pid", True), ("pid", 0), ("pid", -1),
+                             ("host", ""), ("owner_token", "\u975eASCII")):
+            with self.subTest(field=field, value=value):
+                path = self.root / (field + str(value) + ".lock")
+                with acquire_owned_lock(
+                    "PC-A", path, mutex_factory=self.factory(),
+                    token_factory=lambda: "a" * 64,
+                ):
+                    record = json.loads(path.read_text(encoding="utf-8"))
+                    record[field] = value
+                    altered = json.dumps(record).encode("utf-8")
+                    path.write_bytes(altered)
+                self.assertTrue(path.exists(), "malformed_record_must_be_preserved")
+                self.assertEqual(path.read_bytes(), altered)
+                self.assertTrue(self.mutexes[-1].released)
+                self.assertTrue(self.mutexes[-1].closed)
+
+
 if __name__ == "__main__":
     unittest.main()

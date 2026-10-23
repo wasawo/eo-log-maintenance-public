@@ -71,3 +71,5 @@ See [configuration specification](../docs/configuration-local-root.md#create-onl
 SourceInventoryEvidenceBuilder checks source pathname and open-handle identity before/after hashing. Observable mismatch or unavailable identity keeps enumeration incomplete. This is not a snapshot or a guard covering later use; see [filesystem evidence](../docs/target-filesystem-acceptance.md#source-hash-handle-identity-2026-10-23).
 
 Source inventory rejects lstat symlink/reparse root/ancestors, rechecks queued directories, classifies fresh entry attributes and checks file paths before/after hashing. Unknown attributes fail closed. See [source reparse evidence and limits](../docs/target-filesystem-acceptance.md#source-inventory-reparse-rejection-2026-10-23).
+
+Lock/recovery evidence parsing rejects duplicate JSON keys and wrong primitive types; malformed lock records are preserved while the mutex is released. See [strict evidence scope](../docs/lock-recovery-acceptance-gate.md#strict-lock-and-recovery-evidence-2026-10-23). This does not implement stale-lock disposition or operational recovery.

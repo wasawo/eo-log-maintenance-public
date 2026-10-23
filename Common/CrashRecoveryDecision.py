@@ -57,12 +57,21 @@ def _valid_lock_record(
     )
 
 
+def _reject_duplicate_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate_json_key")
+        result[key] = value
+    return result
+
+
 def _parse_prior_manifest(raw: bytes) -> dict[str, Any] | None:
     if not isinstance(raw, bytes) or not raw:
         return None
     try:
-        value = json.loads(raw.decode("utf-8"))
-    except (UnicodeError, json.JSONDecodeError):
+        value = json.loads(raw.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
+    except (UnicodeError, ValueError):
         return None
     if not isinstance(value, dict):
         return None
@@ -76,9 +85,9 @@ def _parse_prior_manifest(raw: bytes) -> dict[str, Any] | None:
         return None
     if not isinstance(value.get("run_id"), str) or not _RUN_ID.fullmatch(value["run_id"]):
         return None
-    if value.get("pc_id") not in _ALLOWED_PC:
+    if not isinstance(value.get("pc_id"), str) or value["pc_id"] not in _ALLOWED_PC:
         return None
-    if value.get("log_type") not in _ALLOWED_LOG_TYPE:
+    if not isinstance(value.get("log_type"), str) or value["log_type"] not in _ALLOWED_LOG_TYPE:
         return None
     if not isinstance(value.get("target_period"), str):
         return None
@@ -87,7 +96,7 @@ def _parse_prior_manifest(raw: bytes) -> dict[str, Any] | None:
             return None
     elif not re.fullmatch(r"[0-9]{4}", value["target_period"]):
         return None
-    if value.get("status") not in {"running", "success", "partial_failure", "failure"}:
+    if not isinstance(value.get("status"), str) or value["status"] not in {"running", "success", "partial_failure", "failure"}:
         return None
     if value.get("outcome") not in (None, "no_work"):
         return None
@@ -130,7 +139,7 @@ def decide_crash_recovery(
     A positive unresolved_upload_count blocks recovery even when the listing was
     otherwise complete.
     """
-    if not mutex_abandoned:
+    if mutex_abandoned is not True:
         return _blocked("mutex_not_abandoned")
     if not isinstance(expected_scope, str) or not expected_scope:
         return _blocked("expected_scope_invalid")
@@ -151,7 +160,7 @@ def decide_crash_recovery(
         or manifest["target_period"] != expected_target_period
     ):
         return _blocked("prior_manifest_identity_mismatch")
-    if drive_reconciliation not in {"not_required", "complete", "incomplete", "ambiguous"}:
+    if not isinstance(drive_reconciliation, str) or drive_reconciliation not in {"not_required", "complete", "incomplete", "ambiguous"}:
         return _blocked("drive_reconciliation_state_invalid")
     if drive_reconciliation in {"incomplete", "ambiguous"}:
         return _blocked("drive_reconciliation_incomplete_or_ambiguous")
