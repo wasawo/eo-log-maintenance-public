@@ -51,9 +51,38 @@ independence, no-fallback behavior, UTC/future/finish boundaries, full schema
 fraction precision, clock uncertainty and fixed reasons/input preservation.
 
 Schema/selection success is not proof of aggregation correctness, full per-file
-semantic consistency, current Drive content, or archive eligibility. Disk reader
-enumeration/read/TOCTOU protection, safe filename-to-root binding, current clock
-acquisition, actual recovery/new-run integration and end-to-end acceptance remain
-unimplemented here. The schema file is read from the trusted repository/package;
+semantic consistency, current Drive content, or archive eligibility. The separate read-only directory adapter below adds bounded disk observations.
+Approved-root authority, protection through later use, current clock acquisition,
+actual recovery/new-run integration and end-to-end acceptance remain incomplete. The schema file is read from the trusted repository/package;
 runtime roots and manifests are never opened by this helper. No Tier B or P0
 closure is claimed.
+
+## Read-only directory adapter
+
+Common/ManifestDirectoryReader.py reads only the defined
+<maintenanceLocal>/_maintenance/manifests/<PC-ID>/ directory. A caller must
+supply an already trusted and qualified absolute local root and reliable UTC.
+Relative/traversing roots are rejected; missing directories are not created.
+Every directory entry must be a regular non-reparse file with a defined manifest
+basename for this PC. Temporary/unknown entries and subdirectories block selection.
+All entries, including other periods/log types for this PC, are schema/identity/
+time validated before filtering the requested tuple. This conservative adapter
+never silently drops a corrupt foreign-period candidate.
+
+Root/ancestor identity is checked with lstat, with reparse rejection. Each file's
+identity, size and timestamps must agree at enumeration, immediately before open,
+on the opened descriptor before reading, after reading, and on the path after
+close. The directory is scanned again after selection and must match. Read or
+partial-enumeration failure blocks with fixed reasons. These are point-in-time
+checks, not a namespace snapshot, protection against arbitrary metadata restoration,
+or a guarantee about later path use.
+
+The immutable result contains the selected basename, run ID, declared status,
+SHA-256 and exact bytes already validated. Content is excluded from its normal
+repr. Consumers must use those bytes rather than independently reopening a path.
+Neither the hash nor selection grants recovery, Drive, or archive authorization.
+The adapter has no write, creation, deletion or formal runtime entrypoint.
+Nineteen synthetic tests include three actual Windows junction cases, descriptor
+replacement before read, partial enumeration, final rescan mutation, no fallback,
+scope filtering, byte preservation and sanitized errors. No Tier B extension or
+P0 closure is claimed.

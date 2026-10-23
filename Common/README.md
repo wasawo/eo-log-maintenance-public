@@ -77,3 +77,5 @@ Lock/recovery evidence parsing rejects duplicate JSON keys and wrong primitive t
 MachineConfigurationRootInspection.ps1 adds opt-in read-only metadata inspection of existing configuration roots. It is not runtime authorization; see [configuration scope](../docs/configuration-local-root.md#read-only-existing-root-metadata-inspection).
 
 LatestManifestSelection.py independently parses the defined manifest basename and selects a unique validated latest start time from supplied observations. It never falls back to old success. See [selection scope and gates](../docs/latest-manifest-selection.md).
+
+ManifestDirectoryReader.py adds read-only observations of the defined per-PC manifest directory and returns the exact validated byte snapshot plus SHA-256. Unknown/reparse entries, read uncertainty and observed changes block selection. Approved-root authority and runtime integration remain pending; see [selection scope](../docs/latest-manifest-selection.md).
