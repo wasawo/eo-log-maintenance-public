@@ -262,3 +262,5 @@ Run python -m unittest discover -s tests -p test_latest_manifest_selection.py -v
 `test_private_acl_descriptor_normalization.py` runs six Python/PowerShell integration tests over sixteen synthetic binary descriptors, including null/absent/empty DACL, unsigned generic rights, deny/inheritance, callback/object ACE, SACL, missing owner and malformed bytes. The fixture worker uses .NET memory objects only. No real account/token/file ACL is queried or modified.
 
 `test_monthly_schedule_observation.py` adds 12 fixed-clock tests covering JST/UTC month/year boundaries, leap year, staggered role times, exact microsecond boundaries, logged-off/untrusted context, overflow and non-authorizing immutable output. It does not test task registration, missed-run completion or PC-A hourly polling.
+
+`test_completion_wait_budget.py` adds 16 synthetic history/clock tests: full 25-attempt boundary, inclusive deadline, delayed checks without compressed spacing or extended budget, copied state preserving its origin, corrupt history/scope, clock rollback, unconfirmed context and failed attempts. It does not establish actual restart-safe persistence or execute hourly tasks.
