@@ -52,3 +52,7 @@ Evidence status: **not run / not yet evidenced**. Documentation approval is not 
 ## 7. Acceptance boundary
 
 This document records approved design choices, not implementation, executable test results, or operational evidence. The complete transition table remains non-normative where other decisions remain open. OSD-02 runtime enforcement, OSD-03, P0-008, P0-010, and P0-012 remain open as applicable.
+
+## C4 selection implementation slice (2026-10-23)
+
+[Latest selection core](latest-manifest-selection.md) implements the existing EOLM-MAN-002 basename parser, strict candidate/identity checks and unique latest started_at_utc selection over supplied observations. Thirty-two synthetic tests cover ambiguity, malformed/read uncertainty, no fallback and run-time boundaries. Runtime directory enumeration/read binding, actual clock reliability, full semantic/Drive validation, recovery and P0 acceptance remain pending. This implements only the documented C4 subset; it does not close the full acceptance matrix above.

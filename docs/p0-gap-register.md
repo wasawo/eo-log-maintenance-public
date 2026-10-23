@@ -256,3 +256,5 @@ Create-only bootstrap helper (2026-10-23): Common/MachineConfigurationBootstrap.
 Source inventory follow-up (2026-10-23): opened-handle identity checks (PR #12) and lstat root/ancestor/entry reparse rejection close reproduced read/traversal gaps. They do not establish an atomic source snapshot, cross-root physical separation or protection through later use. P0 acceptance and full Tier B/C remain open.
 
 Existing-root inspection slice (2026-10-23): a read-only PowerShell helper adds existing-directory/reparse checks and maintenanceLocal comparison in normalized volume-GUID paths. This is partial metadata evidence, not approved-root authority, filesystem qualification, later-use protection, official runtime integration or P0 closure. OS-temp root tests do not extend the recorded intended-volume Tier B suite.
+
+Latest selection slice (2026-10-23): [C4 selection core](latest-manifest-selection.md) adds defined filename/JSON identity checks, unique-start-time selection and no older-success fallback, with 32 supplied-observation tests. Disk enumeration/read binding, full semantic/Drive checks and operational recovery are not implemented. P0-010/P0-012 remain open.
