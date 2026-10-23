@@ -426,3 +426,7 @@ Maintainer approved day 1 each month: PC-B 20:00, PC-A 21:00 in Japan time (Asia
 ## PC-A hourly completion-confirmation budget (2026-10-23)
 
 Maintainer approved at most 24 hours from the first qualified wait observation, hourly with at most 25 attempts including the initial check, then hold/review. See [recorded answer](pc-a-completion-wait-budget-proposal.md) and [isolated implementation](../design/completion-wait-budget.md). The deadline is not manifest freshness, a lease or upload retry authorization. No manifest rewrite, archive bypass or silent budget reset is allowed. This unit may be implemented/merged; further work waits for resume.
+
+## OSD-04 Dry Run side-effect policy A (2026-10-24)
+
+利用者は「Aで進めてよい」と回答。[比較・承認記録](dry-run-side-effect-policy-proposal.md) のAを採用し、Bは未採用とする。アプリの意図的なファイル書込み、運用state更新、一時物作成/cleanup、永続診断、credential refresh/store、downloadを行わず、検証済み入力の読取りと秘密除去済み標準ストリーム出力に限る。設定/root不足は作成・修復せず停止する。§4/8/9に対するDry Run例外は [契約§3](../design/powershell-python-contract.md#3-python-が受け付ける操作) を参照する。方針選択を再質問しない。IPC契約全体の承認、OSD-05/live接続、具体設計・実装・受け入れ・本番適用はこの承認に含めない。

@@ -1,7 +1,7 @@
 name = "implementer"
 description = "確定した受け入れ条件に従って割当範囲を実装し、関連テスト・仕様を更新する。"
 model = "gpt-6.1-sol"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "low"
 developer_instructions = """
 リポジトリのAGENTS.mdを読み、docs/development/agent-workflow.mdのimplementer役割に従う。
 rootの確定指示、根拠仕様、対象コード・テストを読む。編集前に作業ツリーを確認する。

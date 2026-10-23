@@ -6,12 +6,14 @@
 
 | 担当 | 成果物 | 設定・既定モデル/思考量 |
 | --- | --- | --- |
-| root | 作業指示、判断事項、統合差分、PR/CI状態、handoff | メインセッション。推奨 `gpt-6.1-sol` / `high`。利用者がクライアントで選択する |
-| analyst | 根拠ファイル/行付き要件、対象範囲、受け入れ条件、矛盾・未決定 | [analyst.toml](../../.codex/agents/analyst.toml): `gpt-6-luna` / `high` |
-| implementer | 割当範囲のコード・テスト・関連仕様、自己検証結果、残課題 | [implementer.toml](../../.codex/agents/implementer.toml): `gpt-6.1-sol` / `medium` |
-| reviewer | 重大度・根拠行・再現条件付き指摘、条件別の確認結果、未検証範囲 | [reviewer.toml](../../.codex/agents/reviewer.toml): `gpt-6.1-sol` / `high` |
+| root | 作業指示、判断事項、統合差分、PR/CI状態、handoff | メインモデルは維持。推奨 `gpt-6.1-sol`。プロジェクト既定は [config.toml](../../.codex/config.toml) の `medium` |
+| analyst | 根拠ファイル/行付き要件、対象範囲、受け入れ条件、矛盾・未決定 | [analyst.toml](../../.codex/agents/analyst.toml): `gpt-6-luna` / `medium` |
+| implementer | 割当範囲のコード・テスト・関連仕様、自己検証結果、残課題 | [implementer.toml](../../.codex/agents/implementer.toml): `gpt-6.1-sol` / `low` |
+| reviewer | 重大度・根拠行・再現条件付き指摘、条件別の確認結果、未検証範囲 | [reviewer.toml](../../.codex/agents/reviewer.toml): `gpt-6.1-sol` / `medium` |
 
-`root.toml`は作らない。子エージェント定義で現在のメインモデルを変更したように扱わない。implementerで排他・原子的更新・クラッシュ復旧・ACL・不明Drive結果を扱う場合はrootが `high` を指定する。カスタムファイルに明示した思考量が優先される環境では、その実装期間の設定を変更して適用する。モデルが利用できない場合は代替と品質・消費への影響を明示する。
+2026-10-24の利用者指示で思考量を低減し、モデルは維持した。`root.toml`は作らない。rootの既定はプロジェクトconfigで設定するが、信頼済みプロジェクトでのみ読み込まれ、明示的な起動/クライアント設定が優先され得る。現在の会話の思考量をこのファイルだけで変更済みとは扱わない。次回読込後の実効値を確認する。
+
+通常は上記既定を使い、複数ファイルの意味論的変更はimplementerを `medium` にする。排他・原子的更新・クラッシュ復旧・ACL・不明Drive結果など、失敗時にデータ/権限へ影響する変更の設計・独立レビューだけ `high` を検討し、理由と対象を限定する。単純な文書・参照変更では引き上げない。カスタムファイルの値が優先される環境では必要な担当設定だけを一時変更し、作業後に既定へ戻す。モデルが利用できない場合は代替と影響を明示する。
 
 ## 開始と受け渡し
 
@@ -29,6 +31,7 @@ analyst/reviewerは追跡ファイルを編集しない。reviewerのテスト�
 - 常時3体を起動しない。rootを含め最大4担当とし、下位担当からの追加委譲は行わない。独立した調査は並行化できるが、設計確定前の依存実装や編集中のレビューは避ける。
 - 最終報告は対象/基準、根拠、変更・指摘、検証、未確認/判断待ちへ絞る。raw logや実値を貼らない。
 - 複数担当は重複読取・受け渡しで総トークンを増やす場合がある。モデル分担だけで消費削減を保証しない。
+- 調査済み条件が揃った小変更はrootで編集し、必要ならreviewerだけを起動する。analyst→implementer→reviewerを毎回必須にしない。差分・根拠の必要箇所だけを渡し、同じ確認や長い出力を重複させない。独立レビューや必要なテストを消費削減のために省略しない。
 
 ## 設定の適用と確認
 
@@ -38,4 +41,4 @@ analyst/reviewerは追跡ファイルを編集しない。reviewerのテスト�
 
 設定ファイルを作っただけで稼働確認済みとはしない。次のセッションでプロジェクトが認識されていること、担当/スキルの検出、選択モデル・思考量を確認する。認識されない場合は再読込/再起動後に確認し、実際に使ったモデルと差異を報告する。
 
-設定形式の根拠: [公式Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)、[公式Build skills](https://learn.chatgpt.com/docs/build-skills)（2026-10-24確認）。
+設定形式の根拠: [公式Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)、[公式Build skills](https://learn.chatgpt.com/docs/build-skills)、[公式Config basics](https://learn.chatgpt.com/docs/config-file/config-basic)（2026-10-24確認）。

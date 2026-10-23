@@ -8,13 +8,20 @@
 
 ## 最新基準と今回の作業
 
-- 基準main: `9fd6f113b09e4df922829536ee6a38b9b70b7041`（[PR #28](https://github.com/wasawo/eo-log-maintenance-public/pull/28) スカッシュマージ済み）。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40024227173) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40024227312) 成功。
-- 作業ブランチ: `docs/dry-run-side-effect-policy`。最新指示（2026-10-24）は初回配布に向けた作業再開、必要時の役割別委譲、1作業単位=1PR作成・CI成功確認後のマージ。今回はOSD-04副作用表の判断案と受け入れ計画を1単位とする。本番適用や未決定仕様の採用をこの指示から推定しない。
+- 基準main: `ec12f9e0c7c2a9aab933efc161649475672be25e`（[PR #29](https://github.com/wasawo/eo-log-maintenance-public/pull/29) スカッシュマージ済み）。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40025793060) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40025793004) 成功。
+- 作業ブランチ: `docs/approve-dry-run-a-reduce-effort`。最新指示（2026-10-24）はAの明示承認と、品質を大きく落とさない思考量削減。今回は承認反映とプロジェクト設定の調整を1単位とし、既存指示どおり1PR作成・CI成功確認後にマージする。runtime実装・本番適用は行わない。
 - 調査でIPC契約自体のレビューとC-01/C-02が承認待ちと確認。未承認の契約を規範とするadapter/validator実装は行わず、先にDry Runの具体的な判断資料を作成する。
 - [2026-10-24棚卸し・作業順序](../status/first-release-readiness-20261024.md) を現行の入口とする。正式Sync/Archive・Drive adapterが不在で、初回実運用配布には未到達。review ZIPと正式配布を区別する。
 - 利用者の既存ステージ済み表整形は `6d9036e` に含めて保全済み。
 
-## 今回の作業: OSD-04 Dry Run副作用の判断案
+## 今回の作業: A承認反映・思考量削減
+
+- OSD-04はAを利用者承認済み。「Aで進めてよい」を決定記録・契約§3・未決定台帳・DRY計画へ反映。Bは未採用で、一時物/永続診断の書込みも許さない。同じ方針を再質問しない。
+- モデルは維持し、思考量の既定をroot medium、analyst medium、implementer low、reviewer mediumへ低減。正本は `.codex/config.toml` と各役割TOML、詳細は [役割別運用](../development/agent-workflow.md)。重要な設計/レビューだけ理由付きで引き上げ、単純変更では全担当を起動しない。
+- rootの現在の会話設定はプロジェクトファイルだけで変更済みとはしない。信頼済みプロジェクトでの次回読込と明示的クライアント設定の優先を確認する。消費削減率・品質同等性を未測定のまま保証しない。
+- 本作業はrootで編集し、独立reviewerをSol/mediumで1体だけ起動。意味・安全境界のブロッカー指摘なし。4つのTOML構文と全67文書のリンク検査、差分検査は成功。コード/schema/CI変更やDRY fixture実行は含めない。実効設定・消費削減率・品質同等性は未測定。PRの最終CI・実マージ状態は本PRを照合する。
+
+## 直前の作業: OSD-04 Dry Run副作用の判断案（PR #29時点）
 
 - ローカル書込を行わない案Aと、限定した診断report/所有一時物だけを許す案Bを比較する。Drive/元ログ/archive変更、運用manifest/lock/state更新、予算消費、private証拠処分は認めない。方針は承認待ちのままで、提案PRのマージを運用方針の承認と扱わない。
 - analystは `gpt-6-luna` / highで調査。implementerは `gpt-6.1-sol` / mediumで提案と参照先を編集。独立reviewerは同モデル/highで根拠・差分・新anchor/fixture参照を確認し、ブロッカー指摘なし。rootはhandoff・Git/PR/CI/マージを担当。各担当は履歴なしで対象資料だけを渡して起動し、指定モデル/思考量での作業を実施した。
@@ -44,7 +51,7 @@
 
 ## 次回の実装再開時
 
-1. 本OSD-04提案PRの最新HEAD・CI・マージ状態、実mainと作業ツリーを確認し、未コミット変更を保全する。提案のマージと利用者の方針承認を区別する。
+1. 本A承認/思考量設定PRの最新HEAD・CI・マージ状態、実mainと作業ツリーを確認する。Aは承認済み。次の実装ではAのファイル不要IPC・依存書込み抑止・排他の具体設計とDRY計画を使い、IPC全体/OSD-05等の未決定は維持する。
 2. 棚卸しの順序に従い、残りの状態遷移/DryRun/IPC契約と、ローカルroot・永続run状態・復旧の不足を整理する。確認予算の永続化はその一部で、単独で初回配布へ進めない。
 3. Drive adapter/認証資格、両PCのTier B、正式手動runtime統合、E2E/Tier C、正式配布/導入と進む。taskは初回手動受け入れ後。実環境検証・実適用は別途の承認範囲を確認する。
 4. 旧lock自動処分・新run自動生成・実保存・task登録・Drive/本番復旧を、helper/CI成功から許可されたと解釈しない。

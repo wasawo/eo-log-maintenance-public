@@ -11,6 +11,7 @@ CHANGELOG.md / VERSION      変更履歴・版
 requirements-*.txt          runtime / test依存
 .agents/skills/             必要時に読む検証・PR/引き継ぎ手順
 .codex/agents/              analyst / implementer / reviewerの役割・モデル設定
+.codex/config.toml          プロジェクトの既定思考量（明示設定が優先され得る）
 .github/workflows/          Validate / Package Validation
 .github/scripts/            役割別packageビルダー
 Config/                     公開exampleのみ（実設定は非追跡・配布対象外）
@@ -87,7 +88,7 @@ docs/
 - [OSD-02 — Crash, concurrency, and latest-manifest options](decisions/osd-02-crash-concurrency-options.md)
 - [OSD-03 — Derived aggregation report contract decisions](decisions/osd-03-report-contract-options.md)
 - [OSD-03: Run and Period Status Aggregation Options](decisions/osd-03-status-aggregation-options.md)
-- [OSD-04: Dry Runローカル副作用の判断案（非規範・承認待ち）](decisions/dry-run-side-effect-policy-proposal.md)
+- [OSD-04: Dry Run副作用のA承認・比較記録](decisions/dry-run-side-effect-policy-proposal.md)
 - [PC-Aの毎時完了確認に対する上限（判断案）](decisions/pc-a-completion-wait-budget-proposal.md)
 - [stale lock の明示的回復フロー案](decisions/recovery-disposition-proposal.md)
 - [実行accountとprivate証拠アクセス方針（判断案）](decisions/recovery-execution-account-policy-proposal.md)

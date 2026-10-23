@@ -74,7 +74,9 @@ Python が行ってはならない事項：
 
 `dry_run=true` の場合、アダプターは Drive を変更せず、ダウンロードしたファイルの内容も書き込んではならない。リクエストを検証し、変更を行わない計画または結果を返す。
 
-ローカルreport・lock・一時物等の境界はOSD-04で未決定。[Dry Runローカル副作用の判断案](../decisions/dry-run-side-effect-policy-proposal.md)はA/B比較と受け入れ計画を示す非規範・承認待ちの提案であり、本契約や§8/9の手順を変更せず、実装・live Drive接続を許可しない。
+OSD-04は2026-10-24に[A方針](../decisions/dry-run-side-effect-policy-proposal.md)を利用者承認済み。Dry Runではアプリによる意図的ファイル書込みを行わず、検証済み入力の読取りと機密除去済み標準ストリーム出力に限る。運用manifest/report/lock/確認予算の更新、bootstrap、ACL変更、credential refresh/store、download bytes取得を行わない。準備不足・不明状態は作成・修復せず停止する。
+
+§4/8/9の一時request/responseファイル作成・ファイルへの診断記録・cleanupは通常実行の手順であり、Dry Runでは適用しない。Dry Runには安全なファイル不要のIPC経路が必要で、成立しなければ停止する。stdoutのJSON 1件、stderr分離、秘密除去は維持する。OSの自動atime等を含めた物理書込みzeroの保証ではない。Bの限定書込みは未採用。OSD-05未解決中のlive Drive接続、IPC契約全体の承認、runtime実装や受け入れをこの方針承認から推定しない。
 
 `upload_file` は、アップロード直前にローカルファイルの SHA-256 を `expected_sha256` と照合しなければならない。APIからクラウド側SHA-256を取得できない場合、PowerShellはAPI経由でファイルをダウンロードしてSHA-256を計算する。ダウンロード検証ができない、識別が曖昧、サイズ／ハッシュ不一致の場合は失敗として元ファイルを保持し、期間を未完了とする。初期実装に削除処理は含めない。
 
