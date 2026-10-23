@@ -64,3 +64,5 @@
 5. live metadata readはOSD-05の認証/最小scope/対象権限と、refresh・cache等の副作用を別途承認・検証するまで閉じる。実ログ・本番Driveを使う限定検証も別の承認済み計画を要する。
 
 PR #29では判断案と未実施の受け入れ計画を追加し、その後の利用者回答でAを承認した。Aの実装・fixture・runtime証拠は未作成/未実行であり、Phase 1/7やP0を完了にしない。
+
+§4の具体化は[Dry Run実行設計](../design/dry-run-execution-design.md)を参照。実装・fixture実行・IPC全体レビュー・OSD-05の完了を示すものではない。
