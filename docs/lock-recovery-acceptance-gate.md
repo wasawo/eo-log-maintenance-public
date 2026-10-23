@@ -162,3 +162,5 @@ is alive. Subsequent acquisition remains blocked by the preserved record.
 These are synthetic evidence checks, not proof of atomic compare/delete against
 arbitrary external writers, validated stale-lock disposition, or complete REC-04
 new-run/fresh-inventory integration. LOCK/REC and P0 acceptance remain open.
+
+[PC-B strict-lock follow-up](../tests/evidence/pc-b-lock-validation-local-volume-20261023.json) records 29 passing disposable-root checks without skips at source 302682abb7fd3b45b6745247dfa5297542f81c4b on the intended local fixed NTFS volume. This adds real-mutex malformed-record preservation/release to earlier crash/reparse cases. Pure lock/recovery unit regressions are covered separately by the full Python suite. Complete Tier B and operational recovery remain unaccepted.

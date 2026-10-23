@@ -21,7 +21,7 @@
 - OwnedRunLock: duplicate keyをrejectし、schema_version/pidの厳密intと正値、非空host、ASCII tokenを確認。不正記録はbytes保持、mutexは解放。新しい削除/古いロックの自動採用は追加しない。
 - CrashRecoveryDecision: duplicate key、想定外型、真偽値の暗黙解釈を拒否。既存の固定reasonでblockし、manifestを書き換えない。想定外型で未処理TypeErrorになる欠陥も回帰で再現/修正。
 - 実Windowsの子プロセスを正常解放後も生かし、親が同mutexを取得できabandonedではないこと、不正記録が保持され後続処理を拒否することを検証。
-- 最新HEAD CI・PR/マージは未確定。全Python163テスト成功、既存symlink権限で2件スキップ。PC-B追加部分証拠はソース確定後に記録する。
+- 最新HEAD CI・PR/マージは未確定。全Python163テスト成功、既存symlink権限で2件スキップ。PC-B予定NTFS上29テスト成功・スキップなし。tests/evidence/pc-b-lock-validation-local-volume-20261023.json にsource 302682abb7fd3b45b6745247dfa5297542f81c4b の部分証拠を保存。実パス/volume文字/token/hostなし。
 - 残る制約: 任意の外部writerに対するcompare/deleteの原子性、stale記録の安全なdisposition、REC-04の新run/fresh inventory正式統合、物理root gate、Tier B/P0全体は未完了。
 
 ## 設定基盤の完了範囲
@@ -52,7 +52,7 @@
 |---|---|---|
 | 1: クラッシュ注入 | 成果物間の公開境界の合成ハーネス実装済み | 単一ファイル内部5境界×2公開対象と残骸拒否の合成検証はPR #11でマージ済み。電源断試験へ拡大解釈しない |
 | 2: 所有権/復旧/公開統合 | 合成統合証拠を追加済み | stale記録の実運用回復、新run/fresh inventory生成、source-race/検証から利用までの保護は未完了。記録の自動削除/引き継ぎを勝手に実装しない |
-| 3: Tier B | PC-Bの28件部分証拠のみ | PC-Aの予定ボリュームで実行、残るadversarial FS/source-race/統合条件を収集。Tier B全体は未受け入れ |
+| 3: Tier B | PC-Bの29件部分証拠のみ | PC-Aの予定ボリュームで実行、残るadversarial FS/source-race/統合条件を収集。Tier B全体は未受け入れ |
 | 4: 設定/初期導入 | maintenanceLocalと構造ローダーはマージ済み | create-only補助処理はPR #10でマージ済み。物理root gate・正式導入入口・最終allowlist/移行は未完了 |
 | 5: Drive/IPC | 未実装・契約/認証の決定待ち | Python1呼出し1試行、PowerShell再試行、不明結果照合、metadataだけの検証拒否。OSD-05と契約条項を解決 |
 | 6: 正式同期 | 未実装 | 承認済みOSD-02/03と残る遷移表を整合し、安全ゲート完了後に正式入口を統合 |
