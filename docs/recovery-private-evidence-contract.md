@@ -37,8 +37,8 @@ UTCは構文と暦日を独立検証するが、時計信頼性・現在性は�
 ACLを書き換えて通過させるコードや、例外を無視するfallbackは追加しない。
 accountの実名/SIDは公開設定・記録へ出さず、手入力項目も増やさない。
 
-手動とscheduled taskの実行accountが同じか異なるかは未確定。別accountを使う場合、誰が原本を読めるべきかを先に確定する必要がある。
-この点の[次の判断案](recovery-execution-account-policy-proposal.md)を用意した。
+各PC内で手動と将来scheduled taskは同一accountとする方針が承認済み。PC-A/B間で同じaccountを要求しない。別accountへの自動共有はしない。
+[承認記録](recovery-execution-account-policy-proposal.md)と[限定ACL形状の部分実装](private-evidence-acl-profile.md)を参照。実効アクセスや実ACLの資格確認はまだ実装しない。
 
 ## 公開順序・中断・再試行（未実装）
 

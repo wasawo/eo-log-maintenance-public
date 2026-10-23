@@ -8,24 +8,23 @@
 
 ## 最新基準
 
-- 基準main: 92ff00bb793b195c42c9e9b2e04c2e1f23b55444（PR #22マージ）。
-- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39961179900) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39961179772) 成功を照合。
+- 基準main: f4ee5da17500f6da4776e804b3fb224116933fd1（PR #23マージ）。
+- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39963017278) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39963017228) 成功を照合。
 - PR #15 HEAD f82aa2860ab3510a9002bc5bb771a3f0a48badb5 の39944930803 / 39944930629成功後マージ。existing-root metadata helper、142合成アサーション（短縮名skip 0）を追加。既存PC-B予定volume証拠を拡張しない。
 - PR #14（13503f6）はstrict lock/recovery evidence、#13（41811bd）はsource reparse拒否、#12（3ae8b76）はhash handle identity、#11（e7d4e8e）は公開内部クラッシュ境界。各main両CI成功。
 - 利用者は優先順の継続と、最新HEADの必要検査成功後のマージを承認。初回確認後90秒間隔で最大5回再確認し、未完/失敗ならマージしない。
-- 新クローンのブランチ feat/private-recovery-evidence-contract。
+- 新クローンのブランチ feat/private-evidence-acl-profile。
 
-## 現在の作業: private証拠形式・原本bytes照合
+## 現在の作業: 同一accountと限定file ACL形状
 
-- PR #22 HEAD a53fa7f09f282c516ee45b56b4c6912c4d0ef8b2のValidate 39960876706 / Package 39960876632成功後マージ。mainも上記両CI成功。
-- 利用者は「maintenanceLocal内で非公開保全・自動削除なしを設計する」を承認（2026-10-23）。同じ方針を再確認しない。診断だけでは保存せず、実保存/ACL変更/旧lock処分/本番適用の承認には拡張しない。
-- [保管方針記録](../recovery-private-evidence-policy-proposal.md)に回答を反映。[private証拠契約](../recovery-private-evidence-contract.md)で既定の導出先、原本+metadata、非認可、ACL/root gate、未実装の公開順序/中断/再試行、STORE-01〜06を定義。
-- Common/PrivateRecoveryEvidence.pyとprivate-recovery-evidence-v1.schema.json: 渡されたopaque raw bytesのサイズ/SHA-256にmetadataを結び付ける。strict UTF-8/JSON/duplicate/schema、scope/日時の拒否を検証。原本が不正JSONでも保全可能だが、supported lockや回復許可にはしない。
-- 新規13合成テスト成功。Python 3.11.9全259件成功（既存symlink権限で2件skip）、PowerShell 7.6.7配布回帰成功。暦日検証はJSON Schema任意依存に任せず独立して行う。
-- schemaのみ配布allowlistへ追加。合成private原本/metadataがpackageへ入らない回帰と、Git ignoreのroot/深い階層双方を確認。実schemaを使うhelper配布を確認するが、実保存/ACL/中断耐性やSTORE全体を実証しない。
-- 原本/運用pathのI/O、保存、mkdir、ACL変更、Drive、旧record変更は実装しない。読むのはtrusted repository/package schemaだけ。CI・schema・コード・テスト・仕様・引き継ぎは同じPRにまとめる。PR/最新HEAD CIは記録時点で未確定。
-- 次の運用判断案: [実行account方針](../recovery-execution-account-policy-proposal.md)。推奨は各PC内で手動と将来taskを同じaccountで運用する前提。PC-A/B間で同じaccountを求めない。未承認。実名/SID/資格情報を収集・公開せず、task/実設定/ACLを変更しない。
-- v1診断/保全・v2対象方針と専用明示回復方針は承認済み。v2 schema/provider、実効ACL、disposition・対象固定、正式CLI/新run/Drive/本番復旧、P0/Tier Bは未完了。
+- PR #23 HEAD 3d02f0832218de6a862fc4744d2b7406f8db2309のValidate 39962724824 / Package 39962724899成功後マージ。mainも上記両CI成功。
+- 利用者は「各PC内では手動と将来タスクを同一アカウントにする」を承認（2026-10-23）。PC-A/B同士で同じaccountは不要。同じ判断を再確認しない。task/ACL/実設定変更・自動昇格や資格情報取得の承認ではない。
+- [account承認記録](../recovery-execution-account-policy-proposal.md)とprivate保管契約を更新。[限定ACL形状](../private-evidence-acl-profile.md)を追加。Common/PrivateEvidenceAclProfile.pyは渡された観測のみを分類し、実file/account/token/ACLに触れない。
+- file/owner/explicit protected non-null DACL/限定trustee/明示user read-writeを初期profileとし、world/foreign owner/grant、deny/継承/generic/未知ACE/mask、directoryを保留。実効アクセスを計算せず、profile一致でも変更許可はfalse。user SIDの申告を認証する処理ではない。
+- 新規13合成テスト成功。Python 3.11.9全272件成功（既存symlink権限で2件skip）、PowerShell 7.6.7配布回帰成功。固定ダミーSIDのみ使用。MicrosoftのDACL/AccessCheck一次資料を参照し、複雑なACLとnull/emptyを誤認しない。
+- CI・配布fixture・コード・仕様・引き継ぎは同じPRへ。PR/最新HEAD CIは記録時点で未確定。STORE-01/実効ACL全体、provider、directory/祖先、safe creation、root/利用までの保護、実保存/ACL変更は未実装。
+- 次の運用判断案: [OSD-08 taskログオン方式](../task-logon-mode-policy-proposal.md)。推奨は初期taskをログオン中のみとし、ログオフ実行を初期対象にしない。未承認。同一accountでもsession/権限・Drive/auth/root条件は自動的には確定しない。
+- 専用明示回復、v1診断保全/v2対象、private maintenanceLocal保全/自動削除なしは承認済み。旧lock処分/新run/Drive/本番復旧・P0/Tier Bは未完了。実運用path/実identityを公開しない。
 - 判断が必要になるまでPR作成・最新HEAD両CI成功とclean確認後のマージを継続する承認あり。90秒間隔で最大5回再確認、main両CIとローカル同期を確認する。
 
 ## 設定基盤の完了範囲

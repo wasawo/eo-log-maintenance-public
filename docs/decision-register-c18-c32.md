@@ -410,3 +410,7 @@ Maintainer approved limiting existing v1 stale records to diagnosis/preservation
 ## Private recovery evidence preservation direction (2026-10-23)
 
 Maintainer approved designing private preservation inside each PC maintenanceLocal with no automatic deletion initially. Diagnosis alone does not persist evidence. See [recorded answer](recovery-private-evidence-policy-proposal.md) and [storage contract](recovery-private-evidence-contract.md). This does not authorize actual persistence, ACL changes, stale-lock disposition or production use. Execution-account policy and executable ACL/publication acceptance remain open.
+
+## Same-account recovery evidence direction (2026-10-23)
+
+Maintainer approved using the same Windows account for manual and future scheduled operation within each PC. PC-A and PC-B need not share an account. See [recorded answer](recovery-execution-account-policy-proposal.md) and [narrow ACL profile](private-evidence-acl-profile.md). No task registration, credentials, automatic elevation, ACL rewrite or production use is authorized; OSD-08 logon/execution conditions remain open.

@@ -85,3 +85,5 @@ RecoveryDiagnostic.py classifies supplied fixed gate observations into a sanitiz
 RecoveryDiagnosticMutex.py acquires the existing global scope mutex without ownership-record I/O or token generation. It reports abandonment as non-authorizing evidence and releases/closes on completion or failure. It is an isolated diagnosis lease, not normal lock acquisition, approved-root qualification, or an operational recovery entrypoint.
 
 PrivateRecoveryEvidence.py builds/validates private preservation metadata against supplied raw lock bytes, without runtime reads/writes or recovery authority. Only the trusted package schema is read. Opaque invalid lock bytes can be preserved without being accepted as a supported lock. See [private evidence contract](../docs/recovery-private-evidence-contract.md).
+
+PrivateEvidenceAclProfile.py classifies a narrow supplied file-ACL shape using fixed trusted principal roles and explicit file read/write bits. It does not query SIDs/ACLs, evaluate complete Windows access, qualify roots or grant persistence. See [scope and unsupported cases](../docs/private-evidence-acl-profile.md).
