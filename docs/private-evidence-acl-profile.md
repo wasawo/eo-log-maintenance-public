@@ -33,3 +33,7 @@ profile_matches=trueは限定形状への一致であり、実効アクセスの
 未実装: descriptor取得・provider完全性、actual execution tokenとのbinding、impersonation/group/privilege、directory/祖先のdelete-child/置換、root/ACL変更から利用までの保護、必要権限付き新規作成、実効アクセス検証。
 実taskのログオン方式・昇格などは同一accountだけでは決まらない。OSD-08の残る運用方針を別途確定する。
 STORE-01やACL全体・P0/Tier Bをこの部分実装で完了にしない。
+
+## Binary descriptor normalization slice
+
+Common/PrivateFileSecurityDescriptor.ps1 adds ConvertFrom-EoPrivateFileSecurityDescriptor for supplied self-relative binary descriptors. It clones input bytes, requires an exact binary round trip, preserves ACE order/deny/flags and unsigned masks, and rejects owner absence, object/callback ACE, SACL and unsupported control flags instead of dropping them. The output is private internal SID-bearing data; only the existing Python assessment is suitable for sanitized diagnostics. Six cross-runtime tests cover sixteen synthetic descriptors. No Get-Acl/file/token query, ACL write, actual execution-user binding, effective-access/ancestry qualification or runtime permit is added. See [RawSecurityDescriptor](https://learn.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.rawsecuritydescriptor) and [CommonAce](https://learn.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.commonace) for the .NET representations.

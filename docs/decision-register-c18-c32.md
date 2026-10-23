@@ -414,3 +414,7 @@ Maintainer approved designing private preservation inside each PC maintenanceLoc
 ## Same-account recovery evidence direction (2026-10-23)
 
 Maintainer approved using the same Windows account for manual and future scheduled operation within each PC. PC-A and PC-B need not share an account. See [recorded answer](recovery-execution-account-policy-proposal.md) and [narrow ACL profile](private-evidence-acl-profile.md). No task registration, credentials, automatic elevation, ACL rewrite or production use is authorized; OSD-08 logon/execution conditions remain open.
+
+## Initial task logon mode (2026-10-23)
+
+Maintainer approved initial scheduled operation only while the target account is logged on. See [recorded response](task-logon-mode-policy-proposal.md). The same-account-per-PC policy remains; logged-off execution is outside the initial scope. C-24 monthly/missed-month-startup/hourly-PC-A-check conditions are retained. This does not select exact schedule times, register tasks, store credentials or authorize runtime deployment.
