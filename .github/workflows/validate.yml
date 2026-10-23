@@ -63,6 +63,10 @@ jobs:
         shell: pwsh
         run: python -m unittest discover -s tests -p "test_contract_schemas.py" -v
 
+      - name: Validate synthetic Dry Run boundary harness
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_dry_run_boundary.py" -v
+
       - name: Validate referenced aggregation artifacts
         shell: pwsh
         run: |
