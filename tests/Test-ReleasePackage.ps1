@@ -63,6 +63,7 @@ try {
     Set-Content (Join-Path $fixture 'Common/LatestManifestSelection.py') '# Latest manifest selection core'
     Set-Content (Join-Path $fixture 'Common/ManifestDirectoryReader.py') '# Read-only directory reader'
     Set-Content (Join-Path $fixture 'Common/RecoveryDiagnostic.py') '# Pure diagnosis result model'
+    Set-Content (Join-Path $fixture 'Common/RecoveryDiagnosticMutex.py') '# Record-free diagnostic mutex'
     Set-Content (Join-Path $fixture 'docs/design.md') 'must not ship'
     Set-Content (Join-Path $fixture 'tests/test.ps1') 'must not ship'
     Set-Content (Join-Path $fixture '.github/workflows/validate.yml') 'must not ship'
@@ -129,6 +130,7 @@ try {
         'Common/LatestManifestSelection.py'
         'Common/ManifestDirectoryReader.py'
         'Common/RecoveryDiagnostic.py'
+        'Common/RecoveryDiagnosticMutex.py'
     )) {
         Assert-True ($expected -in $entries) "Expected allowlisted file missing from ZIP: $expected"
     }

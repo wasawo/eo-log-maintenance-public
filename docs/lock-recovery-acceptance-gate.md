@@ -184,3 +184,5 @@ explicit disposition, termination proof and protection through use remain open.
 ## Explicit recovery entrypoint direction (2026-10-23)
 
 Maintainer approved designing a dedicated explicit recovery command while normal synchronization continues to stop on stale records. [The command design](explicit-recovery-command-design.md) defines read-only diagnosis/planning, non-authorizing results, safe mutex lifetime and a pending synthetic test matrix. It does not implement an entrypoint or authorize disposition. Persistent owner identity, root/clock qualification, private evidence storage and protected state changes remain open.
+
+Diagnosis-only lease slice (2026-10-23): RecoveryDiagnosticMutex adds record-free acquisition of the existing named mutex and non-authorizing abandonment observations. Thirteen lifetime tests cover actual Windows contention, consumed abandonment and cross-process reacquisition after failure. It does not change acquire_owned_lock or authorize stale-record removal. See the [legacy-record policy proposal](recovery-owner-evidence-v2-proposal.md).
