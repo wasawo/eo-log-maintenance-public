@@ -54,6 +54,7 @@ try {
     Set-Content (Join-Path $fixture 'Common/LogFunctions.ps1') '# Log filename and period functions'
     Set-Content (Join-Path $fixture 'Common/MachineConfiguration.ps1') '# Read-only configuration structure loader'
     Set-Content (Join-Path $fixture 'Common/MachineConfigurationBootstrap.ps1') '# Create-only configuration helper'
+    Set-Content (Join-Path $fixture 'Common/MachineConfigurationRootInspection.ps1') '# Read-only existing-root inspector'
     Set-Content (Join-Path $fixture 'Common/AggregationReportValidation.ps1') '# Aggregation report validation functions'
     Set-Content (Join-Path $fixture 'Common/AggregationArtifactReference.ps1') '# Aggregation artifact reference verification functions'
     Set-Content (Join-Path $fixture 'Common/AggregationReferencedArtifacts.ps1') '# Referenced artifact schema validation entry point'
@@ -116,6 +117,7 @@ try {
         'Common/LogFunctions.ps1',
         'Common/MachineConfiguration.ps1',
         'Common/MachineConfigurationBootstrap.ps1',
+        'Common/MachineConfigurationRootInspection.ps1',
         'Common/AggregationReportValidation.ps1',
         'Common/AggregationArtifactReference.ps1',
         'Common/AggregationReferencedArtifacts.ps1',

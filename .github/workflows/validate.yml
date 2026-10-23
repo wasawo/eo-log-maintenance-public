@@ -110,6 +110,10 @@ jobs:
         shell: pwsh
         run: ./tests/Test-MachineConfigurationBootstrap.ps1
 
+      - name: Run read-only configuration root inspection tests
+        shell: pwsh
+        run: ./tests/Test-MachineConfigurationRootInspection.ps1
+
       - name: Run aggregation report internal consistency tests
         shell: pwsh
         run: ./tests/Test-AggregationReportValidation.ps1

@@ -8,21 +8,21 @@
 
 ## 最新基準
 
-- 基準main: 41811bd23c9ef3d0b25e8e2ec47d9d5c43973e1c（PR #13マージ）。
-- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39842150040) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39842150020) 成功を照合。
-- PR #13最新HEAD 745cd5284505121aea6d2901378ef8483b3db324 のValidate 39841877997 / Package 39841877840成功後マージ。source root/ancestor/entry/queued reparse拒否7件を追加。PC-B予定NTFSの28件部分証拠は tests/evidence/pc-b-source-reparse-local-volume-20261023.json。
-- PR #12（3ae8b76）は元ファイルhashのopen-handle identity照合、PR #11（e7d4e8e）は公開内部10クラッシュケースを追加してマージ済み。いずれもmain両CI成功。
+- 基準main: 13503f67d9480ad101988ca03060ab180f9a1b59（PR #14マージ）。
+- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39942614538) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39942614616) 成功を照合。
+- PR #14 HEAD 037bb888b8870e0bd01e8cdc61e71e429a2b1f52 の39942366979 / 39942366986成功後マージ。重複JSON/不正型lock保全、復旧証拠拒否、実mutex正常解放を検証。PC-B予定NTFSの29件部分証拠は tests/evidence/pc-b-lock-validation-local-volume-20261023.json。
+- PR #13（41811bd）はsource reparse拒否、#12（3ae8b76）はhash handle identity、#11（e7d4e8e）は公開内部クラッシュ境界を追加してマージ済み。各main両CI成功。
 - 利用者は優先順の継続と、最新HEADの必要検査成功後のマージを承認。初回確認後90秒間隔で最大5回再確認し、未完/失敗ならマージしない。
-- 新クローンのブランチ fix/strict-lock-recovery-evidence。
+- 新クローンのブランチ feat/read-only-configuration-root-inspection。
 
-## 現在の作業: 不正ロック記録/曖昧な復旧証拠の拒否
+## 現在の作業: 既存設定rootの読み取り専用metadata検査
 
-- 修正前に、重複JSONキーとbool型schema_version/pidなどの不正lockが正常解放時に削除される欠陥を再現。重複manifestキーと非boolのabandonmentも復旧許可にされていた。
-- OwnedRunLock: duplicate keyをrejectし、schema_version/pidの厳密intと正値、非空host、ASCII tokenを確認。不正記録はbytes保持、mutexは解放。新しい削除/古いロックの自動採用は追加しない。
-- CrashRecoveryDecision: duplicate key、想定外型、真偽値の暗黙解釈を拒否。既存の固定reasonでblockし、manifestを書き換えない。想定外型で未処理TypeErrorになる欠陥も回帰で再現/修正。
-- 実Windowsの子プロセスを正常解放後も生かし、親が同mutexを取得できabandonedではないこと、不正記録が保持され後続処理を拒否することを検証。
-- 最新HEAD CI・PR/マージは未確定。全Python163テスト成功、既存symlink権限で2件スキップ。PC-B予定NTFS上29テスト成功・スキップなし。tests/evidence/pc-b-lock-validation-local-volume-20261023.json にsource 302682abb7fd3b45b6745247dfa5297542f81c4b の部分証拠を保存。実パス/volume文字/token/hostなし。
-- 残る制約: 任意の外部writerに対するcompare/deleteの原子性、stale記録の安全なdisposition、REC-04の新run/fresh inventory正式統合、物理root gate、Tier B/P0全体は未完了。
+- Common/MachineConfigurationRootInspection.ps1を追加。strict parser後、既存directory/ancestorを検査。metadata-only OPEN_EXISTING handleのdirectory/reparse属性とnormalized volume-GUID pathを取得しmaintenanceLocalと他rootの同一/包含を拒否。
+- 不存在/ファイルroot/reparse/取得不能/非対応providerは固定reasonで拒否。公開結果はStatus/MachineId/RootCountのみ。実設定・root生成・内容読込・書込・lock/Drive/archive/正式入口接続なし。
+- 両PCの新規OS-temp合成領域で142アサーション成功、8.3 fixtureスキップ0。実junction、実8.3 canonical一致、字句上disjointな注入canonical同一/親/子・metadata失敗、sentinel保全と無生成を検証。
+- 既存構造285アサーション、bootstrap22アサーション、配布回帰とPowerShell構文/利用可能Analyzerチェックも成功。CI登録・配布fixture・仕様/README/P0/引き継ぎを同じPRへ追加。
+- 最新HEAD CI・PR/マージは未確定。今回のOS-temp検証を、既存PC-B予定volumeのTier B証拠へ拡張しない。
+- approved-root authority/FS-provider allowlist、任意の敵対的namespace変更と最後の確認後の保護、他alias方式/実Drive/PC-A予定volume資格確認、stale disposition/正式復旧、Tier B/P0全体は未完了。
 
 ## 設定基盤の完了範囲
 
@@ -30,7 +30,7 @@
 - PR #9: strict UTF-8/JSON構造・役割・型・unknown/duplicateキー・パス構文検証。285アサーション成功。
 - PR #10: create-only補助処理。既存設定をbytes単位で保持、安全exampleだけ新規生成。22アサーションと配布テスト成功。
 - PR #10最新HEAD e5df9a197a4644a29a0ae7d9bd38d0a2d9e06a65 のValidate 39830715865（attempt 2）/Package 39830715899成功後マージ。初回はPSGallery登録で失敗、検査は弱めていない。
-- 実設定・実導入先では実行していない。物理approved-root/reparse/短縮名alias分離、正式導入/実行入口接続・移行は未完了。設定値は認可ではない。
+- 実設定・実導入先では実行していない。既存rootのmetadata補助検査は上記の追加範囲。approved-root権限/FS資格/利用直前までの保護、正式導入/実行入口接続・移行は未完了。設定値は認可ではない。
 
 ## この作業でマージした内容
 
