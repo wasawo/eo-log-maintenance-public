@@ -246,3 +246,5 @@ Strict lock/recovery regressions run in the existing test_owned_run_lock.py, tes
 Run pwsh -NoProfile -File tests/Test-MachineConfigurationRootInspection.ps1 for both-PC OS-temp metadata checks, real junction/available short-name fixtures and injected canonical aliases. The script reports unavailable 8.3 checks as skips. No real configs or production roots are used.
 
 Run python -m unittest discover -s tests -p test_latest_manifest_selection.py -v for 32 in-memory C4 naming/identity/ambiguity/no-fallback/time regressions. No filesystem enumeration or production data is used.
+
+`test_manifest_directory_reader.py` exercises synthetic local manifest enumeration/read binding, opened-file replacement, final rescan changes, partial enumeration and real Windows junction rejection. It never uses operational roots and does not establish full Tier B or runtime acceptance.

@@ -71,7 +71,7 @@ def _utc_key(value: Any):
     if not isinstance(value, str):
         _reject("candidate_timestamp_invalid")
     match = re.fullmatch(
-        r"([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(?:.([0-9]{1,11}))?Z",
+        r"([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(?:\.([0-9]{1,11}))?Z",
         value,
     )
     if match is None:
@@ -85,6 +85,34 @@ def _utc_key(value: Any):
 
 def _clock_key(value: datetime):
     return value.replace(microsecond=0), f"{value.microsecond:06d}".ljust(11, "0")
+
+
+def _validate_context(
+    *, expected_pc_id, expected_log_type, expected_target_period,
+    enumeration_completed, current_utc, current_utc_reliable,
+    require_current_success, future_tolerance,
+):
+    if enumeration_completed is not True:
+        _reject("candidate_enumeration_incomplete")
+    if not isinstance(expected_pc_id, str) or expected_pc_id not in {"PC-A", "PC-B"}:
+        _reject("selection_scope_invalid")
+    if not isinstance(expected_log_type, str) or expected_log_type not in {"BattleLog", "ErrorReport"}:
+        _reject("selection_scope_invalid")
+    pattern = r"[0-9]{4}-(0[1-9]|1[0-2])" if expected_log_type == "BattleLog" else r"[0-9]{4}"
+    if not isinstance(expected_target_period, str) or not re.fullmatch(pattern, expected_target_period):
+        _reject("selection_scope_invalid")
+    if type(require_current_success) is not bool:
+        _reject("selection_mode_invalid")
+    if (current_utc_reliable is not True or not isinstance(current_utc, datetime)
+            or current_utc.tzinfo is None or current_utc.utcoffset() != timedelta(0)):
+        _reject("current_utc_unavailable")
+    if not isinstance(future_tolerance, timedelta) or future_tolerance < timedelta(0):
+        _reject("future_tolerance_invalid")
+    try:
+        future_limit = _clock_key(current_utc + future_tolerance)
+    except (ValueError, OverflowError):
+        _reject("future_tolerance_invalid")
+    return future_limit
 
 
 def select_latest_manifest(
@@ -106,26 +134,13 @@ def select_latest_manifest(
     enumeration/read observations remain caller obligations. Historical age alone does not invalidate
     a candidate; this helper does not apply 24h freshness to old manifests.
     """
-    if enumeration_completed is not True:
-        _reject("candidate_enumeration_incomplete")
-    if not isinstance(expected_pc_id, str) or expected_pc_id not in {"PC-A", "PC-B"}:
-        _reject("selection_scope_invalid")
-    if not isinstance(expected_log_type, str) or expected_log_type not in {"BattleLog", "ErrorReport"}:
-        _reject("selection_scope_invalid")
-    pattern = r"[0-9]{4}-(0[1-9]|1[0-2])" if expected_log_type == "BattleLog" else r"[0-9]{4}"
-    if not isinstance(expected_target_period, str) or not re.fullmatch(pattern, expected_target_period):
-        _reject("selection_scope_invalid")
-    if type(require_current_success) is not bool:
-        _reject("selection_mode_invalid")
-    if (current_utc_reliable is not True or not isinstance(current_utc, datetime)
-            or current_utc.tzinfo is None or current_utc.utcoffset() != timedelta(0)):
-        _reject("current_utc_unavailable")
-    if not isinstance(future_tolerance, timedelta) or future_tolerance < timedelta(0):
-        _reject("future_tolerance_invalid")
-    try:
-        future_limit = _clock_key(current_utc + future_tolerance)
-    except (ValueError, OverflowError):
-        _reject("future_tolerance_invalid")
+    future_limit = _validate_context(
+        expected_pc_id=expected_pc_id, expected_log_type=expected_log_type,
+        expected_target_period=expected_target_period,
+        enumeration_completed=enumeration_completed, current_utc=current_utc,
+        current_utc_reliable=current_utc_reliable,
+        require_current_success=require_current_success, future_tolerance=future_tolerance,
+    )
     if type(candidates) not in (list, tuple):
         _reject("candidate_collection_invalid")
     if not candidates:
