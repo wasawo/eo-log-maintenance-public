@@ -6,15 +6,21 @@
 正本は Public の `wasawo/eo-log-maintenance-public`。元リポジトリは Private のまま。
 この文書の状態は記録コミット時点。実際のmain/PR/CIは作業開始時に照合する。
 
-## 最新基準と今回の棚卸し
+## 最新基準と今回の作業
 
-- 基準main: `9fc85477907c169454104fe2b88b2933d855856f`（PR #27マージ）。Validate 39971249609 / Package Validation 39971249630成功を確認。
-- 作業ブランチ: `docs/first-release-readiness-inventory`。棚卸し `6d9036e`、役割別設定・スキル分離 `44c2602`、構成整理 `d0fe6b6` をpushし、[PR #28](https://github.com/wasawo/eo-log-maintenance-public/pull/28) を作成。
-- 最新指示（2026-10-24）: ここまでの変更をpush・PR作成し、最新HEADのCIとマージ要件を満たしたらスカッシュマージする承認あり。機能実装・本番適用の再開は含まない。記録時点では本PRの最終CI・マージは未確定であり、実PR/mainを照合する。
+- 基準main: `9fd6f113b09e4df922829536ee6a38b9b70b7041`（[PR #28](https://github.com/wasawo/eo-log-maintenance-public/pull/28) スカッシュマージ済み）。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40024227173) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40024227312) 成功。
+- 作業ブランチ: `docs/dry-run-side-effect-policy`。最新指示（2026-10-24）は初回配布に向けた作業再開、必要時の役割別委譲、1作業単位=1PR作成・CI成功確認後のマージ。今回はOSD-04副作用表の判断案と受け入れ計画を1単位とする。本番適用や未決定仕様の採用をこの指示から推定しない。
+- 調査でIPC契約自体のレビューとC-01/C-02が承認待ちと確認。未承認の契約を規範とするadapter/validator実装は行わず、先にDry Runの具体的な判断資料を作成する。
 - [2026-10-24棚卸し・作業順序](../status/first-release-readiness-20261024.md) を現行の入口とする。正式Sync/Archive・Drive adapterが不在で、初回実運用配布には未到達。review ZIPと正式配布を区別する。
 - 利用者の既存ステージ済み表整形は `6d9036e` に含めて保全済み。
 
-## 今回の作業: リポジトリ構成の整理
+## 今回の作業: OSD-04 Dry Run副作用の判断案
+
+- ローカル書込を行わない案Aと、限定した診断report/所有一時物だけを許す案Bを比較する。Drive/元ログ/archive変更、運用manifest/lock/state更新、予算消費、private証拠処分は認めない。方針は承認待ちのままで、提案PRのマージを運用方針の承認と扱わない。
+- analystは `gpt-6-luna` / highで調査。implementerは `gpt-6.1-sol` / mediumで提案と参照先を編集。独立reviewerは同モデル/highで根拠・差分・新anchor/fixture参照を確認し、ブロッカー指摘なし。rootはhandoff・Git/PR/CI/マージを担当。各担当は履歴なしで対象資料だけを渡して起動し、指定モデル/思考量での作業を実施した。
+- [判断案](../decisions/dry-run-side-effect-policy-proposal.md) とDRY-01〜10計画、関連参照を追加。全67 Markdownのローカルリンク切れ0、索引漏れ0、差分検査成功。文書のみで実装/schema/CI変更0、ローカル機能テストは再実行していない。DRY fixtureは未実装/未実行。利用者のA/B判断前は依存runtimeを実装しない。PRの最新HEAD CIと実マージ状態は本PRで照合する。
+
+## 直前の作業: リポジトリ構成の整理
 
 - [全体構成・文書索引](../README.md) を追加。旧docs直下の53文書をdevelopment/requirements/design/decisions/validation/release/statusへ分類し、相対リンク・root基準の文書参照・役割TOML・スキル内参照を更新した。
 - 固定入口AGENTS.md、docs/handoff/next-chat.md、Codex検出用の.agents/.codex、実装・設定・schema・テスト・CI・配布ビルダーの配置は維持。承認状態をファイル名や分類だけで判断しない。
@@ -38,7 +44,7 @@
 
 ## 次回の実装再開時
 
-1. PR #28の最新HEAD・CI・マージ状態、実mainと作業ツリーを確認し、未コミット変更を保全する。今回の依頼は構成整理のスカッシュマージまで。機能実装は次の指示に従う。
+1. 本OSD-04提案PRの最新HEAD・CI・マージ状態、実mainと作業ツリーを確認し、未コミット変更を保全する。提案のマージと利用者の方針承認を区別する。
 2. 棚卸しの順序に従い、残りの状態遷移/DryRun/IPC契約と、ローカルroot・永続run状態・復旧の不足を整理する。確認予算の永続化はその一部で、単独で初回配布へ進めない。
 3. Drive adapter/認証資格、両PCのTier B、正式手動runtime統合、E2E/Tier C、正式配布/導入と進む。taskは初回手動受け入れ後。実環境検証・実適用は別途の承認範囲を確認する。
 4. 旧lock自動処分・新run自動生成・実保存・task登録・Drive/本番復旧を、helper/CI成功から許可されたと解釈しない。

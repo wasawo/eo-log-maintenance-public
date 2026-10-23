@@ -87,6 +87,7 @@ docs/
 - [OSD-02 — Crash, concurrency, and latest-manifest options](decisions/osd-02-crash-concurrency-options.md)
 - [OSD-03 — Derived aggregation report contract decisions](decisions/osd-03-report-contract-options.md)
 - [OSD-03: Run and Period Status Aggregation Options](decisions/osd-03-status-aggregation-options.md)
+- [OSD-04: Dry Runローカル副作用の判断案（非規範・承認待ち）](decisions/dry-run-side-effect-policy-proposal.md)
 - [PC-Aの毎時完了確認に対する上限（判断案）](decisions/pc-a-completion-wait-budget-proposal.md)
 - [stale lock の明示的回復フロー案](decisions/recovery-disposition-proposal.md)
 - [実行accountとprivate証拠アクセス方針（判断案）](decisions/recovery-execution-account-policy-proposal.md)
