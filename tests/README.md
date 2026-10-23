@@ -1,5 +1,13 @@
 # テスト計画
 
+## Dry Run Aの合成境界ハーネス
+
+`python -B -m unittest discover -s tests -p "test_dry_run_boundary.py" -v` は、親が作成した専用一時fixtureを `-I -B` の子プロセスで検査する。7テスト内の21回のprobeで、読取・無資格/無効role/config/root・競合/abandonedの注入、依存write/delete/rename/mkdir/chmod/temp/network/subprocess要求、計測用normal経路を検証する。Python audit event名の履歴と、前後の存在・bytes/hash・modeを比較する。途中で拒否されたwriteも記録し、単なる最終snapshot一致とは区別する。
+
+対象dispatcherもfixtureコードであり、正式runtimeは呼ばない。role/config/root/競合は合成注入、実ACL/Windows mutex資格の証拠ではない。Python audit hookは任意のnative処理を閉じ込めるsandboxでもなく、全依存の無書込み・電源断・cloudの保証でもない。出力は固定status/event名と常にfalseのrun/archive権限だけ。trusted test環境でのみ実行し、実ログ/実設定/Driveへ接続しない。fixture準備・削除は親テストの仕事で、Dry Runアプリへの許可ではない。CIにも個別登録する。
+
+監査hookの設置はstdlib importとfixture確認の後で、起動/import時の全副作用は観測していない。snapshotのmodeは実効ACLではなく、比較対象も合成root内に限る。`-I -B`だけで全プロセスの書込み不在を証明したとは扱わない。
+
 テストは実ログや本番パスに依存しないように構成します。
 
 ## 実装済み：JSON Schema 契約テスト

@@ -8,6 +8,11 @@
 
 ## 最新基準と今回の作業
 
+- 最新基準main `dafd3b78d0cea31ab056b6de6ade4632d5d35c95`（PR #31、main両CI成功）。今回branch `test/dry-run-boundary-harness`、1PR/CI/マージまで実施する。以下の旧記録より優先する。
+- 利用者の新規agent作成禁止を適用。セッションに指定名analyst/implementer/reviewerの既存個体がないため、rootのみで実装・レビューし、別名の個体は起動しない。新規agentは作成していない。
+- Dry Runテスト専用dispatcher・依存auditハーネスと7テスト/21probeを追加。parentが合成領域を準備しchildは -I -B で観測。実runtime・実ACL/Windows排他・IPC/Driveは未接続。検証結果は完了時に記録する。
+- 検証: 新規7テスト成功、Python 3.11.9全313件成功（既存2件skip）、PowerShell 7.6.7配布回帰成功。rootによる差分・境界レビューのみで、独立agentレビューは実施していない。監査はstdlib import/fixture確認後、snapshotは合成root内だけ。正式DRY全体・実環境受け入れは未完了。CIへ個別テストを登録し、最新HEADの両CI成功後にマージする。
+
 - 今回の基準main: `cca45d620c87b1dc4a41e93bbcda818a7e684dc8`（PR #30マージ済み、main Validate 40028284291 / Package Validation 40028284250成功）。以下の旧基準・作業記録よりこの項目を優先する。
 - 現作業ブランチ: `docs/dry-run-execution-design`。利用者の次作業指示により、Aのfile-free実行経路・事前ゲート・既存helperと不足責務・DRY対応を具体化する1PRを作成し、最新HEAD CI成功後にマージする。IPC全体/C-01/C-02・認証・runtime受け入れは未完了のまま。
 - 省消費方針に従い追加analystは起動せず、具体設計担当はSol/medium。rootは統合とhandoff/Gitを担当。現在のA方針を再質問せず、本番接続・実処理を追加しない。

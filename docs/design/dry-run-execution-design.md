@@ -65,6 +65,8 @@ path/handle identity、属性、size/hash、列挙完全性を使用点で再確
 
 ## 6. 次の最小実装単位と停止条件
 
+初回の部分証拠として `tests/dry_run_boundary_harness.py` / `tests/test_dry_run_boundary.py` を追加。これは合成dispatcherとPython監査hookの拒否経路・前後不変性を検証するハーネスで、正式入口・実root認可・実Windows排他は接続しない。DRY-01〜10全体の完了とはしない。次は正式な候補実装をこの観測境界へ接続し、実際のconfig/root読取とrecord-free mutexの資格を独立に検証する。
+
 次の候補は、合成fixture内のDry Run専用dispatchと依存境界に限定する。無効mode/PC/config/root、writer競合、abandoned、依存write要求を注入し、通常bootstrap/run-lock/publication/recovery/budget/scheduler/cleanupへ到達しないことを先に検証する。既存mutex helperの資格とroot authorityを確認できない場合は拒否する経路までとし、仮の成功経路で穴を埋めない。
 
 fixture harnessは隔離した合成領域のbefore/afterだけでなく、create/write/rename/delete/ACL変更の途中呼出し、ネットワーク/auth/downloadの呼出しも捕捉する。harness自身のfixture作成・検証証拠の保存と、診断対象アプリの許可副作用を区別する。DRY-01–10を段階的に実装・実行し、未実施と限界を記録するまではruntime受け入れにしない。
