@@ -83,3 +83,7 @@ lockなし・manifestなしを推測で回復可能とせず、通常実行の�
 次にrecordを作らない診断用mutex leaseを合成子プロセスで検証し、例外時解放とabandoned通知消費を扱う。
 その後にroot/終了証拠/時計と実read接続のゲートを満たす。未確定のdispositionはその前に実装しない。
 P0-010/P0-012、Tier B全体、正式復旧・本番導入は未完了のまま維持する。
+
+## 7. Implemented result-model slice
+
+Common/RecoveryDiagnostic.py now implements only the pure supplied-observation result model. Eight explicit gates (configuration/root/mutex/lock_record/clock/latest_manifest/owner_termination/drive_reconciliation) each require satisfied/missing/unknown/failed. Missing or unknown keys and free text are rejected. Deficiencies produce fixed ordered reasons and blocked; all-satisfied produces review_required. Public projection has schema_version 1, exact requested scope, classification, reason_codes and may_change_state=false. Direct construction and export validate fixed fields. No raw record, path, PID, host or token is accepted. This is an internal helper model, not the final command JSON/exit-code or persistent disposition schema. Twelve synthetic tests cover this boundary only; full DIAG-01 through DIAG-10 remain pending.

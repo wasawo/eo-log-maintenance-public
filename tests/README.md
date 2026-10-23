@@ -250,3 +250,5 @@ Run python -m unittest discover -s tests -p test_latest_manifest_selection.py -v
 `test_manifest_directory_reader.py` exercises synthetic local manifest enumeration/read binding, opened-file replacement, final rescan changes, partial enumeration and real Windows junction rejection. It never uses operational roots and does not establish full Tier B or runtime acceptance.
 
 `test_manifest_recovery_integration.py` adds seven synthetic compositions of checked manifest-directory snapshots and pure recovery classification. The real Windows abandonment scenario in `test_owned_publication_integration.py` also uses the disk reader. A positive classification never adopts/removes the stale record; later external changes require fresh observations. These tests do not authorize operational recovery or extend the recorded PC-B Tier B result.
+
+`test_recovery_diagnostic.py` covers the pure diagnostic result boundary: incomplete/unknown owner and Drive evidence, rejected raw secrets and invalid scopes, public-field allowlisting, immutable snapshots, tampered export refusal and absence of file I/O. These tests do not execute the full DIAG command acceptance matrix.
