@@ -276,3 +276,5 @@ Private evidence slice (2026-10-23): approved private maintenanceLocal/no-auto-d
 Private ACL profile slice (2026-10-23): same-account-per-PC direction is approved. A pure conservative file-ACL profile adds 13 synthetic observation tests, without real descriptor/token queries, effective access, directory ancestry or safe creation. Matching is non-authorizing; actual ACL/STORE-01/P0/Tier B acceptance remains incomplete.
 
 Descriptor normalization slice (2026-10-23): six PowerShell/Python tests use sixteen synthetic binary descriptors to connect normalization to the conservative file ACL profile. SID-bearing observations remain internal; real OS ACL/token acquisition, effective access, ancestors, safe creation and STORE-01 remain unimplemented. Initial logged-on-only operation is approved; exact C-24 staggered monthly times remain a maintainer decision.
+
+Monthly-time observation slice (2026-10-23): C-24 monthly dates/times are approved and a pure non-authorizing boundary helper has 12 fixed-clock tests. Task/completion records, missed-run compensation, PC-A hourly budget, retry and runtime rollout remain incomplete. No P0/Tier B closure.
