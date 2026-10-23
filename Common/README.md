@@ -2,16 +2,18 @@
 
 PC-A / PC-Bで共有する関数と、レポートの参照先を検証するローカル補助モジュールを配置します。
 
-- ファイル一覧の取得とファイル名からの対象期間判定
-- SHA-256 の算出とコピー後の検証
-- 実行マニフェストの作成・読み込み・スキーマ検証
-- 集約レポートの参照先 manifest / B2 evidence の実バイト検証と identity 照合
-- ログ出力と終了コードの統一
-- エラー時に後続の破壊的処理を停止する共通制御
+現時点の実装状況と初回配布の実行順は [棚卸し](../docs/status/first-release-readiness-20261024.md) を参照してください。以下は補助処理の責務であり、正式ランタイムの完成を意味しません。
+
+- ファイル名の実日付・保持期間判定、PowerShell版ガード、診断コード
+- 設定の厳密な読込・未作成時のみ生成、既存rootの分離メタデータ検査
+- 読み取り専用source inventory・A2/B2 digest・参照JSONの実バイト照合
+- 単一/複数成果物の公開・検証、所有token lockと復旧分類
+- 最新manifestの選択・読取、診断結果、private証拠形式と限定ACL形状
+- 月次境界とPC-A確認予算の副作用なし観測
 
 `AggregationReferencedArtifacts.ps1` は `validate_aggregation_artifacts.py` を呼び出し、`contracts/` の Draft 2020-12 schemaでレポートと参照先JSONを検証します。Python環境には `requirements-runtime.txt` の依存関係が必要です。検証対象は明示された信頼済みmaintenance root配下に限定し、失敗時は拒否します。
 
-これらの補助関数は現時点で正式な同期・アーカイブエントリーポイントには未接続です。ロック、Drive再検証、アーカイブ許可、ソース列挙の完全性証明、原子的公開は未実装です。実ログ・Drive書き込み・削除は行いません。
+これらの補助関数は現時点で正式な同期・アーカイブエントリーポイントには未接続です。ロック・ソース列挙・公開には分離した部分実装がありますが、正式な制御経路への統合と実環境の受け入れは未完了です。Driveアダプター・現在内容の再検証・アーカイブ入口は未実装です。実ログ・Drive書き込み・削除は行いません。
 
 PCごとのパスや権限は設定ファイルで与え、PC-Bではアーカイブ・削除機能を呼び出せない設計を維持します。
 
@@ -38,7 +40,7 @@ PCごとのパスや権限は設定ファイルで与え、PC-Bではアーカ�
 `ArtifactSetDirectoryVerification.py` は、明示された1ディレクトリの実ファイル bytes を読み、SHA-256 と commit marker を照合して artifact-set classifier に渡す読み取り専用補助モジュールです。重複JSONキー、想定外エントリ、symlink、非通常ファイル、marker不正、読取失敗は fail-closed とします。修復・公開・上書き・削除は行いません。検証結果は一点時点の観測であり、ロック、検証後の変更防止、複数ファイル原子性、クラッシュ耐久性、Drive整合性を保証しません。正式エントリーポイント未接続であり、P0は未完了です。
 
 
-`docs/target-filesystem-acceptance.md` defines the evidence boundary for artifact-set publication and recovery: hosted Windows CI, disposable local-volume qualification on PC-A/PC-B, and separately gated synchronized/network target qualification. Current CI results do not prove target filesystem behavior, remote visibility, or power-loss durability. No official entrypoint integration or destructive operation is authorized by these helper modules.
+`docs/validation/target-filesystem-acceptance.md` defines the evidence boundary for artifact-set publication and recovery: hosted Windows CI, disposable local-volume qualification on PC-A/PC-B, and separately gated synchronized/network target qualification. Current CI results do not prove target filesystem behavior, remote visibility, or power-loss durability. No official entrypoint integration or destructive operation is authorized by these helper modules.
 
 
 ## Read-only configuration structure loader
@@ -62,34 +64,34 @@ This is structural/lexical evidence, not an approved-root filesystem gate.
 It does not inspect actual target volumes, resolve short-name/reparse aliases,
 prove cross-root physical separation, acquire a runtime lock, contact Drive,
 or integrate official entry points. Those checks remain mandatory before effects.
-Bootstrap/create-once migration is a separate pending implementation.
+The create-only bootstrap helper is implemented below; official installation/update integration and migration remain pending.
 
 ## Create-only configuration bootstrap helper
 
-See [configuration specification](../docs/configuration-local-root.md#create-only-configuration-bootstrap-helper) for Initialize-EoMachineConfiguration, safety boundaries and pending deployment integration. Run tests/Test-MachineConfigurationBootstrap.ps1 for synthetic create-once and preservation checks.
+See [configuration specification](../docs/design/configuration-local-root.md#create-only-configuration-bootstrap-helper) for Initialize-EoMachineConfiguration, safety boundaries and pending deployment integration. Run tests/Test-MachineConfigurationBootstrap.ps1 for synthetic create-once and preservation checks.
 
-SourceInventoryEvidenceBuilder checks source pathname and open-handle identity before/after hashing. Observable mismatch or unavailable identity keeps enumeration incomplete. This is not a snapshot or a guard covering later use; see [filesystem evidence](../docs/target-filesystem-acceptance.md#source-hash-handle-identity-2026-10-23).
+SourceInventoryEvidenceBuilder checks source pathname and open-handle identity before/after hashing. Observable mismatch or unavailable identity keeps enumeration incomplete. This is not a snapshot or a guard covering later use; see [filesystem evidence](../docs/validation/target-filesystem-acceptance.md#source-hash-handle-identity-2026-10-23).
 
-Source inventory rejects lstat symlink/reparse root/ancestors, rechecks queued directories, classifies fresh entry attributes and checks file paths before/after hashing. Unknown attributes fail closed. See [source reparse evidence and limits](../docs/target-filesystem-acceptance.md#source-inventory-reparse-rejection-2026-10-23).
+Source inventory rejects lstat symlink/reparse root/ancestors, rechecks queued directories, classifies fresh entry attributes and checks file paths before/after hashing. Unknown attributes fail closed. See [source reparse evidence and limits](../docs/validation/target-filesystem-acceptance.md#source-inventory-reparse-rejection-2026-10-23).
 
-Lock/recovery evidence parsing rejects duplicate JSON keys and wrong primitive types; malformed lock records are preserved while the mutex is released. See [strict evidence scope](../docs/lock-recovery-acceptance-gate.md#strict-lock-and-recovery-evidence-2026-10-23). This does not implement stale-lock disposition or operational recovery.
+Lock/recovery evidence parsing rejects duplicate JSON keys and wrong primitive types; malformed lock records are preserved while the mutex is released. See [strict evidence scope](../docs/validation/lock-recovery-acceptance-gate.md#strict-lock-and-recovery-evidence-2026-10-23). This does not implement stale-lock disposition or operational recovery.
 
-MachineConfigurationRootInspection.ps1 adds opt-in read-only metadata inspection of existing configuration roots. It is not runtime authorization; see [configuration scope](../docs/configuration-local-root.md#read-only-existing-root-metadata-inspection).
+MachineConfigurationRootInspection.ps1 adds opt-in read-only metadata inspection of existing configuration roots. It is not runtime authorization; see [configuration scope](../docs/design/configuration-local-root.md#read-only-existing-root-metadata-inspection).
 
-LatestManifestSelection.py independently parses the defined manifest basename and selects a unique validated latest start time from supplied observations. It never falls back to old success. See [selection scope and gates](../docs/latest-manifest-selection.md).
+LatestManifestSelection.py independently parses the defined manifest basename and selects a unique validated latest start time from supplied observations. It never falls back to old success. See [selection scope and gates](../docs/design/latest-manifest-selection.md).
 
-ManifestDirectoryReader.py adds read-only observations of the defined per-PC manifest directory and returns the exact validated byte snapshot plus SHA-256. Unknown/reparse entries, read uncertainty and observed changes block selection. Approved-root authority and runtime integration remain pending; see [selection scope](../docs/latest-manifest-selection.md).
+ManifestDirectoryReader.py adds read-only observations of the defined per-PC manifest directory and returns the exact validated byte snapshot plus SHA-256. Unknown/reparse entries, read uncertainty and observed changes block selection. Approved-root authority and runtime integration remain pending; see [selection scope](../docs/design/latest-manifest-selection.md).
 
 RecoveryDiagnostic.py classifies supplied fixed gate observations into a sanitized, immutable, non-authorizing diagnostic result. Even all-satisfied observations produce review_required with may_change_state=false. It performs no I/O and does not establish the truth of its supplied observations.
 
 RecoveryDiagnosticMutex.py acquires the existing global scope mutex without ownership-record I/O or token generation. It reports abandonment as non-authorizing evidence and releases/closes on completion or failure. It is an isolated diagnosis lease, not normal lock acquisition, approved-root qualification, or an operational recovery entrypoint.
 
-PrivateRecoveryEvidence.py builds/validates private preservation metadata against supplied raw lock bytes, without runtime reads/writes or recovery authority. Only the trusted package schema is read. Opaque invalid lock bytes can be preserved without being accepted as a supported lock. See [private evidence contract](../docs/recovery-private-evidence-contract.md).
+PrivateRecoveryEvidence.py builds/validates private preservation metadata against supplied raw lock bytes, without runtime reads/writes or recovery authority. Only the trusted package schema is read. Opaque invalid lock bytes can be preserved without being accepted as a supported lock. See [private evidence contract](../docs/design/recovery-private-evidence-contract.md).
 
-PrivateEvidenceAclProfile.py classifies a narrow supplied file-ACL shape using fixed trusted principal roles and explicit file read/write bits. It does not query SIDs/ACLs, evaluate complete Windows access, qualify roots or grant persistence. See [scope and unsupported cases](../docs/private-evidence-acl-profile.md).
+PrivateEvidenceAclProfile.py classifies a narrow supplied file-ACL shape using fixed trusted principal roles and explicit file read/write bits. It does not query SIDs/ACLs, evaluate complete Windows access, qualify roots or grant persistence. See [scope and unsupported cases](../docs/design/private-evidence-acl-profile.md).
 
 PrivateFileSecurityDescriptor.ps1 normalizes supplied binary file descriptors for the narrow Python ACL profile. It preserves deny/order/flags/unsigned masks, rejects unsupported features, and performs no filesystem/token query or ACL writes. Its SID-bearing output is private internal data, not a public diagnostic.
 
-MonthlyScheduleObservation.py observes the approved monthly boundary from supplied reliable UTC/session/account claims. It uses day 1 PC-B 20:00 / PC-A 21:00 JST; all results keep may_start_run=false. It never queries the host, reads completion records, creates tasks or starts work. See [observation scope](../docs/monthly-schedule-observation.md).
+MonthlyScheduleObservation.py observes the approved monthly boundary from supplied reliable UTC/session/account claims. It uses day 1 PC-B 20:00 / PC-A 21:00 JST; all results keep may_start_run=false. It never queries the host, reads completion records, creates tasks or starts work. See [observation scope](../docs/design/monthly-schedule-observation.md).
 
-CompletionWaitBudget.py assesses the approved PC-A 24-hour/25-attempt hourly budget and returns immutable updated attempt histories only after revalidation. All advice denies archive/state-change authority. It performs no waits/tasks/Drive/persistence; trusted state binding and durable crash-safe accounting remain pending. See [budget scope](../docs/completion-wait-budget.md).
+CompletionWaitBudget.py assesses the approved PC-A 24-hour/25-attempt hourly budget and returns immutable updated attempt histories only after revalidation. All advice denies archive/state-change authority. It performs no waits/tasks/Drive/persistence; trusted state binding and durable crash-safe accounting remain pending. See [budget scope](../docs/design/completion-wait-budget.md).
