@@ -8,22 +8,23 @@
 
 ## 最新基準
 
-- 基準main: 37102d2ea2a413a9adf571592d56b18d6fa11364（PR #17マージ）。
-- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39954011903) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39954011904) 成功を照合。
+- 基準main: 73f1f08bffd0d0aed9b41a4fdf3d0cd7234e621c（PR #18マージ）。
+- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39956847085) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39956847101) 成功を照合。
 - PR #15 HEAD f82aa2860ab3510a9002bc5bb771a3f0a48badb5 の39944930803 / 39944930629成功後マージ。existing-root metadata helper、142合成アサーション（短縮名skip 0）を追加。既存PC-B予定volume証拠を拡張しない。
 - PR #14（13503f6）はstrict lock/recovery evidence、#13（41811bd）はsource reparse拒否、#12（3ae8b76）はhash handle identity、#11（e7d4e8e）は公開内部クラッシュ境界。各main両CI成功。
 - 利用者は優先順の継続と、最新HEADの必要検査成功後のマージを承認。初回確認後90秒間隔で最大5回再確認し、未完/失敗ならマージしない。
-- 新クローンのブランチ test/latest-manifest-recovery-integration。
+- 新クローンのブランチ docs/explicit-recovery-command-contract。
 
-## 現在の作業: 最新ディレクトリ選択と復旧分類の合成接続
+## 現在の作業: 明示回復コマンドの診断設計
 
-- PR #17はHEAD c4cc4dc749ca350655373386bd76584628536e76のValidate 39953762034 / Package 39953762033成功後マージ。main両CIも上記のとおり成功。read-only disk adapterは実装済み。正式入口ではない。
-- 新規tests/test_manifest_recovery_integration.pyの7件で、検証済み最新bytesだけを既存の純粋な復旧判定へ渡す接続を検証。最新runningと旧successの混在、最新failure、同率最大、旧候補破損、read不明、owner/Drive証拠未成立、snapshot後の変更を扱う。
-- tests/test_owned_publication_integration.pyの実Windows mutex放棄ケースも、定義済みPC別領域の実ファイル選択へ変更。肯定的な分類後でも通常取得は旧recordで停止し、record/manifest/成果物bytesを保持する。
-- ローカルPython 3.11.9: 全221件成功（既存symlink権限で2件skip）。新規7件と実mutex統合5件も個別成功。PowerShell 7.6.7。配布コード変更なし、Package ValidationはCIで確認する。CI登録・関連文書・引き継ぎを同じPRにまとめる。PR/最新HEAD CI・マージはこの記録時点では未確定。
-- 利用者は判断が必要な箇所までPR作成・必要検査成功後のマージを繰り返すことを承認（2026-10-23）。最新HEAD固定、90秒ごと最大5回確認、main両CI確認の条件を維持する。
-- 次は運用判断: [stale lock明示回復フロー案](../recovery-disposition-proposal.md)。推奨は通常同期の停止を維持し、独立した明示回復コマンドを設計する方式。未承認。通常取得への自動回復、旧lock削除/退避/引継ぎ、新run作成は追加していない。
-- approved-root権限/FS資格、任意の敵対的変更・metadata復元/利用までの保護、実clock信頼性、per-file/集約/Driveの全意味検証、owner終了証拠/永続disposition/正式復旧、Tier B/P0受け入れは未完了。実設定/実ログ/Driveへ触れず、PC-B部分証拠も拡張しない。
+- PR #18 HEAD 63243e6dc072c347738e9dc13f03fd93b42a93dfのValidate 39956606498 / Package 39956605650成功後マージ。mainも上記両CI成功。全Python221件成功（既存symlink権限で2件skip）。
+- 利用者は「専用の明示的回復コマンドを設計する」を承認（2026-10-23）。通常同期の停止を維持し、既定は読み取り専用の診断・計画表示。状態変更・本番適用の承認ではない。同じ判断を再確認しない。
+- [方針記録](../recovery-disposition-proposal.md)に回答を記録し、[診断設計契約](../explicit-recovery-command-design.md)を追加。入力/モード、取得前拒否、診断用mutex、秘匿化結果、非認可、DIAG-01〜10の未実行試験表を定義。
+- 現行acquire_owned_lockはrecordを作成/既存拒否するため診断に流用しない。診断用leaseが必要。abandoned通知消費後の再実行も安全条件に含む。
+- 文書変更のみ。実装/実行入口/設定/配布制御の変更なし。差分と文書リンクをローカル確認し、最新HEAD両CI確認後にPRをマージする。PR/CIは記録時点では未確定。
+- 次の確定範囲: 合成入力だけの診断結果モデルと秘匿化/拒否契約を実装、その後recordを作らない診断mutex leaseを合成試験。実read接続にはapproved-root/clock/終了証拠ゲートが必要。
+- 旧lock disposition方式/schema/保管・ACL・保持、永続process identity/終了証拠、正式復旧・本番入口は未確定/未実装。old recordや旧runningの変更、新run生成、Drive操作は追加しない。DIAG試験表も既存CI成功で完了扱いしない。
+- 判断が必要になるまでPR作成・最新HEAD両CI成功とclean確認後のマージを継続する承認あり。90秒間隔で最大5回再確認、main両CIとローカル同期を確認する。
 
 ## 設定基盤の完了範囲
 
@@ -52,7 +53,7 @@
 | 順位 | 現在地 | 次の具体作業 |
 |---|---|---|
 | 1: クラッシュ注入 | 成果物間の公開境界の合成ハーネス実装済み | 単一ファイル内部5境界×2公開対象と残骸拒否の合成検証はPR #11でマージ済み。電源断試験へ拡大解釈しない |
-| 2: 所有権/復旧/公開統合 | 合成統合証拠を追加済み | 最新候補選択コアはPR #16、read-only disk adapterはPR #17済み。復旧分類との合成接続を検証。回復入口方式は利用者判断待ち。stale記録の実運用回復、新run/fresh inventory生成、source-race/検証から利用までの保護は未完了。記録の自動削除/引き継ぎを勝手に実装しない |
+| 2: 所有権/復旧/公開統合 | 合成統合証拠を追加済み | 最新候補選択コアはPR #16、read-only disk adapterはPR #17済み。復旧分類との合成接続を検証。専用の明示的回復入口の設計方針は承認済み。診断設計を追加。stale記録の実運用回復、新run/fresh inventory生成、source-race/検証から利用までの保護は未完了。記録の自動削除/引き継ぎを勝手に実装しない |
 | 3: Tier B | PC-Bの29件部分証拠のみ | PC-Aの予定ボリュームで実行、残るadversarial FS/source-race/統合条件を収集。Tier B全体は未受け入れ |
 | 4: 設定/初期導入 | maintenanceLocalと構造ローダーはマージ済み | create-only補助処理はPR #10でマージ済み。物理root gate・正式導入入口・最終allowlist/移行は未完了 |
 | 5: Drive/IPC | 未実装・契約/認証の決定待ち | Python1呼出し1試行、PowerShell再試行、不明結果照合、metadataだけの検証拒否。OSD-05と契約条項を解決 |
