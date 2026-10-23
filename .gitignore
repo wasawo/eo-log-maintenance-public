@@ -22,3 +22,6 @@ __pycache__/
 
 # Fresh, test-only local-volume qualification roots (never runtime data)
 /eo-crash-harness-*/
+
+# Private recovery originals and runtime metadata (never source/package inputs)
+**/_maintenance/recovery-private/

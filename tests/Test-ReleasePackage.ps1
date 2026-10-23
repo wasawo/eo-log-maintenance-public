@@ -31,6 +31,7 @@ try {
         'tests',
         '.github/workflows',
         'runtime/manifests',
+        '_maintenance/recovery-private/synthetic',
         'contracts'
     )
     foreach ($path in $paths) {
@@ -44,6 +45,7 @@ try {
     Set-Content (Join-Path $fixture 'contracts/aggregation-report-v1.schema.json') '{}'
     Set-Content (Join-Path $fixture 'contracts/manifest-v1.schema.json') '{}'
     Set-Content (Join-Path $fixture 'contracts/run-input-evidence-v1.schema.json') '{}'
+    Set-Content (Join-Path $fixture 'contracts/private-recovery-evidence-v1.schema.json') '{}'
     Set-Content (Join-Path $fixture 'Config/PC-A.example.json') '{"machineId":"PC-A","role":"primary","runtimeRoot":"C:\\Example\\PCA\\Runtime","battleLogLocal":"C:\\Example\\PCA\\Source\\BattleLog","errorLogLocal":"C:\\Example\\PCA\\Source\\ErrorReport","battleLogDrive":"G:\\ExampleDrive\\SharedLogs\\BattleLog","errorLogDrive":"G:\\ExampleDrive\\SharedLogs\\ErrorReport","maintenanceDrive":"G:\\ExampleDrive\\SharedLogs\\_maintenance","battleLogArchive":"C:\\Example\\PCA\\Archive\\BattleLog","errorLogArchive":"C:\\Example\\PCA\\Archive\\ErrorReport","allowArchive":false,"maintenanceLocal":"C:\\Example\\PCA\\Maintenance"}'
     Set-Content (Join-Path $fixture 'Config/PC-B.example.json') '{"machineId":"PC-B","role":"secondary","runtimeRoot":"C:\\Example\\PCB\\Runtime","battleLogLocal":"C:\\Example\\PCB\\Source\\BattleLog","errorLogLocal":"C:\\Example\\PCB\\Source\\ErrorReport","battleLogDrive":"G:\\ExampleDrive\\SharedLogs\\BattleLog","errorLogDrive":"G:\\ExampleDrive\\SharedLogs\\ErrorReport","maintenanceDrive":"G:\\ExampleDrive\\SharedLogs\\_maintenance","maintenanceLocal":"C:\\Example\\PCB\\Maintenance"}'
     Set-Content (Join-Path $fixture 'scripts/README.md') '# Scripts'
@@ -64,11 +66,14 @@ try {
     Set-Content (Join-Path $fixture 'Common/ManifestDirectoryReader.py') '# Read-only directory reader'
     Set-Content (Join-Path $fixture 'Common/RecoveryDiagnostic.py') '# Pure diagnosis result model'
     Set-Content (Join-Path $fixture 'Common/RecoveryDiagnosticMutex.py') '# Record-free diagnostic mutex'
+    Set-Content (Join-Path $fixture 'Common/PrivateRecoveryEvidence.py') '# Private metadata byte-binding'
     Set-Content (Join-Path $fixture 'docs/design.md') 'must not ship'
     Set-Content (Join-Path $fixture 'tests/test.ps1') 'must not ship'
     Set-Content (Join-Path $fixture '.github/workflows/validate.yml') 'must not ship'
     Set-Content (Join-Path $fixture '.env') 'TOKEN=not-a-real-secret'
     Set-Content (Join-Path $fixture 'runtime/manifests/run.json') '{}'
+    Set-Content (Join-Path $fixture '_maintenance/recovery-private/synthetic/lock-record.bin') 'synthetic private original'
+    Set-Content (Join-Path $fixture '_maintenance/recovery-private/synthetic/evidence.json') '{}'
 
     # The retired legacy entry point alone must never make a package deployable.
     $legacyOnlyBlocked = $false
@@ -111,6 +116,7 @@ try {
         'contracts/aggregation-report-v1.schema.json',
         'contracts/manifest-v1.schema.json',
         'contracts/run-input-evidence-v1.schema.json',
+        'contracts/private-recovery-evidence-v1.schema.json',
         'Config/PC-A.example.json',
         'Config/PC-B.example.json',
         'scripts/README.md',
@@ -131,6 +137,7 @@ try {
         'Common/ManifestDirectoryReader.py'
         'Common/RecoveryDiagnostic.py'
         'Common/RecoveryDiagnosticMutex.py'
+        'Common/PrivateRecoveryEvidence.py'
     )) {
         Assert-True ($expected -in $entries) "Expected allowlisted file missing from ZIP: $expected"
     }
@@ -142,7 +149,9 @@ try {
         '.github/workflows/validate.yml',
         'Config/PC-A.json',
         '.env',
-        'runtime/manifests/run.json'
+        'runtime/manifests/run.json',
+        '_maintenance/recovery-private/synthetic/lock-record.bin',
+        '_maintenance/recovery-private/synthetic/evidence.json'
     )) {
         Assert-True ($excluded -notin $entries) "Excluded file leaked into ZIP: $excluded"
     }

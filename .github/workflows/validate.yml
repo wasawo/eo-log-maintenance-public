@@ -81,6 +81,7 @@ jobs:
           python -m unittest discover -s tests -p "test_manifest_recovery_integration.py" -v
           python -m unittest discover -s tests -p "test_recovery_diagnostic.py" -v
           python -m unittest discover -s tests -p "test_recovery_diagnostic_mutex.py" -v
+          python -m unittest discover -s tests -p "test_private_recovery_evidence.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_recovery.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_publication.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_directory_verification.py" -v

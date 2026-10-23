@@ -1,9 +1,9 @@
 # 回復証拠の非公開保管方針（判断案）
 
-状態: 利用者判断待ち。保存コード・ACL変更・実設定変更・回復操作は未実装。
+状態: maintenanceLocal内の非公開保全・当面自動削除なしの設計方針は利用者承認済み（2026-10-23）。実保存・ACL変更・実設定変更・回復操作は未実装。
 関連: [owner証拠契約](recovery-owner-evidence-v2-contract.md)、[明示回復設計](explicit-recovery-command-design.md)。
 
-## 判断する運用方針
+## 承認された運用方針
 
 推奨は、各PCの既存maintenanceLocal配下の非公開領域に、旧lock原本bytesと診断/回復の証拠を保全する方式。
 新しい実パスの手入力は増やさず、設定のmaintenanceLocalから導出する。具体subdirectory/schemaは別途厳密化する。
@@ -21,7 +21,8 @@
 この承認は保管方針の承認だけで、旧lockの削除/退避/引継ぎ、原本の実保存、本番導入、source/Drive/archive操作を許可しない。
 保存schema、ACL実装、対象固定、disposition protocol、中断/再実行は引き続き未実装・要検証。
 
-## 選択肢
+## 利用者判断（2026-10-23）
 
-1. 推奨: maintenanceLocal内で原本を非公開保全し、当面は自動削除なしの方針で設計を進める。
-2. 原本の保管範囲・アクセス主体・保持期間を先に個別に検討する。
+「maintenanceLocal内で非公開保全・自動削除なしを設計する（推奨）」を選択した。
+同じ方針を再確認しない。保存やACL変更・旧lock処分・本番適用の承認には拡張しない。
+具体化した[private証拠の保存契約](recovery-private-evidence-contract.md)を参照。

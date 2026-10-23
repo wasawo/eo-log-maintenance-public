@@ -40,7 +40,8 @@ $requiredFiles = @(
     'requirements-runtime.txt',
     'contracts/aggregation-report-v1.schema.json',
     'contracts/manifest-v1.schema.json',
-    'contracts/run-input-evidence-v1.schema.json'
+    'contracts/run-input-evidence-v1.schema.json',
+    'contracts/private-recovery-evidence-v1.schema.json'
 )
 
 foreach ($relative in $requiredFiles) {
