@@ -244,3 +244,5 @@ Source reparse regressions: python -m unittest discover -s tests -p test_source_
 Strict lock/recovery regressions run in the existing test_owned_run_lock.py, test_crash_recovery_decision.py and test_owned_publication_integration.py suites. They cover duplicate JSON, boolean/integer confusion, invalid state types, record byte preservation and real-mutex normal release while the publisher remains alive.
 
 Run pwsh -NoProfile -File tests/Test-MachineConfigurationRootInspection.ps1 for both-PC OS-temp metadata checks, real junction/available short-name fixtures and injected canonical aliases. The script reports unavailable 8.3 checks as skips. No real configs or production roots are used.
+
+Run python -m unittest discover -s tests -p test_latest_manifest_selection.py -v for 32 in-memory C4 naming/identity/ambiguity/no-fallback/time regressions. No filesystem enumeration or production data is used.

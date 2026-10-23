@@ -60,6 +60,7 @@ try {
     Set-Content (Join-Path $fixture 'Common/AggregationReferencedArtifacts.ps1') '# Referenced artifact schema validation entry point'
     Set-Content (Join-Path $fixture 'Common/validate_aggregation_artifacts.py') '# referenced artifact validator'
     Set-Content (Join-Path $fixture 'Common/RunInputEvidenceIntegrity.py') '# A2/B2 evidence integrity validator'
+    Set-Content (Join-Path $fixture 'Common/LatestManifestSelection.py') '# Latest manifest selection core'
     Set-Content (Join-Path $fixture 'docs/design.md') 'must not ship'
     Set-Content (Join-Path $fixture 'tests/test.ps1') 'must not ship'
     Set-Content (Join-Path $fixture '.github/workflows/validate.yml') 'must not ship'
@@ -122,7 +123,8 @@ try {
         'Common/AggregationArtifactReference.ps1',
         'Common/AggregationReferencedArtifacts.ps1',
         'Common/validate_aggregation_artifacts.py',
-        'Common/RunInputEvidenceIntegrity.py'
+        'Common/RunInputEvidenceIntegrity.py',
+        'Common/LatestManifestSelection.py'
     )) {
         Assert-True ($expected -in $entries) "Expected allowlisted file missing from ZIP: $expected"
     }

@@ -164,3 +164,7 @@ arbitrary external writers, validated stale-lock disposition, or complete REC-04
 new-run/fresh-inventory integration. LOCK/REC and P0 acceptance remain open.
 
 [PC-B strict-lock follow-up](../tests/evidence/pc-b-lock-validation-local-volume-20261023.json) records 29 passing disposable-root checks without skips at source 302682abb7fd3b45b6745247dfa5297542f81c4b on the intended local fixed NTFS volume. This adds real-mutex malformed-record preservation/release to earlier crash/reparse cases. Pure lock/recovery unit regressions are covered separately by the full Python suite. Complete Tier B and operational recovery remain unaccepted.
+
+## Latest candidate selection evidence (2026-10-23)
+
+The read-only [C4 core](latest-manifest-selection.md) independently parses the defined filename and selects only a unique validated latest start time. It rejects ambiguous/malformed/unreadable candidates and never falls back from a newer incomplete run to old success. It does not enumerate/read operational manifests, establish owner termination, dispose stale locks or start a new run; REC-04/REC-07 runtime acceptance remains open.

@@ -76,6 +76,7 @@ jobs:
           python -m unittest discover -s tests -p "test_atomic_artifact_publication.py" -v
           python -m unittest discover -s tests -p "test_owned_run_lock.py" -v
           python -m unittest discover -s tests -p "test_crash_recovery_decision.py" -v
+          python -m unittest discover -s tests -p "test_latest_manifest_selection.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_recovery.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_publication.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_directory_verification.py" -v

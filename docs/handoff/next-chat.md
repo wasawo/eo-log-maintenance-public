@@ -8,21 +8,21 @@
 
 ## 最新基準
 
-- 基準main: 13503f67d9480ad101988ca03060ab180f9a1b59（PR #14マージ）。
-- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39942614538) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39942614616) 成功を照合。
-- PR #14 HEAD 037bb888b8870e0bd01e8cdc61e71e429a2b1f52 の39942366979 / 39942366986成功後マージ。重複JSON/不正型lock保全、復旧証拠拒否、実mutex正常解放を検証。PC-B予定NTFSの29件部分証拠は tests/evidence/pc-b-lock-validation-local-volume-20261023.json。
-- PR #13（41811bd）はsource reparse拒否、#12（3ae8b76）はhash handle identity、#11（e7d4e8e）は公開内部クラッシュ境界を追加してマージ済み。各main両CI成功。
+- 基準main: c4f7c7c2d7a43ce857659ad17a473b806a08f67b（PR #15マージ）。
+- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39945216463) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39945216513) 成功を照合。
+- PR #15 HEAD f82aa2860ab3510a9002bc5bb771a3f0a48badb5 の39944930803 / 39944930629成功後マージ。existing-root metadata helper、142合成アサーション（短縮名skip 0）を追加。既存PC-B予定volume証拠を拡張しない。
+- PR #14（13503f6）はstrict lock/recovery evidence、#13（41811bd）はsource reparse拒否、#12（3ae8b76）はhash handle identity、#11（e7d4e8e）は公開内部クラッシュ境界。各main両CI成功。
 - 利用者は優先順の継続と、最新HEADの必要検査成功後のマージを承認。初回確認後90秒間隔で最大5回再確認し、未完/失敗ならマージしない。
-- 新クローンのブランチ feat/read-only-configuration-root-inspection。
+- 新クローンのブランチ feat/latest-manifest-selection-core。
 
-## 現在の作業: 既存設定rootの読み取り専用metadata検査
+## 現在の作業: C4最新manifest選択コア
 
-- Common/MachineConfigurationRootInspection.ps1を追加。strict parser後、既存directory/ancestorを検査。metadata-only OPEN_EXISTING handleのdirectory/reparse属性とnormalized volume-GUID pathを取得しmaintenanceLocalと他rootの同一/包含を拒否。
-- 不存在/ファイルroot/reparse/取得不能/非対応providerは固定reasonで拒否。公開結果はStatus/MachineId/RootCountのみ。実設定・root生成・内容読込・書込・lock/Drive/archive/正式入口接続なし。
-- 両PCの新規OS-temp合成領域で142アサーション成功、8.3 fixtureスキップ0。実junction、実8.3 canonical一致、字句上disjointな注入canonical同一/親/子・metadata失敗、sentinel保全と無生成を検証。
-- 既存構造285アサーション、bootstrap22アサーション、配布回帰とPowerShell構文/利用可能Analyzerチェックも成功。CI登録・配布fixture・仕様/README/P0/引き継ぎを同じPRへ追加。
-- 最新HEAD CI・PR/マージは未確定。今回のOS-temp検証を、既存PC-B予定volumeのTier B証拠へ拡張しない。
-- approved-root authority/FS-provider allowlist、任意の敵対的namespace変更と最後の確認後の保護、他alias方式/実Drive/PC-A予定volume資格確認、stale disposition/正式復旧、Tier B/P0全体は未完了。
+- Common/LatestManifestSelection.py: EOLM-MAN-002/staging-file-lifecycle既定のPC-ID_LogType_TargetPeriod_run_id.jsonを独立解析し、schema-valid JSONと識別情報を照合する。ファイル名書式を新設しない。
+- 呼出元が完全な候補read観測を供給。全候補を検証し、started_at_utcの一意最大だけ選択。malformed/read不明/重複key/同run衝突/同率最大/範囲不一致は拒否。最新のrunning/partial_failure/failureから旧successへ後退しない。
+- run時刻UTC/未来5分初期許容（引数で設定）/終了前後関係を検証。信頼できる現在UTCを取得できない場合は拒否。小数最大11桁を保持し、歴史manifestに24時間expiryを適用しない。
+- 新規32テスト成功。入力bytes保全、両PC/log種別、名前/JSON不一致、不正/読取失敗、曖昧性、fallback禁止、時刻/最大精度、固定reasonと通常traceback非漏えいを検証。配布回帰も成功。
+- 全Python195テスト成功、既存symlink権限で2件スキップ。最新HEAD CI・PR/マージは未確定。CI・配布fixture・仕様・要件対応・引き継ぎを同じPRへ追加。
+- 選択結果はindex/run_id/宣言statusのみで認可ではない。ディスク列挙/read/TOCTOU・root紐付け、実clock信頼性、per-file/集約/Driveの全意味検証、stale disposition/新run・正式復旧、Tier B/P0受け入れは未完了。実ログ/Driveへ触れない。
 
 ## 設定基盤の完了範囲
 
@@ -51,7 +51,7 @@
 | 順位 | 現在地 | 次の具体作業 |
 |---|---|---|
 | 1: クラッシュ注入 | 成果物間の公開境界の合成ハーネス実装済み | 単一ファイル内部5境界×2公開対象と残骸拒否の合成検証はPR #11でマージ済み。電源断試験へ拡大解釈しない |
-| 2: 所有権/復旧/公開統合 | 合成統合証拠を追加済み | stale記録の実運用回復、新run/fresh inventory生成、source-race/検証から利用までの保護は未完了。記録の自動削除/引き継ぎを勝手に実装しない |
+| 2: 所有権/復旧/公開統合 | 合成統合証拠を追加済み | 最新候補選択コアを追加中。stale記録の実運用回復、新run/fresh inventory生成、source-race/検証から利用までの保護は未完了。記録の自動削除/引き継ぎを勝手に実装しない |
 | 3: Tier B | PC-Bの29件部分証拠のみ | PC-Aの予定ボリュームで実行、残るadversarial FS/source-race/統合条件を収集。Tier B全体は未受け入れ |
 | 4: 設定/初期導入 | maintenanceLocalと構造ローダーはマージ済み | create-only補助処理はPR #10でマージ済み。物理root gate・正式導入入口・最終allowlist/移行は未完了 |
 | 5: Drive/IPC | 未実装・契約/認証の決定待ち | Python1呼出し1試行、PowerShell再試行、不明結果照合、metadataだけの検証拒否。OSD-05と契約条項を解決 |

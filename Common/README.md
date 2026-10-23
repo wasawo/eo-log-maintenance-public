@@ -75,3 +75,5 @@ Source inventory rejects lstat symlink/reparse root/ancestors, rechecks queued d
 Lock/recovery evidence parsing rejects duplicate JSON keys and wrong primitive types; malformed lock records are preserved while the mutex is released. See [strict evidence scope](../docs/lock-recovery-acceptance-gate.md#strict-lock-and-recovery-evidence-2026-10-23). This does not implement stale-lock disposition or operational recovery.
 
 MachineConfigurationRootInspection.ps1 adds opt-in read-only metadata inspection of existing configuration roots. It is not runtime authorization; see [configuration scope](../docs/configuration-local-root.md#read-only-existing-root-metadata-inspection).
+
+LatestManifestSelection.py independently parses the defined manifest basename and selects a unique validated latest start time from supplied observations. It never falls back to old success. See [selection scope and gates](../docs/latest-manifest-selection.md).
