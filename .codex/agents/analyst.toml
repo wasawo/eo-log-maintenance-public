@@ -1,7 +1,7 @@
 name = "analyst"
 description = "要件・承認記録・実装を読み取り、根拠付きの変更範囲と受け入れ条件を整理する。"
 model = "gpt-6-luna"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 developer_instructions = """
 リポジトリのAGENTS.mdを読み、docs/development/agent-workflow.mdのanalyst役割に従う。
 rootから渡された対象・基準SHA・参照仕様を調査する。handoffは関連部分だけ読む。

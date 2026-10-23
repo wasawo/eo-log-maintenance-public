@@ -185,23 +185,23 @@ All cases require synthetic fixtures, injected process/clock state, and explicit
 
 ## 10. OSD-04 Dry Run提案用受け入れfixture計画（未実装・未実行）
 
-対象は[非規範のA/B判断案](../decisions/dry-run-side-effect-policy-proposal.md)。**A/B未選択、以下のDRY fixtureは未実装・未実行**であり、既存helperのテスト結果や本書の既存シナリオを成功証拠として転用しない。選択後に規範契約と期待値をレビューしてから実装する。
+対象は[利用者承認済みのA方針](../decisions/dry-run-side-effect-policy-proposal.md)。**Aを採用、以下のDRY fixtureは未実装・未実行**であり、既存helperのテスト結果や本書の既存シナリオを成功証拠として転用しない。規範契約とAの期待値を照合してから実装する。Bの書込みを許すテストは採用しない。
 
 合成データ・隔離領域・mockのみを使う。fixtureごとに元ログ、archive、Drive同期領域、maintenanceLocal（運用manifest/report/frozen inventory/marker/lock/private証拠/budget/scheduler状態を含む）、config、credential/temp領域のbefore/afterを採取する。相対名・存在・bytes/hash・適用可能なACL/所有者を比較し、アプリのcreate/write/rename/delete/ACL変更の呼出しも捕捉する。最終snapshot一致だけでは途中の書込み後削除を見逃すため、呼出し履歴と併用する。OS自動atime等は別観測とし、物理書込みzeroの証明にしない。
 
-mock Driveのbefore/afterと呼出し履歴を照合し、mutation、upload、download bytes取得が0回であることを確認する。liveネットワーク・認証refresh/storeを拒否するmockも使う。Bの許容差分は診断専用reportと所有一時物だけに限定し、cleanup前の履歴も検査する。診断は入力由来・観測時点・未検証状態を保ち、runtime authorizationやcloud内容確認済みへ変換されないことを確認する。
+mock Driveのbefore/afterと呼出し履歴を照合し、mutation、upload、download bytes取得が0回であることを確認する。liveネットワーク・認証refresh/storeを拒否するmockも使う。Aでは診断report・一時物・cleanupも許さず、途中書込みを含め履歴を検査する。診断は入力由来・観測時点・未検証状態を保ち、runtime authorizationやcloud内容確認済みへ変換されないことを確認する。
 
-| 新規ID | 既存シナリオとの対応 | fixture / 注入条件 | 選択後に検証する期待結果 |
+| 新規ID | 既存シナリオとの対応 | fixture / 注入条件 | 承認済みAで検証する期待結果 |
 |---|---|---|---|
-| DRY-01 | ARC-01、SYNC-01/08、MAN-01/08 | PC-A sync/archive候補、PC-B sync候補、正常/0件を各案で実行 | 予定操作のみ。元/Drive/archive無変更、mutation/download呼出し0。運用run・成功manifest・完了状態を作らない |
+| DRY-01 | ARC-01、SYNC-01/08、MAN-01/08 | PC-A sync/archive候補、PC-B sync候補、正常/0件をAで実行 | 予定操作のみ。元/Drive/archive無変更、mutation/download呼出し0。運用run・成功manifest・完了状態を作らない |
 | DRY-02 | MAN-02–10、REC-01/02/04 | 既存manifest/report/frozen inventory/private原本、成功・不正・欠落を配置 | 運用証拠を作成・修復・再生成・削除しない。既存private原本を保持し、0件も運用成功にしない |
 | DRY-03 | LOCK-03–08/10、REC-03/08 | live/stale/不正/別ownerのordinary lock record、abandoned診断mutex | record作成・heartbeat・解除・stale処分0。自動回復・新run0。abandoned/所有不明は停止、既存物不変 |
 | DRY-04 | LOCK-02/09、IPC-05 | writerとの同時起動、mutex取得失敗、読取り中の証拠/経路変更 | 安定した観測を保証できなければ保留。writerの所有権を奪わず、timeoutで運用stateを書かない |
 | DRY-05 | ARC-04/05、IPC-01–04 | PC-B archive要求、役割偽装、無効config、未作成config/root、root分離/ACL/reparse不正 | ファイル/Drive変更前に拒否。bootstrap、directory作成、既存ACL修復なし。PC-Bにarchive能力を追加しない |
 | DRY-06 | SYNC-08–11、REC-05/06 | hashなし、曖昧/不完全metadata、供給snapshot、refresh必須credential | download fallback・live認証0、未検証を維持。snapshotを現在cloud内容の証拠にしない。OSD-05未解決中はlive readも0 |
 | DRY-07 | IPC-01–06 | Aで通常IPC/log/temp/cache書込みを要求する依存、模擬token例外 | ファイル書込み呼出し0。ファイル不要経路が不成立なら停止。stdout JSON 1件とstderr分離を維持し、秘密を出さない |
-| DRY-08 | IPC-05/06、REC-01/08 | Bの診断report新規作成、衝突、disk/ACL失敗、途中強制終了 | 許可領域の専用診断だけ。既存上書き0、運用成功0。失敗/異常残骸を保留しprivate原本を保持 |
-| DRY-09 | LOCK-03、REC-01/08 | Bの所有一時物、他owner物、古い残骸、cleanup直前path差替え | 当該実行所有が確認できた一時物だけcleanup。所有不明・race・異常残骸は保留。private/元ログ/Driveへのcleanup 0 |
+| DRY-08 | IPC-05/06、REC-01/08 | 未採用Bのreport/temp出力をAで要求、衝突、disk/ACL失敗、途中強制終了 | report/temp作成・上書き0。書込みへfallbackせず停止。運用成功0、既存private原本・証拠を保持 |
+| DRY-09 | LOCK-03、REC-01/08 | 過去の診断一時物、他owner物、古い残骸、cleanup要求とpath差替え | Aでは所有が確認できてもcleanup 0。残骸を保持し状態を報告。private/元ログ/Drive無変更 |
 | DRY-10 | MAN-08–10、ARC-01 | confirmation budgetとscheduler完了記録を配置し、診断成功/失敗/0件/再実行 | 予算消費/reset・完了更新0。診断IDを運用runに流用せず、後続実処理はその時点で再検証 |
 
 各実行では選択案、実装SHA、fixture版、mock呼出し数、before/after差分、途中失敗・role/race負例の結果、未確認範囲を公開可能な合成証拠として記録する。既存LOCK/RECの運用record作成・回復やSYNC-10のdownload期待値をDry Runへ流用しない。本節はその差分を検証する計画であり、テスト成功、実環境FS耐久性、cloud同期、Phase 1/7またはP0受け入れの証明ではない。

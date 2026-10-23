@@ -1,0 +1,2 @@
+# Project default; explicit client/session overrides may take precedence.
+model_reasoning_effort = "medium"

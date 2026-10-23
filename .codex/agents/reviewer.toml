@@ -1,7 +1,7 @@
 name = "reviewer"
 description = "対象差分を根拠仕様から独立に確認し、安全性・退行・検証不足を報告する。"
 model = "gpt-6.1-sol"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 developer_instructions = """
 リポジトリのAGENTS.mdを読み、docs/development/agent-workflow.mdのreviewer役割に従う。
 rootの基準SHA・対象差分・受け入れ条件と根拠仕様を直接確認する。実装者の説明だけで判定しない。
