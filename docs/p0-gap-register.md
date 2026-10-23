@@ -264,3 +264,5 @@ Read-only directory slice (2026-10-23): ManifestDirectoryReader adds fixed per-P
 Recovery composition slice (2026-10-23): seven synthetic latest-directory/classifier tests and the existing real Windows abandonment scenario now use checked byte snapshots. Read ambiguity and latest failure block classification; stale acquisition still blocks after a positive decision. Snapshot-to-use protection and actual disposition/new-run creation remain incomplete. P0-010/P0-012 stay open.
 
 Explicit recovery design (2026-10-23): the dedicated-command direction is approved, with normal sync refusal retained. [Diagnosis/planning contract](explicit-recovery-command-design.md) defines DIAG-01 through DIAG-10 as pending tests, not executed evidence. No stale-lock state change or runtime entrypoint is added. P0-010/P0-012 remain open.
+
+Recovery diagnostic model slice (2026-10-23): a pure non-authorizing result model accepts explicit fixed gate observations and exports allowlisted scope/reasons only. Twelve synthetic boundary tests do not establish real evidence acquisition, diagnostic mutex lifecycle, the full DIAG command matrix, runtime acceptance or P0 closure.

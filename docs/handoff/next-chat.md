@@ -8,22 +8,22 @@
 
 ## 最新基準
 
-- 基準main: 73f1f08bffd0d0aed9b41a4fdf3d0cd7234e621c（PR #18マージ）。
-- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39956847085) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39956847101) 成功を照合。
+- 基準main: d8518bc147457d532a10fd83431a3a97d6af63a1（PR #19マージ）。
+- mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39957787124) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/39957787213) 成功を照合。
 - PR #15 HEAD f82aa2860ab3510a9002bc5bb771a3f0a48badb5 の39944930803 / 39944930629成功後マージ。existing-root metadata helper、142合成アサーション（短縮名skip 0）を追加。既存PC-B予定volume証拠を拡張しない。
 - PR #14（13503f6）はstrict lock/recovery evidence、#13（41811bd）はsource reparse拒否、#12（3ae8b76）はhash handle identity、#11（e7d4e8e）は公開内部クラッシュ境界。各main両CI成功。
 - 利用者は優先順の継続と、最新HEADの必要検査成功後のマージを承認。初回確認後90秒間隔で最大5回再確認し、未完/失敗ならマージしない。
-- 新クローンのブランチ docs/explicit-recovery-command-contract。
+- 新クローンのブランチ feat/recovery-diagnostic-result-model。
 
-## 現在の作業: 明示回復コマンドの診断設計
+## 現在の作業: 非認可の診断結果モデル
 
-- PR #18 HEAD 63243e6dc072c347738e9dc13f03fd93b42a93dfのValidate 39956606498 / Package 39956605650成功後マージ。mainも上記両CI成功。全Python221件成功（既存symlink権限で2件skip）。
-- 利用者は「専用の明示的回復コマンドを設計する」を承認（2026-10-23）。通常同期の停止を維持し、既定は読み取り専用の診断・計画表示。状態変更・本番適用の承認ではない。同じ判断を再確認しない。
-- [方針記録](../recovery-disposition-proposal.md)に回答を記録し、[診断設計契約](../explicit-recovery-command-design.md)を追加。入力/モード、取得前拒否、診断用mutex、秘匿化結果、非認可、DIAG-01〜10の未実行試験表を定義。
-- 現行acquire_owned_lockはrecordを作成/既存拒否するため診断に流用しない。診断用leaseが必要。abandoned通知消費後の再実行も安全条件に含む。
-- 文書変更のみ。実装/実行入口/設定/配布制御の変更なし。差分と文書リンクをローカル確認し、最新HEAD両CI確認後にPRをマージする。PR/CIは記録時点では未確定。
-- 次の確定範囲: 合成入力だけの診断結果モデルと秘匿化/拒否契約を実装、その後recordを作らない診断mutex leaseを合成試験。実read接続にはapproved-root/clock/終了証拠ゲートが必要。
-- 旧lock disposition方式/schema/保管・ACL・保持、永続process identity/終了証拠、正式復旧・本番入口は未確定/未実装。old recordや旧runningの変更、新run生成、Drive操作は追加しない。DIAG試験表も既存CI成功で完了扱いしない。
+- PR #19 HEAD 8a42a660c896ddc6e7f41fc84d6e1edf804a499eのValidate 39957514755 / Package 39957514738成功後マージ。mainも上記両CI成功。
+- 利用者承認済み: 専用の明示的回復コマンドを設計、通常同期の停止を維持、既定は診断・計画表示。状態変更・本番適用の承認ではない。同じ判断を再確認しない。
+- Common/RecoveryDiagnostic.py: 8種の固定gate観測を全て要求。不足/不明/失敗は固定reasonのblocked、全充足入力もreview_requiredにとどめる。may_change_stateは常にfalse。入力値の真偽を証明するものではない。
+- 不変resultと公開projectionを検証し、raw record/path/token/host/PIDや自由文を受け入れず、直接構築・export時も拒否する。実I/O/正式入口/CLI/永続disposition schemaを追加しない。
+- 新規12合成テスト成功。Python 3.11.9全233件成功（既存symlink権限で2件skip）、PowerShell 7.6.7配布回帰成功。CIはPython 3.12。CI・配布fixture・関連設計・引き継ぎを同じPRへ含める。PR/最新HEAD CIは記録時点で未確定。
+- 次の確定範囲: recordを作らない診断用mutex leaseと例外時解放・abandoned通知消費の合成試験。その後root/clock/owner終了証拠を満たすまで実read/正式入口へ接続しない。
+- 旧lock disposition方式/schema/保管・ACL・保持、永続process identity/終了証拠、正式復旧・本番入口は未確定/未実装。旧lock/旧running変更、新run生成、Drive操作は追加しない。DIAG全試験表/P0/Tier Bは未完了。
 - 判断が必要になるまでPR作成・最新HEAD両CI成功とclean確認後のマージを継続する承認あり。90秒間隔で最大5回再確認、main両CIとローカル同期を確認する。
 
 ## 設定基盤の完了範囲
