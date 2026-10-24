@@ -6,6 +6,8 @@
 
 ## Findings requiring resolution before adapter implementation
 
+C-01/C-02の独立した選択表・具体的result候補・移行判断は [IPCパス・操作別resultの判断資料](../decisions/c01-c02-ipc-contract-options.md) を参照。未承認の比較資料であり、本表の解決・承認状態は変更しない。
+
 | ID | Observation | Risk / consequence | Proposed disposition | Approval needed? |
 |---|---|---|---|---|
 | C-01 | The prose contract says `local_path` and `staging_path` must be absolute Windows paths and be checked against configured allow-roots. The request schema only requires strings of minimum length; schema tests accept ordinary drive-rooted examples but do not reject relative paths. | A schema-valid request may still contain a relative or out-of-policy path. Runtime validation remains mandatory even if the schema is strengthened. | Decide whether schema validation will enforce drive-rooted paths only, drive-rooted plus UNC paths, or leave path syntax to the adapter while requiring allow-root validation in PowerShell and Python. Then add positive and negative cases. | Yes: path policy |

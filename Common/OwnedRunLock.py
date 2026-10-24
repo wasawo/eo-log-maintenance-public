@@ -9,6 +9,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 import ctypes
 import json
+import math
 import os
 from pathlib import Path
 import secrets
@@ -81,7 +82,8 @@ class _NamedMutex:
 
     def close(self) -> None:
         if self._handle:
-            self._kernel32.CloseHandle(self._handle)
+            if not self._kernel32.CloseHandle(self._handle):
+                raise LockAcquisitionError("named_mutex_close_failed")
             self._handle = None
 
 
@@ -161,6 +163,8 @@ def acquire_owned_lock(
         raise LockAcquisitionError("timeout_invalid")
     if timeout_seconds < 0 or timeout_seconds > 60:
         raise LockAcquisitionError("timeout_out_of_range")
+    if not math.isfinite(timeout_seconds):
+        raise LockAcquisitionError("timeout_invalid")
 
     token = token_factory()
     if not isinstance(token, str) or len(token) < 32:

@@ -5,8 +5,9 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import Mock
 
-from Common.OwnedRunLock import LockAcquisitionError, acquire_owned_lock
+from Common.OwnedRunLock import LockAcquisitionError, _NamedMutex, acquire_owned_lock
 
 
 class FakeMutex:
@@ -27,6 +28,33 @@ class FakeMutex:
 
     def close(self):
         self.closed = True
+
+
+class NamedMutexCloseTests(unittest.TestCase):
+    def test_success_clears_handle_and_second_close_is_noop(self):
+        for result in (1, 7):  # Win32 BOOL accepts any nonzero success value.
+            with self.subTest(result=result):
+                mutex = _NamedMutex.__new__(_NamedMutex)
+                mutex._handle = 123
+                mutex._kernel32 = Mock()
+                mutex._kernel32.CloseHandle.return_value = result
+                mutex.close()
+                self.assertIsNone(mutex._handle)
+                mutex.close()
+                mutex._kernel32.CloseHandle.assert_called_once_with(123)
+
+    def test_failure_preserves_handle_and_does_not_retry(self):
+        mutex = _NamedMutex.__new__(_NamedMutex)
+        mutex._handle = 123
+        mutex._kernel32 = Mock()
+        mutex._kernel32.CloseHandle.return_value = 0
+        with self.assertRaises(LockAcquisitionError) as caught:
+            mutex.close()
+        self.assertEqual("named_mutex_close_failed", caught.exception.reason_code)
+        self.assertEqual("named_mutex_close_failed", str(caught.exception))
+        self.assertEqual(123, mutex._handle)
+        mutex._kernel32.CloseHandle.assert_called_once_with(123)
+        self.assertEqual(1, len(mutex._kernel32.method_calls))
 
 
 class OwnedRunLockTests(unittest.TestCase):
@@ -122,6 +150,51 @@ class OwnedRunLockTests(unittest.TestCase):
             with acquire_owned_lock("PC-A", self.path, 60.1, mutex_factory=self.factory()):
                 self.fail("must not enter critical section")
         self.assertEqual(self.mutexes, [])
+
+    def test_invalid_timeout_never_prepares_path_token_or_mutex(self):
+        for timeout, reason in (
+            (float("nan"), "timeout_invalid"),
+            (float("inf"), "timeout_out_of_range"),
+            (float("-inf"), "timeout_out_of_range"),
+            (10 ** 1000, "timeout_out_of_range"),
+            (-1, "timeout_out_of_range"),
+            (True, "timeout_invalid"),
+            ("60", "timeout_invalid"),
+        ):
+            with self.subTest(reason=reason, timeout_type=type(timeout).__name__):
+                path_calls = []
+
+                class UnpreparedPath:
+                    def __fspath__(self):
+                        path_calls.append("path_conversion")
+                        raise AssertionError("path_must_not_be_prepared")
+
+                factory = Mock(side_effect=AssertionError("mutex_must_not_be_created"))
+                token_factory = Mock(side_effect=AssertionError("token_must_not_be_created"))
+                with self.assertRaises(LockAcquisitionError) as caught:
+                    with acquire_owned_lock(
+                        "PC-A", UnpreparedPath(), timeout, mutex_factory=factory,
+                        token_factory=token_factory,
+                    ):
+                        self.fail("must not enter critical section")
+                self.assertEqual(reason, caught.exception.reason_code)
+                self.assertEqual(reason, str(caught.exception))
+                self.assertEqual([], path_calls)
+                factory.assert_not_called()
+                token_factory.assert_not_called()
+
+    def test_finite_timeout_boundaries_reach_mutex_and_release_owned_record(self):
+        for timeout in (0, 0.25, 60):
+            with self.subTest(timeout=timeout):
+                with acquire_owned_lock(
+                    "PC-A", self.path, timeout, mutex_factory=self.factory(),
+                    token_factory=lambda: "a" * 64,
+                ):
+                    self.assertTrue(self.path.is_file())
+                    self.assertEqual(timeout, self.mutexes[-1].timeout)
+                self.assertFalse(self.path.exists())
+                self.assertTrue(self.mutexes[-1].released)
+                self.assertTrue(self.mutexes[-1].closed)
 
     def test_token_factory_output_must_be_unpredictable_length(self):
         with self.assertRaisesRegex(LockAcquisitionError, "owner_token_invalid"):

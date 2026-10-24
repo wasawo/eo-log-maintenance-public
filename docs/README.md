@@ -80,6 +80,7 @@ docs/
 ### 承認記録・判断案・比較検討（承認状態は本文参照）
 
 - [Aggregation Inventory Integrity — Decision Options](decisions/aggregation-inventory-integrity-options.md)
+- [C-01/C-02: IPCパス・操作別resultの判断資料](decisions/c01-c02-ipc-contract-options.md)
 - [C-45 event identity conflict handling options](decisions/c45-event-identity-conflict-options.md)
 - [C-50 structured condition input model — non-normative proposal](decisions/c50-condition-input-model-options.md)
 - [C-51 structured processing-context input model options](decisions/c51-context-input-model-options.md)
@@ -126,3 +127,5 @@ docs/
 - [現在の進捗・次の作業](handoff/next-chat.md)
 - [AGENTS導入前の履歴](handoff/archive/pre-agents-history.md)
 - [2026-10-23までの検証・マージ記録](handoff/archive/validation-history-20261023.md)
+
+- [2026-10-24のPR #27〜33前後セッション記録](handoff/archive/pr27-pr33-session-history-20261024.md)
