@@ -193,6 +193,8 @@ Python は標準出力に、UTF-8 の JSON オブジェクトを 1 件だけ出�
 
 ## 7. 再試行と冪等性
 
+実装slice：`Common/DriveResponseSemantics.ps1` はcallerが渡すdecoded IDictionaryと期待request ID/operation、int/long/BigInteger exitを純粋に比較し、ordinal相関と§6のexit/envelope/error-code対応を固定Status/ReasonCodeで返す。`consistent` はこの限定対応だけの判定で、操作別resultの正しさ、運用続行、retry、cloud検証の認可ではない。retryableはbool型のみを確認し、true/falseとcodeの厳密truth tableは実装しない。transport/UTF-8/JSON一件/重複key/schema（未知field・UUID構文等）検証と実request由来期待値の確保はcaller側の未実装ゲート。C-01/C-02、C-05の残りとRETRY-02、IPC全体・runtime受け入れは未完了であり、本注記は規範の再試行方針を変更しない。
+
 - 再試行の唯一の所有者はPowerShellとする。初回を含む最大4回とし、失敗後の待機は1分・5分・15分とする。ジッター付き指数バックオフは使用しない。
 - 認証、権限、リクエスト不正、検証失敗、曖昧性のエラーは、根本原因を解消せずに再試行しない。
 - Pythonは一覧取得・メタデータ取得を含むすべての操作を1回だけ試行する。PowerShellは `retryable` と固定エラーコードを確認して一時的エラーだけを再試行する。認証・権限・リクエスト不正・検証失敗・競合は再試行しない。
