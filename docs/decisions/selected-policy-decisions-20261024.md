@@ -114,7 +114,7 @@
 - 既存schemaのfield集合とstatus値を維持する方向であり、未知fieldや暗黙の新versionを追加しない。
 - 過去のincomplete recordは書き換えず、件数やdigestの一致だけでcompletedへ昇格しない。incomplete/failedから網羅性を補完しない。
 - 既知期間のcompleteには、完全なeligible inventory・error scope・全件の結果照合など、既承認OSD-03の条件を別途満たす必要がある。status文字列だけを根拠にしない。
-- 現source builderはエラーがあるとincompleteを出力する。今回の選択へ追従するproducer/consumer・文書・合成試験の改訂は未実装である。
+- 2026-10-25にsource builderをV1へ追従した。分類を完了したinvalid入力はcompletedとエラー情報を併記し、列挙/読取/hashの不確実性はincompleteを保持する。合成producer/report連携は実装し、正式runtime統合は未完である。
 
 参照：[B2と時刻の比較](b2-validation-coverage-report-time-options.md)、[B2契約](../design/run-input-evidence-v1-proposal.md)、[OSD-03](osd-03-status-aggregation-options.md)。
 
@@ -129,7 +129,7 @@
 5. 必要な値の欠落・不正・既存時刻整合の矛盾では停止する。実時計、仮値、別の保存物で補完しない。
 6. 信頼できる現在UTC、既存の未来許容、start/finish順序、exact inputsのidentity/digest等の検査は維持する。historical evidenceを古さだけで失効させない。
 
-R5のexact manifest＋B2による再生成、同一identity同一bytesの冪等性・異なるbytesのconflictを維持し、G2/G3の方式は採用しない。現builderは生成UTCをcallerから受け取る実装のままで、G1の導出・不一致拒否や正式再生成への追従は未実装である。過去reportをこの規則へ黙って書き換えない。
+R5のexact manifest＋B2による再生成、同一identity同一bytesの冪等性・異なるbytesのconflictを維持し、G2/G3の方式は採用しない。2026-10-25にbuilderと参照validatorへG1導出・不一致拒否を実装した。caller指定時刻は任意の照合値となり、導出した元文字列との不一致を拒否する。正式writer/公開・再生成の運用受け入れは未完である。過去reportをこの規則へ黙って書き換えない。
 
 参照：[report契約](../design/aggregation-report-v1-proposal.md)。
 

@@ -2,7 +2,7 @@
 
 更新日: 2026-10-25（日本時間）。確認した正本mainは `fd9cc8a931496d31601f062bf66448ea295eec65`（PR #39マージ）。選択①〜㉜と[実装由来の限定4件](../decisions/implementation-grounded-four-decisions-20261024.md)は、PR #39で統合済みの[決定記録](../decisions/selected-policy-decisions-20261024.md)に従う。今回のretryable表追従を含む現況表であり、実環境適用の承認ではない。
 
-[pure report builder](../../Common/AggregationReportBuilder.py)と[Drive応答の純粋な相関・終了コード・retryable真偽表検査](../../Common/DriveResponseSemantics.ps1)までが実装済み。2026-10-25にresponse schemaとPS helperへ固定retryable表を反映した。B2 V1・report G1へproducer/consumerは未追従。正式writer・Drive adapter・runtime受け入れは未完。
+[pure report builder](../../Common/AggregationReportBuilder.py)と[Drive応答の純粋な相関・終了コード・retryable真偽表検査](../../Common/DriveResponseSemantics.ps1)までが実装済み。2026-10-25にresponse schemaとPS helperへ固定retryable表を反映した。B2 V1のsource分類完了とG1のbuilder/参照validatorも追従済み。正式writer・Drive adapter・runtime受け入れは未完。
 
 ## 結論と配布の区別
 
@@ -19,7 +19,7 @@
 | 設定 | [厳密な設定読取](../../Common/MachineConfiguration.ps1)、[create-only生成](../../Common/MachineConfigurationBootstrap.ps1)、両PCの安全なexample、maintenanceLocalの字句的分離 | 正式導入入口、実root認可、実効権限・祖先・利用直前までの保護。example生成後の実値は各PCのGit管理外設定へ手動入力 |
 | ファイル選択 | [日付・期間等の共通処理](../../Common/LogFunctions.ps1)、[完全列挙・ハッシュ証拠構築](../../Common/SourceInventoryEvidenceBuilder.py) | 正式runへの接続、列挙後の変更と利用までの整合性 |
 | root検査 | [既存Windowsディレクトリの読取専用metadata検査](../../Common/MachineConfigurationRootInspection.ps1) | 対象FS・ACL・実トークンの認可、安全な生成と継続利用の資格確認 |
-| 証拠・集約 | [contracts](../../contracts/)、[A2/B2検証](../../Common/RunInputEvidenceIntegrity.py)、[参照成果物検証](../../Common/validate_aggregation_artifacts.py)、[pure report builder](../../Common/AggregationReportBuilder.py)、条件付き採用済み状態遷移表 | B2 V1・report G1への追従、実run writer/遷移強制、決定的再生成・意味論的統合、Drive反映 |
+| 証拠・集約 | [contracts](../../contracts/)、[A2/B2検証](../../Common/RunInputEvidenceIntegrity.py)、[参照成果物検証](../../Common/validate_aggregation_artifacts.py)、[pure report builder](../../Common/AggregationReportBuilder.py)、条件付き採用済み状態遷移表 | 実run writer/遷移強制、決定的再生成・意味論的統合、Drive反映 |
 | 公開・クラッシュ | [単一ファイル公開](../../Common/AtomicArtifactPublication.py)、[marker-last公開](../../Common/ArtifactSetPublication.py)、復旧分類・ディレクトリ検証 | 永続run状態・処理全体との接続。複数ファイルの原子的トランザクションや電源断耐久性の証明はない |
 | 排他・manifest選択 | [所有run lock](../../Common/OwnedRunLock.py)、[最新候補選択](../../Common/LatestManifestSelection.py)、読取adapter | 旧lockの自動引継ぎはしない。実owner証拠、復旧手順、新runとfresh inventoryの作成、実環境での統合 |
 | 明示回復 | 診断・専用mutex、[private証拠のメモリ上のbinding](../../Common/PrivateRecoveryEvidence.py)、供給ACL/descriptorの検査、v1の5field互換境界 | v2の全fieldと適格machine/boot provider、実効ACLと保存先検証、非公開の実保存。v1は診断・保全限定 |
@@ -33,7 +33,7 @@
 
 | 順序 | 作業と具体的成果物 | 次へ進む条件 |
 | --- | --- | --- |
-| 1 | 確定済み方針を実行可能な契約へ落とす。C-01 P1/V1/L1と現IPC 1.0改訂、C-02の4操作別closed executed/plan field表、Dry Run Aのfile-free IPC、B2 V1/G1、採用済みmanifest遷移表をschema/仕様/fixtureへ整合。固定retryable表はschema/PS helperへ追従済み。owner-v2全field・provider、credential store/SDK/配布identityなど未選択の詳細は別に決定 | 方針済み/詳細未決/実装未了を分け、未知field・結果不明・資格不足を既定値で補わない。retryable表適合を再送の認可やRETRY-02統合完了にしない |
+| 1 | 確定済み方針を実行可能な契約へ落とす。C-01 P1/V1/L1と現IPC 1.0改訂、C-02の4操作別closed executed/plan field表、Dry Run Aのfile-free IPC、採用済みmanifest遷移表をschema/仕様/fixtureへ整合。固定retryable表とB2 V1/G1のproducer/builder/参照validatorは追従済み。owner-v2全field・provider、credential store/SDK/配布identityなど未選択の詳細は別に決定 | 方針済み/詳細未決/実装未了を分け、未知field・結果不明・資格不足を既定値で補わない。retryable表適合を再送の認可やRETRY-02統合完了にしない |
 | 2 | ローカル安全基盤を統合する。実root・token・ACL・祖先・使用点、C1〜C4に従う永続run/manifest、補助checkpointの信頼できる保存と試行前計上、明示回復/private証拠を合成・使い捨て領域で検証 | 所有権・クラッシュ・競合・証拠喪失時に保留できる。v1 ownerからv2を補完せず、machine/boot provider未資格のまま実回復しない。checkpointだけで全基盤完了とはしない |
 | 3（2と並行可） | Google公式Python clientで4操作のDrive adapterとPS/Python IPCを合成応答で実装。multipart初期上限、Python/SDKの暗黙retry/page禁止、PS側の4回/1・5・15分制御、不明upload照合を確認 | 契約・障害・全page・結果不明の合成試験成功。I1/A1/S1/T1方向と実folder可視性/権限/所有/quotaの適合は別途承認された限定計画で確認し、不適合を「不在」に変えない |
 | 4 | 両PCの対象ローカルvolumeでTier Bを完了し、root/FS/ACL/atomicityの資格を確認 | PC-B部分証拠を全体受け入れにしない。PC-Aも含む全項目と対象volume証拠を揃える。電源断耐久性は別に検証する |
@@ -50,8 +50,8 @@
 
 ## 検証証拠と今回の変更範囲
 
-- PR #39のmainで [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40105135888) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40105134099) が成功した。今回のretryable実装はローカル検証まででPR/CIは未実施。[現行handoff](../handoff/next-chat.md)に対象試験と環境差を記録する。
+- PR #39のmainで [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40105135888) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40105134099) が成功した。今回までのretryable/B2 V1/G1実装はローカル検証まででPR/CIは未実施。[現行handoff](../handoff/next-chat.md)に対象試験と環境差を記録する。
 - 旧棚卸し基準のローカル結果は当時Python 3.11.9で306件（2件skip）、PowerShell 7.6.7の配布回帰成功。現mainの全検査件数やruntime受け入れ値に流用しない。CI Pythonはworkflowを基準とし、最終導入環境の前提と依存導入も配布時に確認する。
 - PC-Bのローカルvolume・reparse・crash・source・lock証拠は段階的な部分検証で、件数を足して独立した受け入れ総数としない。最新lock証拠のsource SHAは `302682abb7fd3b45b6745247dfa5297542f81c4b` で現在HEADとは異なり、Tier Bは明示的にincomplete。PC-Aのvolume受け入れは未収集、Tier Cは未実施。電源断/実再起動耐久性は未証明。
-- 今回は固定retryable真偽表のschema/PS helper/合成試験と関連文書を更新した。全要件行の再監査や公開情報の網羅的再監査を完了したという意味ではない。
+- 今回は固定retryable真偽表に続きB2 V1/G1のproducer/builder/参照validator/合成試験と関連文書を更新した。全要件行の再監査や公開情報の網羅的再監査を完了したという意味ではない。
 - 旧PR・CI・部分Tier B証拠は当時の履歴として保持する。現在の作業順序と未完はこの表と[現行handoff](../handoff/next-chat.md)を参照する。

@@ -20,12 +20,14 @@ try:
         EvidenceIntegrityError,
         validate_evidence_invariants,
         validate_evidence_matches_manifest,
+        derive_report_generated_at_utc,
     )
 except ImportError:  # Direct script execution from the Common directory.
     from RunInputEvidenceIntegrity import (
         EvidenceIntegrityError,
         validate_evidence_invariants,
         validate_evidence_matches_manifest,
+        derive_report_generated_at_utc,
     )
 
 
@@ -161,6 +163,8 @@ def validate_referenced_artifacts(
         try:
             validate_evidence_invariants(evidence, evidence_schema)
             validate_evidence_matches_manifest(evidence, manifest, manifest_schema)
+            if report["generated_at_utc"] != derive_report_generated_at_utc(manifest, evidence):
+                raise ArtifactValidationError("generated_timestamp_mismatch")
         except EvidenceIntegrityError as exc:
             raise ArtifactValidationError(f"evidence_integrity:{exc.reason_code}") from exc
 

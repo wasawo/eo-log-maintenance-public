@@ -238,7 +238,9 @@ def build_run_input_evidence(
             "enumeration_errors": enumeration_errors,
         },
         "validation": {
-            "status": "completed" if not validation_errors else "incomplete",
+            # V1 completion records classification coverage, not absence of
+            # invalid inputs. Unobserved/uncertain entries still block coverage.
+            "status": "completed" if enumeration_errors == 0 else "incomplete",
             "valid_eligible_count": len(targets),
             "valid_ineligible_count": ineligible,
             "invalid_relevant_count": len(validation_errors),

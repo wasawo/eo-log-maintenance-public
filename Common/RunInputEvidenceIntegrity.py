@@ -13,10 +13,35 @@ from typing import Any, Iterable, Mapping
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+try:
+    from .LatestManifestSelection import _utc_key
+except ImportError:  # Direct script execution from the Common directory.
+    from LatestManifestSelection import _utc_key
+
 
 INVENTORY_PREFIX = b"EO-LOG-MAINTENANCE-INVENTORY\x00V1\x00"
 EVIDENCE_CANONICALIZATION = "EO-LOG-MAINTENANCE-RUN-INPUT-EVIDENCE-V1"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+def derive_report_generated_at_utc(manifest, evidence) -> str:
+    """G1 anchor from exact input timestamps, preserving the chosen spelling.
+
+    This checks temporal order, not input provenance, current UTC or freshness.
+    Identity, digest, schema and clock checks remain the caller's responsibility.
+    """
+    try:
+        manifest_finish = manifest["finished_at_utc"]
+        evidence_finish = evidence["enumeration"]["finished_at_utc"]
+        manifest_key, evidence_key = _utc_key(manifest_finish), _utc_key(evidence_finish)
+        if (_utc_key(manifest["started_at_utc"]) > manifest_key
+                or _utc_key(evidence["enumeration"]["started_at_utc"]) > evidence_key):
+            raise EvidenceIntegrityError("report_timestamp_order_invalid")
+        return evidence_finish if evidence_key > manifest_key else manifest_finish
+    except EvidenceIntegrityError:
+        raise
+    except Exception:
+        raise EvidenceIntegrityError("report_timestamp_input_invalid") from None
 
 
 class EvidenceIntegrityError(ValueError):

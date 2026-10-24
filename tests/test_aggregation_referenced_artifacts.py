@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -85,7 +87,7 @@ def report(manifest_bytes: bytes, evidence_bytes: bytes) -> dict:
             "schema_version": 1,
             "sha256": hashlib.sha256(evidence_bytes).hexdigest(),
         },
-        "generated_at_utc": "2026-10-21T00:00:02Z",
+        "generated_at_utc": "2026-10-21T00:00:01Z",
         "inventory_ref": {
             "kind": "b2_run_input_evidence_inventory",
             "eligible_target_count": 0,
@@ -131,6 +133,20 @@ class ReferencedArtifactValidationTests(unittest.TestCase):
         self.assertEqual("verified", result["status"])
         self.assertEqual("verified", result["artifacts"]["manifest_ref"]["status"])
         self.assertEqual("verified", result["artifacts"]["evidence_ref"]["status"])
+
+    def test_direct_script_entrypoint_uses_the_same_g1_validation(self):
+        command = [sys.executable, "-B", str(ROOT / "Common/validate_aggregation_artifacts.py"),
+                   "--root", str(self.root), "--report", str(self.report_path),
+                   "--contracts", str(CONTRACTS)]
+        result = subprocess.run(command, capture_output=True, text=True, check=False)
+        self.assertEqual(0, result.returncode)
+        self.assertEqual("verified", json.loads(result.stdout)["status"])
+        value = report(self.manifest_bytes, self.evidence_bytes)
+        value["generated_at_utc"] = "2026-10-21T00:00:02Z"
+        self.write_report(value)
+        result = subprocess.run(command, capture_output=True, text=True, check=False)
+        self.assertEqual(2, result.returncode)
+        self.assertEqual("generated_timestamp_mismatch", json.loads(result.stdout)["reason_code"])
 
     def test_float_evidence_is_rejected_even_with_matching_exact_ref_and_old_digest(self):
         for token in ("1.0", "-0.0", "1e0", "1.25", "NaN", "Infinity", "-Infinity"):
@@ -190,6 +206,27 @@ class ReferencedArtifactValidationTests(unittest.TestCase):
         value["manifest_ref"]["sha256"] = "0" * 64
         self.write_report(value)
         self.assertEqual("sha256_mismatch:manifest_ref", self.validate()["reason_code"])
+
+    def test_generated_timestamp_must_match_exact_g1_anchor(self):
+        for stamp in ("2026-10-21T00:00:02Z", "2026-10-21T00:00:01.0Z"):
+            with self.subTest(stamp=stamp):
+                value = report(self.manifest_bytes, self.evidence_bytes)
+                value["generated_at_utc"] = stamp
+                self.write_report(value)
+                self.assertEqual("generated_timestamp_mismatch", self.validate()["reason_code"])
+
+    def test_evidence_later_anchor_is_bound_without_rewriting_inputs(self):
+        changed = evidence()
+        changed["enumeration"]["finished_at_utc"] = "2026-10-21T00:00:02.00000000001Z"
+        changed["integrity"]["digest"] = compute_evidence_digest(changed)
+        raw = json.dumps(changed).encode()
+        path = self.root / "_maintenance/run-input-evidence/PC-A/evidence.json"
+        path.write_bytes(raw)
+        value = report(self.manifest_bytes, raw)
+        value["generated_at_utc"] = changed["enumeration"]["finished_at_utc"]
+        self.write_report(value)
+        self.assertEqual("verified", self.validate()["status"])
+        self.assertEqual(raw, path.read_bytes())
 
     def test_cross_artifact_identity_mismatch_is_rejected(self) -> None:
         changed = manifest()

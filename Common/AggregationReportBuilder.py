@@ -17,7 +17,7 @@ from referencing.exceptions import NoSuchResource
 from Common.LatestManifestSelection import _utc_key, _clock_key
 from Common.RunInputEvidenceIntegrity import (
     _safe_relative_path, validate_evidence_invariants,
-    validate_evidence_matches_manifest,
+    validate_evidence_matches_manifest, derive_report_generated_at_utc,
 )
 from Common.SourceInventoryEvidenceBuilder import _classify_filename
 
@@ -92,14 +92,15 @@ def _validate(validator, value):
 
 def build_aggregation_report(
     manifest_bytes, evidence_bytes, *, manifest_path, evidence_path,
-    generated_at_utc, current_utc, current_utc_reliable,
+    generated_at_utc=None, current_utc, current_utc_reliable,
     future_tolerance=timedelta(minutes=5),
     manifest_schema, evidence_schema, report_schema,
 ):
     """Return deterministic UTF-8 report bytes; reject unproven terminal input.
 
-    generated_at_utc is explicit, never derived from a finish time or wall clock.
-    Reproducing later the same timestamp's durable provenance is out of scope.
+    G1 derives the timestamp from exact immutable input finish times. An optional
+    caller-supplied value is an assertion and must match the derived string.
+    Publication, provenance and real write time remain outside this helper.
     """
     try:
         return _build(
@@ -142,7 +143,10 @@ def _build(manifest_bytes, evidence_bytes, **context):
             or not timedelta(0) <= tolerance <= timedelta(minutes=5)):
         _reject("future_tolerance_invalid")
     limit = _clock_key(now + tolerance)
-    generated = _utc_key(context["generated_at_utc"])
+    generated_at_utc = derive_report_generated_at_utc(manifest, evidence)
+    if context["generated_at_utc"] is not None and context["generated_at_utc"] != generated_at_utc:
+        _reject("generated_timestamp_mismatch")
+    generated = _utc_key(generated_at_utc)
 
     def timestamp(value):
         key = _utc_key(value)
@@ -150,7 +154,7 @@ def _build(manifest_bytes, evidence_bytes, **context):
             _reject("timestamp_in_future")
         return key
 
-    timestamp(context["generated_at_utc"])
+    timestamp(generated_at_utc)
     for start, finish in (
         (manifest["started_at_utc"], manifest["finished_at_utc"]),
         (evidence["enumeration"]["started_at_utc"], evidence["enumeration"]["finished_at_utc"]),
@@ -238,7 +242,7 @@ def _build(manifest_bytes, evidence_bytes, **context):
     report = dict(
         report_schema_version=1,
         **{key: manifest[key] for key in ("run_id", "pc_id", "log_type")},
-        generated_at_utc=context["generated_at_utc"],
+        generated_at_utc=generated_at_utc,
         inventory_ref=dict(kind="b2_run_input_evidence_inventory",
                            eligible_target_count=len(evidence["inventory"]["targets"]),
                            inventory_sha256=enumeration["inventory_sha256"]),

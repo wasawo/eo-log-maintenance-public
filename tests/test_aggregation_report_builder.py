@@ -1,6 +1,6 @@
 """Synthetic T-01--12 derivation evidence, not runtime authorization."""
 import copy
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -12,6 +12,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 from Common.AggregationReportBuilder import AggregationBuildError, build_aggregation_report
 from Common.RunInputEvidenceIntegrity import compute_evidence_digest
+from Common.SourceInventoryEvidenceBuilder import build_run_input_evidence
 from Common.validate_aggregation_artifacts import validate_referenced_artifacts
 from test_run_input_evidence_integrity import evidence, manifest, legacy_float_digest
 
@@ -23,7 +24,6 @@ SCHEMAS = {name: json.loads((ROOT / "contracts" / filename).read_text(encoding="
                ("evidence_schema", "run-input-evidence-v1.schema.json"),
                ("report_schema", "aggregation-report-v1.schema.json"))}
 NOW = datetime(2026, 10, 21, 0, 0, 3, tzinfo=timezone.utc)
-STAMP = "2026-10-21T00:00:02Z"
 
 
 def encode(value):
@@ -72,7 +72,7 @@ def error(filename="unexpected.txt", code="unclassifiable_relevant_filename"):
 
 def build(m, e, **changes):
     options = dict(manifest_path="manifests/synthetic.json", evidence_path="evidence/synthetic.json",
-                   generated_at_utc=STAMP, current_utc=NOW, current_utc_reliable=True,
+                   current_utc=NOW, current_utc_reliable=True,
                    future_tolerance=timedelta(minutes=5), **SCHEMAS)
     options.update(changes)
     return build_aggregation_report(encode(m), encode(e), **options)
@@ -125,6 +125,67 @@ class AggregationReportBuilderTests(unittest.TestCase):
         m, e = fixture(((9, "verified"),), validation="incomplete")
         self.assertEqual("indeterminate", self.report(m, e)["periods"][0]["completion"])
 
+    def test_real_source_builder_preserves_errors_without_poisoning_other_periods(self):
+        for log_type in ("BattleLog", "ErrorReport"):
+            with self.subTest(log_type=log_type), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                suffix = "@synthetic" if log_type == "BattleLog" else ""
+                (root / f"20250901_00000000{suffix}.txt").write_bytes(b"synthetic")
+                (root / "unexpected.txt").write_bytes(b"invalid-name")
+                with patch("Common.SourceInventoryEvidenceBuilder.datetime", wraps=datetime) as clock:
+                    clock.now.return_value = NOW
+                    e = build_run_input_evidence(
+                        root, root_id="source-a", relative_scope=log_type,
+                        pc_id="PC-A", log_type=log_type,
+                        run_id="11111111-2222-4333-8444-555555555555",
+                        evidence_id="synthetic-evidence", reference_date=date(2026, 10, 21),
+                        started_at=NOW - timedelta(seconds=3))
+                m = manifest(e["inventory"]["targets"])
+                m.update(log_type=log_type, target_period="2026-09" if log_type == "BattleLog" else "2026",
+                         status="partial_failure")
+                for file in m["files"]:
+                    file.update(status="verified", drive_file_id="synthetic-file")
+                    file["verification"].update(status="verified", method="download_sha256",
+                                               checked_at_utc=m["finished_at_utc"],
+                                               observed_sha256=file["sha256"])
+                before = copy.deepcopy(e)
+                r = self.report(m, e)
+                self.assertTrue(r["run_aggregation"]["validation_complete"])
+                self.assertEqual("partial_failure", r["run_aggregation"]["status"])
+                self.assertEqual("complete", r["periods"][0]["completion"])
+                self.assertEqual(1, len(r["run_scope_errors"]))
+                self.assertEqual(1, e["validation"]["invalid_relevant_count"])
+                self.assertEqual(before, e)
+
+    def test_g1_later_finish_and_equal_instant_preserve_original_spelling(self):
+        cases = (
+            ("01Z", "02Z", "02Z"),
+            ("02Z", "01Z", "02Z"),
+            ("01Z", "01.00000000000Z", "01Z"),
+            ("01.00000000000Z", "01Z", "01.00000000000Z"),
+            ("01.12345678900Z", "01.12345678901Z", "01.12345678901Z"),
+            ("01.12345678901Z", "01.12345678900Z", "01.12345678901Z"),
+        )
+        for mf, ef, expected in cases:
+            with self.subTest(manifest=mf, evidence=ef):
+                m, e = fixture()
+                m["finished_at_utc"] = "2026-10-21T00:00:" + mf
+                e["enumeration"]["finished_at_utc"] = "2026-10-21T00:00:" + ef
+                e["integrity"]["digest"] = compute_evidence_digest(e)
+                expected = "2026-10-21T00:00:" + expected
+                self.assertEqual(expected, self.report(m, e)["generated_at_utc"])
+                self.assertEqual(build(m, e), build(m, e, generated_at_utc=expected))
+
+    def test_g1_missing_invalid_or_reversed_input_times_are_rejected(self):
+        for artifact in ("manifest", "evidence"):
+            for invalid in (None, "2026-10-20T23:59:59Z", "not-a-time"):
+                with self.subTest(artifact=artifact, value=invalid):
+                    m, e = fixture()
+                    node = m if artifact == "manifest" else e["enumeration"]
+                    node["finished_at_utc"] = invalid
+                    e["integrity"]["digest"] = compute_evidence_digest(e)
+                    with self.assertRaises(AggregationBuildError): build(m, e)
+
     def test_exact_bytes_determinism_input_immutability_and_no_io(self):
         m, e = fixture(((9, "verified"),))
         before = copy.deepcopy((m, e, SCHEMAS))
@@ -133,7 +194,9 @@ class AggregationReportBuilderTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(before, (m, e, SCHEMAS))
         self.assertTrue(first.endswith(b"\n"))
-        self.assertNotEqual(first, build(m, e, generated_at_utc="2026-10-21T00:00:03Z"))
+        self.assertEqual(first, build(m, e, current_utc=NOW + timedelta(days=30)))
+        with self.assertRaisesRegex(AggregationBuildError, 'generated_timestamp_mismatch'):
+            build(m, e, generated_at_utc="2026-10-21T00:00:03Z")
 
     def test_exact_noncanonical_input_bytes_are_hashed(self):
         m, e = fixture()
@@ -260,7 +323,12 @@ class AggregationReportBuilderTests(unittest.TestCase):
                         dict(future_tolerance=timedelta(minutes=5, microseconds=1)),
                         dict(future_tolerance=True), dict(future_tolerance=float("nan"))):
             with self.assertRaises(AggregationBuildError): build(m, e, **changes)
-        self.report(m, e, generated_at_utc="2026-10-21T00:05:03Z")
+        m["finished_at_utc"] = "2026-10-21T00:05:03Z"
+        self.report(m, e)
+        m["finished_at_utc"] = "2026-10-21T00:05:03.00000000001Z"
+        with self.assertRaisesRegex(AggregationBuildError, 'timestamp_in_future'):
+            build(m, e)
+        m["finished_at_utc"] = "2026-10-21T00:00:01Z"
         self.report(m, e, current_utc=NOW + timedelta(days=30))
 
     def test_empty_failed_enumeration_and_unaccounted_target_never_become_no_work(self):

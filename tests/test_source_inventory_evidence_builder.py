@@ -57,7 +57,7 @@ class SourceInventoryEvidenceBuilderTests(unittest.TestCase):
             root = Path(temp)
             (root / "unexpected.txt").write_bytes(b"x")
             value = self.build(root)
-            self.assertEqual(value["validation"]["status"], "incomplete")
+            self.assertEqual(value["validation"]["status"], "completed")
             self.assertEqual(value["validation"]["invalid_relevant_count"], 1)
             self.assertEqual(value["validation"]["errors"][0]["code"], "unclassifiable_relevant_filename")
             self.assertEqual(value["validation"]["errors"][0]["error_id"], "VAL-000001")
@@ -85,6 +85,7 @@ class SourceInventoryEvidenceBuilderTests(unittest.TestCase):
             with patch.object(builder.os, "scandir", side_effect=OSError("synthetic")):
                 value = self.build(Path(temp))
             self.assertEqual(value["enumeration"]["status"], "incomplete")
+            self.assertEqual(value["validation"]["status"], "incomplete")
             self.assertGreater(value["enumeration"]["enumeration_errors"], 0)
             serialize_evidence(value, SCHEMA)
 
@@ -95,6 +96,7 @@ class SourceInventoryEvidenceBuilderTests(unittest.TestCase):
             with patch.object(builder, "_hash_stable_file", side_effect=InventoryBuildError("source_mutation_detected")):
                 value = self.build(root)
             self.assertEqual(value["enumeration"]["status"], "incomplete")
+            self.assertEqual(value["validation"]["status"], "incomplete")
             self.assertGreater(value["enumeration"]["enumeration_errors"], 0)
             self.assertEqual(value["inventory"]["targets"], [])
             serialize_evidence(value, SCHEMA)
