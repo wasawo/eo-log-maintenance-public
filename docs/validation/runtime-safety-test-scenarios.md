@@ -185,7 +185,7 @@ All cases require synthetic fixtures, injected process/clock state, and explicit
 
 ## 10. OSD-04 Dry Run提案用受け入れfixture計画（未実装・未実行）
 
-部分実装: `tests/test_dry_run_boundary.py` が合成dispatcherの拒否経路と依存呼出しを別プロセスで検査する。7テスト/21probeは限定ハーネスの証拠で、下表の正式runtime/実root/実排他のfixtureを実行済みとするものではない。以下の未実装・未実行はそれら全受け入れ対象についての状態。
+部分実装: `tests/test_dry_run_boundary.py` が合成dispatcherの拒否経路と依存呼出しを別プロセスで検査する。9テスト/33probeは限定ハーネスの証拠で、下表の正式runtime/実root/実排他のfixtureを実行済みとするものではない。実 `acquire_diagnostic_mutex` helperを監査下でimport/実行し、test-only mutexによる取得成功でも資格未完で停止、timeout/abandoned/create/acquire/observation/cleanup失敗の拒否、取得・lease body・cleanup中のwrite拒否、finally履歴と既存物不変を検査する。fakeはWindows mutexのidentity/access・writer共通scope資格を証明しない。以下の未実装・未実行はそれら全受け入れ対象についての状態。
 
 対象は[利用者承認済みのA方針](../decisions/dry-run-side-effect-policy-proposal.md)。**Aを採用、以下のDRY fixtureは未実装・未実行**であり、既存helperのテスト結果や本書の既存シナリオを成功証拠として転用しない。規範契約とAの期待値を照合してから実装する。Bの書込みを許すテストは採用しない。
 

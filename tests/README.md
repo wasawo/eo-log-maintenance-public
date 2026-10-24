@@ -2,7 +2,9 @@
 
 ## Dry Run Aの合成境界ハーネス
 
-`python -B -m unittest discover -s tests -p "test_dry_run_boundary.py" -v` は、親が作成した専用一時fixtureを `-I -B` の子プロセスで検査する。7テスト内の21回のprobeで、読取・無資格/無効role/config/root・競合/abandonedの注入、依存write/delete/rename/mkdir/chmod/temp/network/subprocess要求、計測用normal経路を検証する。Python audit event名の履歴と、前後の存在・bytes/hash・modeを比較する。途中で拒否されたwriteも記録し、単なる最終snapshot一致とは区別する。
+`python -B -m unittest discover -s tests -p "test_dry_run_boundary.py" -v` は、親が作成した専用一時fixtureを `-I -B` の子プロセスで検査する。9テスト内の33回のprobeで、読取・無資格/無効role/config/root・競合/abandonedの注入、依存write/delete/rename/mkdir/chmod/temp/network/subprocess要求、計測用normal経路を検証する。Python audit event名の履歴と、前後の存在・bytes/hash・modeを比較する。途中で拒否されたwriteも記録し、単なる最終snapshot一致とは区別する。
+
+実 `Common.RecoveryDiagnosticMutex.acquire_diagnostic_mutex` を監査hook設置後にimportして呼び、test-only mutexのcreate/acquire/abandoned/lease body/release/close履歴を固定文字列で検査する。`-I` で除外されたimport検索先には、環境入力を使わずハーネスの配置から求める信頼済みcheckoutだけを追加し、`-B` を維持する。取得成功でも `qualification_pending` とし後続観測へ進まない。timeout、abandoned、create/acquire/observation/cleanup失敗を固定理由で拒否し、取得・lease body・release・close中の依存writeも監査で拒否する。helper import自体も監査下で観測する。
 
 対象dispatcherもfixtureコードであり、正式runtimeは呼ばない。role/config/root/競合は合成注入、実ACL/Windows mutex資格の証拠ではない。Python audit hookは任意のnative処理を閉じ込めるsandboxでもなく、全依存の無書込み・電源断・cloudの保証でもない。出力は固定status/event名と常にfalseのrun/archive権限だけ。trusted test環境でのみ実行し、実ログ/実設定/Driveへ接続しない。fixture準備・削除は親テストの仕事で、Dry Runアプリへの許可ではない。CIにも個別登録する。
 

@@ -1,6 +1,6 @@
 # Dry Run A: 実行分岐と副作用境界の設計
 
-- 状態：実装前の具体設計。コード・schema・CIの変更、正式runtimeの実装・受け入れを含まない。
+- 状態：具体設計と限定した合成ハーネスの部分証拠。正式runtimeの実装・受け入れは未完了。
 - 根拠：[OSD-04のA承認](../decisions/dry-run-side-effect-policy-proposal.md) §2/4、[PS/Python契約](powershell-python-contract.md) §3–9、[runtime gate](runtime-entrypoint-validation-gate.md)。Aの選択を再質問せず、その範囲で設計する。
 - [DRY-01–10](../validation/runtime-safety-test-scenarios.md#10-osd-04-dry-run提案用受け入れfixture計画未実装未実行)は未実装・未実行。OSD-04/P0、Phase 1/7は未完了。OSD-05、C-01/C-02、IPC契約全体のレビューは別ゲートのまま。
 
@@ -65,9 +65,9 @@ path/handle identity、属性、size/hash、列挙完全性を使用点で再確
 
 ## 6. 次の最小実装単位と停止条件
 
-初回の部分証拠として `tests/dry_run_boundary_harness.py` / `tests/test_dry_run_boundary.py` を追加。これは合成dispatcherとPython監査hookの拒否経路・前後不変性を検証するハーネスで、正式入口・実root認可・実Windows排他は接続しない。DRY-01〜10全体の完了とはしない。次は正式な候補実装をこの観測境界へ接続し、実際のconfig/root読取とrecord-free mutexの資格を独立に検証する。
+部分証拠の `tests/dry_run_boundary_harness.py` / `tests/test_dry_run_boundary.py` は、合成dispatcherとPython監査hookの拒否経路・前後不変性に加え、実 `acquire_diagnostic_mutex` helperを監査下で呼ぶ。`-I -B` の子でhookを先に設置し、ハーネス配置から得る信頼済みcheckoutを明示してimportする。9テスト/33probeにはtest-only mutexによる取得成功、timeout、abandoned、create/acquire/observation/cleanup失敗、取得・lease body・release・close中の依存write拒否を含む。固定履歴でfinallyのrelease/closeと後続観測/通常経路不到達を確認し、状態不変とrun/archive非認可を検査する。非abandonedの取得成功も `qualification_pending` とする。正式入口・実root認可・実Windows mutex資格は接続せず、test-only fakeでそれらを証明しない。DRY-01〜10全体の完了とはしない。次は実際のconfig/root読取とrecord-free mutexのidentity/access、writer共通scope資格を独立に検証し、不足する間は停止を維持する。
 
-次の候補は、合成fixture内のDry Run専用dispatchと依存境界に限定する。無効mode/PC/config/root、writer競合、abandoned、依存write要求を注入し、通常bootstrap/run-lock/publication/recovery/budget/scheduler/cleanupへ到達しないことを先に検証する。既存mutex helperの資格とroot authorityを確認できない場合は拒否する経路までとし、仮の成功経路で穴を埋めない。
+現在の合成fixture内のDry Run専用dispatchでは無効mode/PC/config/root、writer競合、abandoned、依存write要求を注入する。次の候補でも通常bootstrap/run-lock/publication/recovery/budget/scheduler/cleanupへ到達しない境界を維持する。既存mutex helperの資格とroot authorityを確認できない場合は拒否する経路までとし、仮の成功経路で穴を埋めない。
 
 fixture harnessは隔離した合成領域のbefore/afterだけでなく、create/write/rename/delete/ACL変更の途中呼出し、ネットワーク/auth/downloadの呼出しも捕捉する。harness自身のfixture作成・検証証拠の保存と、診断対象アプリの許可副作用を区別する。DRY-01–10を段階的に実装・実行し、未実施と限界を記録するまではruntime受け入れにしない。
 
