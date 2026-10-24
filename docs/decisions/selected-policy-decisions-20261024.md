@@ -2,7 +2,7 @@
 
 状態：利用者の明示回答を記録する。仕様の選択と、実装・公開・マージ・実環境適用の許可を分離する。記録基準はmain 179787f（PR #38）、作業開始時の停止記録は54f1418。
 
-実装追従注記（2026-10-25）：以下の各回答時点の未実装/未公開記録は当時の状態。決定記録自体はPR #39で統合済みで、固定retryable表は現1.0 response schemaとPS helperへ追従した。正式retry orchestrationと他の未完項目は[現行handoff](../handoff/next-chat.md)を参照する。作業単位はローカルコミットまでとし、PR作成/マージは利用者が任意のタイミングで指示する運用へ変更した。
+実装追従注記（2026-10-25）：以下の各回答時点の未実装/未公開記録は当時の状態。決定記録自体はPR #39で統合済みで、固定retryable表は現1.0 response schemaとPS helperへ追従した。 C-01 L1も現1.0 request schemaとPS/Python字句helperへ追従済みで、実root/使用点・正式adapterは未実装。正式retry orchestrationと他の未完項目は[現行handoff](../handoff/next-chat.md)を参照する。作業単位はローカルコミットまでとし、PR作成/マージは利用者が任意のタイミングで指示する運用へ変更した。
 
 ## 1. 利用者の回答と確定範囲
 

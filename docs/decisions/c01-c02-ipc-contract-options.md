@@ -1,6 +1,6 @@
 # C-01/C-02: IPCパス・操作別resultの判断資料
 
-- 状態：C-01のP1・検査V1・L1全体・現1.0改訂方針、C-02のR1・N1・D1を利用者承認済み（2026-10-24）。具体的な操作別field集合・型・最大値/serialization・SDK操作履歴と、変更実施/実装は未確定・未実施。未採用案も比較履歴として保持する。
+- 状態：C-01のP1・検査V1・L1全体・現1.0改訂方針、C-02のR1・N1・D1を利用者承認済み（2026-10-24）。具体的な操作別field集合・型・最大値/serialization・SDK操作履歴は未確定・未実装。C-01字句は2026-10-25にschema/PS/Pythonへ追従済みで、実root/使用点・正式adapterは未実装。未採用案も比較履歴として保持する。
 - 対象：[契約レビューC-01/C-02](../validation/p0-contract-review-findings.md)。adapter実装前に判断する項目を具体化する。
 - 選択の正確な範囲は[回答記録](selected-policy-decisions-20261024.md)に従う。第1回の「①P1」だけを質問の提案一式へ拡張せず、検査V1・L1・現1.0改訂は④⑤⑥、R1/N1/D1は⑦⑧⑨が根拠。L1の正確な内容は[詳細字句資料](c01-drive-rooted-lexical-candidate.md)に従う。C-02の操作別field集合・型等の候補表は一括採用ではなく、schema/コード/テスト/CI/allow-rootの変更実施を仕様選択から推定しない。
 
@@ -9,9 +9,9 @@
 | 根拠 | 現在の規則・証拠 | 本書で判断する不足 |
 | --- | --- | --- |
 | [PS/Python契約](../design/powershell-python-contract.md) §2–5 | PSはrole/path/allow-root/後続安全判断、Pythonは入力構文検査と限定API操作。schemaが規範で、例は説明用 | パス構文の対応範囲とschemaへの表現、操作別resultの最小形 |
-| [request schema](../../contracts/drive-request.schema.json) | 4操作のみ。uploadの `local_path` とdownloadの `staging_path` は最小長3の文字列。listには `page_token` / `page_size` がある | relative/device等の構文をschemaで拒否するか |
+| [request schema](../../contracts/drive-request.schema.json) | 4操作のみ。uploadの `local_path` とdownloadの `staging_path` は採用L1のdrive-rooted file path。listには `page_token` / `page_size` がある | schema/PS/Python字句追従済み。root・指定先・使用点の資格は別途必須 |
 | [response schema](../../contracts/drive-response.schema.json) | `schema_version: "1.0"`。成功はresult object/error null、失敗はresult null/error object。result内部はopen | 操作別の必須・任意・null・欠落、未知field |
-| [既存schema tests](../../tests/test_contract_schemas.py) | drive-rooted例を受理。metadata成功の `result: {"file_id":"file-123"}` も受理 | negative path、操作別result、意味論の拒否fixtureが不足 |
+| [既存schema tests](../../tests/test_contract_schemas.py) | drive-rooted例を受理。metadata成功の `result: {"file_id":"file-123"}` も受理 | 共通path正負fixtureは専用試験へ反映済み。操作別resultとruntime意味論は未完 |
 | [設定/root設計](../design/configuration-local-root.md)、[設定parser](../../Common/MachineConfiguration.ps1) | 現在の設定はdrive-rooted Windows pathのみ。構造検証は実root認可・物理的分離の証明ではない | UNCをIPCで許す場合の設定側との整合と独立したroot資格 |
 | [Dry Run A設計](../design/dry-run-execution-design.md) §2–4 | root/排他資格未完なら停止。bytes取得・書込み・live接続・認証refresh/storeは解禁しない | result契約を選んでもこれらのゲートは残る |
 

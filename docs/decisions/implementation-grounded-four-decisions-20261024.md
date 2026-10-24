@@ -40,7 +40,7 @@
 
 保存・読取は既承認C1の同一directory一時保存・再読込検査・atomic publication/compare-before-replace、C2のmutex＋owner record、元runとscopeの独立照合に従う。具体的なfilename/root、作成時のtrusted evidence、FSのatomicity/電源断耐久性は別途資格を要する。現helperは永続化しないため、このschema・writer・readerは**未実装**である。[既存試験](../../tests/test_completion_wait_budget.py)も純粋判定の範囲である。
 
-## 3. version 0.1.0の現行レビューpackageのファイル集合
+## 3. version 0.1.0のレビューpackage snapshot（2026-10-24）
 
 [builder](../../.github/scripts/Build-ReleasePackage.ps1)と追跡中の[VERSION](../../VERSION)から、**現行の非配布レビュー成果物**について両role共通の40ファイルを確定する。正式入口は`SyncLogs.ps1`も`ArchiveLogs.ps1`も現ツリーにない。`PACKAGE-STATUS.txt`はレビュー成果物だけの生成物であり、正式配布packageでは禁止する。この一覧は最終runtime版のPC別file manifestへ転用しない。
 
@@ -86,6 +86,8 @@ contracts/run-input-evidence-v1.schema.json
 requirements-runtime.txt
 scripts/README.md
 ```
+
+2026-10-25のC-01字句実装で`Common/DriveRequestPath.ps1`と`Common/DriveRequestPath.py`を追加したため、以後のレビューpackageは旧40件＋2件となる。上の一覧は承認時点のsnapshotとして保持し、正式配布manifestとしない。
 
 現在のbuilderは`Common`/`scripts`配下の許容拡張子を走査し、役割別入口の存在を確認する。選択済み31aAの将来の正式manifestでは、このようなglob走査ではなく、**各PC・各versionでファイルを明示列挙するstrict JSON＋JSON Schema**を採る。現行レビュー一覧には両roleの差分がない。最終file一覧・required/optional・manifestのfield/digest、builderの実装変更は正式入口と依存が完成してから別途決める。`docs`/`tests`/`.github`、実設定、token、ログ、private証拠を含めず、PC-Bへarchive入口を渡さない。現行packageテストは[合成試験](../../tests/Test-ReleasePackage.ps1)であり配布可の証明ではない。
 

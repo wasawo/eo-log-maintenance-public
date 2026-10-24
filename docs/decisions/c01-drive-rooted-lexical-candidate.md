@@ -1,8 +1,8 @@
 # C-01: drive-rooted file pathの詳細字句候補
 
-状態：P1・検査配置V1・L1全体・現行1.0の実装前改訂を [利用者の第1/第2回回答](selected-policy-decisions-20261024.md) で承認済み。以下は選択時に提示したL1の全文と比較条件を保全する。schema/runtime/fixtureへの追従は未実装で、公開・本番適用の承認ではない。
+状態：P1・検査配置V1・L1全体・現行1.0の実装前改訂を [利用者の第1/第2回回答](selected-policy-decisions-20261024.md) で承認済み。以下は選択時に提示したL1の全文と比較条件を保全する。2026-10-25に現1.0 request schema・PS/Python字句helper・共通fixtureへ追従した。指定先/root/FS/使用点と正式runtimeは未実装・未受け入れで、公開・本番適用の承認ではない。
 
-基準はmain c4de355（PR #37）。[C-01/C-02比較](c01-c02-ipc-contract-options.md) §2/4/5の「詳細字句規則」を具体化する。対象はuploadのlocal_pathとdownloadのstaging_pathというrequestのファイル名で、設定のroot directoryや内部handleのvolume表現とは区別する。コード/schema/fixtureを実装せず、root・FS・Driveの資格を認可しない。
+基準はmain c4de355（PR #37）。[C-01/C-02比較](c01-c02-ipc-contract-options.md) §2/4/5の「詳細字句規則」を具体化する。対象はuploadのlocal_pathとdownloadのstaging_pathというrequestのファイル名で、設定のroot directoryや内部handleのvolume表現とは区別する。選択時点にはコード/schema/fixtureを実装していなかった。現実装もroot・FS・Driveの資格を認可しない。
 
 ## 1. Windowsの事実とアプリ側選択を分ける
 
@@ -36,7 +36,7 @@
 
 ## 3. 互換性・実装範囲の独立判断
 
-現[request schema](../../contracts/drive-request.schema.json)は両fieldを最小長3のstringとしており、L1を適用すると従来schema-validな一部入力を拒否する。[契約tests](../../tests/test_contract_schemas.py)には通常drive-rootedの正例があるが、対象のpath負例はない。
+選択時点のrequest schemaは両fieldを最小長3のstringとしていた。現[request schema](../../contracts/drive-request.schema.json)はL1を適用し、従来schema-validな一部入力を拒否する。[専用試験](../../tests/test_drive_request_path.py)は両fieldとDry Run true/falseへ共通正負fixtureを適用する。schema versionは1.0を維持し、外部consumer不在は未確認。
 
 Common/scriptsの限定調査では現Drive adapter/request consumerは見つからず、schema loaderはtestsで確認した。これは外部consumerが存在しない証明ではない。
 
@@ -45,13 +45,13 @@ Common/scriptsの限定調査では現Drive adapter/request consumerは見つか
 | C-01検査配置 | P1・V1を選択済み。V2は未採用 | schemaにも字句制約を置くか。L1だけでPS/Python使用点検査を省略しない |
 | 詳細字句 | L1全体を選択済み | DEL、console alias、stem判定、Unicode、separator、dot segment等の追加制約を含めて明示回答 |
 | version互換 | 現1.0を実装前に改訂。新version/別案は未採用 | 受理範囲変更、repo外consumerの確認方針、例・schema・fixture・配布の移行。新version値を本書で割り当てない |
-| 変更の実施 | 契約記録・schema・合成fixtureまで / 保留 | 承認された字句だけを同時更新。adapter、root/token field、実root・IPC全体・実運用の承認に拡張しない |
+| 変更の実施 | schema/両言語字句helper/合成fixtureまで追従済み。runtimeは保留 | 承認された字句だけを同時更新。adapter、root/token field、実root・IPC全体・実運用の承認に拡張しない |
 
 一部だけ回答して残りを保留できる。未回答の詳細をregexやライブラリの既定値で決めない。C-02、認証、retry、Dry Run A、PC-B archive禁止・削除なしの境界も維持する。
 
 ## 4. 承認後の合成fixture候補
 
-以下は**未実装・未実行**。schemaと将来の両言語semantic検査を区別する。
+通常形/path形/文字・名前/境界/versionの字句は共通fixtureとschema/PS/Python試験へ反映した。semantic行の実体・root・使用点資格は未実装であり、字句成功から認可しない。
 
 | 対象 | L1採用時に確認する候補 |
 | --- | --- |
@@ -62,4 +62,4 @@ Common/scriptsの限定調査では現Drive adapter/request consumerは見つか
 | semantic | schemaを通るmapped/reparse/alias、allow-root境界prefix、検査後差替え、未資格root、staging既存物を合成観測で拒否。schema単独で実体の包含を証明したとしない |
 | version | 選んだ移行方針の旧形/未知版/不正型/未知field、両path field、4操作の既存形を確認。C-02のresult形を同時に独断確定しない |
 
-選択前比較の独立reviewは当時の対象だけの履歴である。採用状態等を反映した今回の検証はroot単独の文書リンク・記述・差分確認で、独立reviewは再実施していない。grammarと現1.0改訂の方針は承認されたが、コード/schema/fixtureの追従・runtime対応は未実装・未受け入れである。
+選択前比較の独立reviewは当時の対象だけの履歴である。今回のコード/schema/fixture追従はroot単独で検証・自己点検し、独立reviewは実施していない。runtime対応は未実装・未受け入れである。

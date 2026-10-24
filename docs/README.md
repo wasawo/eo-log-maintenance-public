@@ -81,7 +81,7 @@ docs/
 - [Aggregation Inventory Integrity — Decision Options](decisions/aggregation-inventory-integrity-options.md)
 - [B2 validation網羅性・report生成時刻の判断資料](decisions/b2-validation-coverage-report-time-options.md)
 - [C-01/C-02: IPCパス・操作別resultの判断資料](decisions/c01-c02-ipc-contract-options.md)
-- [C-01 drive-rooted file pathの詳細字句候補](decisions/c01-drive-rooted-lexical-candidate.md): P1・検査配置V1・L1全体・現1.0改訂を承認済み。実装は未着手。
+- [C-01 drive-rooted file pathの詳細字句候補](decisions/c01-drive-rooted-lexical-candidate.md): P1・検査配置V1・L1全体・現1.0改訂を承認済み。schema/PS/Pythonの字句実装済み、root/使用点・正式runtimeは未完。
 - [2026-10-24 選択形式による仕様決定](decisions/selected-policy-decisions-20261024.md): 利用者回答と、採用・未選択・未実装の範囲。
 - [現行実装に基づく4件の限定決定](decisions/implementation-grounded-four-decisions-20261024.md): retryable表、確認予算checkpoint、現行レビューpackage、v1 owner境界。
 - [㉙〜㉜の選択肢比較](decisions/remaining-policy-options-20261024.md): 全A採用済み。未採用Bは比較履歴。

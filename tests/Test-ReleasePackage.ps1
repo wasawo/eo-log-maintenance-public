@@ -59,6 +59,8 @@ try {
     Set-Content (Join-Path $fixture 'Common/MachineConfigurationRootInspection.ps1') '# Read-only existing-root inspector'
     Set-Content (Join-Path $fixture 'Common/AggregationReportValidation.ps1') '# Aggregation report validation functions'
     Set-Content (Join-Path $fixture 'Common/DriveResponseSemantics.ps1') '# Pure Drive response correlation and exit mapping'
+    Set-Content (Join-Path $fixture 'Common/DriveRequestPath.ps1') '# Pure request file path grammar'
+    Set-Content (Join-Path $fixture 'Common/DriveRequestPath.py') '# Pure request file path grammar'
     Set-Content (Join-Path $fixture 'Common/AggregationArtifactReference.ps1') '# Aggregation artifact reference verification functions'
     Set-Content (Join-Path $fixture 'Common/AggregationReferencedArtifacts.ps1') '# Referenced artifact schema validation entry point'
     Set-Content (Join-Path $fixture 'Common/validate_aggregation_artifacts.py') '# referenced artifact validator'
@@ -136,6 +138,8 @@ try {
         'Common/MachineConfigurationRootInspection.ps1',
         'Common/AggregationReportValidation.ps1',
         'Common/DriveResponseSemantics.ps1',
+        'Common/DriveRequestPath.ps1',
+        'Common/DriveRequestPath.py',
         'Common/AggregationArtifactReference.ps1',
         'Common/AggregationReferencedArtifacts.ps1',
         'Common/validate_aggregation_artifacts.py',
@@ -181,6 +185,7 @@ try {
     }
     Assert-True ('scripts/SyncLogs.ps1' -in $pcBEntries) 'PC-B package must include SyncLogs.ps1.'
     Assert-True ('Common/DriveResponseSemantics.ps1' -in $pcBEntries) 'PC-B package must include the pure response checker.'
+    Assert-True ('Common/DriveRequestPath.ps1' -in $pcBEntries -and 'Common/DriveRequestPath.py' -in $pcBEntries) 'PC-B package must include both pure request path checkers.'
     Assert-True ('scripts/ArchiveLogs.ps1' -notin $pcBEntries) 'PC-B package must exclude ArchiveLogs.ps1.'
 
     # Example configuration semantics are fixed by C-20/C-21/C-28 and must fail closed.

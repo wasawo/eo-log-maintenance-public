@@ -63,6 +63,10 @@ jobs:
         shell: pwsh
         run: python -m unittest discover -s tests -p "test_contract_schemas.py" -v
 
+      - name: Validate C-01 request path schema and Python grammar
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_drive_request_path.py" -v
+
       - name: Validate synthetic Dry Run boundary harness
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_dry_run_boundary.py" -v
@@ -136,6 +140,10 @@ jobs:
       - name: Run pure Drive response correlation and exit mapping tests
         shell: pwsh
         run: ./tests/Test-DriveResponseSemantics.ps1
+
+      - name: Run pure C-01 request path grammar tests
+        shell: pwsh
+        run: ./tests/Test-DriveRequestPath.ps1
 
       - name: Run aggregation artifact reference tests
         shell: pwsh

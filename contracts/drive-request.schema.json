@@ -4,6 +4,17 @@
   "title": "ログ保守：Drive アダプター リクエスト",
   "description": "Python Google Drive アダプター向けバージョン 1.0 のリクエスト形式。削除操作は定義しない。",
   "type": "object",
+  "$defs": {
+    "driveRootedFilePath": {
+      "description": "C-01 P1/L1 lexical file path only; root/target/FS/use-point checks remain mandatory. No normalization or fixed maximum length.",
+      "type": "string",
+      "allOf": [
+        { "pattern": "^[A-Za-z]:\\\\[^\\\\/:<>\"|?*\\u0000-\\u001f\\u007f]+(?:\\\\[^\\\\/:<>\"|?*\\u0000-\\u001f\\u007f]+)*(?![\\s\\S])" },
+        { "not": { "pattern": "\\\\[^\\\\]*[ .](?:\\\\|(?![\\s\\S]))" } },
+        { "not": { "pattern": "\\\\(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9¹²³]|[Ll][Pp][Tt][1-9¹²³]|[Cc][Oo][Nn][Ii][Nn]\\$|[Cc][Oo][Nn][Oo][Uu][Tt]\\$) *(?:\\.|\\\\|(?![\\s\\S]))" } }
+      ]
+    }
+  },
   "additionalProperties": false,
   "required": [
     "schema_version",
@@ -95,7 +106,7 @@
             "additionalProperties": false,
             "required": ["local_path", "parent_id", "file_name", "expected_sha256"],
             "properties": {
-              "local_path": { "type": "string", "minLength": 3 },
+              "local_path": { "$ref": "#/$defs/driveRootedFilePath" },
               "parent_id": { "type": "string", "minLength": 1 },
               "file_name": { "type": "string", "minLength": 1 },
               "expected_sha256": {
@@ -122,7 +133,7 @@
             "required": ["file_id", "staging_path"],
             "properties": {
               "file_id": { "type": "string", "minLength": 1 },
-              "staging_path": { "type": "string", "minLength": 3 }
+              "staging_path": { "$ref": "#/$defs/driveRootedFilePath" }
             }
           }
         }

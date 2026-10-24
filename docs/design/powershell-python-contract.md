@@ -98,6 +98,8 @@ Python CLI へのリクエストは、UTF-8 の JSON ファイル、またはコ
 
 未知のフィールドは拒否する。操作に必要なパラメーターはすべて存在し、空であってはならない。Windows 専用の実行環境であるため、パスは絶対 Windows パスとする。呼び出し元は設定済みの許可ルートと照合し、Python も不正なパス構文を拒否しなければならない。パスの指定は、ファイルの削除や上書きの許可を意味しない。
 
+C-01字句実装（2026-10-25）：`local_path` / `staging_path`は採用済み[P1/V1/L1](../decisions/c01-drive-rooted-lexical-candidate.md)のdrive-rooted file pathに限定する。現1.0 request schemaと`Common/DriveRequestPath.ps1` / `Common/DriveRequestPath.py`に反映し、共通の合成fixtureで照合する。root-only、UNC/device/relative、slash、空component、dot segment、末尾dot/ASCII space、禁止文字/control/DEL、予約stem（拡張子・stem末尾space・superscript・console aliasを含む）を拒否する。ASCII以外のcase変換やUnicode正規化・入力修復はせず、固定maxLengthを追加しない。旧schema-validな一部入力が拒否される互換性の厳格化であり、外部consumer不在は未確認。両helperは字句boolのみで、指定先の実体・root/token/FS資格・使用点検査、transportと正式adapter接続は未実装である。
+
 読み取り専用リクエストの例：
 
 ```json
