@@ -1,5 +1,7 @@
 # テスト計画
 
+`python -B -m unittest discover -s tests -p "test_aggregation_report_builder.py" -v` はpure report builderのT-01〜12を両log typeで検証し、跨期間・関連error/run-scope error・不完全validation、exact bytes/hashとinventory整合、terminal verification mapping、strict JSON、時刻精度/未来/明示時計、入力不変・I/Oなしを確認します。隔離fixtureを既存referenced-artifact validatorにも渡します。`Test-AggregationReportValidation.ps1` は生成出力をPS internal validatorへ通し、空period配列のno_work正例とnull/非配列拒否を確認します。schema成功はruntime受け入れ・archive/回復認可ではなく、B2 incomplete validationの網羅性は未確定のままです。
+
 ## Dry Run Aの合成境界ハーネス
 
 通常owned lockのtimeout検証では、NaNを `timeout_invalid` としてpath変換・token生成・mutex生成より前に拒否することを、呼出しを記録する合成依存で確認する。既存の範囲外・無限大・巨大整数の固定理由と、0/60秒を含む有限値の取得・解放も検査する。

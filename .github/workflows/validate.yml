@@ -74,6 +74,7 @@ jobs:
           python -m pip install -r requirements-runtime.txt
           python -m unittest discover -s tests -p "test_aggregation_referenced_artifacts.py" -v
           python -m unittest discover -s tests -p "test_run_input_evidence_integrity.py" -v
+          python -B -m unittest discover -s tests -p "test_aggregation_report_builder.py" -v
           python -m unittest discover -s tests -p "test_source_inventory_evidence_builder.py" -v
           python -m unittest discover -s tests -p "test_source_hash_identity.py" -v
           python -m unittest discover -s tests -p "test_source_inventory_reparse.py" -v

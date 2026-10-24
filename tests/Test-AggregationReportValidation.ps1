@@ -63,5 +63,82 @@ $noWork = New-Report
 $noWork.run_aggregation.outcome = 'no_work'
 Assert-True 'no_work with eligible targets rejected' ((Test-AggregationReportInternalConsistency -Report $noWork) -contains 'no_work_outcome_inconsistent')
 
+$empty = New-Report
+$empty.periods = @()
+$empty.inventory_ref.eligible_target_count = 0
+$empty.run_aggregation.status = 'success'
+$empty.run_aggregation.outcome = 'no_work'
+$empty.run_aggregation.verified_count = 0
+$empty.run_aggregation.failed_count = 0
+Assert-True 'zero-work empty periods accepted' (@(Test-AggregationReportInternalConsistency -Report $empty).Count -eq 0)
+foreach ($invalidPeriods in @($null, 'invalid', @{ period = '2026-09' })) {
+    $invalid = New-Report
+    $invalid.periods = $invalidPeriods
+    Assert-True 'null or non-array periods rejected' ((Test-AggregationReportInternalConsistency -Report $invalid) -contains 'invalid_periods')
+}
+
+# Pass actual pure-builder output through this independent PowerShell validator.
+$builderProbe = @'
+import json, sys
+sys.path.insert(0, 'tests')
+from test_aggregation_report_builder import fixture, build, error
+reports = []
+for outcomes, options in [
+    ((), {}), (((8, 'verified'), (9, 'unknown')), {}),
+    (((9, 'verified'),), {'errors': [error()]}),
+    (((9, 'verified'),), {'enumeration': 'failed'}),
+    (((9, 'verified'),), {'errors': [error()], 'validation': 'incomplete'}),
+]:
+    m, e = fixture(outcomes, **options)
+    reports.append(json.loads(build(m, e)))
+print(json.dumps(reports))
+'@
+Push-Location (Join-Path $PSScriptRoot '..')
+try {
+    $builderOutput = $builderProbe | & python -B -
+    if ($LASTEXITCODE -ne 0) { throw 'synthetic_builder_fixture_failed' }
+    $builderReports = ConvertFrom-Json -InputObject ($builderOutput -join "`n") -AsHashtable -NoEnumerate
+    foreach ($builderReport in $builderReports) {
+        $builderIssues = @(Test-AggregationReportInternalConsistency -Report $builderReport)
+        if ($builderIssues.Count -gt 0) { Write-Host ('Builder fixture issues: ' + ($builderIssues -join ',')) }
+        Assert-True 'pure builder output internally consistent' ($builderIssues.Count -eq 0)
+    }
+}
+finally { Pop-Location }
+
+$jsonIntegers = New-Report | ConvertTo-Json -Depth 20 | ConvertFrom-Json -AsHashtable
+Assert-True 'raw JSON long integers accepted' (@(Test-AggregationReportInternalConsistency -Report $jsonIntegers).Count -eq 0)
+
+$largeCount = [bigint]::Parse('100000000000000000000000000000000000001')
+$large = New-Report
+$large.inventory_ref.eligible_target_count = $largeCount + [bigint]1
+$large.run_aggregation.verified_count = $largeCount
+$large.periods[0].eligible_count = $largeCount + [bigint]1
+$large.periods[0].verified_count = $largeCount
+Assert-True 'BigInteger counts aggregate exactly' (@(Test-AggregationReportInternalConsistency -Report $large).Count -eq 0)
+foreach ($delta in @([bigint](-1), [bigint]1)) {
+    $large.run_aggregation.verified_count = $largeCount + $delta
+    Assert-True 'BigInteger run count one-unit mismatch rejected' ((Test-AggregationReportInternalConsistency -Report $large) -contains 'run_verified_count_mismatch')
+    $large.run_aggregation.verified_count = $largeCount
+    $large.inventory_ref.eligible_target_count = $largeCount + [bigint]1 + $delta
+    Assert-True 'BigInteger inventory one-unit mismatch rejected' ((Test-AggregationReportInternalConsistency -Report $large) -contains 'period_inventory_count_mismatch')
+    $large.inventory_ref.eligible_target_count = $largeCount + [bigint]1
+}
+
+foreach ($notInteger in @($true, [double]1.0, '1')) {
+    $invalid = New-Report
+    $invalid.run_aggregation.verified_count = $notInteger
+    Assert-True 'bool double string run count rejected' ((Test-AggregationReportInternalConsistency -Report $invalid) -contains 'invalid_run_count:verified_count')
+    $invalid = New-Report
+    $invalid.report_schema_version = $notInteger
+    Assert-True 'bool double string version rejected' ((Test-AggregationReportInternalConsistency -Report $invalid) -contains 'unsupported_report_schema_version')
+    $invalid = New-Report
+    $invalid.periods[0].verified_count = $notInteger
+    Assert-True 'bool double string period count rejected' ((Test-AggregationReportInternalConsistency -Report $invalid) -contains 'invalid_period_count:2026-09.verified_count')
+    $invalid = New-Report
+    $invalid.inventory_ref.eligible_target_count = $notInteger
+    Assert-True 'bool double string inventory count rejected' ((Test-AggregationReportInternalConsistency -Report $invalid) -contains 'invalid_inventory_target_count')
+}
+
 Write-Host "Aggregation report internal validator: $script:Passed passed; $script:Failed failed."
 if ($script:Failed -gt 0) { exit 1 }

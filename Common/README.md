@@ -1,5 +1,7 @@
 # Common PowerShell functions
 
+`AggregationReportBuilder.py` は、callerがメモリで供給する信頼済みmanifest/B2/report schemaとexact UTF-8入力bytesから、A2/B2整合・inventory照合・terminal verificationを検査し、期間別/全run集計と参照hashを導出して決定的UTF-8 bytesを返す純粋helperです。schemaの外部参照を拒否し、schemaロード・source再走査・時刻自動取得・ファイル/Drive/lock/publication/status変更は行いません。生成UTC・信頼できる現在UTC・未来許容を明示入力とし、11桁までの小数を保持します。B2 validationがincompleteの場合、供給件数の整合だけで全入力の網羅性を証明せず、失敗のない期間もindeterminateにします。completedの検証で全entry/errorがaccount済みなら、unclassifiable run-scope errorと独立した既知期間のcompleteを区別します。生成UTCの永続出所と後日の同一bytes再生成方針、完全な状態遷移、runtime/実root/cloud受け入れは別ゲートです。
+
 PC-A / PC-Bで共有する関数と、レポートの参照先を検証するローカル補助モジュールを配置します。
 
 現時点の実装状況と初回配布の実行順は [棚卸し](../docs/status/first-release-readiness-20261024.md) を参照してください。以下は補助処理の責務であり、正式ランタイムの完成を意味しません。

@@ -62,6 +62,7 @@ try {
     Set-Content (Join-Path $fixture 'Common/AggregationReferencedArtifacts.ps1') '# Referenced artifact schema validation entry point'
     Set-Content (Join-Path $fixture 'Common/validate_aggregation_artifacts.py') '# referenced artifact validator'
     Set-Content (Join-Path $fixture 'Common/RunInputEvidenceIntegrity.py') '# A2/B2 evidence integrity validator'
+    Set-Content (Join-Path $fixture 'Common/AggregationReportBuilder.py') '# Pure exact-input report builder'
     Set-Content (Join-Path $fixture 'Common/LatestManifestSelection.py') '# Latest manifest selection core'
     Set-Content (Join-Path $fixture 'Common/ManifestDirectoryReader.py') '# Read-only directory reader'
     Set-Content (Join-Path $fixture 'Common/RecoveryDiagnostic.py') '# Pure diagnosis result model'
@@ -137,6 +138,7 @@ try {
         'Common/AggregationReferencedArtifacts.ps1',
         'Common/validate_aggregation_artifacts.py',
         'Common/RunInputEvidenceIntegrity.py',
+        'Common/AggregationReportBuilder.py',
         'Common/LatestManifestSelection.py'
         'Common/ManifestDirectoryReader.py'
         'Common/RecoveryDiagnostic.py'

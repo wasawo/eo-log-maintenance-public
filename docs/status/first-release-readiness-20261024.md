@@ -2,6 +2,8 @@
 
 確認日: 2026-10-24（日本時間）。基準は main `9fc85477907c169454104fe2b88b2933d855856f`（PR #27マージ）。仕様や承認を変更する文書ではなく、実装と未完了事項を結び直した現況表である。
 
+後続の集約helper実装では、[pure report builder](../../Common/AggregationReportBuilder.py)を追加し、exact manifest/B2入力のsummary再計算とT-01〜12の合成検証へ進んだ。正式writer/永続生成時刻・再生成/Drive/runtime受け入れは未完。以下の表はこのhelperまでを反映する。
+
 後続の利用者判断で [OSD-04のA方針](../decisions/dry-run-side-effect-policy-proposal.md) を承認済み。以下の未決定一覧は棚卸し時点の記録であり、現在の方針は承認記録・handoffを優先する。実装・受け入れは引き続き未完了。
 
 ## 結論と配布の区別
@@ -19,7 +21,7 @@
 | 設定 | [厳密な設定読取](../../Common/MachineConfiguration.ps1)、[create-only生成](../../Common/MachineConfigurationBootstrap.ps1)、両PCの安全なexample、maintenanceLocalの字句的分離 | 正式導入入口、実root認可、実効権限・祖先・利用直前までの保護。example生成後の実値は各PCのGit管理外設定へ手動入力 |
 | ファイル選択 | [日付・期間等の共通処理](../../Common/LogFunctions.ps1)、[完全列挙・ハッシュ証拠構築](../../Common/SourceInventoryEvidenceBuilder.py) | 正式runへの接続、列挙後の変更と利用までの整合性 |
 | root検査 | [既存Windowsディレクトリの読取専用metadata検査](../../Common/MachineConfigurationRootInspection.ps1) | 対象FS・ACL・実トークンの認可、安全な生成と継続利用の資格確認 |
-| 証拠・集約 | [contracts](../../contracts/)、[A2/B2検証](../../Common/RunInputEvidenceIntegrity.py)、[参照成果物検証](../../Common/validate_aggregation_artifacts.py) | 規範的な全状態遷移、実run writer、集約結果再生成・実運用の意味論的統合、Drive反映 |
+| 証拠・集約 | [contracts](../../contracts/)、[A2/B2検証](../../Common/RunInputEvidenceIntegrity.py)、[参照成果物検証](../../Common/validate_aggregation_artifacts.py)、[pure report builder](../../Common/AggregationReportBuilder.py) | 規範的な全状態遷移、実run writer、集約結果再生成・実運用の意味論的統合、Drive反映 |
 | 公開・クラッシュ | [単一ファイル公開](../../Common/AtomicArtifactPublication.py)、[marker-last公開](../../Common/ArtifactSetPublication.py)、復旧分類・ディレクトリ検証 | 永続run状態・処理全体との接続。複数ファイルの原子的トランザクションや電源断耐久性の証明はない |
 | 排他・manifest選択 | [所有run lock](../../Common/OwnedRunLock.py)、[最新候補選択](../../Common/LatestManifestSelection.py)、読取adapter | 旧lockの自動引継ぎはしない。実owner証拠、復旧手順、新runとfresh inventoryの作成、実環境での統合 |
 | 明示回復 | 診断・専用mutex、[private証拠のメモリ上のbinding](../../Common/PrivateRecoveryEvidence.py)、供給ACL/descriptorの検査 | v2の取得時owner証拠契約・provider、実効ACLと保存先検証、非公開の実保存。v1は診断・保全限定 |

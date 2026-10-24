@@ -8,14 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 最新mainは `67ca37a3f986ba89576e6961d12858f5ccf0170f`（[PR #34](https://github.com/wasawo/eo-log-maintenance-public/pull/34) マージ済み）。利用者が指定したmutex修正・C-01/C-02判断資料等の3コミットを1PRに統合した。PR最新HEADのValidate（attempt 2）/Package成功後にマージ。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40056434078) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40056434032) も成功。判断資料のマージは方針採用ではない。
+- 現branch `feat/aggregation-report-builder` はこのmainから分離。承認済みOSD-03/R1〜R7/T-01〜12に基づく、副作用なしの集約report builderを実装し独立検証中。exact manifest/B2 bytesと明示時刻等からsummary/report bytesを導出し、状態遷移・正式writer・Drive・認可へ接続しない。zero-work空period配列とJSON整数を既存PS validatorが拒否する相互運用不具合も修正対象。
+- 最終Python全337件成功（既存2件skip、新builder17件を含む）、PS internal validator 33アサーション成功、両役割package回帰成功。PowerShell 7.6.7の22ファイル構文/Error analyzerと修正後2PSの再検証成功。独立reviewの件数再導出P2を修正し、PS空配列/JSON整数型/大整数精度の相互運用不具合を修正した。変更5文書のローカルリンク44件欠落0、差分検査成功。Pythonはローカル3.11.9/CI3.12の差があり、このbranchのCI・push・PRは未実施。
+- 未公開の判断資料等4コミットは別branch `docs/drive-auth-options-after-pr34` の `643eaf6f6978eb518a12ff8b748917b5aea5e8d8` に保全し、本branchへは取り込んでいない。それらのPR/マージ範囲とC-01方針は利用者回答待ち。未回答を承認とせず、今回builderはこれらの未決と独立した既承認集約契約の範囲に限定する。今回builder単位の新規公開/マージはまだ実施していない。
+- B2 incomplete validationの網羅性、生成時刻の永続出所と後日の同一bytes再生成、完全状態遷移、runtime・両PC実root/FS・Drive内容/耐久性の受け入れは未完。pure helperやpackage成功をそれらの完了にしない。
 - 利用者の継続指示: 5時間枠の残量10%まで後続作業を続ける。残量はagentから直接取得できないため、利用者が到達時に停止を知らせる。指定3役のみを再利用する。
-- 最新基準mainは `a0b37bf30f1329209d5516888cc93c65c1e58f9e`（[PR #33](https://github.com/wasawo/eo-log-maintenance-public/pull/33) マージ済み）。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40045585873) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40045585917) 成功、開始時clean。前回の「コミット準備中」記録より本項を優先する。
-- branch `fix/mutex-close-failure` で、analystが指摘したnative mutex adapterのCloseHandle失敗見逃しと通常lockのNaN timeout入力検証不足を修正。closeのBOOL失敗を固定理由で拒否し、成功時だけhandle参照をclear、診断helperのcleanup失敗へ接続。NaNはtoken/path/mutex準備前に拒否し、無限大・巨大整数の既存理由を維持する。両小修正の独立reviewer指摘なし。
-- 検証: Python 3.11.9、対象lock16件/diagnostic mutex14件成功。通常環境で全320件成功（既存2件skip）、PowerShell 7.6.7を使う既存合成回帰を含む。差分検査成功。CI Python3.12は未実行。PS実装・配布の変更はなく独立PS/package回帰は未実行。native無効handleを実際にcloseする検証は行わずfake kernel32で戻り値を注入した。
-- この修正単位はローカルに記録し、未push・PR未作成。scope identity/access、root authority、IPC等の未確定仕様は含めず、runtime・実環境資格/耐久性の受け入れは未完。後続候補は承認済み部分の残存ギャップ、またはC-01/C-02の判断資料をanalystが調査中。新しいPR/マージはまだ実施していない。
-- 上記mutex修正はローカル `93537b01da58f4febeef69a3cd486eef74327e1ab` に記録済み。継続branch `docs/ipc-path-result-decision-options` はこのローカルコミット上で、[C-01/C-02の回答用判断資料](../decisions/c01-c02-ipc-contract-options.md) と索引・所見参照を追加。独立reviewer指摘なし、4文書のローカルリンク91件欠落0、差分検査成功。文書のみのため機能テスト再実行なし。
-- schema・規範契約・adapterの変更や承認状態の更新は行っていない。C-01のP1（drive-rootedのみ）+ V1（schemaにも構文検査）で未実装1.0を改訂する案を利用者へ確認中。回答なしを承認としない。C-02の操作別field/null/計画形と移行、root/排他資格、OSD-05、IPC全体レビューは未決/未完のまま。正本mainは引き続き `a0b37bf`。両作業単位は未pushで新しいPRなし。
-- 判断資料へGoogle公式REST資料の根拠と確認日を追加し、API生値/adapter正規化候補/SDK未確認を分離した。独立reviewerは補足内容の指摘なし。旧進捗56行は相対リンク以外の本文を保持してarchiveへ移動し、currentのOSD-04/08表記と再開手順を整合。reviewerの棚卸し直接リンク不足（P3）を修正した。文書のみで機能テスト再実行なし。
 
 ## 旧進捗の参照
 
@@ -23,7 +21,7 @@ PR #27〜33前後の旧進捗節は [セッション記録](archive/pr27-pr33-se
 
 ## 次回の実装再開時
 
-1. 正本mainとローカル2作業単位のブランチ/コミット・作業ツリーを照合する。C-01の回答待ちは上記を参照し、未回答なら依存schema改訂を保留する。Aは承認済みで再質問しない。IPC全体/C-02/OSD-05等の未決定は維持する。
+1. 正本mainと上記builder branch/保全済み文書branchのコミット・作業ツリーを照合する。C-01の回答待ちは上記を参照し、未回答なら依存schema改訂を保留する。Aは承認済みで再質問しない。IPC全体/C-02/OSD-05等の未決定は維持する。
 2. [初回配布棚卸しの順序](../status/first-release-readiness-20261024.md)に従い、残りの状態遷移/DryRun/IPC契約と、ローカルroot・永続run状態・復旧の不足を整理する。確認予算の永続化はその一部で、単独で初回配布へ進めない。
 3. Drive adapter/認証資格、両PCのTier B、正式手動runtime統合、E2E/Tier C、正式配布/導入と進む。taskは初回手動受け入れ後。実環境検証・実適用は別途の承認範囲を確認する。
 4. 旧lock自動処分・新run自動生成・実保存・task登録・Drive/本番復旧を、helper/CI成功から許可されたと解釈しない。
