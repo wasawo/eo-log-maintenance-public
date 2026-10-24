@@ -8,16 +8,12 @@
 
 ## 最新基準と今回の作業
 
-- 利用者の「継続して」でPR #35後の中断から再開。現branch `fix/b2-canonical-float-rejection` はmain `2ec79fc` + 停止記録 `e11ccb0` から分離した。B2契約§6.1で禁止する浮動小数点値（`1.0`等）を現canonicalizerが受理する不具合を修正し、独立レビューで指摘なし。schema上のinteger判定だけでcanonical bytesの契約を満たすとせず、入力の整数化・修復は行わない。schema/規範の変更、Drive/runtime接続は対象外。
-- 今回修正の検証: 直接選択したPython 3.11.9で関連48件、全346件成功（既存2件skip）。旧誤digest、count/version/nested size、raw float表記、digest/invariant/report/参照成果物の拒否を合成検証。整数vector・原bytes/hashを維持。PS/設定/依存/配布allowlist変更はなく、無関係なPS/package検査は再実行しない。reviewerも関連48件を独立実行し成功。変更2文書のローカルリンク5件欠落0、差分検査成功。ローカル修正は未push、CI Python3.12・新PRは未実行。
-- 未公開判断資料は元branchに加え、PR #35後へ再統合した `docs/remaining-contract-decisions` の `4e72846` に保全。6資料のローカルリンク102件欠落0、差分検査成功。公開・マージは未承認で、本修正branchへ取り込んでいない。B2検証網羅性/生成時刻の永続出所も未決のまま。
-
-- 最新mainは `2ec79fc47b81451f9914772130ee3a041a19bee5`（[PR #35](https://github.com/wasawo/eo-log-maintenance-public/pull/35) マージ済み）。承認された `65c1179d5f2f6146a0510e526beed7ebb1deec84` の1コミットだけを対象に、最新HEADの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40058728919) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40058729088) 成功後にsquash mergeした。
-- 承認済みOSD-03/R1〜R7/T-01〜12のpure aggregation report builderを追加。exact manifest/B2 bytesと明示時刻から集約reportを導出し、状態遷移・正式writer・Drive・認可へ接続しない。PS validatorのzero-work空period配列、通常JSON整数型、大整数精度も修正。独立reviewの件数再導出P2を解消し、未解決P1/P2指摘なし。
-- 実装時ローカル検証: Python 3.11.9 全337件成功（既存2件skip、新builder17件）、PS 7.6.7 internal validator 33アサーション、両役割package回帰、構文/Error analyzer成功。変更5文書リンク44件欠落0、差分検査成功。CI Python3.12のValidateも成功。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40078452426) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40078452410) も成功。再開時のpython shimはversion未設定だったため、文書更新には.NETを使用し、既存テスト成功の再実行とは記載しない。
-- 未公開の判断資料等4コミットは別branch `docs/drive-auth-options-after-pr34` の `643eaf6f6978eb518a12ff8b748917b5aea5e8d8` に保全し、PR #35へ取り込んでいない。それらの公開/マージ範囲とC-01方針は未承認のまま。回答がないことを承認にしない。
-- B2 incomplete validationの網羅性、生成時刻の永続出所と後日の同一bytes再生成、完全状態遷移、runtime・両PC実root/FS・Drive内容/耐久性の受け入れは未完。helper/package/CI成功をこれらの完了にしない。
-- 利用者は本セッションの目標を変更した: 指定の既存analyst/implementer/reviewerのみを再利用し、未決仕様を推測せず合成/隔離検証・独立review・handoffを完了、PR/マージは個別承認内とし、**1PRマージごとに作業を中断して継続可否を尋ねる**。旧「残量10%まで継続」の停止条件より今回の指示を優先する。PR #35後の中断記録は `e11ccb0` に保全し、その後の利用者指示で再開した。次のPRマージ時に再び中断し継続可否を確認する。新たなPR/マージ権限はまだ確認していない。
+- 最新mainは `b3ad37379458309d3412573a20124439b7e524ff`（[PR #36](https://github.com/wasawo/eo-log-maintenance-public/pull/36) マージ済み）。利用者の「マージして」に基づき、B2修正とhandoffの6ファイルを対象に、最新HEAD `a05fe3f0c8b2d85fee74cba943a9d37d46d1f1f3` の [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40079437538) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40079437529) 成功後にsquash mergeした。
+- 承認済みB2契約§6.1が禁止するfloatをcanonical JSON化前に再帰的に固定理由で拒否。`1.0`等を整数へ変換・修復しない。旧誤digestやexact参照hashが一致しても、integrity/report builder/参照成果物の各経路で拒否する。通常整数出力・既存vector・入力bytes/hashを維持し、schema/版/規範契約を変更していない。独立review指摘なし。
+- 実装時ローカル検証: Python 3.11.9で関連48件・全346件成功（既存2件skip）。reviewerも関連48件を独立実行。変更2文書リンク5件欠落0、差分検査成功。PS/設定/依存/配布allowlist変更なしで無関係なPS/package検査は再実行せず、CI Python3.12のValidateとPackageが成功。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40079607571) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40079607574) も成功。
+- 未公開判断資料は `docs/remaining-contract-decisions` の `4e72846` に再統合して保全済み。元の `docs/drive-auth-options-after-pr34` の4コミット（HEAD `643eaf6`）も保持し、PR #36へ取り込んでいない。認証/owner-v2の資料6ファイルのローカルリンク102件欠落0、差分検査成功。公開・マージ範囲とC-01方針は未承認で、回答なしを承認としない。
+- B2 validation網羅性とincompleteの意味、生成UTCの永続出所/後日の同一bytes再生成、完全状態遷移、runtime・両PC実root/FS・Drive内容/耐久性の受け入れは未決・未完。helper/合成テスト/package/CI成功をそれらの完了にしない。集約report builderはPR #35でマージ済み。
+- 現在は**PR #36マージ後の中断状態**。利用者指定のセッション目標は、既存analyst/implementer/reviewerのみ再利用し、未決仕様を推測せず合成/隔離検証・独立review・handoffを完了、PR/マージ権限は個別承認内とし、**1PRマージごとに中断して継続可否を尋ねる**。次の作業は利用者の継続指示待ち。この停止記録は `docs/pr36-paused-handoff` にローカル保全し、未push・追加PRなし。
 
 ## 旧進捗の参照
 
