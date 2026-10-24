@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
 import unittest
@@ -9,10 +10,12 @@ import unittest
 from Common.RunInputEvidenceIntegrity import (
     EVIDENCE_CANONICALIZATION,
     EvidenceIntegrityError,
+    canonical_evidence_bytes,
     compute_evidence_digest,
     compute_inventory_digest,
     validate_evidence_invariants,
     validate_evidence_matches_manifest,
+    validate_evidence_schema,
 )
 
 
@@ -90,6 +93,15 @@ def evidence(targets=None, *, entries_observed=0, valid_ineligible=0, invalid_re
     return value
 
 
+def legacy_float_digest(value):
+    """Independent reproduction of the old faulty digest, test fixtures only."""
+    copied = copy.deepcopy(value)
+    del copied["integrity"]["digest"]
+    raw = json.dumps(copied, ensure_ascii=False, sort_keys=True,
+                     separators=(",", ":"), allow_nan=False).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
 class InventoryDigestTests(unittest.TestCase):
     def test_a2_empty_inventory_reference_vector(self):
         self.assertEqual(
@@ -128,6 +140,82 @@ class InventoryDigestTests(unittest.TestCase):
 
 
 class EvidenceIntegrityTests(unittest.TestCase):
+    def test_schema_integer_floats_cannot_prove_canonical_digest(self):
+        fields = [("evidence_schema_version",)]
+        fields += [("enumeration", key) for key in (
+            "entries_observed", "eligible_target_count", "enumeration_errors")]
+        fields += [("validation", key) for key in (
+            "valid_eligible_count", "valid_ineligible_count", "invalid_relevant_count",
+            "ignored_entries_count")]
+        for path in fields:
+            with self.subTest(path=path):
+                value = evidence()
+                node = value
+                for part in path[:-1]: node = node[part]
+                node[path[-1]] = float(node[path[-1]])
+                value["integrity"]["digest"] = legacy_float_digest(value)
+                before = copy.deepcopy(value)
+                validate_evidence_schema(value, SCHEMA)
+                for operation in (canonical_evidence_bytes, compute_evidence_digest):
+                    with self.assertRaisesRegex(EvidenceIntegrityError, "^floating_point_evidence_value$"):
+                        operation(value)
+                with self.assertRaisesRegex(EvidenceIntegrityError, "^floating_point_evidence_value$"):
+                    validate_evidence_invariants(value, SCHEMA)
+                self.assertEqual(before, value)
+
+    def test_nested_float_values_are_rejected_before_json_roundtrip(self):
+        for number in (1.0, -0.0, 1.25, float("nan"), float("inf"), float("-inf")):
+            for nested in ({"synthetic_private_detail": number}, [None, {"inner": [number]}], (number,)):
+                with self.subTest(number=repr(number), nested_type=type(nested).__name__):
+                    value = evidence()
+                    value["synthetic"] = nested
+                    before = json.dumps(value, allow_nan=True)
+                    for operation in (canonical_evidence_bytes, compute_evidence_digest):
+                        with self.assertRaises(EvidenceIntegrityError) as caught:
+                            operation(value)
+                        self.assertEqual("floating_point_evidence_value", str(caught.exception))
+                        self.assertNotIn("synthetic_private_detail", str(caught.exception))
+                    with self.assertRaises(EvidenceIntegrityError):
+                        validate_evidence_invariants(value, SCHEMA)
+                    self.assertEqual(before, json.dumps(value, allow_nan=True))
+
+    def test_inventory_size_float_is_not_coerced(self):
+        target = dict(relative_path="synthetic.txt", filename="synthetic.txt",
+                      size_bytes=1, expected_sha256=ZERO_SHA)
+        value = evidence([target], entries_observed=1)
+        value["inventory"]["targets"][0]["size_bytes"] = 1.0
+        value["integrity"]["digest"] = legacy_float_digest(value)
+        with self.assertRaisesRegex(EvidenceIntegrityError, "floating_point_evidence_value"):
+            compute_evidence_digest(value)
+        with self.assertRaises(EvidenceIntegrityError):
+            validate_evidence_invariants(value, SCHEMA)
+        self.assertIs(type(value["inventory"]["targets"][0]["size_bytes"]), float)
+
+    def test_raw_json_float_forms_are_rejected_after_parsing(self):
+        for token in ("1.0", "-0.0", "1e0", "1.25", "NaN", "Infinity", "-Infinity"):
+            value = evidence()
+            raw = json.dumps(value).replace('"evidence_schema_version": 1',
+                                           '"evidence_schema_version": ' + token)
+            parsed = json.loads(raw)
+            for operation in (canonical_evidence_bytes, compute_evidence_digest):
+                with self.subTest(token=token), self.assertRaises(EvidenceIntegrityError):
+                    operation(parsed)
+            with self.assertRaises(EvidenceIntegrityError):
+                validate_evidence_invariants(parsed, SCHEMA)
+
+    def test_integer_string_boolean_null_canonical_behavior_is_unchanged(self):
+        value = evidence()
+        value["synthetic"] = [1, 0, "1.0", True, False, None]
+        self.assertIn(b'"synthetic":[1,0,"1.0",true,false,null]', canonical_evidence_bytes(value))
+        valid = evidence()
+        valid["evidence_id"] = "1.0"
+        valid["integrity"]["digest"] = compute_evidence_digest(valid)
+        validate_evidence_invariants(valid, SCHEMA)
+        invalid = evidence()
+        invalid["enumeration"]["eligible_target_count"] = True
+        with self.assertRaisesRegex(EvidenceIntegrityError, "evidence_schema_invalid"):
+            validate_evidence_invariants(invalid, SCHEMA)
+
     def test_valid_empty_completed_evidence(self):
         value = evidence()
         validate_evidence_invariants(value, SCHEMA)

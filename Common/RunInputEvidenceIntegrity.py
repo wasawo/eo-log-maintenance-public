@@ -102,13 +102,30 @@ def _reject_surrogates(value: Any) -> None:
             _reject_surrogates(item)
 
 
+def _reject_floats(value: Any) -> None:
+    if isinstance(value, float):
+        raise EvidenceIntegrityError("floating_point_evidence_value") from None
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            _reject_floats(key)
+            _reject_floats(item)
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            _reject_floats(item)
+
+
 def canonical_evidence_bytes(evidence: Mapping[str, Any]) -> bytes:
     """Serialize evidence per B2 canonicalization, excluding integrity.digest."""
     if not isinstance(evidence, Mapping):
         raise EvidenceIntegrityError("evidence_root_not_object")
     try:
+        # JSON Schema's abstract integer accepts 1.0; B2's approved canonical
+        # representation separately prohibits floats. Never coerce them to int.
+        _reject_floats(evidence)
         value = json.loads(json.dumps(evidence, ensure_ascii=False, allow_nan=False))
-    except (TypeError, ValueError) as exc:
+    except EvidenceIntegrityError:
+        raise
+    except (TypeError, ValueError, RecursionError) as exc:
         raise EvidenceIntegrityError("invalid_evidence_value") from exc
     if not isinstance(value, dict):
         raise EvidenceIntegrityError("evidence_root_not_object")

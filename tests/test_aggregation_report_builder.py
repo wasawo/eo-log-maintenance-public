@@ -13,7 +13,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from Common.AggregationReportBuilder import AggregationBuildError, build_aggregation_report
 from Common.RunInputEvidenceIntegrity import compute_evidence_digest
 from Common.validate_aggregation_artifacts import validate_referenced_artifacts
-from test_run_input_evidence_integrity import evidence, manifest
+from test_run_input_evidence_integrity import evidence, manifest, legacy_float_digest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -144,16 +144,39 @@ class AggregationReportBuilderTests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(spaced).hexdigest(), result["manifest_ref"]["sha256"])
         self.assertNotEqual(hashlib.sha256(original).hexdigest(), result["manifest_ref"]["sha256"])
 
-    def test_schema_integer_count_is_derived_as_integer_without_rewriting_input(self):
+    def test_integer_count_is_derived_without_rewriting_input(self):
         m, e = fixture(((9, "verified"),))
-        e["enumeration"]["eligible_target_count"] = 1.0
-        e["integrity"]["digest"] = compute_evidence_digest(e)
         original = encode(e)
         r = self.report(m, e)
         self.assertIs(type(r["inventory_ref"]["eligible_target_count"]), int)
         self.assertEqual(1, r["inventory_ref"]["eligible_target_count"])
         self.assertEqual(original, encode(e))
         self.assertEqual(hashlib.sha256(original).hexdigest(), r["evidence_ref"]["sha256"])
+
+    def test_schema_integer_float_count_and_old_digest_are_rejected(self):
+        m, e = fixture(((9, "verified"),))
+        e["enumeration"]["eligible_target_count"] = 1.0
+        e["integrity"]["digest"] = legacy_float_digest(e)
+        original = encode(e)
+        Draft202012Validator(SCHEMAS["evidence_schema"]).validate(e)
+        with self.assertRaises(AggregationBuildError): build(m, e)
+        self.assertEqual(original, encode(e))
+
+    def test_raw_evidence_float_tokens_never_produce_report(self):
+        m, e = fixture()
+        for token in ("1.0", "-0.0", "1e0", "1.25", "NaN", "Infinity", "-Infinity"):
+            field = "evidence_schema_version" if token not in ("-0.0",) else "eligible_target_count"
+            parsed = copy.deepcopy(e)
+            node = parsed if field == "evidence_schema_version" else parsed["enumeration"]
+            node[field] = json.loads(token)
+            if token not in ("NaN", "Infinity", "-Infinity"):
+                parsed["integrity"]["digest"] = legacy_float_digest(parsed)
+            raw = encode(parsed)
+            if token == "1e0":
+                raw = raw.replace(b'"evidence_schema_version":1.0', b'"evidence_schema_version":1e0')
+            with self.subTest(token=token):
+                with patch("test_aggregation_report_builder.encode", side_effect=[encode(m), raw]):
+                    with self.assertRaises(AggregationBuildError): build(m, parsed)
 
     def test_rejects_identity_inventory_count_digest_and_bool_corruption(self):
         for case in ("identity", "inventory", "count", "digest", "bool"):

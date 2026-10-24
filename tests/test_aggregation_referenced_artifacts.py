@@ -9,6 +9,7 @@ import unittest
 
 from Common.RunInputEvidenceIntegrity import compute_evidence_digest, compute_inventory_digest
 from Common.validate_aggregation_artifacts import validate_referenced_artifacts
+from test_run_input_evidence_integrity import legacy_float_digest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -130,6 +131,59 @@ class ReferencedArtifactValidationTests(unittest.TestCase):
         self.assertEqual("verified", result["status"])
         self.assertEqual("verified", result["artifacts"]["manifest_ref"]["status"])
         self.assertEqual("verified", result["artifacts"]["evidence_ref"]["status"])
+
+    def test_float_evidence_is_rejected_even_with_matching_exact_ref_and_old_digest(self):
+        for token in ("1.0", "-0.0", "1e0", "1.25", "NaN", "Infinity", "-Infinity"):
+            with self.subTest(token=token):
+                changed = evidence()
+                if token == "-0.0":
+                    changed["enumeration"]["enumeration_errors"] = -0.0
+                else:
+                    changed["evidence_schema_version"] = json.loads(token)
+                if token not in ("NaN", "Infinity", "-Infinity"):
+                    changed["integrity"]["digest"] = legacy_float_digest(changed)
+                raw = json.dumps(changed, separators=(",", ":")).encode()
+                if token == "1e0":
+                    raw = raw.replace(b'"evidence_schema_version":1.0', b'"evidence_schema_version":1e0')
+                path = self.root / "_maintenance/run-input-evidence/PC-A/evidence.json"
+                path.write_bytes(raw)
+                self.write_report(report(self.manifest_bytes, raw))
+                result = self.validate()
+                self.assertEqual("rejected", result["status"])
+                if token in ("1.0", "-0.0", "1e0"):
+                    self.assertEqual("evidence_integrity:floating_point_evidence_value", result["reason_code"])
+                self.assertEqual(raw, path.read_bytes())
+                self.assertNotIn(str(self.root), json.dumps(result))
+
+    def test_all_count_fields_and_nested_float_shapes_are_rejected_at_reference_boundary(self):
+        paths = [("enumeration", field) for field in (
+            "entries_observed", "eligible_target_count", "enumeration_errors")]
+        paths += [("validation", field) for field in (
+            "valid_eligible_count", "valid_ineligible_count", "invalid_relevant_count", "ignored_entries_count")]
+        cases = []
+        for path in paths:
+            changed = evidence()
+            changed[path[0]][path[1]] = 0.0
+            cases.append(changed)
+        for nested in ([{"inner": 1.0}], {"inner": [1.0]}):
+            changed = evidence()
+            changed["synthetic"] = nested
+            cases.append(changed)
+        changed = evidence()
+        changed["inventory"]["targets"] = [{
+            "filename": "synthetic.txt", "relative_path": "synthetic.txt",
+            "size_bytes": 1.0, "expected_sha256": "0" * 64,
+        }]
+        cases.append(changed)
+        for index, changed in enumerate(cases):
+            with self.subTest(case=index):
+                changed["integrity"]["digest"] = legacy_float_digest(changed)
+                raw = json.dumps(changed, separators=(",", ":")).encode()
+                path = self.root / "_maintenance/run-input-evidence/PC-A/evidence.json"
+                path.write_bytes(raw)
+                self.write_report(report(self.manifest_bytes, raw))
+                self.assertEqual("rejected", self.validate()["status"])
+                self.assertEqual(raw, path.read_bytes())
 
     def test_byte_digest_mismatch_is_rejected(self) -> None:
         value = json.loads(self.report_path.read_text(encoding="utf-8"))
