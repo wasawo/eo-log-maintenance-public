@@ -80,6 +80,7 @@ docs/
 ### 承認記録・判断案・比較検討（承認状態は本文参照）
 
 - [Aggregation Inventory Integrity — Decision Options](decisions/aggregation-inventory-integrity-options.md)
+- [B2 validation網羅性・report生成時刻の判断資料](decisions/b2-validation-coverage-report-time-options.md)
 - [C-01/C-02: IPCパス・操作別resultの判断資料](decisions/c01-c02-ipc-contract-options.md)
 - [C-45 event identity conflict handling options](decisions/c45-event-identity-conflict-options.md)
 - [C-50 structured condition input model — non-normative proposal](decisions/c50-condition-input-model-options.md)
@@ -91,6 +92,8 @@ docs/
 - [OSD-03 — Derived aggregation report contract decisions](decisions/osd-03-report-contract-options.md)
 - [OSD-03: Run and Period Status Aggregation Options](decisions/osd-03-status-aggregation-options.md)
 - [OSD-04: Dry Run副作用のA承認・比較記録](decisions/dry-run-side-effect-policy-proposal.md)
+- [OSD-05/C-23: Drive認証・identity・scopeの判断資料](decisions/osd-05-drive-auth-identity-scope-options.md)
+- [owner-v2: field・identity・snapshot束縛の判断資料](decisions/owner-v2-field-binding-options.md)
 - [PC-Aの毎時完了確認に対する上限（判断案）](decisions/pc-a-completion-wait-budget-proposal.md)
 - [stale lock の明示的回復フロー案](decisions/recovery-disposition-proposal.md)
 - [実行accountとprivate証拠アクセス方針（判断案）](decisions/recovery-execution-account-policy-proposal.md)

@@ -22,6 +22,7 @@ v2は取得時に必要証拠を収集できた新規recordだけを対象とす
 | live observation | 同じOS process handleに対するidentity確認と終了/生存/不明の観測。使い捨てのhandle値自体を永続identityにしない |
 
 field名・JSON型・正規化・digest対象・文字列上限は機械可読schemaの単位で厳密化する。
+未確定の表現・出所・digest対象と格納位置は[owner-v2判断資料](../decisions/owner-v2-field-binding-options.md)で比較する（未承認）。
 端末/起動identityの永続providerは未選定。OS/再起動/複製/権限エラーを扱える証拠なしにはv2生成・回復を進めない。
 公開用設定に実identityを追加せず、operatorに手入力を要求しない。生成先・ACL・保持はprivate証拠設計で確定する。
 
@@ -60,7 +61,7 @@ process handleを失った後や再起動後は、この初期候補で終了証
 owner証拠の収集は対象processの終了/制御、権限昇格、credential取得、旧recordの更新を行わない。
 必要最小限のquery/waitの権限を使う方向で、実API契約・権限・close失敗を実装時に検証する。
 公開診断は固定reasonだけとし、token/host/PID/生成時刻/端末・起動identity/実パス/raw例外は出さない。
-private原本bytesを保存する方式は[次の保管方針案](../decisions/recovery-private-evidence-policy-proposal.md)で利用者判断を求める。
+private原本bytesは[承認済みの非公開保管方針](../decisions/recovery-private-evidence-policy-proposal.md)に従い、maintenanceLocal内で保全し自動削除しない設計とする。具体的な[保存・検証契約](recovery-private-evidence-contract.md)は実保存・ACL変更・旧record処分を許可するものではなく、これらの実装と受け入れは未完了。
 
 ## 6. 実装前の試験契約
 
