@@ -8,15 +8,12 @@
 
 ## 最新基準と今回の作業
 
-- 利用者の「継続して」でPR #36後の中断から再開。現branch `docs/contract-decision-packet` はmain `b3ad373` + 停止記録 `a9b68a8` から分離。保全済みの認証/owner-v2判断資料6ファイルを最新基準へ統合し、[B2検証網羅性とreport生成時刻の永続出所の未承認比較](../decisions/b2-validation-coverage-report-time-options.md)を追加し、独立review指摘なし。コード/schema/設定/承認状態は変更しない。資料の公開・マージは未承認で、方針採用とは別に扱う。
-
-- 今回資料の検証: 変更9文書のローカルリンク118件欠落0、差分検査成功。reviewerはhandoffを除く8文書/112リンクを独立確認し指摘なし。文書のみで機能・package検査は再実行せず、コード/schema/設定・方針承認を変更していない。ローカル保全のみで未push・新規PR/CI未実行。
-- 最新mainは `b3ad37379458309d3412573a20124439b7e524ff`（[PR #36](https://github.com/wasawo/eo-log-maintenance-public/pull/36) マージ済み）。利用者の「マージして」に基づき、B2修正とhandoffの6ファイルを対象に、最新HEAD `a05fe3f0c8b2d85fee74cba943a9d37d46d1f1f3` の [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40079437538) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40079437529) 成功後にsquash mergeした。
-- 承認済みB2契約§6.1が禁止するfloatをcanonical JSON化前に再帰的に固定理由で拒否。`1.0`等を整数へ変換・修復しない。旧誤digestやexact参照hashが一致しても、integrity/report builder/参照成果物の各経路で拒否する。通常整数出力・既存vector・入力bytes/hashを維持し、schema/版/規範契約を変更していない。独立review指摘なし。
-- 実装時ローカル検証: Python 3.11.9で関連48件・全346件成功（既存2件skip）。reviewerも関連48件を独立実行。変更2文書リンク5件欠落0、差分検査成功。PS/設定/依存/配布allowlist変更なしで無関係なPS/package検査は再実行せず、CI Python3.12のValidateとPackageが成功。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40079607571) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40079607574) も成功。
-- 未公開判断資料は `docs/remaining-contract-decisions` の `4e72846` に再統合して保全済み。元の `docs/drive-auth-options-after-pr34` の4コミット（HEAD `643eaf6`）も保持し、PR #36へ取り込んでいない。認証/owner-v2の資料6ファイルのローカルリンク102件欠落0、差分検査成功。公開・マージ範囲とC-01方針は未承認で、回答なしを承認としない。
-- B2 validation網羅性とincompleteの意味、生成UTCの永続出所/後日の同一bytes再生成、完全状態遷移、runtime・両PC実root/FS・Drive内容/耐久性の受け入れは未決・未完。helper/合成テスト/package/CI成功をそれらの完了にしない。集約report builderはPR #35でマージ済み。
-- PR #36後に中断し、その後利用者の継続指示で再開した。利用者指定のセッション目標は、既存analyst/implementer/reviewerのみ再利用し、未決仕様を推測せず合成/隔離検証・独立review・handoffを完了、PR/マージ権限は個別承認内とし、**1PRマージごとに中断して継続可否を尋ねる**。次のPRマージ時に再び中断し、継続可否を尋ねる。停止記録は `docs/pr36-paused-handoff` の `a9b68a8` に保全し、新規PR/マージはまだ実施していない。
+- 最新mainは `c4de355ac9810769036746401a2ef3235329bc74`（[PR #37](https://github.com/wasawo/eo-log-maintenance-public/pull/37) マージ済み）。利用者のOKに基づき判断資料とhandoffの9文書を対象に、最新HEAD `4a6ff27ff6cf1dbc84a4485dc0b07ed3a60555a2` の [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40082476232) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40082476316) 成功後にsquash mergeした。
+- 認証・owner-v2の保全済み比較を統合し、[B2 validation網羅性/report生成時刻](../decisions/b2-validation-coverage-report-time-options.md)の選択肢と互換性・R5改訂・将来合成vectorsを整理した。[認証資料](../decisions/osd-05-drive-auth-identity-scope-options.md)・[owner-v2資料](../decisions/owner-v2-field-binding-options.md)を含め、**資料のマージは方針採用ではない**。コード/schema/設定/承認状態は変更せず、実OS/Drive接続・保存・本番適用を認可していない。private保全/自動削除なし・各PC内manual/task同一accountは既承認のまま文書を整合した。
+- 文書検証: 9文書のローカルリンク118件欠落0、差分検査成功。reviewerはhandoffを除く8文書/112リンクを独立確認し指摘なし。文書のみのため機能/package検査のローカル再実行なし。外部事実の再調査、実OS/Drive/runtime受け入れも実施していない。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40082642915) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40082642880) も成功。
+- 従来の未公開資料branch `docs/remaining-contract-decisions`（`4e72846`）、`docs/drive-auth-options-after-pr34`（`643eaf6`）は履歴保全のため保持するが、判断資料の現行本文はPR #37後のmainを優先する。未公開資料のままという旧記録を現在の公開状態に適用しない。
+- [C-01/C-02](../decisions/c01-c02-ipc-contract-options.md)、認証/owner-v2のfield・source・資格、B2 validation網羅性/incompleteの意味、生成UTCの永続出所/同一bytes再生成は未決。完全状態遷移、runtime、両PC実root/FS・Drive内容/耐久性の受け入れも未完。schema/helper/合成テスト/package/CI成功をこれらの完了にしない。集約builderはPR #35、B2 float拒否はPR #36でマージ済み。
+- 現在は**PR #37マージ後の中断状態**。既存analyst/implementer/reviewerのみ再利用し、未決仕様を推測せず合成/隔離検証・独立review・handoffを完了、PR/マージ権限は個別承認内とする。**1PRマージごとに中断して継続可否を尋ねる**という利用者指示に従い、次作業は継続指示待ち。この記録は `docs/pr37-paused-handoff` にローカル保全し、未push・追加PRなし。
 
 ## 旧進捗の参照
 
