@@ -10,6 +10,8 @@ rootが単独で担当し、サブエージェントや別AIタスクへ委譲�
 ## コミット・PR
 
 - `git status --short --branch`、`git branch -vv`、`git remote -v` と必要な実GitHub状態を照合する。未コミット/ステージ済み変更を保全し、利用者が含めるよう指定した変更も確認する。
+- mainへの直接pushは禁止。前のPRがマージ済みなら、最新mainから新しい作業ブランチを作成してから変更し、PR作成指示までの複数単位・コミットを同じブランチに蓄積する。マージ済みブランチを次の変更に使わない。
+- 作業ブランチ作成時はmainをupstreamに設定しない（例：`git switch --no-track -c codex/<作業名> origin/main`）。pushが指示されたら対象ブランチと送信先を確認し、`git push -u origin <作業ブランチ>`のように送信先を明示する。main宛てのrefspecや送信先が不明なpushを実行しない。
 - 差分とステージ内容を確認する。実値・秘密・runtime証拠・禁止配布物を含めず、作成者メールは既存GitHub noreply設定を確認する。
 - 関連仕様・コード・テスト・handoffは同じPRにまとめ、要件ID/P0への影響と受け入れ限界を示す。PR本文には問題、変更後の動作、検証、残課題を書く。
 - 検証が必要なら [eolm-validation](../eolm-validation/SKILL.md) を読む。PR作成依頼だけではマージしない。外部操作は依頼で認可された範囲に限る。
