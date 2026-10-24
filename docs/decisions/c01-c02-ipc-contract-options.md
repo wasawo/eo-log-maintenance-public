@@ -15,7 +15,7 @@
 | [設定/root設計](../design/configuration-local-root.md)、[設定parser](../../Common/MachineConfiguration.ps1) | 現在の設定はdrive-rooted Windows pathのみ。構造検証は実root認可・物理的分離の証明ではない | UNCをIPCで許す場合の設定側との整合と独立したroot資格 |
 | [Dry Run A設計](../design/dry-run-execution-design.md) §2–4 | root/排他資格未完なら停止。bytes取得・書込み・live接続・認証refresh/storeは解禁しない | result契約を選んでもこれらのゲートは残る |
 
-APIがどの条件でどのmetadata/checksumを返すか、SDKの型変換・paginationやdownload/upload内部動作は、本書では検証していない。返却を保証できるフィールド・API試行の数え方はadapter設計時の一次資料確認と合成試験が必要で、取得できると推測して必須化しない。
+Google公式一次資料で確認したREST APIの返却条件は§7にまとめる（2026-10-24 JST確認）。SDKは未選定で、型変換・自動pagination・内部retry・upload/downloadの呼出し履歴は未確認。REST仕様で確認できる事実を、adapterでの返却保証や試行回数の検証済み証拠に置き換えない。C-01/C-02の選択・field必須化・正規化方式は引き続き未承認である。
 
 ## 2. C-01: 対応するパス構文と検査責務を別々に選ぶ
 
@@ -71,9 +71,9 @@ R2を選ぶ場合も、現状の任意objectだけで安全判断しない。最
 
 ### 3.2 必須・任意・nullable・missingの比較候補
 
-以下の名前は、契約例に既出のものも含め**操作別schemaとしては未承認の提案候補**。`必須` は成功resultで欠落不可、`任意` は欠落可、`nullable` は明示null可を意味する。数値sizeは非負整数候補、checksumは実際に取得した値だけとし、ローカル値をクラウド値として補完しない。
+以下の名前は、契約例に既出のものも含め**操作別schemaとしては未承認の提案候補**。`必須` は成功resultで欠落不可、`任意` は欠落可、`nullable` は明示null可を意味する。数値sizeはadapterによる非負整数への正規化候補であり、API生値ではない。RESTの `size` はstring形式のint64で、folder/shortcut等には未設定となる。checksumは実際に取得した値だけとし、ローカル値をクラウド値として補完しない。[File resource](https://developers.google.com/workspace/drive/api/reference/rest/v3/files)
 
-型の候補は `file_id` / `name` / `mime_type` が非空文字列、`modified_time` がタイムゾーンを伴う日時文字列、`parent_ids` が非空文字列の配列、`sha256` / `staging_sha256` が64桁hex、tokenが非空文字列。nullableを選ぶfieldだけnullを追加許容する。日時の正規化とAPI値の変換、checksumの出所を示す表現も承認前に確定し、APIがこの型で返すとは仮定しない。
+型の候補は `file_id` / `name` / `mime_type` が非空文字列、`modified_time` がタイムゾーンを伴う日時文字列、`parent_ids` が非空文字列の配列、`sha256` / `staging_sha256` が64桁hex、tokenが非空文字列。nullableを選ぶfieldだけnullを追加許容する。日時の正規化とAPI値の変換、checksumの出所を示す表現も承認前に確定し、APIがこの型で返すとは仮定しない。list/getの既定fieldは一部だけであり、ID/name等を必須にするには明示的な `fields` 要求と欠落時停止を検証する必要がある。fieldを要求しても、そのresourceで値が利用可能になるとは限らない。[fields parameter](https://developers.google.com/workspace/drive/api/guides/fields-parameter)
 
 | operation | 必須・非nullの最小候補 | 必須nullable候補（N1） | 任意・欠落候補（N2） | missing/nullを安全判断でどう扱うか |
 | --- | --- | --- | --- | --- |
@@ -84,13 +84,15 @@ R2を選ぶ場合も、現状の任意objectだけで安全判断しない。最
 
 N1は「fieldは既知だが値なし」をnullで明示できる反面、取得不能/未要求/未検証の区別が必要なら別の理由表現が要る。N2はAPIが返した値だけを表しやすい反面、adapterの返し忘れと意図的欠落が区別できない。N1/N2をfield別に混用する場合は一覧を承認し、null・欠落を0/空配列/falseへ黙って変換しない。`parent_ids: []` は親情報不明の代用にしない。metadata欠落をエラーにする必須用途と、未検証として表示するだけの用途も分けて確定する。
 
-`incomplete_listing` や `bytes_received` 等をAPI/SDKから正しく導出できるかは未確認。導出不能なら「false」や「0」を仮置きせず、nullable/別の状態表現を選ぶか操作を停止する。必要な追加APIが1回試行原則に抵触する場合、暗黙に呼ばず契約設計へ戻す。download結果にローカル絶対pathをechoする必然性は未確定であり、上表では必須にしていない。
+`incomplete_listing` はRESTの `incompleteSearch` をどう変換するかという提案で、同名のAPI fieldではない。`incompleteSearch: true` は検索結果が欠け得ることを示す。[files.list](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list) `bytes_received` もAPI metadata fieldではなくclientが受信bytesを観測する提案である。`alt=media` の応答bodyはmetadataではなく内容bytesとなる。[files.get](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/get) SDKからの正しい導出は未確認で、不能なら「false」や「0」を仮置きせず、nullable/別の状態表現を選ぶか停止する。必要な追加APIが1回試行原則に抵触する場合、暗黙に呼ばず契約設計へ戻す。download結果にローカル絶対pathをechoする必然性は未確定であり、上表では必須にしていない。
 
 ### 3.3 ページ成功、全一覧完了、検証成功を区別する
 
 requestには `page_token` があるため、候補は**1 request＝1ページの1 API試行**。全ページをPython内部で取得して1回試行と数える案ではない。PSが次ページを要求し、それぞれの相関・exit・errorを検証する。再試行の所有者もPSのまま。ページ列のidentity/検索条件/継続tokenの整合、循環token、途中失敗、不完全listingを検査し、終端まで成功し必要な完全性を確認できた場合だけ全一覧の完了候補とする。pagination中の外部変更に対する整合保証は別途設計が必要で、終端tokenだけでsnapshotを証明しない。
 
-`files: []` とtokenありは「このページ0件」であり不在証明ではない。終端でも不完全listingなら再uploadの許可にはならない。metadata取得成功、upload API成功、download bytes取得成功も、それぞれクラウド内容検証、両PC完了、archive認可を意味しない。内容検証の方法・根拠がない `cloud_content_verified: true` は拒否する。
+RESTの `pageSize` は返却件数の上限であり、指定件数より少なく返ることがある。`nextPageToken` は追加ページを示し、終端では欠落する。token失効や列挙中の外部変更を無視して一覧完全性を保持したと解釈しない。[files.list](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list) `files: []` とtokenありは保守的な合成fixture候補であり、この組合せの具体的発生を保証する主張ではない。その入力を受けても不在証明にしない。1ページのREST応答とSDK内部の複数呼出しは区別して計測する。
+
+終端でも不完全listingなら再uploadの許可にはならない。metadata取得成功、upload API成功、download bytes取得成功も、それぞれクラウド内容検証、両PC完了、archive認可を意味しない。内容検証の方法・根拠がない `cloud_content_verified: true` は拒否する。
 
 ### 3.4 Dry Run Aの計画形を別途確定する
 
@@ -135,3 +137,18 @@ R2のopen範囲を後でclosedへ変える場合も、この互換性判断を�
 6. caller/adapter semantic testでrequest ID/operation、exit/error/retryable、未知version、1 API試行・暗黙retryなし、streamの秘密除去、Aの副作用拒否を確認する。schema成功だけで完了扱いしない。C-03〜06とIPC全体のレビュー、OSD-05、runtime受け入れは別ゲートのまま。
 
 本書の追加時点ではこれらのfixtureやadapterを実装・実行していない。機能テストの成功、P0-005/Phase 1/7の完了、cloud検証・実環境受け入れを示す資料ではない。
+
+## 7. 公式一次資料で確認した範囲と未確認の境界
+
+確認日：2026-10-24 JST。以下はREST仕様・公式ガイドの要約であり、提案fieldや本プロジェクトの契約変更を承認するものではない。
+
+| 公式資料の事実 | 判断資料への影響・残る確認 |
+| --- | --- |
+| Fileの `size` はstring(int64)。`sha256Checksum` は利用可能な場合に提供され、通常のcontentを持つ対象と、Docs/shortcut等で可用性が異なる。[File resource](https://developers.google.com/workspace/drive/api/reference/rest/v3/files) | size整数化はadapter候補。hashがないことを取得失敗・内容一致・0値へ変換しない。対象種別と利用可能fieldのfixtureが必要 |
+| `fields` は応答のfield集合を選ぶ。既定応答は全fieldではない。[fields parameter](https://developers.google.com/workspace/drive/api/guides/fields-parameter) | list/getの必要fieldを明示要求しても、resource固有の可用性条件を超えない。SDK変換後の欠落/nullと必須field検査は未確認 |
+| listはpageSizeより少ない件数を返し得る。継続token、token失効、`incompleteSearch` を扱う必要がある。[files.list](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list) | ページ成功だけで全一覧完了としない。SDKの自動ページ取得・1 API試行との対応は未確認 |
+| create成功時のFile応答はfield maskで部分応答となる。[files.create](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/create) multipartは1 HTTP request、resumableは開始時の空応答と完了後のFile応答を含む複数request方式。[manage uploads](https://developers.google.com/workspace/drive/api/guides/manage-uploads) | 成功/IDだけで独立content hash検証にはならない。既存の「1 API試行」が各方式で何を数えるかは未決で、本書だけで方式や試行単位を選ばない |
+| `alt=media` は内容bytesを返す。[files.get](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/get) Docs等のexportは別方式で説明される。[manage downloads](https://developers.google.com/workspace/drive/api/guides/manage-downloads) | metadata形とbytes取得結果を混同しない。export用operationを本書で追加しない。受信bytes計測、staging検証、client内部通信の確認は別途必要。Dry Run Aではbytes取得なし |
+| 一般的なエラー対処としてbackoffが説明される。[handle errors](https://developers.google.com/workspace/drive/api/guides/handle-errors) | 本プロジェクトのPS-only retry契約を変更する根拠ではない。SDK未選定で暗黙retryやpage動作は未確認。選定後に設定と呼出し履歴を検証する |
+
+C-01回答待ち、C-02のfield/不足表現/計画形/移行の承認待ちを維持する。上表をもって規範契約、schema、adapter、IPC全体レビューが完成したとは扱わない。
