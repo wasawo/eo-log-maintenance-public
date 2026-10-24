@@ -2,14 +2,14 @@
 
 このリポジトリ全体の共通の恒久規則。正本は GitHub の `wasawo/eo-log-maintenance-public`。旧Privateリポジトリは参照用で、変更・履歴を無断で取り込まない。
 
-## 開始と分担
+## 開始と作業体制
 
-- 全担当はこの文書と割当指示を読む。rootは [引き継ぎ](docs/handoff/next-chat.md) とGitのブランチ・作業ツリー・リモートを照合し、必要なGitHub状態を確認する。実ファイル・実Git状態を古い記録より優先する。
-- サブエージェントは割当範囲・基準SHA・対象仕様を確認し、handoffは関連部分だけ読む。handoffの次作業を独自に開始しない。編集前には作業ツリーを確認する。
-- [役割別運用](docs/development/agent-workflow.md) に従う。analystは調査、implementerは割当範囲の編集、reviewerは独立検証、rootは判断・統合・Git/PR操作・handoff更新を担う。小さな作業はrootだけでよい。
-- 未コミット・ステージ済み変更を保全する。同じファイルの並行編集を避け、担当外の変更・仕様矛盾・未決定事項はrootへ返す。
+- 本リポジトリではrootが単独で調査・実装・検証・差分確認・統合・Git/PR操作・handoff更新を行う。サブエージェントの新規作成、既存担当の再利用、組込み/カスタム担当や別AIタスクへの委譲を行わない。旧分担指示より2026-10-24の利用者による利用中止指示を優先する。
+- rootは [引き継ぎ](docs/handoff/next-chat.md) とGitのブランチ・作業ツリー・リモートを照合し、必要なGitHub状態を確認する。実ファイル・実Git状態を古い記録より優先する。
+- [root単独運用](docs/development/agent-workflow.md) に従う。自己点検を独立レビューと表記せず、検証・未検証と独立確認の実施有無を事実どおり記録する。過去の独立レビュー結果は当時の対象範囲だけに適用する。
+- 編集前に作業ツリーを確認し、未コミット・ステージ済み変更を保全する。未決定事項や仕様矛盾は実装都合で決めず、利用者の選択・承認範囲を確認する。
 
-## 全担当が維持する境界
+## 維持する境界
 
 - PC-Bにはarchive・削除能力を提供しない。初期実装に元ログ/Driveログの削除コード・操作・設定を追加しない。PC-A archiveは明示許可と両PC証拠・現在のDrive内容の検証を満たしたcopy/verify/recordのみ。不明・欠落・不一致は保留する。
 - 実ログ・本番Driveを通常テストに使わない。合成データ・隔離一時領域・模擬APIを使い、実環境検証は承認された限定計画に従う。
@@ -22,4 +22,4 @@
 - 全体配置は [文書索引](docs/README.md)。変更前に [詳細仕様への参照表](docs/development/development-guide.md) から対象仕様・承認記録・既存テストを読む。全仕様や履歴を毎回一括読込しない。
 - 検証時は [eolm-validation](.agents/skills/eolm-validation/SKILL.md) を読む。文書のみならリンク・記述整合・差分を確認し、無関係な全テストを繰り返さない。
 - コミット・PR・CI確認・handoff更新時は [eolm-pr-handoff](.agents/skills/eolm-pr-handoff/SKILL.md) を読む。関連する仕様・コード・テスト・引き継ぎは同じPRにまとめる。
-- 恒久規則はここ、役割は `.codex/agents/`、作業手順は `.agents/skills/`、変動する進捗・承認/中断状態は `docs/handoff/next-chat.md` に置く。過去記録は現行指示として実行しない。
+- 恒久規則はここ、単独運用は `docs/development/agent-workflow.md`、作業手順は `.agents/skills/`、変動する進捗・承認/中断状態は `docs/handoff/next-chat.md` に置く。旧分担・役割定義は `docs/development/archive/` の履歴であり、現行指示として実行・復元しない。

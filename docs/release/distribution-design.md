@@ -1,7 +1,7 @@
 # Distribution Design: GitHub to Google Drive
 
-- Status: Proposed baseline
-- Last updated: 2026-10-24 (implementation inventory; release policies remain proposed)
+- Status: E1 release-event/manual-approval gate and all-version retention/no automatic cleanup selected on 2026-10-24; PC/version-specific explicit file manifests and separate explicit configuration migration are also selected; remaining concrete distribution details are a proposed baseline. See [selection record](../decisions/selected-policy-decisions-20261024.md).
+- Last updated: 2026-10-24 (policy selections and implementation limits; production workflow remains unimplemented)
 - Repository: `wasawo/eo-log-maintenance-public`
 - Canonical source: GitHub repository, `main` branch plus reviewed release tag
 - Distribution target: Google Drive `_distribution/releases/<version>/`
@@ -28,7 +28,7 @@ The workflow described here is a design. Google Drive API authentication and upl
 5. Only after upload and integrity checks succeed is `latest.json` updated.
 6. PC-A and PC-B can retrieve and inspect a release. Applying it to a runtime directory remains a separate, manually approved operation.
 
-A normal push or pull-request validation must not upload to Google Drive. The release workflow must use a protected release event or an equivalent explicit approval gate.
+A normal push or pull-request validation must not upload to Google Drive. The selected E1 gate uses a reviewed-tag release event plus explicit manual approval by the maintainer. Tag/VERSION/commit/package must agree; choosing this policy does not authorize an actual release or decide the distribution credential identity.
 
 ## 3. Package format and destination
 
@@ -49,7 +49,7 @@ The package preserves repository-relative paths, such as `scripts/Example.ps1` a
 - `latest.json` is updated last and points only to a fully uploaded and verified release.
 - The repository-side builder and its tests live under `.github/scripts/` and `tests/`; they are not runtime package contents.
 - For development only, a non-deployable review artifact may include a generated `PACKAGE-STATUS.txt` marker. This is the only generated-file exception to the source allowlist. It must explicitly state that the artifact is not deployable and must not be applied to either PC. A production release must not contain this marker.
-- Retain prior releases for rollback. Retention/deletion policy must be specified separately before automated cleanup is implemented.
+- Retain all published release versions for rollback. No automatic cleanup, implicit expiry or default retained-version count is adopted. Changing this retention policy requires a new explicit decision.
 - `SHA256SUMS.txt` records the SHA-256 digest of `release.zip`. The consumer must verify the downloaded ZIP before extraction.
 - The package checksum proves integrity against the published checksum; it does not by itself prove that the source or release was trustworthy. Trust comes from repository review and release controls.
 
@@ -69,7 +69,7 @@ This is a schema example, not a currently published Drive file.
 
 ## 4. Distribution allowlist
 
-Only the following repository paths may be included in `release.zip`.
+The selected final control model is an explicit PC-specific, version-specific file manifest. The table below remains the existing builder/design baseline, not the final approved runtime file list. Final required/optional dependencies and manifest serialization must be reviewed after official runtime entry points exist. Only reviewed allowlisted content may be included in `release.zip`.
 
 | Path / pattern | Include? | Purpose and constraints |
 |---|---|---|
@@ -125,7 +125,7 @@ The example configuration files are reference templates only. They may contain e
 
 - Do not replace `Config/PC-A.json` or `Config/PC-B.json` during package extraction or update.
 - Updating a template must not silently change the active runtime configuration.
-- Any future config migration must be a separate, explicit, reviewed step with a backup and a diff.
+- The selected approach is a separate explicit migration procedure/command, with source/target version, backup, diff and explicit confirmation before execution. Normal updates preserve active configuration. Concrete migration mappings and any live migration require their own review/authorization; no automatic migration is implied.
 - PC-A example config may include `allowArchive: false`; archiving is permitted only when PC-A explicitly sets it to `true` and all archive gates pass. PC-B config must omit `allowArchive`. No config may contain `allowDelete`; the initial runtime contains no local-source or Drive deletion code, operations, or settings.
 
 ## 7. Validation and release gates
@@ -198,8 +198,8 @@ Open items before production distribution:
 - Confirm the final Drive distribution folder ID/path and access model.
 - Choose and validate the Google authentication method.
 - Implement runtime scripts and meaningful tests before calling a package deployable.
-- Define release-tag/versioning and release approval procedures.
-- Define retention for old release packages.
+- Implement the selected E1 release-event/manual-approval gate and finalize distribution identity/provenance details; retain reviewed tag/VERSION/commit/package checks.
+- Preserve all release versions under the selected no-automatic-cleanup policy and verify rollback behavior.
 
 ## 12. Observed implementation limits (2026-10-24)
 
@@ -207,4 +207,4 @@ Open items before production distribution:
 - The tracked workflows are Validate and Package Validation; workflow_dispatch can build an explicitly non-deployable review artifact. No tracked production release or Drive upload workflow exists.
 - Generated metadata currently uses sourceRef=local-build; reviewed tag/commit provenance and immutable publication still need implementation and acceptance (OSD-06).
 - Drive request/response schemas are repository contracts but are not in the current package allowlist. Their role and any new adapter dependency must be reviewed before the adapter is distributed.
-- Retention/cleanup policy for release packages (OSD-07) is separate from the approved no-auto-deletion policy for private recovery evidence. No release cleanup is authorized by that approval.
+- The selected OSD-07 policy retains all release versions and has no automatic cleanup. It is separate from private recovery-evidence retention; neither policy authorizes deletion of operational logs.

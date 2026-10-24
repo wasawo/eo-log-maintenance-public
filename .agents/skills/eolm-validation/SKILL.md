@@ -1,11 +1,13 @@
 ---
 name: eolm-validation
-description: eo-log-maintenance-publicの変更に応じたローカル検証を選び、結果・スキップ・受け入れ限界を記録する。コード・設定・契約・配布物・文書の変更検証や独立レビューで使用する。
+description: eo-log-maintenance-publicの変更に応じたローカル検証を選び、結果・スキップ・受け入れ限界を記録する。コード・設定・契約・配布物・文書の変更検証とroot自身の差分確認で使用する。
 ---
 
 # 変更に応じた検証
 
 リポジトリルートを基準に実行する。共通規則は [AGENTS.md](../../../AGENTS.md)、対象仕様は [参照表](../../../docs/development/development-guide.md) を確認する。
+
+rootが単独で検証・差分確認を行う。サブエージェントの新規作成・再利用・別AIタスクへの委譲は行わない。rootの自己点検を独立レビューと表記せず、独立確認の実施有無は事実どおり記録する。
 
 1. 差分と対象要件から検証範囲を選ぶ。コマンドの正本は [.github/workflows/validate.yml](../../../.github/workflows/validate.yml) と [package-validation.yml](../../../.github/workflows/package-validation.yml)。
 2. 文書だけならリンク・記述整合・`git diff --check` を確認する。無関係な全テストを実行したり、文言に一致するだけのテストを追加したりしない。

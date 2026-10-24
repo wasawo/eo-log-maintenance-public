@@ -4,6 +4,7 @@
 - Related: `docs/design/aggregation-report-v1-proposal.md`, `docs/decisions/aggregation-inventory-integrity-options.md`, OSD-02, OSD-03, P0-008, P0-010.
 - Compatibility: this is a separate artifact. It must not add fields to or rewrite the approved manifest v1 schema.
 - Storage direction approved 2026-10-21: local authoritative evidence/report artifacts, followed by verified Google Drive replication for cross-PC access.
+- Validation V1 approved 2026-10-24: completed means all input classification processing finished, independently of whether relevant errors were found. See the [selected-policy record](../decisions/selected-policy-decisions-20261024.md#2-b2-v1の意味と保全). Producer/consumer and synthetic-test follow-up remains unimplemented.
 
 ## 1. Purpose
 
@@ -86,7 +87,7 @@ Example values are illustrative only and are not operational evidence.
 1. Reject missing, malformed, or unsupported `evidence_schema_version`; never silently migrate or repair.
 2. Evidence identity must match the manifest and the aggregation report exactly.
 3. Enumeration status must distinguish `completed` from `failed` or `incomplete`. Only `completed` can support no-work classification.
-4. Validation status must distinguish `completed` from `failed` or `incomplete`. Missing errors or missing counts cannot be interpreted as zero errors.
+4. Validation status must distinguish `completed` from `failed` or `incomplete`. Under approved V1 (2026-10-24), `completed` means classification processing covered all inputs, not just eligible targets; it does not mean no invalid/relevant errors were found. Preserve errors and counts independently. Missing errors or missing counts cannot be interpreted as zero errors; count/digest agreement alone does not prove coverage.
 5. **Approved count rule (2026-10-21, decision A):** every entry returned by a completed enumeration must be assigned exactly one mutually exclusive classification: `eligible_targets`, `valid_ineligible`, `invalid_relevant`, or `ignored_entries` (only for entry types explicitly excluded by the source contract). The sum of these category counts must equal `entries_observed`. `enumeration_errors` is a separate diagnostic count and is not added to that sum; if any enumeration error occurs, enumeration cannot be `completed`. A category must never be silently omitted or double-counted. The exact source-entry universe and pagination contract must be specified before implementation.
 6. The embedded eligible inventory must match the manifest frozen target set and its independently specified digest. The digest canonicalization is a separate open decision; do not implement from this illustrative shape alone.
 7. Relevant invalid/unclassifiable entries are structured and sanitized. Never infer their period from `LastWriteTime`.
@@ -95,6 +96,12 @@ Example values are illustrative only and are not operational evidence.
 10. The evidence is immutable for a given run identity. A conflicting existing artifact stops processing and requires reconciliation; it is not silently replaced.
 11. Do not include file contents, OAuth tokens, credentials, or unsanitized exception details.
 12. Regeneration uses only the validated evidence artifact and the exact originating manifest. Do not rescan mutable source directories to recreate historical enumeration facts.
+
+### Validation V1 compatibility and implementation boundary (2026-10-24)
+
+The approved direction retains the existing v1 field set and status values; it adds neither a coverage field nor a new version. Completed classification with relevant errors must keep `invalid_relevant_count` and `errors`; it cannot certify run success or no-work. Known-period completion still requires the approved OSD-03 inventory, all-outcome accounting and error-scope conditions independently of the status string.
+
+Historical `incomplete` records remain exact original bytes: do not rewrite, repair or promote them to completed from matching counts/digests. Do not infer complete coverage from incomplete/failed observations. The current `Common/SourceInventoryEvidenceBuilder.py` still emits validation incomplete whenever it finds validation errors. That is implementation status, not conformity to selected V1; producer/consumer changes, compatibility verification and synthetic tests remain unimplemented. The [comparison history](../decisions/b2-validation-coverage-report-time-options.md) distinguishes the selected policy from this pending work.
 
 ## 5. Inventory representation — decision A approved
 

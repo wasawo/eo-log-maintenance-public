@@ -8,12 +8,14 @@
 
 ## 最新基準と今回の作業
 
-- 最新mainは `179787f62ad0e07d58e139d7059ea84de149ed05`（[PR #38](https://github.com/wasawo/eo-log-maintenance-public/pull/38) マージ済み）。利用者の「作成したPRをマージして作業中断」に基づき、未作成だった確認済みhelperの9ファイルからPRを作成。最新HEAD `160dce0b591f008d07244e96c4214854aea17699` の [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40084689827) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40084689833) 成功とmerge要件を確認してsquash mergeした。C-01詳細案はこのPRへ含めていない。
-- `Common/DriveResponseSemantics.ps1` はcaller-supplied decoded値のrequest ID/operation相関とexit/envelope/error-code対応だけを純粋に検査する。Ordinal比較とOrdinal許可集合を使い、不可視文字を許可operation/codeへ一致扱いにしない。固定Status/ReasonCodeのみ出力し、入力不変・秘密非echoを維持。consistentはresult信頼・retry・運用続行・認可を意味しない。
-- 実装時検証: CI固定hashと版を確認した一時PowerShell7.6.7で最終117検査成功、reviewer独自54負例成功。両役割package回帰、変更PS3ファイルの構文/PSScriptAnalyzer Error（Ordinal修正後2PSも再検証）、変更5文書リンク28件欠落0、差分検査成功。独立reviewの未解決指摘なし。schema/Python変更なしで無関係な全Python/既存PSは再実行せず、個人/global設定は変更していない。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40085003755) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40085003841) も成功。
-- C-01 L1詳細字句候補は別branch `docs/c01-lexical-candidate` の `9343f71` にローカル保全。`docs/decisions/c01-drive-rooted-lexical-candidate.md` と参照元/索引/handoffの4文書で、独立review指摘なし・リンク99件欠落0・差分検査成功。未push・PRなし。P1/V1、L1詳細、schema1.0互換・実施範囲の回答は未承認で、schema/runtime/fixtureは未実装。元停止記録branchや旧資料branchも保全する。
-- [C-01/C-02](../decisions/c01-c02-ipc-contract-options.md)、[認証](../decisions/osd-05-drive-auth-identity-scope-options.md)、[owner-v2](../decisions/owner-v2-field-binding-options.md)、[B2検証網羅性/生成UTCの永続出所](../decisions/b2-validation-coverage-report-time-options.md)の選択は未決。新helperもC-03/部分C-05の補助に限り、transport/UTF-8/JSON一件/schema/実request由来/操作別result、retryable真理値表・RETRY-02、実child/Drive/root/FS/runtime受け入れは未完。資料やhelper/CI成功を方針採用・P0-005/IPC全体の完了としない。
-- 現在は**利用者指示によるPR #38後の作業中断状態**。次作業を独断で開始しない。再開後も既存analyst/implementer/reviewerのみ再利用し、未決仕様を推測せず合成/隔離検証・独立review・handoffを完了、PR/マージ権限は個別承認内とする。1PRマージごとに中断して継続可否を確認する。本停止記録は `docs/pr38-paused-handoff` にローカル保全し、未push・追加PRなし。
+- 最新mainは `179787f62ad0e07d58e139d7059ea84de149ed05`（[PR #38](https://github.com/wasawo/eo-log-maintenance-public/pull/38) マージ済み）。PRの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40084689827) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40084689833)、mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40085003755) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40085003841) 成功後の停止記録は `54f1418`。runtime実装の継続ではなく、利用者の未決事項選択・記録と指示文書改訂だけをbranch `docs/selected-policy-decisions` で進めている。未push・新規PRなし。
+- [仕様決定記録](../decisions/selected-policy-decisions-20261024.md)へ①〜㉑の回答を反映。C-01 P1/検査V1/L1全体/現1.0改訂、B2 V1、report G1、C-02 R1/N1/D1、Drive I1/A1/S1/T1、owner F1/B1、条件付き状態遷移表採用、release E1、全version保持・自動cleanupなし、PC別version別file manifest、明示的設定移行、ローカル画面通知＋状態ログの方向が確定した。質問と回答の範囲を越えてfield集合・provider・実施を確定しない。
+- **2026-10-24の最新利用者指示によりサブエージェント利用を中止。root単独運用。** 新規作成・既存再利用・組込み/カスタム担当・別AIタスクへの委譲を行わない。中止時の確認では稼働中担当はなく、既存担当は完了または終了状態だった。旧目標の「既存3担当のみ再利用」は撤回済みで、過去記録・環境の担当一覧から再開しない。
+- AGENTS.md、[現行手順](../development/agent-workflow.md)、両skill・索引をroot単独へ更新し、project .codex/config.tomlをagents.enabled=falseとした。旧3役割TOMLと旧分担手順は [失効した履歴](../development/archive/README.md) に保全。役割TOMLは移動前後hash一致、Git改行正規化後の本文一致とparseを確認。旧手順は失効banner/相対リンク以外の本文一致を確認。個人/global設定・主モデル/思考量は変更していない。project設定の信頼/読込と現会話への即時tool反映は未検証で、以後の不使用は利用者指示と現行手順で徹底する。
+- 利用中止前の初期7文書は独立reviewでP1/P2なし、invariants節分断P3を修正。追加⑦〜⑫のreviewでは旧承認待ち表記P2を指摘されrootで修正した。これらは当時の差分だけの履歴であり、⑬以降や利用中止対応を含む最新全差分はrootが単独点検し、独立レビューは実施していない。独立レビュー済みと表記しない。
+- 今回のroot単独点検: 変更20 Markdownの相対リンク189件欠落0、差分検査成功。project/旧役割のTOML計4ファイルをparseし、agents.enabled=false、主思考量不変、active役割ファイルなしとarchived本文保全を確認した。文書・指示・Codex設定のみで無関係な機能/package検査は再実行していない。新CI未実行。
+- 未確定/未完：C-02の具体field集合・型・値域・plan形、具体store/SDK/flow/ACL、owner-v2全fieldと適格machine/boot provider、移行mapping、最終実file一覧とmanifest形式、task trigger/電源等の具体運用。G1/B2 V1等へのコード/schema追従、実保存・認証・実API・両PCroot/FS・runtime/Drive/耐久性の受け入れも未実施。今回の設定変更はCodex作業設定に限り、アプリケーションコード/runtime schema/tests/実設定は変更していない。
+- 仕様選択と実装/公開/PRマージ/本番適用の許可を分離し、PR/マージは個別承認、1PRマージ後の中断・継続可否確認を維持する。新たな実装や実接続を独断開始しない。旧C-01資料branch `9343f71` は選択前の履歴として保全し、現選択はこのbranchの決定記録を優先する。
 
 ## 旧進捗の参照
 
@@ -21,7 +23,7 @@ PR #27〜33前後の旧進捗節は [セッション記録](archive/pr27-pr33-se
 
 ## 次回の実装再開時
 
-1. まず利用者の継続指示を確認し、正本mainとローカル保全branchのコミット・作業ツリーを照合する。C-01の回答待ちは上記を参照し、未回答なら依存schema改訂を保留する。Aは承認済みで再質問しない。IPC全体/C-02/OSD-05等の未決定は維持する。
+1. まず利用者の継続指示を確認し、正本mainとローカル保全branchのコミット・作業ツリーを照合する。C-01のP1/検査V1/L1/現1.0改訂の選択は済んでいるので再質問しない。実装実施の承認と残る具体契約は別途確認する。Aは承認済みで再質問しない。IPC全体、C-02具体field、OSD-05の具体store/API/資格等の残る未確定を区別する。
 2. [初回配布棚卸しの順序](../status/first-release-readiness-20261024.md)に従い、残りの状態遷移/DryRun/IPC契約と、ローカルroot・永続run状態・復旧の不足を整理する。確認予算の永続化はその一部で、単独で初回配布へ進めない。
 3. Drive adapter/認証資格、両PCのTier B、正式手動runtime統合、E2E/Tier C、正式配布/導入と進む。taskは初回手動受け入れ後。実環境検証・実適用は別途の承認範囲を確認する。
 4. 旧lock自動処分・新run自動生成・実保存・task登録・Drive/本番復旧を、helper/CI成功から許可されたと解釈しない。

@@ -10,7 +10,7 @@ ElectronicObserver の BattleLog / ErrorReport を、Windows PC-A と PC-B 間�
 
 2026-10-24時点の[実装棚卸しと初回配布までの作業順序](docs/status/first-release-readiness-20261024.md)を参照してください。レビュー用ZIPを生成できることと、本番導入できることは別です。
 
-Codexでの開発は [AGENTS.md](AGENTS.md) から開始します。[役割別運用](docs/development/agent-workflow.md) と [詳細仕様への参照表](docs/development/development-guide.md) を必要時に確認してください。進捗は [引き継ぎ](docs/handoff/next-chat.md) に記録します。
+Codexでの開発は [AGENTS.md](AGENTS.md) から開始します。[root単独運用](docs/development/agent-workflow.md) と [詳細仕様への参照表](docs/development/development-guide.md) を必要時に確認してください。進捗は [引き継ぎ](docs/handoff/next-chat.md) に記録します。
 
 ## 目的
 

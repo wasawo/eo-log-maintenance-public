@@ -1,2 +1,6 @@
-# Project default; explicit client/session overrides may take precedence.
+# Project defaults; explicit client/session overrides may take precedence.
 model_reasoning_effort = "medium"
+
+# Repository policy: no subagent creation, reuse, or delegation.
+[agents]
+enabled = false

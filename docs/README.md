@@ -10,8 +10,7 @@ README.md                   目的・役割・導入概要
 CHANGELOG.md / VERSION      変更履歴・版
 requirements-*.txt          runtime / test依存
 .agents/skills/             必要時に読む検証・PR/引き継ぎ手順
-.codex/agents/              analyst / implementer / reviewerの役割・モデル設定
-.codex/config.toml          プロジェクトの既定思考量（明示設定が優先され得る）
+.codex/config.toml          rootの既定思考量・サブエージェント無効化
 .github/workflows/          Validate / Package Validation
 .github/scripts/            役割別packageビルダー
 Config/                     公開exampleのみ（実設定は非追跡・配布対象外）
@@ -21,7 +20,7 @@ scripts/                    正式運用入口の配置先（現在はREADMEの�
 tests/                      合成テスト、ハーネス、公開可能な部分証拠
   evidence/                 匿名化済みの検証証拠（runtime原本ではない）
 docs/
-  development/              開発手順・役割・詳細仕様への参照表
+  development/              root単独運用・開発手順・詳細仕様への参照表
   requirements/             要件・P0残課題・未決定事項
   design/                   機能仕様・データ契約・安全ゲート
   decisions/                承認記録・判断案・比較検討
@@ -35,7 +34,7 @@ docs/
 ## 探し方と配置ルール
 
 - 実装を始める: [詳細仕様への参照表](development/development-guide.md) → 対象の要件・承認記録・仕様・テストを確認する。
-- 分業する: [役割別運用](development/agent-workflow.md)。モデル/思考量の正本は `.codex/agents/` の各TOML。
+- 単独で作業する: [root単独運用](development/agent-workflow.md)。サブエージェントの新規作成・再利用・別AIタスクへの委譲は行わない。旧定義は [失効した履歴](development/archive/README.md) として保全する。
 - 検証する: [検証スキル](../.agents/skills/eolm-validation/SKILL.md)、[tests案内](../tests/README.md)。Git/CI/引き継ぎは [対応スキル](../.agents/skills/eolm-pr-handoff/SKILL.md)。
 - 実装を探す: [Common案内](../Common/README.md)、[scripts案内](../scripts/README.md)、[schema](../contracts/)、[設定例](../Config/)。
 - 文書の配置は用途で決める。`proposal` / `options` を含むファイルにも承認済み部分があるため、ディレクトリ名やファイル名だけで承認状態を判定しない。本文の適用範囲と承認記録を確認する。
@@ -45,9 +44,9 @@ docs/
 
 ## 文書一覧
 
-### 開発・分業手順
+### 開発手順・単独運用
 
-- [役割別エージェントの運用](development/agent-workflow.md)
+- [root単独運用](development/agent-workflow.md)
 - [開発時の詳細仕様・手順の参照表](development/development-guide.md)
 - [Implementation Workflow: ElectronicObserver Log Maintenance](development/implementation-workflow.md)
 
@@ -82,6 +81,8 @@ docs/
 - [Aggregation Inventory Integrity — Decision Options](decisions/aggregation-inventory-integrity-options.md)
 - [B2 validation網羅性・report生成時刻の判断資料](decisions/b2-validation-coverage-report-time-options.md)
 - [C-01/C-02: IPCパス・操作別resultの判断資料](decisions/c01-c02-ipc-contract-options.md)
+- [C-01 drive-rooted file pathの詳細字句候補](decisions/c01-drive-rooted-lexical-candidate.md): P1・検査配置V1・L1全体・現1.0改訂を承認済み。実装は未着手。
+- [2026-10-24 選択形式による仕様決定](decisions/selected-policy-decisions-20261024.md): 利用者回答と、採用・未選択・未実装の範囲。
 - [C-45 event identity conflict handling options](decisions/c45-event-identity-conflict-options.md)
 - [C-50 structured condition input model — non-normative proposal](decisions/c50-condition-input-model-options.md)
 - [C-51 structured processing-context input model options](decisions/c51-context-input-model-options.md)
@@ -128,6 +129,7 @@ docs/
 ### 引き継ぎ・過去記録
 
 - [現在の進捗・次の作業](handoff/next-chat.md)
+- [旧分担・役割定義の履歴（失効）](development/archive/README.md)
 - [AGENTS導入前の履歴](handoff/archive/pre-agents-history.md)
 - [2026-10-23までの検証・マージ記録](handoff/archive/validation-history-20261023.md)
 
