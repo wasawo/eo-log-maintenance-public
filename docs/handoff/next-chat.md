@@ -8,12 +8,12 @@
 
 ## 最新基準と今回の作業
 
-- 最新mainは `67ca37a3f986ba89576e6961d12858f5ccf0170f`（[PR #34](https://github.com/wasawo/eo-log-maintenance-public/pull/34) マージ済み）。利用者が指定したmutex修正・C-01/C-02判断資料等の3コミットを1PRに統合した。PR最新HEADのValidate（attempt 2）/Package成功後にマージ。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40056434078) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40056434032) も成功。判断資料のマージは方針採用ではない。
-- 現branch `feat/aggregation-report-builder` はこのmainから分離。承認済みOSD-03/R1〜R7/T-01〜12に基づく、副作用なしの集約report builderを実装し独立検証中。exact manifest/B2 bytesと明示時刻等からsummary/report bytesを導出し、状態遷移・正式writer・Drive・認可へ接続しない。zero-work空period配列とJSON整数を既存PS validatorが拒否する相互運用不具合も修正対象。
-- 最終Python全337件成功（既存2件skip、新builder17件を含む）、PS internal validator 33アサーション成功、両役割package回帰成功。PowerShell 7.6.7の22ファイル構文/Error analyzerと修正後2PSの再検証成功。独立reviewの件数再導出P2を修正し、PS空配列/JSON整数型/大整数精度の相互運用不具合を修正した。変更5文書のローカルリンク44件欠落0、差分検査成功。Pythonはローカル3.11.9/CI3.12の差があり、このbranchのCI・push・PRは未実施。
-- 未公開の判断資料等4コミットは別branch `docs/drive-auth-options-after-pr34` の `643eaf6f6978eb518a12ff8b748917b5aea5e8d8` に保全し、本branchへは取り込んでいない。それらのPR/マージ範囲とC-01方針は利用者回答待ち。未回答を承認とせず、今回builderはこれらの未決と独立した既承認集約契約の範囲に限定する。今回builder単位の新規公開/マージはまだ実施していない。
-- B2 incomplete validationの網羅性、生成時刻の永続出所と後日の同一bytes再生成、完全状態遷移、runtime・両PC実root/FS・Drive内容/耐久性の受け入れは未完。pure helperやpackage成功をそれらの完了にしない。
-- 利用者の継続指示: 5時間枠の残量10%まで後続作業を続ける。残量はagentから直接取得できないため、利用者が到達時に停止を知らせる。指定3役のみを再利用する。
+- 最新mainは `2ec79fc47b81451f9914772130ee3a041a19bee5`（[PR #35](https://github.com/wasawo/eo-log-maintenance-public/pull/35) マージ済み）。承認された `65c1179d5f2f6146a0510e526beed7ebb1deec84` の1コミットだけを対象に、最新HEADの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40058728919) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40058729088) 成功後にsquash mergeした。
+- 承認済みOSD-03/R1〜R7/T-01〜12のpure aggregation report builderを追加。exact manifest/B2 bytesと明示時刻から集約reportを導出し、状態遷移・正式writer・Drive・認可へ接続しない。PS validatorのzero-work空period配列、通常JSON整数型、大整数精度も修正。独立reviewの件数再導出P2を解消し、未解決P1/P2指摘なし。
+- 実装時ローカル検証: Python 3.11.9 全337件成功（既存2件skip、新builder17件）、PS 7.6.7 internal validator 33アサーション、両役割package回帰、構文/Error analyzer成功。変更5文書リンク44件欠落0、差分検査成功。CI Python3.12のValidateも成功。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40078452426) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40078452410) も成功。再開時のpython shimはversion未設定だったため、文書更新には.NETを使用し、既存テスト成功の再実行とは記載しない。
+- 未公開の判断資料等4コミットは別branch `docs/drive-auth-options-after-pr34` の `643eaf6f6978eb518a12ff8b748917b5aea5e8d8` に保全し、PR #35へ取り込んでいない。それらの公開/マージ範囲とC-01方針は未承認のまま。回答がないことを承認にしない。
+- B2 incomplete validationの網羅性、生成時刻の永続出所と後日の同一bytes再生成、完全状態遷移、runtime・両PC実root/FS・Drive内容/耐久性の受け入れは未完。helper/package/CI成功をこれらの完了にしない。
+- 利用者は本セッションの目標を変更した: 指定の既存analyst/implementer/reviewerのみを再利用し、未決仕様を推測せず合成/隔離検証・独立review・handoffを完了、PR/マージは個別承認内とし、**1PRマージごとに作業を中断して継続可否を尋ねる**。旧「残量10%まで継続」の停止条件より今回の指示を優先する。PR #35マージ後のため現在中断し、次の作業は利用者の継続指示待ち。この引き継ぎ更新は `docs/pr35-paused-handoff` にローカル保全し、未push・新規PRなし。
 
 ## 旧進捗の参照
 
@@ -21,7 +21,7 @@ PR #27〜33前後の旧進捗節は [セッション記録](archive/pr27-pr33-se
 
 ## 次回の実装再開時
 
-1. 正本mainと上記builder branch/保全済み文書branchのコミット・作業ツリーを照合する。C-01の回答待ちは上記を参照し、未回答なら依存schema改訂を保留する。Aは承認済みで再質問しない。IPC全体/C-02/OSD-05等の未決定は維持する。
+1. まず利用者の継続指示を確認し、正本mainとローカル保全branchのコミット・作業ツリーを照合する。C-01の回答待ちは上記を参照し、未回答なら依存schema改訂を保留する。Aは承認済みで再質問しない。IPC全体/C-02/OSD-05等の未決定は維持する。
 2. [初回配布棚卸しの順序](../status/first-release-readiness-20261024.md)に従い、残りの状態遷移/DryRun/IPC契約と、ローカルroot・永続run状態・復旧の不足を整理する。確認予算の永続化はその一部で、単独で初回配布へ進めない。
 3. Drive adapter/認証資格、両PCのTier B、正式手動runtime統合、E2E/Tier C、正式配布/導入と進む。taskは初回手動受け入れ後。実環境検証・実適用は別途の承認範囲を確認する。
 4. 旧lock自動処分・新run自動生成・実保存・task登録・Drive/本番復旧を、helper/CI成功から許可されたと解釈しない。
