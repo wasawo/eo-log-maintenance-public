@@ -1,6 +1,11 @@
 #requires -Version 7.6.7
 Set-StrictMode -Version Latest
 
+function Test-AggregationReportInteger {
+    param([AllowNull()] [object] $Value)
+    return ($Value -is [int] -or $Value -is [long] -or $Value -is [bigint])
+}
+
 function Test-AggregationReportInternalConsistency {
     [CmdletBinding()]
     param(
@@ -21,7 +26,7 @@ function Test-AggregationReportInternalConsistency {
     }
     if ($issues.Count -gt 0) { return @($issues) }
 
-    if ($Report.report_schema_version -isnot [int] -or $Report.report_schema_version -ne 1) {
+    if ((-not (Test-AggregationReportInteger $Report.report_schema_version)) -or $Report.report_schema_version -ne 1) {
         $issues.Add('unsupported_report_schema_version')
     }
     if ([string]::IsNullOrWhiteSpace([string]$Report.run_id) -or
@@ -51,7 +56,7 @@ function Test-AggregationReportInternalConsistency {
             @($path -split '/').Where({ $_ -in @('', '.', '..') }).Count -gt 0) {
             $issues.Add("unsafe_relative_path:$refName")
         }
-        if ($ref.schema_version -isnot [int] -or $ref.schema_version -ne 1) {
+        if ((-not (Test-AggregationReportInteger $ref.schema_version)) -or $ref.schema_version -ne 1) {
             $issues.Add("unsupported_ref_schema_version:$refName")
         }
         if ([string]$ref.sha256 -cnotmatch '^[0-9a-f]{64}$') {
@@ -65,7 +70,7 @@ function Test-AggregationReportInternalConsistency {
         return @($issues)
     }
     foreach ($field in @('verified_count', 'failed_count', 'unknown_count', 'run_scope_error_count')) {
-        if (-not $aggregation.Contains($field) -or $aggregation[$field] -isnot [int] -or $aggregation[$field] -lt 0) {
+        if (-not $aggregation.Contains($field) -or (-not (Test-AggregationReportInteger $aggregation[$field])) -or $aggregation[$field] -lt 0) {
             $issues.Add("invalid_run_count:$field")
         }
     }
@@ -76,7 +81,7 @@ function Test-AggregationReportInternalConsistency {
         ($null -ne $aggregation.outcome -and [string]$aggregation.outcome -cne 'no_work')) {
         $issues.Add('invalid_run_outcome')
     }
-    if (-not $Report.periods -or $Report.periods -isnot [array]) {
+    if ($Report.periods -isnot [array]) {
         $issues.Add('invalid_periods')
     }
     else {
@@ -92,19 +97,21 @@ function Test-AggregationReportInternalConsistency {
             if (@('complete', 'incomplete', 'indeterminate') -cnotcontains [string]$period.completion) {
                 $issues.Add("invalid_period_completion:$periodName")
             }
+            $periodCountsValid = $true
             foreach ($field in @('eligible_count', 'verified_count', 'failed_count', 'unknown_count', 'relevant_error_count')) {
-                if (-not $period.Contains($field) -or $period[$field] -isnot [int] -or $period[$field] -lt 0) {
+                if (-not $period.Contains($field) -or (-not (Test-AggregationReportInteger $period[$field])) -or $period[$field] -lt 0) {
                     $issues.Add("invalid_period_count:$periodName.$field")
+                    $periodCountsValid = $false
                 }
             }
-            if ($period.completion -ceq 'complete' -and
-                ($period.verified_count -ne $period.eligible_count -or
+            if ($periodCountsValid -and $period.completion -ceq 'complete' -and
+                (([bigint]$period.verified_count -ne [bigint]$period.eligible_count) -or
                  $period.failed_count -ne 0 -or $period.unknown_count -ne 0 -or
                  $period.relevant_error_count -ne 0)) {
                 $issues.Add("complete_period_has_unverified_or_errors:$periodName")
             }
-            if ($period.completion -ceq 'incomplete' -and
-                ($period.failed_count + $period.unknown_count + $period.relevant_error_count -eq 0)) {
+            if ($periodCountsValid -and $period.completion -ceq 'incomplete' -and
+                ([bigint]0 + $period.failed_count + $period.unknown_count + $period.relevant_error_count -eq 0)) {
                 $issues.Add("incomplete_period_without_known_failure:$periodName")
             }
         }
@@ -118,33 +125,42 @@ function Test-AggregationReportInternalConsistency {
 
     if ($Report.inventory_ref -isnot [System.Collections.IDictionary] -or
         -not $Report.inventory_ref.Contains('eligible_target_count') -or
-        $Report.inventory_ref.eligible_target_count -isnot [int] -or
+        (-not (Test-AggregationReportInteger $Report.inventory_ref.eligible_target_count)) -or
         $Report.inventory_ref.eligible_target_count -lt 0) {
         $issues.Add('invalid_inventory_target_count')
     }
-    elseif ($Report.periods -is [array] -and
-        @($Report.periods | Where-Object { $_ -is [System.Collections.IDictionary] -and $_.Contains('eligible_count') } |
-            Measure-Object -Property eligible_count -Sum).Sum -ne $Report.inventory_ref.eligible_target_count) {
-        $issues.Add('period_inventory_count_mismatch')
+    elseif ($Report.periods -is [array]) {
+        $periodInventoryCount = [bigint]0
+        $countedPeriods = @($Report.periods | Where-Object {
+            $_ -is [System.Collections.IDictionary] -and $_.Contains('eligible_count')
+        })
+        foreach ($countedPeriod in $countedPeriods) {
+            if (Test-AggregationReportInteger $countedPeriod.eligible_count) {
+                $periodInventoryCount += $countedPeriod.eligible_count
+            }
+        }
+        if ($periodInventoryCount -ne $Report.inventory_ref.eligible_target_count) {
+            $issues.Add('period_inventory_count_mismatch')
+        }
     }
 
-    $runVerified = 0; $runFailed = 0; $runUnknown = 0
+    $runVerified = [bigint]0; $runFailed = [bigint]0; $runUnknown = [bigint]0
     if ($Report.periods -is [array]) {
         foreach ($period in $Report.periods) {
             if ($period -is [System.Collections.IDictionary]) {
-                if ($period.verified_count -is [int]) { $runVerified += $period.verified_count }
-                if ($period.failed_count -is [int]) { $runFailed += $period.failed_count }
-                if ($period.unknown_count -is [int]) { $runUnknown += $period.unknown_count }
+                if ((Test-AggregationReportInteger $period.verified_count)) { $runVerified += $period.verified_count }
+                if ((Test-AggregationReportInteger $period.failed_count)) { $runFailed += $period.failed_count }
+                if ((Test-AggregationReportInteger $period.unknown_count)) { $runUnknown += $period.unknown_count }
             }
         }
     }
-    if ($aggregation.verified_count -is [int] -and $aggregation.verified_count -ne $runVerified) {
+    if ((Test-AggregationReportInteger $aggregation.verified_count) -and $runVerified -ne $aggregation.verified_count) {
         $issues.Add('run_verified_count_mismatch')
     }
-    if ($aggregation.failed_count -is [int] -and $aggregation.failed_count -ne $runFailed) {
+    if ((Test-AggregationReportInteger $aggregation.failed_count) -and $runFailed -ne $aggregation.failed_count) {
         $issues.Add('run_failed_count_mismatch')
     }
-    if ($aggregation.unknown_count -is [int] -and $aggregation.unknown_count -ne $runUnknown) {
+    if ((Test-AggregationReportInteger $aggregation.unknown_count) -and $runUnknown -ne $aggregation.unknown_count) {
         $issues.Add('run_unknown_count_mismatch')
     }
 
