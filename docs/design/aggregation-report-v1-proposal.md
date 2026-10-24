@@ -7,6 +7,7 @@
 - Decision support: see [Aggregation Inventory Integrity — Decision Options](../decisions/aggregation-inventory-integrity-options.md) for remaining inventory hashing and completeness-evidence decisions.
 - Enumeration/validation evidence schema draft: [Run Input Evidence v1 Proposal](run-input-evidence-v1-proposal.md). B2 representation, count reconciliation, source-entry universe, canonicalization, traversal completion rule (C-41), best-effort concurrent source mutation detection (C-42), enumeration status semantics (C-43), and distinct-event enumeration error counting (C-44) are approved; executable schema and synthetic contract tests are introduced in PR #153; cross-artifact runtime implementation remains pending.
 - Approved storage direction (2026-10-21): local authoritative report/evidence artifacts with verified Google Drive copies for access from both PCs. A Drive copy is not authoritative/available to consumers until identity and content verification succeeds; publication must follow the approved OSD-02 atomic create-if-absent and lock ownership controls; implementation remains pending.
+- G1 generated-UTC derivation approved 2026-10-24: use the later original finish-UTC string from exact manifest/B2 inputs, choosing the manifest spelling for equal instants. The [selected-policy record](../decisions/selected-policy-decisions-20261024.md#3-g1の確定規則) is authoritative; builder follow-up and regeneration acceptance remain unimplemented.
 - Approved inventory digest direction (2026-10-21): A2 versioned length-prefixed records; exact contract and reference vectors are recorded in `docs/decisions/aggregation-inventory-integrity-options.md`. B2 immutable run-input evidence, embedded inventory, exhaustive count reconciliation, and canonical evidence digest rules are approved and specified in `docs/design/run-input-evidence-v1-proposal.md` and `docs/decisions/aggregation-inventory-integrity-options.md`.
 
 ## 1. Design principles
@@ -111,7 +112,7 @@ Illustrative values only; the sample counts and values are not test evidence. Th
 | Identity | The tuple (pc_id, log_type, run_id, report_schema_version) is the unique report identity; no report_id field is stored. |
 | `run_id`, `pc_id`, `log_type` | Must match the originating manifest identity. |
 | `manifest_ref` | Canonical relative path, schema version, and SHA-256 of exact validated manifest bytes; referenced manifest must be parsed and validated. |
-| `generated_at_utc` | UTC ISO 8601 timestamp ending in `Z`; not a tie-breaker or proof of freshness by itself. |
+| `generated_at_utc` | Approved G1: compare exact manifest.finished_at_utc and B2.enumeration.finished_at_utc as UTC instants without rounding; preserve the later original string, or the manifest's original spelling for equal instants. An immutable-input anchor, not actual report-write time, freshness or cloud-observation proof. |
 | `evidence_ref` | Canonical relative path, schema version, and SHA-256 of exact validated B2 run-input evidence bytes. |
 | `inventory_ref` | Identifies the exact frozen eligible inventory; count and digest must match the validated manifest target list and B2 evidence. |
 | `run_aggregation` | Summary must be reproducible from validated file outcomes, enumeration/validation results, and run-scope errors. |
@@ -122,7 +123,7 @@ The inventory digest contract A2 (versioned length-prefixed records) and immutab
 
 ## 4. Aggregation semantics
 
-Implementation slice: `Common/AggregationReportBuilder.py` derives report bytes from explicit exact manifest/B2 bytes and caller-supplied trusted static schemas, canonical references, generated UTC, reliable current UTC and future tolerance (default/maximum five minutes, configurable down to zero). It reuses A2/B2 and manifest-inventory checks, validates terminal verification outcomes, and performs no source scan, filesystem/Drive/lock/publication or status mutation. T-01–12 synthetic tests cover both log types; report periods use filename-derived months, including ErrorReport, independently of the manifest's annual target_period. All supplied relevant errors remain accounted for as period counts or unassigned run-scope records. A completed validation with exhaustive accounting can preserve an independently complete known period despite an unclassifiable error. The current source builder's `validation.status: incomplete` does not by itself prove exhaustive validation, even when supplied counts match: unaffected periods remain indeterminate until that evidence is established. This semantic gap remains a separate B2 gate. Caller-supplied generated UTC is preserved without truncation; its durable provenance and later identical-byte regeneration policy remain undecided. This slice does not approve the full transition table, runtime acceptance, cloud verification or authorization. See the unapproved [B2 coverage and report-time decision options](../decisions/b2-validation-coverage-report-time-options.md) for the two independent choices.
+Implementation slice: `Common/AggregationReportBuilder.py` currently derives report bytes from explicit exact manifest/B2 bytes and caller-supplied trusted static schemas, canonical references, generated UTC, reliable current UTC and future tolerance (default/maximum five minutes, configurable down to zero). It reuses A2/B2 and manifest-inventory checks, validates terminal verification outcomes, and performs no source scan, filesystem/Drive/lock/publication or status mutation. T-01–12 synthetic tests cover both log types; report periods use filename-derived months, including ErrorReport, independently of the manifest's annual target_period. All supplied relevant errors remain accounted for as period counts or unassigned run-scope records. A completed validation with exhaustive accounting can preserve an independently complete known period despite an unclassifiable error. Incomplete validation is not promoted by matching counts; unaffected periods remain indeterminate without the required coverage evidence. B2 V1's completed/error-independent meaning and report G1's exact-input time source are now selected, but the source helper still emits incomplete for validation errors and the report builder still takes caller-supplied generated UTC. Producer/consumer follow-up, G1 derivation/mismatch rejection and formal regeneration acceptance remain unimplemented. This slice does not approve the full transition table, runtime acceptance, cloud verification or authorization. See the [V1/G1 comparison history](../decisions/b2-validation-coverage-report-time-options.md) and [selection record](../decisions/selected-policy-decisions-20261024.md).
 
 Use the approved OSD-03 policy in `docs/decisions/osd-03-status-aggregation-options.md`:
 
@@ -135,6 +136,12 @@ Use the approved OSD-03 policy in `docs/decisions/osd-03-status-aggregation-opti
 - `unknown` never counts as verified. Do not add run-status or outcome enum values.
 
 The report's run status/outcome must agree with the originating manifest. If the manifest does not contain an outcome for a non-zero-work run, the report must not invent a new manifest value; it records the computed aggregation and validation must follow the approved manifest contract.
+
+### Approved G1 generated UTC (2026-10-24)
+
+Use only `finished_at_utc` from the exact immutable manifest and `enumeration.finished_at_utc` from the exact immutable B2 evidence. Compare valid UTC instants at the existing supported precision without rounding or truncation. Choose the later input's original string for `generated_at_utc`; if they represent the same instant, choose the manifest's original string. This defines the immutable-input anchor, not the wall-clock time when bytes were written. It is an explicit approved derivation, not an implicit finish-time substitution by the current implementation.
+
+Missing/invalid required values or contradictions with the existing time checks stop derivation; do not fill them from a real clock, guessed value or another stored artifact. Preserve exact-input identity/digest validation, reliable current UTC, the existing maximum five-minute future tolerance, start/finish ordering and historical-age rules. Do not expire immutable historical evidence solely by age. R5-A remains exact manifest plus B2 only, with the same report identity, identical-byte idempotence and different-byte conflict; G2/G3 are not adopted. Do not rewrite previous reports into G1 form. The caller-time builder has not yet implemented this derivation or rejection of a mismatching supplied time.
 
 ## 5. Inventory and per-period integrity
 
@@ -168,7 +175,7 @@ Open details before implementation: locking interaction with the global per-PC m
 
 ## 7. Freshness and consistency
 
-- `generated_at_utc` is descriptive metadata, not a freshness proof.
+- `generated_at_utc` is the G1 immutable-input anchor, not actual write time or a freshness proof.
 - A report is valid only for its exact referenced manifest and frozen inventory.
 - If the referenced manifest is missing, malformed, mismatched, or has a different `run_id`/PC/log type, reject the report.
 - A newer run must not silently cause an older report to be relabeled as current. Reports are immutable per run identity.

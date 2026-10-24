@@ -1,12 +1,12 @@
 # OSD-05/C-23: Drive認証・identity・scopeの判断資料
 
-- 状態：未承認の比較資料。推奨案・選択済みの案はない。認証方式、Google principal、scope、store、実folderでの資格は未決・未検証。
+- 状態：I1（同じGoogle principal）・A1（Desktop user OAuth）・S1（drive.file）は [利用者の第4回回答](selected-policy-decisions-20261024.md) で採用済み。T1（Windows user-bound保護store）も第5回回答で選択済み。暗号化専用fileとGoogle公式Python clientの方向も選択済み。具体store API/配置・SDK版/flow・実ACL/対象folder資格・限定試験の実施は未決/未検証。未採用案は比較履歴として保持する。
 - 根拠：[OSD-05](../requirements/p0-open-specification-decisions.md)、[決定台帳C-23/C-27](decision-register-c18-c32.md)、[PS/Python契約](../design/powershell-python-contract.md) §2–3/9、[開発参照表](../development/development-guide.md)。
 - 本書は判断材料と将来の検証計画であり、コード/schema/CI/設定を変更せず、認証・consent・token取得・live接続・production uploadを実行または許可しない。実値、実path、mail、folder ID、client/token値は記載しない。
 
 ## 1. 既存承認と今回の判断の境界
 
-[Windows実行account承認](recovery-execution-account-policy-proposal.md)は、**各PC内で**手動と将来taskを同じWindows accountにする方針で、PC-A/B間のWindows account一致を要求しない。[taskログオン方式承認](task-logon-mode-policy-proposal.md)は初期運用をログオン中に限定する。これらは両PCで同じGoogle accountを使う承認ではなく、Google OAuth認証やcredential保存の承認でもない。
+[Windows実行account承認](recovery-execution-account-policy-proposal.md)は、**各PC内で**手動と将来taskを同じWindows accountにする方針で、PC-A/B間のWindows account一致を要求しない。[taskログオン方式承認](task-logon-mode-policy-proposal.md)は初期運用をログオン中に限定する。これらWindows方針だけではGoogle principal/認証方式の承認にはならない。今回の別回答でI1/A1を方針採用したが、実consent・credential保存・実接続の許可にはしない。
 
 C-23はログ保守のDrive操作用。C-27のGitHub Actions/配布公開identityは別判断で、ログ保守のtoken、principal、scopeをそのまま配布CIへ渡さない。Google Workspace管理の有無、account種類、現在のfolder owner/sharingは未確認で、利用可能と推測しない。
 
@@ -53,7 +53,7 @@ My Driveへuser OAuthでcreateするfileはuser所有となりquotaを消費す�
 | S3: `drive.readonly` | 読取り範囲を評価 | 不可 | 読取り対象contentを評価 | upload要件を満たさず、read-onlyでも広い可視性の影響を確認 |
 | S4: `drive` | 広範なfileアクセス | scopeとしては対応可能 | scopeとしては対応可能 | 広範権限の必要性と実ACLを個別レビュー。S1の適合不明を理由に自動拡大しない |
 
-上表はscopeの機能分類の要約であり、各操作の成功を保証しない。実ACL、resource状態、API返却条件、quotaの検証が別途必要。[Drive API scopes](https://developers.google.com/workspace/drive/api/guides/api-specific-auth) checksumがない場合の通常実行download/hashも含めて評価し、C-01/C-02の[path/result契約未決](c01-c02-ipc-contract-options.md)をscope選択で迂回しない。
+上表はscopeの機能分類の要約であり、各操作の成功を保証しない。実ACL、resource状態、API返却条件、quotaの検証が別途必要。[Drive API scopes](https://developers.google.com/workspace/drive/api/guides/api-specific-auth) checksumがない場合の通常実行download/hashも含めて評価し、C-01/C-02の[path方針は選択済み・result詳細未決](c01-c02-ipc-contract-options.md)をscope選択で迂回しない。
 
 | 実Drive権限の確認 | 確認する理由・停止条件 |
 | --- | --- |
@@ -66,7 +66,7 @@ My Driveへuser OAuthでcreateするfileはuser所有となりquotaを消費す�
 
 ## 4. credential storeとライフサイクルの比較候補
 
-現在、project用の承認済みcredential storeは実装していない。新しいcredential file設定を追加せず、store API/lib/配置を選択済みとしない。token、鍵、client情報をrepo/package、通常運用log、共有Drive、IPC引数/JSONへ入れない。clientがpublic clientであることはrefresh tokenを公開してよい理由にならない。
+T1の方向は承認済みだが、project用の具体的なcredential storeは未実装である。新しいcredential file設定を追加せず、store API/lib/配置を選択済みとしない。token、鍵、client情報をrepo/package、通常運用log、共有Drive、IPC引数/JSONへ入れない。clientがpublic clientであることはrefresh tokenを公開してよい理由にならない。
 
 | store候補 | 利点 | 復旧・運用上の判断事項 |
 | --- | --- | --- |
@@ -101,7 +101,7 @@ refresh tokenを安全に長期保存する必要性は公式資料にあるが�
 
 実folder試験でも削除、実ログupload、既存運用物の上書きは計画しない。専用test-folderの後片付けをアプリのcleanup能力として追加しない。試験物の保持・後処理は別の明示手順で扱う。
 
-OSD-05の選択承認と対象folderの証拠が整う前はproduction uploadとlive接続を禁止する。限定試験の例外は承認された対象・操作だけに限定し、本番運用への認可へ昇格させない。
+I1/A1/S1は選択済みだが、残るstore/実ACL等の判断、対象folderの証拠と限定実施の承認が整う前はproduction uploadとlive接続を禁止する。限定試験の例外は承認された対象・操作だけに限定し、本番運用への認可へ昇格させない。
 
 ## 6. Dry Run Aと残るゲート
 
@@ -111,13 +111,13 @@ Dry Run Aはmock/supplied dataのみで、live auth/network、refresh、store更
 
 ## 7. 独立した回答欄と承認後の次作業
 
-| 判断 | 選択欄（すべて未回答） | 併せて確定する条件 |
+| 判断 | 選択済み/残る回答 | 併せて確定する条件 |
 | --- | --- | --- |
-| Google principal | I1 / I2 / I3 | 実principalを公開文書へ記載せず、PC別照合・共有・所有/quotaの確認方法 |
-| 認証方式 | A1 / A2 / A3 | Desktop client/consent条件、または別構成のMy Drive適合・管理条件 |
-| scope | S1 / S2 / S3 / S4 / 組合せの別提案 / 保留 | 4操作と既存fileに必要な範囲。read系だけではupload不可。不足時は停止し自動拡大なし |
+| Google principal | I1を選択済み。I2/I3は未採用 | 実principalを公開文書へ記載せず、PC別照合・共有・所有/quotaの確認方法 |
+| 認証方式 | A1を選択済み。A2/A3は未採用 | Desktop client/consent条件、または別構成のMy Drive適合・管理条件 |
+| scope | S1を選択済み。S2/S3/S4等への自動拡大なし | 4操作と既存fileに必要な範囲。read系だけではupload不可。不足時は停止し自動拡大なし |
 | 実folder ACL | 最小実権限の確認方針 / 保留 | principal別の継承・limited-access・capabilities、変更する場合の独立承認 |
-| store | T1 / T2 / T3 | provider/user境界・ACL・復旧・backup・refresh/失効/reconsent手順 |
+| store | T1を選択済み。T2/T3は未採用 | provider/user境界・ACL・復旧・backup・refresh/失効/reconsent手順 |
 | 限定実試験 | 計画具体化へ進む / 保留 | この回答だけで実行せず、対象・操作・証拠保管・停止条件を別途承認 |
 
 一部だけ回答し他を保留できる。未回答項目を実装都合で補完せず、適合確認が不足する依存作業は停止する。推奨・承認記録を本書から推定しない。
@@ -126,4 +126,4 @@ Dry Run Aはmock/supplied dataのみで、live auth/network、refresh、store更
 
 ## 8. 公式資料の確認範囲
 
-公式資料の確認日は2026-10-24 JST。各節のURLはanalystが確認した一次資料の短い要約であり、SDK、現account、実folder、store、task動作を検証した証拠ではない。候補の利点・復旧設計はproject上の比較で、Google/Windowsの保証ではない。OSD-05/C-23の未決状態を維持する。
+公式資料の確認日は2026-10-24 JST。各節のURLはanalystが確認した一次資料の短い要約であり、SDK、現account、実folder、store、task動作を検証した証拠ではない。候補の利点・復旧設計はproject上の比較で、Google/Windowsの保証ではない。I1/A1/S1/T1の方針採用と、具体SDK/store/provider・実folder資格の未決/未検証を区別する。

@@ -1,12 +1,12 @@
 # owner-v2: field・identity・snapshot束縛の判断資料
 
-状態：未承認の技術比較。推奨・選択済みの案はない。[v2論理契約](../design/recovery-owner-evidence-v2-contract.md)の未確定field/type/serialization/digestを具体化する資料で、schema/provider/writer/認可を追加しない。
+状態：F1（canonicalな10進文字列）とB1（外部exact-byte binding）は [利用者の第5回回答](selected-policy-decisions-20261024.md) で方向を採用済み。その他は未確定の技術比較である。[v2論理契約](../design/recovery-owner-evidence-v2-contract.md)の未確定field/type/serialization/digestを具体化する資料で、schema/provider/writer/認可を追加しない。
 
 [互換方針の承認](recovery-owner-evidence-v2-proposal.md)はv1診断・保全、新規取得時から証拠を持つv2だけを将来回復対象とする方向までで、正確なfieldsの同時承認ではない。この方針は再質問しない。現[v1実装](../../Common/OwnedRunLock.py)のrecordは `schema_version` / `scope_id` / `owner_token` / `pid` / `host` の正確な5field。通常v1 writer/reader/releaseを維持し、v1からの自動変換・補完・修復を行わない。
 
 ## 1. fieldと出所の候補
 
-以下の名前・型・必須条件はすべて**提案候補**。実token/host/PID/boot ID/pathは使わず、例も合成値に限る。providerの未選定をfieldの仮値で埋めない。
+以下の具体field名・全体集合・必須条件は**提案候補**。F1の表現とB1のdigest方向は選択済みだが、field集合や実OS providerを同時採用しない。実token/host/PID/boot ID/pathは使わず、例も合成値に限る。providerの未選定をfieldの仮値で埋めない。
 
 | 論理情報 | field/type候補 | 出所・比較と未確定事項 |
 | --- | --- | --- |
@@ -53,15 +53,15 @@ JSON全体の候補はUTF-8 strict JSON、重複key/未知field拒否。外部ex
 
 ## 5. 独立した回答欄と承認後の作業
 
-| 判断 | 回答欄（未回答） | 確定が必要な内容 |
+| 判断 | 回答済み/残る選択 | 確定が必要な内容 |
 | --- | --- | --- |
-| process生成表現 | F1 / F2 / F3 / 別案 / 保留 | field名、型、正規化、精度、範囲、0/null/欠落の拒否条件 |
+| process生成表現 | F1を選択済み。F2/F3は未採用 | field名、型、正規化、精度、範囲、0/null/欠落の拒否条件 |
 | scope/token | 個別条件を記入 / 保留 | trusted source、比較、秘密値形式と上限。現行v1値域の継承可否 |
 | machine/boot | provider候補の追加調査 / 保留 | 永続identityの出所・OS/再起動/複製時の意味・資格計画。適格provider未選定は維持 |
-| digest | B1 / B2 / 別案 / 保留 | digest対象、field名、serialization、格納位置、snapshotとの対応 |
+| digest | B1を選択済み。B2は未採用 | digest対象、field名、serialization、格納位置、snapshotとの対応 |
 | 全体field集合 | 表の候補を修正して記入 / 保留 | supported version、required/null/unknown、JSON正規化・上限 |
 
-v1保全/v2のみの既承認方針を再選択する欄ではない。すべて未承認で、表の項目を選ぶだけでは実装開始・実OS接続・回復を認可しない。
+v1保全/v2のみの既承認方針を再選択する欄ではない。F1/B1以外の残る契約は未承認であり、F1/B1の選択だけでは実装開始・実OS接続・回復を認可しない。
 
 formalなfield/type/source/serialization契約が承認・確定した後は、合成fixtureだけを使うclosed schema/純粋strict validatorを、実OS providerの資格確認と分離して進め得る。本資料では契約未承認のため、今回はその実装も開始しない。provider資格未確認を合成値で補完せず、構造検証の成功を実証拠の資格や回復認可にしない。
 

@@ -1,10 +1,10 @@
-# Maintenance Manifest v1 — State-Transition Table Proposal
+# Maintenance Manifest v1 — Adopted State-Transition Table
 
-- Status: partially approved policy decisions; the complete transition table remains **non-normative** pending the remaining OSD-02/OSD-03 decisions.
+- Status: transition tables adopted by the maintainer on 2026-10-24, subject to existing approved aggregation, crash/concurrency, terminal-state and immutable-history rules. Unlisted transitions are rejected. Persistence details, implementation, tests and runtime acceptance remain incomplete. See [selection record](../decisions/selected-policy-decisions-20261024.md).
 - Related decision: OSD-02 / C-26.
 - Approved field contract: `docs/design/manifest-schema-v1-proposal.md`.
 - Related aggregation decision: `docs/decisions/osd-03-status-aggregation-options.md`.
-- Scope: candidate transitions for per-file lifecycle state, Drive verification result, and run status. This document does not authorize runtime implementation.
+- Scope: adopted conditional transitions for per-file lifecycle state, Drive verification result, and run status. This document does not establish runtime acceptance.
 
 ## 1. Rules already established by approved specifications
 
@@ -22,11 +22,11 @@
 - An uncertain file is never success. Run-level aggregation remains subject to OSD-03.
 - This table must not add status or outcome enum values without explicit approval.
 
-## 2. Candidate per-file state transitions
+## 2. Adopted per-file state transitions (2026-10-24)
 
-The following rows are proposals. Any transition not explicitly listed should be rejected by the eventual validator unless the maintainer approves an additional row.
+The maintainer adopted the following rows with the conditions recorded above. Any transition not explicitly listed must be rejected unless a later explicit decision approves an additional row. This does not permit implementation to introduce new enum values or rewrite historical records.
 
-| From | To | Candidate trigger / required evidence | Candidate prohibitions / notes |
+| From | To | Trigger / required evidence | Prohibitions / notes |
 |---|---|---|---|
 | `pending` | `staging` | Staging metadata is durably written before creating the staging copy. | Do not overwrite an existing staging file; do not upload yet. |
 | `staging` | `ready` | Staging copy exists and its size and SHA-256 match the frozen inventory. | No upload if copy creation or verification fails. |
@@ -44,24 +44,24 @@ The following rows are proposals. Any transition not explicitly listed should be
 
 ### Open transition questions
 
-1. **Initial per-file state — decided:** the maintainer selected option A on 2026-10-21. A new run begins with `pending` as a planning/target-registered state; before creating a staging copy, metadata-first processing transitions `pending → staging → ready`; immediately before upload attempt, it transitions `ready → pending`. The two `pending` occurrences represent distinct lifecycle points, disambiguated by the preceding state and event history. This decision resolves only the initial-state ambiguity; the full table remains non-normative until the remaining questions are approved.
+1. **Initial per-file state — decided:** the maintainer selected option A on 2026-10-21. A new run begins with `pending` as a planning/target-registered state; before creating a staging copy, metadata-first processing transitions `pending → staging → ready`; immediately before upload attempt, it transitions `ready → pending`. The two `pending` occurrences represent distinct lifecycle points, disambiguated by the preceding state and event history. This decision resolves only the initial-state ambiguity; at that individual approval point the full table was not normative; later conditional adoption is recorded in §5.
 2. **Verification result mapping — mapping approved:** `verified → verified`; `mismatch → failed`; `unavailable → unknown`; `ambiguous → unknown`; `failed → unknown`; `not_checked` leaves the current file state unchanged. This mapping does not approve every method/time/hash combination or the full transition table.
 3. **Retry exhaustion — policy approved:** exhausting the retry budget does not itself determine file state. Use `failed` only when evidence confirms the operation did not succeed and the failure is definitive; use `unknown` whenever the cloud outcome remains uncertain. A verification result of `unavailable`, `ambiguous`, or verification-operation `failed` maps to `unknown`; a confirmed content `mismatch` maps to file `failed`.
 4. **Post-verification state — decided 2026-10-21:** `verified` and `failed` are terminal file states within one run. A later archive-time verification does not rewrite that run's file status or historical manifest. If current verification fails, is unavailable, or is ambiguous, block the archive and record the current result in sanitized operational logs (or other separately approved operational diagnostics). A later execution uses a new `run_id` and its own manifest.
 5. **Terminal file states — decided 2026-10-21:** no transition out of `verified` or `failed` is permitted within the same run. This does not make a stored `verified` status a permanent archive authorization; archive must independently re-query and verify current Drive content.
 6. **Run-level status/time constraint — decided 2026-10-21:** `started_at_utc` is required for every status; `running` requires null `finished_at_utc`; terminal statuses (`success`, `partial_failure`, `failure`) require non-null `finished_at_utc`. Ordering/freshness/clock-skew and crash recovery remain separate.
 7. **Verification object combinations — decided 2026-10-21:** approve and enforce the exhaustive combinations in §4; `method` means the method that actually obtained the observed hash. Failed attempts with no hash use `not_performed`, an attempt timestamp, and null hash; detailed attempt diagnostics go to sanitized operational logs.
-7. **Aggregation boundary:** OSD-03 must decide how file states map to run/period status and `outcome`, including zero-work and unclassifiable filenames. Do not infer those mappings from this transition proposal.
+7. **Aggregation boundary:** Use the approved OSD-03 file-to-run/period aggregation and outcome rules, including zero-work and unclassifiable filenames. Adoption of this table does not replace those conditions.
 
-## 3. Candidate run-level transitions
+## 3. Adopted run-level transitions (2026-10-24)
 
-| From | To | Candidate trigger / required evidence | Candidate prohibitions / notes |
+| From | To | Trigger / required evidence | Prohibitions / notes |
 |---|---|---|---|
 | (new manifest) | `running` | Lock acquired; manifest written and validated before file processing. | Must have unique `run_id`; no processing before the running manifest is safely recorded. |
-| `running` | `success` | All required work is accounted for, all required file outcomes are verified, no relevant validation/processing error remains, and final manifest validates. | Exact aggregation and `outcome` rules remain subject to OSD-03. |
-| `running` | `partial_failure` | Some work was verified but at least one relevant item remains unresolved or failed under the approved aggregation rule. | Exact mapping remains subject to OSD-03. |
-| `running` | `failure` | Run cannot safely complete or no verified work exists after a confirmed overall failure, as determined by the approved aggregation rule. | Exact mapping remains subject to OSD-03. |
-| `running` | `running` | Same run is continuing and its manifest is updated atomically after validation. | Do not change `run_id`; status/time consistency and concurrent-writer rules need approval. |
+| `running` | `success` | All required work is accounted for, all required file outcomes are verified, no relevant validation/processing error remains, and final manifest validates. | Exact aggregation and `outcome` must follow the approved OSD-03 rules. |
+| `running` | `partial_failure` | Some work was verified but at least one relevant item remains unresolved or failed under the approved aggregation rule. | Exact mapping must follow the approved OSD-03 rules. |
+| `running` | `failure` | Run cannot safely complete or no verified work exists after a confirmed overall failure, as determined by the approved aggregation rule. | Exact mapping must follow the approved OSD-03 rules. |
+| `running` | `running` | Same run is continuing and its manifest is updated atomically after validation. | Do not change `run_id`; enforce the approved status/time consistency and crash/concurrency/single-owner rules. Persistence and writer integration remain unimplemented. |
 | terminal status | any different status | **Forbidden by default.** | A later execution must create a new manifest with a new `run_id`; older manifests are not rewritten to represent a later run. |
 
 Crash recovery is not a transition: if the process crashes, leave the last valid manifest as `running`; do not automatically rewrite it to a terminal state.
@@ -74,7 +74,7 @@ Crash recovery is not a transition: if the process crashes, leave the last valid
 - Terminal run statuses `success`, `partial_failure`, and `failure` each require a non-null `finished_at_utc`.
 - Any status/time combination outside these rules is invalid and must be rejected by manifest validation.
 - This decision does not define whether finish time is chronologically after start time, acceptable future timestamps, timestamp freshness, clock-skew tolerances, crash recovery, or run/period aggregation under OSD-03.
-- A crash-left `running` manifest is not automatically rewritten to `failure`; recovery behavior remains governed by the still-open crash/concurrency policy.
+- A crash-left `running` manifest is not automatically rewritten to `failure`; recovery behavior remains governed by the approved crash/concurrency policy and its independent qualification gates.
 
 ## 4. Approved verification object combinations — 2026-10-21
 
@@ -93,9 +93,9 @@ The maintainer selected option A. These combinations are normative policy decisi
 - `mismatch` requires an actual observed hash that differs from the expected hash; no hash means the result cannot be `mismatch`.
 - The verification-result-to-file-status mapping remains: `verified → verified`; `mismatch → failed`; `unavailable`, `ambiguous`, or verification-operation `failed` → `unknown`; `not_checked` leaves the current file status unchanged.
 - These field-combination rules do not decide run-level aggregation, archive authorization, timestamp freshness/clock skew, or crash/concurrency behavior. Archive must independently re-query and re-verify current Drive content.
-## 5. Required approval before normative use
+## 5. Table adoption and remaining implementation work (2026-10-24)
 
-Please decide the remaining open questions in §2, and whether to accept, revise, or reject the candidate tables in §§2–4. The initial per-file state ambiguity is resolved as recorded above. After these are settled, update the normative lifecycle/traceability documents, define executable schema/transition tests, and keep runtime implementation status separate from documentation approval.
+The maintainer adopted the candidate tables subject to the already-approved conditions and rejection of unlisted transitions. Keep the historical individual decisions below within their original scope; this later adoption does not add new enum values, permit historical rewrites, or prove implementation. Remaining work includes lifecycle/traceability alignment, persistence/source contracts, executable transition tests and independent runtime evidence.
 
 No runtime implementation, executable transition tests, or operational evidence is claimed by this proposal.
 
@@ -128,7 +128,7 @@ The maintainer approved the exception-case policy in conversation on 2026-10-21.
 
 ### Remaining decisions unaffected by this approval
 
-The following remain open: run/period aggregation under OSD-03; numeric freshness/future-time/clock-skew configuration and exact applicability; and crash/concurrency/latest-manifest resolution. The complete transition table remains non-normative until the remaining decisions are approved.
+Historical open-items statement: these choices were unresolved at that earlier approval point. Later OSD-03, timestamp and crash/concurrency decisions apply, and table adoption is recorded in §5. Their runtime implementation and acceptance remain incomplete.
 
 
 ## 6. Approved timestamp validation policy shape — 2026-10-21
@@ -146,7 +146,7 @@ The following remain open: run/period aggregation under OSD-03; numeric freshnes
 - **Chosen rule:** `verified` and `failed` are terminal file states within a single `run_id`; no transition out of either state is permitted in that run.
 - **Later archive-time verification:** archive must still independently re-query and verify the current Drive object. If that check reports mismatch, unavailable, ambiguous, or verifier failure, block archive and write sanitized operational diagnostics. Do not rewrite the prior manifest or alter that run's terminal file status to reflect the later check.
 - **Run separation:** a subsequent processing attempt or new evidence requiring a new lifecycle record must use a new `run_id` and a new manifest; it must not mutate the historical run's result.
-- **Scope boundary:** this decision resolves terminal file-state and post-verification mutation semantics only. It does not decide run-level terminal status transitions, OSD-03 aggregation, verification method/time/hash combinations, timestamp freshness/clock-skew, crash/concurrency/latest-manifest selection, or implementation/test evidence. The complete transition table remains non-normative.
+- **Scope boundary:** this decision resolves terminal file-state and post-verification mutation semantics only. It does not decide run-level terminal status transitions, OSD-03 aggregation, verification method/time/hash combinations, timestamp freshness/clock-skew, crash/concurrency/latest-manifest selection, or implementation/test evidence. At the time of that individual decision the complete table was not normative; later adoption is recorded in §5.
 
 ## 8. Approved crash, concurrency, and latest-manifest policy shape — 2026-10-21
 
@@ -179,7 +179,7 @@ The following remain open: run/period aggregation under OSD-03; numeric freshnes
 - Assume host OS time synchronization is configured. Detect unavailable or clearly invalid clock readings when the platform exposes this information. If current UTC time cannot be obtained reliably, fail closed for time-dependent operations. No separate external monitoring/alerting service is required by this decision.
 - The 5-minute and 24-hour values are approved initial defaults and must remain configurable. Reject invalid, negative, non-finite, or unparseable configuration values; do not silently fall back to defaults.
 - Required tests: fixed-clock boundaries at exactly 5 minutes and just beyond; fresh timestamp at exactly 24 hours and just beyond; malformed/offset/timezone-less timestamp rejection; end-before-start rejection; invalid configuration rejection; unavailable clock fail-closed; historical-manifest age alone does not invalidate history.
-- **Scope boundary:** this approval does not resolve crash recovery, concurrency, latest-manifest tie-breaking, OSD-03 aggregation, or runtime archive authorization. Archive must independently re-query and verify current Drive state. The full transition table remains non-normative where other open decisions apply; no runtime implementation or passing executable tests are claimed.
+- **Scope boundary:** this approval does not resolve crash recovery, concurrency, latest-manifest tie-breaking, OSD-03 aggregation, or runtime archive authorization. Archive must independently re-query and verify current Drive state. At the time of that individual approval the full table was not normative; later adoption is recorded in §5; no runtime implementation or passing executable tests are claimed.
 
 
 ## OSD-02 approved crash/concurrency/latest-manifest policy (2026-10-21)

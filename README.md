@@ -8,9 +8,9 @@ ElectronicObserver の BattleLog / ErrorReport を、Windows PC-A と PC-B 間�
 
 > **現在の段階:** 安全基盤・検証補助処理を実装中です。実運用可能な初回リリースには未到達です。P0受け入れは未完了で、正式な同期／アーカイブ入口とランタイム検証も未実装です。初期実装にはローカル元ファイル削除・Drive削除の機能自体を含めません。P0の判定基準は [`docs/development/implementation-workflow.md`](docs/development/implementation-workflow.md) §4 と [`docs/requirements/p0-gap-register.md`](docs/requirements/p0-gap-register.md) を参照してください。
 
-2026-10-24時点の[実装棚卸しと初回配布までの作業順序](docs/status/first-release-readiness-20261024.md)を参照してください。レビュー用ZIPを生成できることと、本番導入できることは別です。
+2026-10-24時点の[実装棚卸しと初回配布までの作業順序](docs/status/first-release-readiness-20261024.md)、[選択済みの仕様と残る詳細](docs/decisions/selected-policy-decisions-20261024.md)を参照してください。レビュー用ZIPを生成できることと、本番導入できることは別です。
 
-Codexでの開発は [AGENTS.md](AGENTS.md) から開始します。[役割別運用](docs/development/agent-workflow.md) と [詳細仕様への参照表](docs/development/development-guide.md) を必要時に確認してください。進捗は [引き継ぎ](docs/handoff/next-chat.md) に記録します。
+Codexでの開発は [AGENTS.md](AGENTS.md) から開始します。[root単独運用](docs/development/agent-workflow.md) と [詳細仕様への参照表](docs/development/development-guide.md) を必要時に確認してください。進捗は [引き継ぎ](docs/handoff/next-chat.md) に記録します。
 
 ## 目的
 

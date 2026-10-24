@@ -1,6 +1,6 @@
 # PC-A確認予算の分離実装
 
-状態: 24時間・初回含め25回の上限は利用者承認済み。純粋な判定/履歴更新helperであり、待機task・永続保存・archive認可ではない。
+状態: 24時間・初回含め25回の上限は利用者承認済み。補助checkpointの[最小field契約](../decisions/implementation-grounded-four-decisions-20261024.md)も限定確定した。純粋な判定/履歴更新helperであり、待機task・永続保存・archive認可ではない。
 根拠: [承認記録](../decisions/pc-a-completion-wait-budget-proposal.md)。
 
 ## scope・履歴と判定

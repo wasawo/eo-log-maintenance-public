@@ -147,7 +147,7 @@ P0 is **not accepted** while any P0 item is open, any required design decision i
 7. Local source deletion and Drive deletion remain absent from initial implementation code, configuration, entry points, and deployable packages; evidence limits are explicitly stated until runtime exists (P0-012).
 8. All unresolved OSD items remain explicit blockers for the phase/function they govern. A proposal or static audit does not constitute operator approval.
 
-**Gate result for the current repository:** not accepted. Official sync/archive entry points and runtime orchestration are absent; OSD-02/03 and other decisions remain unresolved; therefore the checklist above is a future acceptance gate, not a claim that P0 has passed. Do not use real credentials, real logs, production paths, or real Google Drive operations to fill evidence gaps without a separately approved test plan.
+**Gate result for the current repository:** not accepted. The maintainer selected the policy directions recorded in the [2026-10-24 decision ledger](../decisions/selected-policy-decisions-20261024.md), including OSD-02/03/04, but detailed C-02 result fields, credential/provider and distribution controls remain open. Official sync/archive entry points and runtime orchestration are absent. This checklist is a future acceptance gate, not a claim that P0 has passed. Do not use real credentials, real logs, production paths, or real Google Drive operations to fill evidence gaps without a separately approved test plan. Current dependency order is in the [first-release readiness inventory](../status/first-release-readiness-20261024.md).
 
 ## 5. Implementation phases
 
@@ -156,11 +156,11 @@ P0 is **not accepted** while any P0 item is open, any required design decision i
 1. Keep this plan and the README aligned with the fixed requirements.
 2. Inspect the existing prototype only as a behavior reference; do not transplant it as a finished design.
 3. Confirm actual filename patterns for BattleLog and ErrorReport, including date parsing, extensions, and any filename exceptions.
-4. Defer the exact OAuth scope until Python adapter implementation; then validate the minimum scope against the actual My Drive folders and required operations. Do not widen scope without documenting and reviewing the need.
+4. Use the selected Desktop user OAuth, same Google principal on both PCs, and drive.file direction. Qualify four operations and cross-PC visibility against the actual folders under a separately approved limited plan. Do not widen scope automatically.
 5. Define manifest schema/version and rules for proving the origin of a pre-existing unmarked file.
 6. Confirm whether the Drive API returns SHA-256 checksums for the relevant file types; define a fail-closed fallback when not available.
 
-Exit criteria: filename patterns, manifest schema, and pre-existing-file origin rules are specified before their respective implementation begins. OAuth scope and scheduler times remain gated until their stated implementation steps.
+Exit criteria: filename patterns, manifest schema, origin rules, conditional normative transition table, Dry Run A and scheduler times are selected. Remaining result fields, provider/credential details and runtime implementation/qualification stay explicit before their dependent steps; selected policy alone is not phase acceptance.
 
 ### Phase 1 — Common functions and configuration
 
