@@ -43,6 +43,7 @@ class DryRunBoundaryTests(unittest.TestCase):
         self.assertFalse(result["may_start_run"])
         self.assertFalse(result["may_archive"])
         self.assertNotIn(str(self.root), completed.stdout.decode())
+        self.assertNotIn("synthetic_private_detail", completed.stdout.decode())
         self.assertEqual(self.before, snapshot(self.root))
         return result
 
@@ -82,6 +83,49 @@ class DryRunBoundaryTests(unittest.TestCase):
                 self.assertEqual("effect_rejected", result["status"])
                 self.assertEqual([event], result["denied_events"])
                 self.assertEqual([], result["normal_calls"])
+
+    def test_real_helper_refuses_unqualified_or_failed_mutex_paths(self):
+        acquired = ["create", "acquire", "abandoned", "lease_body", "release", "close"]
+        for scenario, status, calls in (
+            ("mutex_acquired", "qualification_pending", acquired),
+            ("mutex_abandoned", "mutex_abandoned_rejected", acquired),
+            ("mutex_timeout", "diagnostic_mutex_timeout", ["create", "acquire", "close"]),
+            ("mutex_create_error", "diagnostic_mutex_create_failed", ["create"]),
+            ("mutex_acquire_error", "diagnostic_mutex_wait_failed",
+             ["create", "acquire", "release", "close"]),
+            ("mutex_observation_error", "diagnostic_mutex_observation_invalid",
+             ["create", "acquire", "abandoned", "release", "close"]),
+            ("mutex_release_error", "diagnostic_mutex_cleanup_failed", acquired),
+            ("mutex_close_error", "diagnostic_mutex_cleanup_failed", acquired),
+        ):
+            with self.subTest(scenario=scenario):
+                result = self.probe(scenario)
+                self.assertEqual(status, result["status"])
+                self.assertEqual(calls, result["mutex_calls"])
+                self.assertEqual([], result["denied_events"])
+                self.assert_mutex_boundary(result)
+
+    def assert_mutex_boundary(self, result):
+        self.assertEqual([], result["normal_calls"])
+        self.assertEqual([], result["observation_calls"])
+        self.assertEqual(["Common.RecoveryDiagnosticMutex", "Common.OwnedRunLock"],
+                         result["helper_imports"])
+
+    def test_real_helper_dependency_writes_are_audited_across_lifetime(self):
+        acquired = ["create", "acquire", "abandoned", "lease_body", "release", "close"]
+        for scenario, status, calls in (
+            ("mutex_acquire_write", "diagnostic_mutex_wait_failed",
+             ["create", "acquire", "release", "close"]),
+            ("mutex_body_write", "effect_rejected", acquired),
+            ("mutex_release_write", "diagnostic_mutex_cleanup_failed", acquired),
+            ("mutex_close_write", "diagnostic_mutex_cleanup_failed", acquired),
+        ):
+            with self.subTest(scenario=scenario):
+                result = self.probe(scenario)
+                self.assertEqual(status, result["status"])
+                self.assertEqual(calls, result["mutex_calls"])
+                self.assertEqual(["open"], result["denied_events"])
+                self.assert_mutex_boundary(result)
 
     def test_unknown_scenario_is_sanitized_and_preserves_state(self):
         result = self.probe("unknown-synthetic-token")

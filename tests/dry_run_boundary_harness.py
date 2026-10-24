@@ -33,8 +33,15 @@ def fixture_root(value):
 def run_probe(root, scenario):
     events = []
     normal_calls = []
+    mutex_calls = []
+    observation_calls = []
+    helper_imports = []
+    trusted_repo = str(Path(__file__).resolve().parents[1])
 
     def audit(event, args):
+        if event == "import" and args[0] in (
+                "Common.RecoveryDiagnosticMutex", "Common.OwnedRunLock"):
+            helper_imports.append(args[0])
         denied = event in {
             "os.remove", "os.rmdir", "os.rename", "os.mkdir", "os.chmod",
             "os.chown", "os.link", "os.symlink", "os.truncate", "os.utime",
@@ -77,7 +84,72 @@ def run_probe(root, scenario):
         else:
             actions[scenario]()
 
+    def mutex_dependency():
+        # -I excludes cwd/PYTHONPATH. Only this trusted checkout is added, after
+        # installing the audit hook; -B prevents import bytecode writes.
+        sys.path.insert(0, trusted_repo)
+        from Common.RecoveryDiagnosticMutex import (
+            acquire_diagnostic_mutex, DiagnosticMutexError,
+        )
+
+        class InjectedMutex:
+            # Test-only adapter: no Windows identity/access qualification.
+            def acquire(self, timeout):
+                mutex_calls.append("acquire")
+                if scenario == "mutex_acquire_write":
+                    target.write_bytes(b"synthetic_private_detail")
+                if scenario == "mutex_acquire_error":
+                    raise OSError("synthetic_private_detail")
+                return scenario != "mutex_timeout"
+
+            @property
+            def abandoned(self):
+                mutex_calls.append("abandoned")
+                if scenario == "mutex_observation_error":
+                    raise OSError("synthetic_private_detail")
+                return scenario == "mutex_abandoned"
+
+            def release(self):
+                mutex_calls.append("release")
+                if scenario == "mutex_release_write":
+                    target.write_bytes(b"synthetic_private_detail")
+                if scenario == "mutex_release_error":
+                    raise OSError("synthetic_private_detail")
+
+            def close(self):
+                mutex_calls.append("close")
+                if scenario == "mutex_close_write":
+                    target.write_bytes(b"synthetic_private_detail")
+                if scenario == "mutex_close_error":
+                    raise OSError("synthetic_private_detail")
+
+        def factory(name):
+            mutex_calls.append("create")
+            if scenario == "mutex_create_error":
+                raise OSError("synthetic_private_detail")
+            return InjectedMutex()
+
+        try:
+            with acquire_diagnostic_mutex("synthetic-scope", mutex_factory=factory) as lease:
+                mutex_calls.append("lease_body")
+                if scenario == "mutex_body_write":
+                    target.write_bytes(b"synthetic_private_detail")
+                if lease.abandoned:
+                    return "mutex_abandoned_rejected"
+                # Acquisition grants neither root/ACL/FS authority nor permission
+                # to observe. No qualifications are filled with synthetic success.
+                return "qualification_pending"
+        except DiagnosticMutexError as error:
+            reasons = {
+                "diagnostic_mutex_create_failed", "diagnostic_mutex_timeout",
+                "diagnostic_mutex_wait_failed", "diagnostic_mutex_cleanup_failed",
+                "diagnostic_mutex_observation_invalid",
+            }
+            return error.reason_code if error.reason_code in reasons else "mutex_rejected"
+
     def dispatch():
+        if scenario.startswith("mutex_"):
+            return mutex_dependency()
         # Synthetic injections; these are NOT trusted host/root qualifications.
         if scenario == "normal_control":
             normal()  # Instrumentation control, deliberately not the Dry Run path.
@@ -91,6 +163,7 @@ def run_probe(root, scenario):
         if scenario == "unqualified":
             return "qualification_pending"
         # Only this explicitly synthetic callback may execute. No normal fallback.
+        observation_calls.append("synthetic_observation")
         dependency()
         return "observed"
 
@@ -101,7 +174,8 @@ def run_probe(root, scenario):
     except Exception:
         status = "probe_failed"
     return dict(status=status, denied_events=events, normal_calls=normal_calls,
-                may_start_run=False, may_archive=False)
+                mutex_calls=mutex_calls, observation_calls=observation_calls,
+                helper_imports=helper_imports, may_start_run=False, may_archive=False)
 
 
 if __name__ == "__main__":

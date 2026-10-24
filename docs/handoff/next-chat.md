@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 新セッションで実Git/GitHub状態を照合。最新mainは `6a20240e57a80b02d5b121e455c14e09d2deefd2`（[PR #32](https://github.com/wasawo/eo-log-maintenance-public/pull/32) マージ済み）。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40030809179) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40030808925) 成功。開始時の作業ツリーはclean。
+- 最新の利用者指示により `agent-workflow.md` 記載のanalyst/implementer/reviewerに限って新規生成・分担を許可。以下の旧「新規agent作成禁止」記録を更新する。他の担当は生成しない。
+- 今回branch `test/dry-run-readonly-helper-boundaries`。analyst調査に基づき、implementerが既存Python監査childへ実diagnostic mutex helperを注入mutex経由で接続。資格未完時の後段不到達、取得/body/release/close中の依存書込み拒否、解放履歴と状態不変を9テスト/33probeで確認した。reviewerの独立レビューは指摘なし。担当は上記3役のみで、実装は複数ファイルの意味論的変更のためmediumを使用。
+- 検証: Python 3.11.9で対象9件、既存diagnostic mutex 13件（実Windows 2件を含む）成功。全体回帰はサンドボックス内のpwsh起動失敗により初回309件/11 error/2 skip。通常環境でPowerShell 7.6.7を確認後、同じ全体コマンドを再実行し315件成功（既存2件skip）。変更4文書のローカルファイルリンク21件は欠落0、差分検査成功。CIのPython 3.12との差は残る。PowerShell実装・配布変更がないため独立したPS/package回帰は未実行。今回の差分のCIは未実行。
+- 利用者の追加指示で本変更のPR作成・マージまで承認済み。最新HEADのValidate / Package Validation成功後にスカッシュマージする。記録時点ではコミット準備中で、最終PR/CI/マージ状態は実GitHubで照合する。PowerShell config/rootとPythonのIPC接続、正式runtime・実root/ACL/FS資格・本番接続は含めない。注入mutexの部分証拠を実Windows mutexのidentity/access・writer共通scope資格やDRY全体の受け入れとしない。次は既存config/root読取材料とrecord-free mutexのidentity/access・writer共通scopeの資格不足を整理し、契約未確定のIPCや仮の認可を追加せず独立に検証する。
+
 - 最新基準main `dafd3b78d0cea31ab056b6de6ade4632d5d35c95`（PR #31、main両CI成功）。今回branch `test/dry-run-boundary-harness`、1PR/CI/マージまで実施する。以下の旧記録より優先する。
 - 利用者の新規agent作成禁止を適用。セッションに指定名analyst/implementer/reviewerの既存個体がないため、rootのみで実装・レビューし、別名の個体は起動しない。新規agentは作成していない。
 - Dry Runテスト専用dispatcher・依存auditハーネスと7テスト/21probeを追加。parentが合成領域を準備しchildは -I -B で観測。実runtime・実ACL/Windows排他・IPC/Driveは未接続。検証結果は完了時に記録する。
