@@ -1,6 +1,6 @@
 # テスト計画
 
-`tests/Test-DriveResponseSemantics.ps1` は合成in-memory request期待値/response/exitだけで、4操作成功、exit2–10の独立対応表、既知codeと誤exit、ordinal相関・case、unknown/missing/null/type・implicit cast拒否、raw JSON由来Int64、入力不変、秘密非echoを検査します。retryableの両bool値を固定codeごとに与え、値から何も実行/許可しないこと、process/file/network等の禁止commandが呼ばれないことも確認します。これはC-03/一部C-05のpure補助の証拠で、実child出力/timeout/transport/schemaやretry truth table、RETRY-02、C-01/C-02/IPC全体を完了にしません。
+`tests/Test-DriveResponseSemantics.ps1` は合成in-memory request期待値/response/exitだけで、4操作成功、exit2–10の独立対応表、既知codeと誤exit、ordinal相関・case、unknown/missing/null/type・implicit cast拒否、raw JSON由来Int64、入力不変、秘密非echoを検査します。4操作×9codeのretryable正常値と矛盾値、非bool拒否を検証し、process/file/network等の禁止commandが呼ばれないことも確認します。`tests/test_contract_schemas.py`も4操作×9codeで正常値、逆のbool、null/数値/文字列等と欠落を検査します。これはC-03/一部C-05のpure補助とschemaの証拠で、実child出力/timeout/transport、RETRY-02のorchestration、C-01/C-02/IPC全体を完了にしません。
 
 `python -B -m unittest discover -s tests -p "test_aggregation_report_builder.py" -v` はpure report builderのT-01〜12を両log typeで検証し、跨期間・関連error/run-scope error・不完全validation、exact bytes/hashとinventory整合、terminal verification mapping、strict JSON、時刻精度/未来/明示時計、入力不変・I/Oなしを確認します。隔離fixtureを既存referenced-artifact validatorにも渡します。`Test-AggregationReportValidation.ps1` は生成出力をPS internal validatorへ通し、空period配列のno_work正例とnull/非配列拒否を確認します。schema成功はruntime受け入れ・archive/回復認可ではなく、B2 incomplete validationの網羅性は未確定のままです。
 

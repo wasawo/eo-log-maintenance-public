@@ -18,7 +18,9 @@
 | 9 | `OPERATION_TIMEOUT` | false |
 | 10 | `CONFLICT_OR_AMBIGUOUS` | false |
 
-未知code/exit、非bool、表との矛盾は拒否する。`true`は再試行の許可そのものではない。PowerShellが唯一のretry所有者として最大4回・1/5/15分を制御し、同じuploadの結果不明時は現在のDrive内容を完全かつ信頼できる形で照合するまで再送しない。timeout、応答喪失、列挙不完全を確定失敗や不在に変えない。Python/SDK/HTTPの自動retryは禁止する。現[PS helper](../../Common/DriveResponseSemantics.ps1)と[テスト](../../tests/Test-DriveResponseSemantics.ps1)は真偽値の型しか検査せず、全codeでtrue/false両方を受け入れるため、この表は**未実装**である。
+未知code/exit、非bool、表との矛盾は拒否する。`true`は再試行の許可そのものではない。PowerShellが唯一のretry所有者として最大4回・1/5/15分を制御し、同じuploadの結果不明時は現在のDrive内容を完全かつ信頼できる形で照合するまで再送しない。timeout、応答喪失、列挙不完全を確定失敗や不在に変えない。Python/SDK/HTTPの自動retryは禁止する。
+
+2026-10-25実装追従：[PS helper](../../Common/DriveResponseSemantics.ps1)とresponse schemaへ表を反映し、[PS試験](../../tests/Test-DriveResponseSemantics.ps1)と[schema試験](../../tests/test_contract_schemas.py)で4操作×9codeの正常/矛盾を確認する。決定当時のbool型のみの検査から厳格化した。schema versionは現1.0を維持し、従来schema-validな矛盾boolは不適合になる。外部consumer不在の証明、正式adapter/再試行orchestration/実upload照合の完成は含めない。
 
 ## 2. PC-A確認予算checkpointの最小契約
 

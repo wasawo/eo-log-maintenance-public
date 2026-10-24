@@ -183,6 +183,38 @@ class ResponseContractTests(unittest.TestCase):
             }
         )
 
+    def test_fixed_error_codes_require_the_approved_retryable_value(self) -> None:
+        # Independent approval table: only transient failures carry true.
+        policy = {
+            "INVALID_REQUEST": False,
+            "AUTHENTICATION_FAILED": False,
+            "DRIVE_PERMISSION_DENIED": False,
+            "DRIVE_RESOURCE_NOT_FOUND": False,
+            "DRIVE_TRANSIENT_FAILURE": True,
+            "VERIFICATION_FAILED": False,
+            "INTERNAL_ERROR": False,
+            "OPERATION_TIMEOUT": False,
+            "CONFLICT_OR_AMBIGUOUS": False,
+        }
+        for operation in ("list_files", "get_file_metadata", "upload_file", "download_file"):
+            for code, flag in policy.items():
+                with self.subTest(operation=operation, code=code):
+                    instance = {
+                        "schema_version": "1.0",
+                        "request_id": "8c7e5db8-08f4-4c9e-a6b2-5b45c1aaf031",
+                        "operation": operation,
+                        "success": False,
+                        "result": None,
+                        "error": {"code": code, "message": "synthetic failure", "retryable": flag},
+                    }
+                    self.assert_response_valid(instance)
+                    for invalid in (not flag, None, "true", "false", 0, 1, [], {}):
+                        with self.subTest(retryable=invalid):
+                            instance["error"]["retryable"] = invalid
+                            self.assert_response_invalid(instance)
+                    del instance["error"]["retryable"]
+                    self.assert_response_invalid(instance)
+
     def test_unknown_error_code_and_extra_fields_are_rejected(self) -> None:
         invalid = {
             "schema_version": "1.0",

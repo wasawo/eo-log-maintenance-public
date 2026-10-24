@@ -193,12 +193,12 @@ Python は標準出力に、UTF-8 の JSON オブジェクトを 1 件だけ出�
 
 ## 7. 再試行と冪等性
 
-実装slice：`Common/DriveResponseSemantics.ps1` はcallerが渡すdecoded IDictionaryと期待request ID/operation、int/long/BigInteger exitを純粋に比較し、ordinal相関と§6のexit/envelope/error-code対応を固定Status/ReasonCodeで返す。`consistent` はこの限定対応だけの判定で、操作別resultの正しさ、運用続行、retry、cloud検証の認可ではない。retryableはbool型のみを確認し、true/falseとcodeの厳密truth tableは実装しない。transport/UTF-8/JSON一件/重複key/schema（未知field・UUID構文等）検証と実request由来期待値の確保はcaller側の未実装ゲート。C-01/C-02、C-05の残りとRETRY-02、IPC全体・runtime受け入れは未完了であり、本注記は規範の再試行方針を変更しない。
+実装slice：`Common/DriveResponseSemantics.ps1` はcallerが渡すdecoded IDictionaryと期待request ID/operation、int/long/BigInteger exitを純粋に比較し、ordinal相関と§6のexit/envelope/error-code対応、固定retryable真偽表を固定Status/ReasonCodeで返す。`consistent` はこの限定対応の判定で、操作別resultの正しさ、運用続行、retry、cloud検証の認可ではない。retryableはbool型を必須とし、`DRIVE_TRANSIENT_FAILURE`だけtrue、他8codeはfalseを要求する。表との矛盾は`retryable_error_code_mismatch`で拒否する。transport/UTF-8/JSON一件/重複key/schema（未知field・UUID構文等）検証と実request由来期待値の確保はcaller側の未実装ゲート。C-01/C-02、C-05の残りとRETRY-02、IPC全体・runtime受け入れは未完了である。
 
 - 再試行の唯一の所有者はPowerShellとする。初回を含む最大4回とし、失敗後の待機は1分・5分・15分とする。ジッター付き指数バックオフは使用しない。
 - 認証、権限、リクエスト不正、検証失敗、曖昧性のエラーは、根本原因を解消せずに再試行しない。
 - Pythonは一覧取得・メタデータ取得を含むすべての操作を1回だけ試行する。PowerShellは `retryable` と固定エラーコードを確認して一時的エラーだけを再試行する。認証・権限・リクエスト不正・検証失敗・競合は再試行しない。
-- `retryable`の固定code別真偽値は[現行実装に基づく決定](../decisions/implementation-grounded-four-decisions-20261024.md)§1の表に従う。現helperはbool型までの検査であり、真偽表/再試行認可の実装は未完了。
+- `retryable`の固定code別真偽値は[現行実装に基づく決定](../decisions/implementation-grounded-four-decisions-20261024.md)§1の表に従う。現1.0 response schemaとPS helperへ真偽表を反映済み。旧1.0でschema-validだった矛盾boolは拒否する互換性の厳格化であり、外部consumer不在は未確認。Python adapterと再試行orchestrationは未実装で、表への適合だけで結果不明uploadの再送を許可しない。
 - アップロード結果が不明な場合は、同じアップロードを繰り返す前にDriveの一覧・メタデータを照合する。親ID・名前・サイズ・取得可能なチェックサム等で対象を一意に特定できなければ停止する。
 - ダウンロードを再試行する場合、PowerShellは新規または空のステージングファイルを使用し、最終配置前にサイズとSHA-256を検証する。HTTPクライアントの暗黙の再試行が無効であることを設定とテストで確認する。
 - 内容の異なる既存ファイルを上書きする形で再試行してはならない。

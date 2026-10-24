@@ -34,7 +34,7 @@
 
 ## Current implementation status
 
-The repository has schema/isolated helper tests and a non-deployable review package. Official Sync/Archive scripts, Drive adapter, trusted checkpoint persistence, closed IPC results and runtime safety evidence remain incomplete. This register records decisions; it does not claim runtime acceptance. The nine-code retryable truth table is selected but the current PS helper checks only the boolean type.
+The repository has schema/isolated helper tests and a non-deployable review package. Official Sync/Archive scripts, Drive adapter, trusted checkpoint persistence, closed IPC results and runtime safety evidence remain incomplete. This register records decisions; it does not claim runtime acceptance. As of 2026-10-25 the response schema and PS helper enforce the nine-code retryable truth table; retry orchestration and unknown-upload reconciliation remain unimplemented.
 
 
 ## C-26 — OSD-02 verification-result mapping approval — 2026-10-21

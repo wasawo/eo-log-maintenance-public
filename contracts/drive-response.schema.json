@@ -67,6 +67,16 @@
             "retryable": {
               "type": "boolean"
             }
+          },
+          "if": {
+            "properties": { "code": { "const": "DRIVE_TRANSIENT_FAILURE" } },
+            "required": ["code"]
+          },
+          "then": {
+            "properties": { "retryable": { "const": true } }
+          },
+          "else": {
+            "properties": { "retryable": { "const": false } }
           }
         }
       ]

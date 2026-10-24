@@ -20,7 +20,7 @@ function New-SuccessResponse([string] $Operation = 'list_files') {
     }
 }
 
-function New-FailureResponse([string] $Code = 'DRIVE_TRANSIENT_FAILURE', [bool] $Retryable = $false) {
+function New-FailureResponse([string] $Code = 'DRIVE_TRANSIENT_FAILURE', [bool] $Retryable = $true) {
     $value = New-SuccessResponse
     $value.success = $false
     $value.result = $null
@@ -62,17 +62,21 @@ foreach ($operation in @('list_files', 'get_file_metadata', 'upload_file', 'down
 
 # Independent contract table, not imported from the implementation.
 $mapping = @(
-    @(2, 'INVALID_REQUEST'), @(3, 'AUTHENTICATION_FAILED'), @(4, 'DRIVE_PERMISSION_DENIED'),
-    @(5, 'DRIVE_RESOURCE_NOT_FOUND'), @(6, 'DRIVE_TRANSIENT_FAILURE'), @(7, 'VERIFICATION_FAILED'),
-    @(8, 'INTERNAL_ERROR'), @(9, 'OPERATION_TIMEOUT'), @(10, 'CONFLICT_OR_AMBIGUOUS')
+    @(2, 'INVALID_REQUEST', $false), @(3, 'AUTHENTICATION_FAILED', $false), @(4, 'DRIVE_PERMISSION_DENIED', $false),
+    @(5, 'DRIVE_RESOURCE_NOT_FOUND', $false), @(6, 'DRIVE_TRANSIENT_FAILURE', $true), @(7, 'VERIFICATION_FAILED', $false),
+    @(8, 'INTERNAL_ERROR', $false), @(9, 'OPERATION_TIMEOUT', $false), @(10, 'CONFLICT_OR_AMBIGUOUS', $false)
 )
 for ($index = 0; $index -lt $mapping.Count; $index++) {
     $pair = $mapping[$index]
-    foreach ($flag in @($false, $true)) {
-        Invoke-Case 'mapped failure with either retryable boolean' (New-FailureResponse $pair[1] $flag) $pair[0]
+    foreach ($operation in @('list_files', 'get_file_metadata', 'upload_file', 'download_file')) {
+        $response = New-FailureResponse $pair[1] $pair[2]
+        $response.operation = $operation
+        Invoke-Case "approved retryable value for $($pair[1]) / $operation" $response $pair[0] -Operation $operation
+        $response.error.retryable = -not $pair[2]
+        Invoke-Case "contradictory retryable value for $($pair[1]) / $operation" $response $pair[0] 'retryable_error_code_mismatch' -Operation $operation
     }
     $wrongExit = $mapping[($index + 1) % $mapping.Count][0]
-    Invoke-Case 'wrong exit and known error code rejected' (New-FailureResponse $pair[1]) $wrongExit 'exit_error_code_mismatch'
+    Invoke-Case 'wrong exit and known error code rejected' (New-FailureResponse $pair[1] $pair[2]) $wrongExit 'exit_error_code_mismatch'
 }
 
 $response = New-SuccessResponse
@@ -164,7 +168,7 @@ foreach ($code in @('drive_transient_failure', 'SYNTHETIC_UNKNOWN', $null, 6)) {
 foreach ($flag in @($null, 'false', 0, 1)) {
     $response = New-FailureResponse
     $response.error.retryable = $flag
-    Invoke-Case 'retryable must be boolean without deciding value policy' $response 6 'retryable_type_invalid'
+    Invoke-Case 'retryable must be boolean without coercion' $response 6 'retryable_type_invalid'
 }
 $response = New-FailureResponse
 $response.error.message = @{ secret = 'synthetic_private_detail' }

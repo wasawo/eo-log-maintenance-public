@@ -4,14 +4,14 @@ Set-StrictMode -Version Latest
 function Test-DriveResponseSemantics {
     <#
     .SYNOPSIS
-    Checks only in-memory correlation and exit/envelope mapping.
+    Checks in-memory correlation, exit/envelope mapping and retryable policy.
     .DESCRIPTION
     Response/result/error objects must be IDictionary values (for example,
     ConvertFrom-Json -AsHashtable). Expected identity comes from the caller's
     actual request. No parsing, UUID syntax/unknown-field schema validation,
     result-content verification,
-    retry decision or transport is supplied. Either boolean retryable value is
-    outside this checker's value-policy scope. Consistent grants no authority.
+    retry decision or transport is supplied. Only DRIVE_TRANSIENT_FAILURE may
+    have retryable=true. Consistent grants no authority to retry an operation.
     #>
     [CmdletBinding()]
     param(
@@ -130,6 +130,10 @@ function Test-DriveResponseSemantics {
             }
             if (-not [string]::Equals($Response.error.code, $expectedErrorCode, [StringComparison]::Ordinal)) {
                 return (& $rejected 'exit_error_code_mismatch')
+            }
+            $expectedRetryable = [string]::Equals($Response.error.code, 'DRIVE_TRANSIENT_FAILURE', [StringComparison]::Ordinal)
+            if ($Response.error.retryable -ne $expectedRetryable) {
+                return (& $rejected 'retryable_error_code_mismatch')
             }
         }
         return [pscustomobject]@{ Status = 'consistent'; ReasonCode = 'correlation_exit_mapping_consistent' }

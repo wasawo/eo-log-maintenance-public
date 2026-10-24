@@ -6,7 +6,7 @@
 
 ## Findings requiring resolution before adapter implementation
 
-C-01/C-02の独立した選択表・具体的result候補・移行判断は [IPCパス・操作別resultの判断資料](../decisions/c01-c02-ipc-contract-options.md) を参照。未承認の比較資料であり、本表の解決・承認状態は変更しない。
+C-01/C-02の選択表・具体的result候補・移行判断は [IPCパス・操作別resultの判断資料](../decisions/c01-c02-ipc-contract-options.md) を参照。P1/V1/L1・現1.0改訂とR1/N1/D1は選択済みだが、操作別の具体fieldと全体契約レビューは未完了。以下の指摘のうち実装追従済みの範囲は次節に記録する。
 
 | ID | Observation | Risk / consequence | Proposed disposition | Approval needed? |
 |---|---|---|---|---|
@@ -18,7 +18,7 @@ C-01/C-02の独立した選択表・具体的result候補・移行判断は [IPC
 
 ## C-03 / partial C-05 implementation slice
 
-`Common/DriveResponseSemantics.ps1` supplies a pure in-memory checker for ordinal request ID/operation correlation and the existing exit/envelope/error-code table. `tests/Test-DriveResponseSemantics.ps1` covers the four operations, all fixed error mappings, mismatches, types, unchanged inputs and sanitized fixed outputs. `consistent` means only correlation/exit mapping consistency; it is not result validation, retry permission or runtime acceptance. `retryable` is checked only for boolean type: neither value is interpreted against the code, including permanent errors. Its exact truth table, RETRY-02 orchestration, real child/transport/schema gates, C-01/C-02 and the complete IPC review remain outstanding. This slice does not resolve C-03/C-05 as a whole or complete P0-005.
+`Common/DriveResponseSemantics.ps1` supplies a pure in-memory checker for ordinal request ID/operation correlation and the exit/envelope/error-code table. On 2026-10-25 it was extended with the approved retryable table: only `DRIVE_TRANSIENT_FAILURE` requires true; the other eight codes require false. The response schema enforces the same table. PS and schema tests independently cover all nine codes across four operations, approved/opposite values and invalid types; PS tests also check unchanged inputs, sanitized fixed outputs and absence of operational effects. `consistent` includes these value checks; it is not result validation, retry permission or runtime acceptance. RETRY-02 orchestration, real child/transport/schema gates, C-01/C-02 and the complete IPC review remain outstanding. This slice does not resolve C-03/C-05 as a whole or complete P0-005.
 
 ## C-06 — Unknown upload outcome and Drive reconciliation
 
