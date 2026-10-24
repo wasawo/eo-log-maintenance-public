@@ -133,6 +133,10 @@ jobs:
         shell: pwsh
         run: ./tests/Test-AggregationReportValidation.ps1
 
+      - name: Run pure Drive response correlation and exit mapping tests
+        shell: pwsh
+        run: ./tests/Test-DriveResponseSemantics.ps1
+
       - name: Run aggregation artifact reference tests
         shell: pwsh
         run: ./tests/Test-AggregationArtifactReference.ps1

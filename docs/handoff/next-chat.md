@@ -8,12 +8,17 @@
 
 ## 最新基準と今回の作業
 
+- 利用者のOKでPR #37後の中断から再開。現branch `feat/drive-response-semantics` はmain `c4de355` + 停止記録 `a50681c` から分離。C-01はP1/V1に加えて詳細字句規則とschema1.0互換性が未決のため依存変更を保留。独立した既存契約C-03/部分C-05の相関・exit/success/error-code対応表を、副作用なしPS helperへ実装し、独立reviewで未解決指摘なし。
+- 本helperはdecoded/schema検証済みデータをcallerが供給する層の限定比較のみ。transport/JSON exactly-one/UTF-8/schema検証・操作別result・retryable真理値表・retry/timeout処理・現在Drive照合・認可は対象外。consistentはresult信頼・再試行・runtime受け入れを意味しない。実root/token fieldや新operationを追加しない。
+- PATH上の同梱PowerShellは7.6.5、WindowsApps側は7.6.8だった。CI指定と同じ公式7.6.7 portableを一時領域へ取得し、CI固定SHA-256と版を照合。PSScriptAnalyzerも一時取得し、個人/global設定・既存インストールは変更していない。実装凍結後、固定PS 7.6.7でimplementerの最終合成117検査成功、rootの両役割package回帰と新規/変更PS3ファイルの構文・PSScriptAnalyzer Error検査成功。schema/Python変更がないため無関係な全Python・既存PS検査は繰り返していない。
+
+- root追加境界試験でPSのcase-sensitive membershipもNUL/soft-hyphen/zero-width文字を無視することを確認し、許可operation/固定code集合をOrdinal HashSetへ修正。不可視文字の9負例を追加し、修正後2PSの構文/静的解析も再成功。ID/operationの一致自体もordinalを維持する。reviewerも最終117検査と独自54負例を実行し全成功、他差分のreviewを再利用して未解決指摘なし。変更5文書のローカルリンク28件欠落0、差分検査成功。未push・新規PR/CI未実行。
 - 最新mainは `c4de355ac9810769036746401a2ef3235329bc74`（[PR #37](https://github.com/wasawo/eo-log-maintenance-public/pull/37) マージ済み）。利用者のOKに基づき判断資料とhandoffの9文書を対象に、最新HEAD `4a6ff27ff6cf1dbc84a4485dc0b07ed3a60555a2` の [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40082476232) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40082476316) 成功後にsquash mergeした。
 - 認証・owner-v2の保全済み比較を統合し、[B2 validation網羅性/report生成時刻](../decisions/b2-validation-coverage-report-time-options.md)の選択肢と互換性・R5改訂・将来合成vectorsを整理した。[認証資料](../decisions/osd-05-drive-auth-identity-scope-options.md)・[owner-v2資料](../decisions/owner-v2-field-binding-options.md)を含め、**資料のマージは方針採用ではない**。コード/schema/設定/承認状態は変更せず、実OS/Drive接続・保存・本番適用を認可していない。private保全/自動削除なし・各PC内manual/task同一accountは既承認のまま文書を整合した。
 - 文書検証: 9文書のローカルリンク118件欠落0、差分検査成功。reviewerはhandoffを除く8文書/112リンクを独立確認し指摘なし。文書のみのため機能/package検査のローカル再実行なし。外部事実の再調査、実OS/Drive/runtime受け入れも実施していない。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40082642915) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40082642880) も成功。
 - 従来の未公開資料branch `docs/remaining-contract-decisions`（`4e72846`）、`docs/drive-auth-options-after-pr34`（`643eaf6`）は履歴保全のため保持するが、判断資料の現行本文はPR #37後のmainを優先する。未公開資料のままという旧記録を現在の公開状態に適用しない。
 - [C-01/C-02](../decisions/c01-c02-ipc-contract-options.md)、認証/owner-v2のfield・source・資格、B2 validation網羅性/incompleteの意味、生成UTCの永続出所/同一bytes再生成は未決。完全状態遷移、runtime、両PC実root/FS・Drive内容/耐久性の受け入れも未完。schema/helper/合成テスト/package/CI成功をこれらの完了にしない。集約builderはPR #35、B2 float拒否はPR #36でマージ済み。
-- 現在は**PR #37マージ後の中断状態**。既存analyst/implementer/reviewerのみ再利用し、未決仕様を推測せず合成/隔離検証・独立review・handoffを完了、PR/マージ権限は個別承認内とする。**1PRマージごとに中断して継続可否を尋ねる**という利用者指示に従い、次作業は継続指示待ち。この記録は `docs/pr37-paused-handoff` にローカル保全し、未push・追加PRなし。
+- PR #37後の中断から利用者の継続指示で再開した。既存analyst/implementer/reviewerのみ再利用し、未決仕様を推測せず合成/隔離検証・独立review・handoffを完了、PR/マージ権限は個別承認内とする。**1PRマージごとに中断して継続可否を尋ねる**という利用者指示に従い、次のPRマージ時に再び中断する。停止記録は `docs/pr37-paused-handoff` の `a50681c` に保持し、今回の新規PR/マージは未承認・未実施。
 
 ## 旧進捗の参照
 
