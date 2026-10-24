@@ -42,7 +42,7 @@ path/handle identity、属性、size/hash、列挙完全性を使用点で再確
 
 子プロセスのstdout/stderrはファイルを介さず分離捕捉する。Python stdoutはUTF-8 JSON object 1件と末尾改行だけとし、banner/progress/tracebackを混在させない。stderrも秘密除去済み固定理由/概要だけとする。raw例外、ローカル絶対path、token、API本文を外へ流さず、捕捉した不正出力自体も再出力しない。timeout、不正/複数JSON、未知field/version、request ID/operation不一致、schema不適合、終了コード/error/retryableの矛盾は拒否する。
 
-操作固有resultの厳密な検証も必要だが、[C-01/C-02](../validation/p0-contract-review-findings.md)のpath policy/result shapeをこの設計で解決しない。既存schemaのenvelope成功は操作結果の完全性を保証しない。adapter実装前に当該契約決定と全体レビューを終える。mock診断を口実に未決定result shapeをruntime契約として導入しない。
+操作固有resultの厳密な検証も必要だが、[C-01/C-02](../validation/p0-contract-review-findings.md)のpath policy/result shapeをこの設計で解決しない。既存schemaのenvelope成功は操作結果の完全性を保証しない。C-01のP1/V1/L1とC-02のR1/N1/D1は選択済み。adapter実装前にC-02の4操作それぞれのclosed executed/plan field集合と全体契約レビューを終える。mock診断を口実に未決定の詳細result shapeをruntime契約として導入しない。
 
 起動・importを含む全依存経路もAに従う。Pythonはbytecode生成を抑える `-B` とisolated modeを組み合わせる起動を実装候補とし、信頼済みpackage/import解決・既存helper呼出しとの適合性を検証する。これだけで資格完了とはしない。Python/moduleの `__pycache__`、temp、logging、schema参照解決、auth/token store/cache、HTTP client等の暗黙書込み・live通信を調査・捕捉する。抑止・検証できない依存は呼ばず停止し、環境変数だけやimport成功だけを根拠にしない。OS自動atime・監査・キャッシュ・ページング等の物理書込みzeroは保証しない。
 

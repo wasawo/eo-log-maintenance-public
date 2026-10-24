@@ -1,6 +1,6 @@
 # OSD-05/C-23: Drive認証・identity・scopeの判断資料
 
-- 状態：I1（同じGoogle principal）・A1（Desktop user OAuth）・S1（drive.file）は [利用者の第4回回答](selected-policy-decisions-20261024.md) で採用済み。T1（Windows user-bound保護store）も第5回回答で選択済み。具体store API/配置・SDK/flow・実ACL/対象folder資格・限定試験の実施は未決/未検証。未採用案は比較履歴として保持する。
+- 状態：I1（同じGoogle principal）・A1（Desktop user OAuth）・S1（drive.file）は [利用者の第4回回答](selected-policy-decisions-20261024.md) で採用済み。T1（Windows user-bound保護store）も第5回回答で選択済み。暗号化専用fileとGoogle公式Python clientの方向も選択済み。具体store API/配置・SDK版/flow・実ACL/対象folder資格・限定試験の実施は未決/未検証。未採用案は比較履歴として保持する。
 - 根拠：[OSD-05](../requirements/p0-open-specification-decisions.md)、[決定台帳C-23/C-27](decision-register-c18-c32.md)、[PS/Python契約](../design/powershell-python-contract.md) §2–3/9、[開発参照表](../development/development-guide.md)。
 - 本書は判断材料と将来の検証計画であり、コード/schema/CI/設定を変更せず、認証・consent・token取得・live接続・production uploadを実行または許可しない。実値、実path、mail、folder ID、client/token値は記載しない。
 
@@ -53,7 +53,7 @@ My Driveへuser OAuthでcreateするfileはuser所有となりquotaを消費す�
 | S3: `drive.readonly` | 読取り範囲を評価 | 不可 | 読取り対象contentを評価 | upload要件を満たさず、read-onlyでも広い可視性の影響を確認 |
 | S4: `drive` | 広範なfileアクセス | scopeとしては対応可能 | scopeとしては対応可能 | 広範権限の必要性と実ACLを個別レビュー。S1の適合不明を理由に自動拡大しない |
 
-上表はscopeの機能分類の要約であり、各操作の成功を保証しない。実ACL、resource状態、API返却条件、quotaの検証が別途必要。[Drive API scopes](https://developers.google.com/workspace/drive/api/guides/api-specific-auth) checksumがない場合の通常実行download/hashも含めて評価し、C-01/C-02の[path/result契約未決](c01-c02-ipc-contract-options.md)をscope選択で迂回しない。
+上表はscopeの機能分類の要約であり、各操作の成功を保証しない。実ACL、resource状態、API返却条件、quotaの検証が別途必要。[Drive API scopes](https://developers.google.com/workspace/drive/api/guides/api-specific-auth) checksumがない場合の通常実行download/hashも含めて評価し、C-01/C-02の[path方針は選択済み・result詳細未決](c01-c02-ipc-contract-options.md)をscope選択で迂回しない。
 
 | 実Drive権限の確認 | 確認する理由・停止条件 |
 | --- | --- |

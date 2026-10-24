@@ -15,7 +15,7 @@
 | [設定/root設計](../design/configuration-local-root.md)、[設定parser](../../Common/MachineConfiguration.ps1) | 現在の設定はdrive-rooted Windows pathのみ。構造検証は実root認可・物理的分離の証明ではない | UNCをIPCで許す場合の設定側との整合と独立したroot資格 |
 | [Dry Run A設計](../design/dry-run-execution-design.md) §2–4 | root/排他資格未完なら停止。bytes取得・書込み・live接続・認証refresh/storeは解禁しない | result契約を選んでもこれらのゲートは残る |
 
-Google公式一次資料で確認したREST APIの返却条件は§7にまとめる（2026-10-24 JST確認）。SDKは未選定で、型変換・自動pagination・内部retry・upload/downloadの呼出し履歴は未確認。REST仕様で確認できる事実を、adapterでの返却保証や試行回数の検証済み証拠に置き換えない。C-02のR1/N1/D1方針は確定したが、操作別field集合・型・値域・正規化/serializationと実装は未確定・未実施である。
+Google公式一次資料で確認したREST APIの返却条件は§7にまとめる（2026-10-24 JST確認）。Google公式Python clientは選択済みだが、具体版・設定・型変換・自動pagination・内部retry・upload/downloadの呼出し履歴は未確認。REST仕様で確認できる事実を、adapterでの返却保証や試行回数の検証済み証拠に置き換えない。C-02のR1/N1/D1方針は確定したが、操作別field集合・型・値域・正規化/serializationと実装は未確定・未実施である。
 
 ## 2. C-01: 対応するパス構文と検査責務を別々に選ぶ
 
@@ -102,7 +102,7 @@ D1でも計画にfile ID・bytes数・検証成功を捏造せず、取得して
 
 ## 4. 互換性と移行の判断
 
-現行request/responseは `schema_version: "1.0"` 固定。C-01は現1.0を実装前に改訂する方針を採用し、新version/期間限定併存は採用しない。P1/L1の厳格化で従来schema-validなpathが不適合になり得るため、外部consumerの有無と文書・fixture・配布物の互換性を確認する。C-02のIDのみresult等の扱いは別の未決事項で、C-01の選択からresult契約の改訂を推定しない。
+現行request/responseは `schema_version: "1.0"` 固定。C-01は現1.0を実装前に改訂する方針を採用し、新version/期間限定併存は採用しない。P1/L1の厳格化で従来schema-validなpathが不適合になり得るため、外部consumerの有無と文書・fixture・配布物の互換性を確認する。C-02のR1/N1/D1と4操作一括の具体化方針は採用済みだが、IDのみresult等を含む正確な操作別field集合は未決であり、C-01の選択からresult契約の完成を推定しない。
 
 | 移行候補 | 判断が必要なこと |
 | --- | --- |
@@ -151,6 +151,6 @@ R2は未採用であり、現open schemaから採用R1へ追従する具体的re
 | listはpageSizeより少ない件数を返し得る。継続token、token失効、`incompleteSearch` を扱う必要がある。[files.list](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list) | ページ成功だけで全一覧完了としない。SDKの自動ページ取得・1 API試行との対応は未確認 |
 | create成功時のFile応答はfield maskで部分応答となる。[files.create](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/create) multipartは1 HTTP request、resumableは開始時の空応答と完了後のFile応答を含む複数request方式。[manage uploads](https://developers.google.com/workspace/drive/api/guides/manage-uploads) | 成功/IDだけで独立content hash検証にはならない。既存の「1 API試行」が各方式で何を数えるかは未決で、本書だけで方式や試行単位を選ばない |
 | `alt=media` は内容bytesを返す。[files.get](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/get) Docs等のexportは別方式で説明される。[manage downloads](https://developers.google.com/workspace/drive/api/guides/manage-downloads) | metadata形とbytes取得結果を混同しない。export用operationを本書で追加しない。受信bytes計測、staging検証、client内部通信の確認は別途必要。Dry Run Aではbytes取得なし |
-| 一般的なエラー対処としてbackoffが説明される。[handle errors](https://developers.google.com/workspace/drive/api/guides/handle-errors) | 本プロジェクトのPS-only retry契約を変更する根拠ではない。SDK未選定で暗黙retryやpage動作は未確認。選定後に設定と呼出し履歴を検証する |
+| 一般的なエラー対処としてbackoffが説明される。[handle errors](https://developers.google.com/workspace/drive/api/guides/handle-errors) | 本プロジェクトのPS-only retry契約を変更する根拠ではない。公式Python clientを選択済みだが具体版/設定は未確定で、暗黙retryやpage動作は未確認。実装時に設定と呼出し履歴を検証する |
 
 C-01のP1/検査V1/L1全体/現1.0改訂と、C-02のR1/N1/D1方針は確定済み。具体field集合・型・値域・plan形と実装/実施の未了を維持する。上表をもって規範契約、schema、adapter、IPC全体レビューが完成したとは扱わない。

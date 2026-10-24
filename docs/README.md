@@ -66,7 +66,7 @@ docs/
 - [Filename and Period Selection Specification](design/filename-and-period-selection.md)
 - [Latest manifest selection core](design/latest-manifest-selection.md)
 - [Maintenance Manifest Schema v1 — Approved Field Specification](design/manifest-schema-v1-proposal.md)
-- [Maintenance Manifest v1 — State-Transition Table Proposal](design/manifest-state-transition-v1-proposal.md)
+- [Maintenance Manifest v1 — 採用済み状態遷移表](design/manifest-state-transition-v1-proposal.md)
 - [承認済み月次時刻の分離観測](design/monthly-schedule-observation.md)
 - [PowerShell・Python 責務分担／連携契約書](design/powershell-python-contract.md)
 - [private証拠file ACLの限定形状](design/private-evidence-acl-profile.md)
@@ -84,6 +84,7 @@ docs/
 - [C-01 drive-rooted file pathの詳細字句候補](decisions/c01-drive-rooted-lexical-candidate.md): P1・検査配置V1・L1全体・現1.0改訂を承認済み。実装は未着手。
 - [2026-10-24 選択形式による仕様決定](decisions/selected-policy-decisions-20261024.md): 利用者回答と、採用・未選択・未実装の範囲。
 - [現行実装に基づく4件の限定決定](decisions/implementation-grounded-four-decisions-20261024.md): retryable表、確認予算checkpoint、現行レビューpackage、v1 owner境界。
+- [㉙〜㉜の選択肢比較](decisions/remaining-policy-options-20261024.md): 全A採用済み。未採用Bは比較履歴。
 - [C-45 event identity conflict handling options](decisions/c45-event-identity-conflict-options.md)
 - [C-50 structured condition input model — non-normative proposal](decisions/c50-condition-input-model-options.md)
 - [C-51 structured processing-context input model options](decisions/c51-context-input-model-options.md)

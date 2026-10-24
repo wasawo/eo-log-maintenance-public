@@ -1,10 +1,10 @@
-# Maintenance Manifest v1 — State-Transition Table Proposal
+# Maintenance Manifest v1 — Adopted State-Transition Table
 
 - Status: transition tables adopted by the maintainer on 2026-10-24, subject to existing approved aggregation, crash/concurrency, terminal-state and immutable-history rules. Unlisted transitions are rejected. Persistence details, implementation, tests and runtime acceptance remain incomplete. See [selection record](../decisions/selected-policy-decisions-20261024.md).
 - Related decision: OSD-02 / C-26.
 - Approved field contract: `docs/design/manifest-schema-v1-proposal.md`.
 - Related aggregation decision: `docs/decisions/osd-03-status-aggregation-options.md`.
-- Scope: candidate transitions for per-file lifecycle state, Drive verification result, and run status. This document does not authorize runtime implementation.
+- Scope: adopted conditional transitions for per-file lifecycle state, Drive verification result, and run status. This document does not establish runtime acceptance.
 
 ## 1. Rules already established by approved specifications
 
