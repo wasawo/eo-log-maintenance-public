@@ -2,6 +2,10 @@
 
 ## Dry Run Aの合成境界ハーネス
 
+通常owned lockのtimeout検証では、NaNを `timeout_invalid` としてpath変換・token生成・mutex生成より前に拒否することを、呼出しを記録する合成依存で確認する。既存の範囲外・無限大・巨大整数の固定理由と、0/60秒を含む有限値の取得・解放も検査する。
+
+`test_owned_run_lock.py` は `_NamedMutex.close` のWin32 BOOL戻り値をfake kernel32で注入し、成功時だけhandleをclearし再closeを行わず、失敗時は固定理由 `named_mutex_close_failed` とhandle参照を保持して自動retryしないことを検査する。`test_recovery_diagnostic_mutex.py` は実adapterメソッドとfake kernel32を組み合わせ、release→closeの順序と、close失敗が `diagnostic_mutex_cleanup_failed` へ変換されることを検査する。nativeの無効handleを閉じるテストではなく、実環境の資格や耐久性を証明しない。
+
 `python -B -m unittest discover -s tests -p "test_dry_run_boundary.py" -v` は、親が作成した専用一時fixtureを `-I -B` の子プロセスで検査する。9テスト内の33回のprobeで、読取・無資格/無効role/config/root・競合/abandonedの注入、依存write/delete/rename/mkdir/chmod/temp/network/subprocess要求、計測用normal経路を検証する。Python audit event名の履歴と、前後の存在・bytes/hash・modeを比較する。途中で拒否されたwriteも記録し、単なる最終snapshot一致とは区別する。
 
 実 `Common.RecoveryDiagnosticMutex.acquire_diagnostic_mutex` を監査hook設置後にimportして呼び、test-only mutexのcreate/acquire/abandoned/lease body/release/close履歴を固定文字列で検査する。`-I` で除外されたimport検索先には、環境入力を使わずハーネスの配置から求める信頼済みcheckoutだけを追加し、`-B` を維持する。取得成功でも `qualification_pending` とし後続観測へ進まない。timeout、abandoned、create/acquire/observation/cleanup失敗を固定理由で拒否し、取得・lease body・release・close中の依存writeも監査で拒否する。helper import自体も監査下で観測する。

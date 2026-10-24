@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 利用者の継続指示: 5時間枠の残量10%まで後続作業を続ける。残量はagentから直接取得できないため、利用者が到達時に停止を知らせる。指定3役のみを再利用する。
+- 最新基準mainは `a0b37bf30f1329209d5516888cc93c65c1e58f9e`（[PR #33](https://github.com/wasawo/eo-log-maintenance-public/pull/33) マージ済み）。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40045585873) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40045585917) 成功、開始時clean。前回の「コミット準備中」記録より本項を優先する。
+- branch `fix/mutex-close-failure` で、analystが指摘したnative mutex adapterのCloseHandle失敗見逃しと通常lockのNaN timeout入力検証不足を修正。closeのBOOL失敗を固定理由で拒否し、成功時だけhandle参照をclear、診断helperのcleanup失敗へ接続。NaNはtoken/path/mutex準備前に拒否し、無限大・巨大整数の既存理由を維持する。両小修正の独立reviewer指摘なし。
+- 検証: Python 3.11.9、対象lock16件/diagnostic mutex14件成功。通常環境で全320件成功（既存2件skip）、PowerShell 7.6.7を使う既存合成回帰を含む。差分検査成功。CI Python3.12は未実行。PS実装・配布の変更はなく独立PS/package回帰は未実行。native無効handleを実際にcloseする検証は行わずfake kernel32で戻り値を注入した。
+- この修正単位はローカルに記録し、未push・PR未作成。scope identity/access、root authority、IPC等の未確定仕様は含めず、runtime・実環境資格/耐久性の受け入れは未完。後続候補は承認済み部分の残存ギャップ、またはC-01/C-02の判断資料をanalystが調査中。新しいPR/マージはまだ実施していない。
+
 - 新セッションで実Git/GitHub状態を照合。最新mainは `6a20240e57a80b02d5b121e455c14e09d2deefd2`（[PR #32](https://github.com/wasawo/eo-log-maintenance-public/pull/32) マージ済み）。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40030809179) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40030808925) 成功。開始時の作業ツリーはclean。
 - 最新の利用者指示により `agent-workflow.md` 記載のanalyst/implementer/reviewerに限って新規生成・分担を許可。以下の旧「新規agent作成禁止」記録を更新する。他の担当は生成しない。
 - 今回branch `test/dry-run-readonly-helper-boundaries`。analyst調査に基づき、implementerが既存Python監査childへ実diagnostic mutex helperを注入mutex経由で接続。資格未完時の後段不到達、取得/body/release/close中の依存書込み拒否、解放履歴と状態不変を9テスト/33probeで確認した。reviewerの独立レビューは指摘なし。担当は上記3役のみで、実装は複数ファイルの意味論的変更のためmediumを使用。

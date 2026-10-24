@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import shutil
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
 from Common.OwnedRunLock import _NamedMutex, _mutex_name
@@ -85,6 +85,28 @@ class DiagnosticMutexTests(unittest.TestCase):
                 with self.lease(mutex):
                     pass
             self.assertEqual(mutex.calls[-1], "close")
+
+    def test_native_adapter_close_false_is_diagnostic_cleanup_failure(self):
+        # Exercise the real adapter methods with a fake kernel, never a native
+        # invalid handle. The helper must sanitize the adapter's fixed failure.
+        mutex = _NamedMutex.__new__(_NamedMutex)
+        mutex._handle = 123
+        mutex._owned = False
+        mutex._abandoned = False
+        mutex._kernel32 = Mock()
+        mutex._kernel32.WaitForSingleObject.return_value = _NamedMutex.WAIT_OBJECT_0
+        mutex._kernel32.ReleaseMutex.return_value = 1
+        mutex._kernel32.CloseHandle.return_value = 0
+        with self.assertRaises(DiagnosticMutexError) as caught:
+            with self.lease(mutex) as observation:
+                self.assertFalse(observation.may_change_state)
+        self.assertEqual("diagnostic_mutex_cleanup_failed", caught.exception.reason_code)
+        self.assertEqual("diagnostic_mutex_cleanup_failed", str(caught.exception))
+        self.assertEqual([
+            call.WaitForSingleObject(123, 0), call.ReleaseMutex(123), call.CloseHandle(123),
+        ], mutex._kernel32.method_calls)
+        self.assertEqual(123, mutex._handle)
+        self.assertFalse(mutex._owned)
 
     def test_invalid_timeout_rejected_before_creation(self):
         for timeout in (-1, 61, True, float("nan"), float("inf"), "60", 10 ** 1000):
