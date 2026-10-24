@@ -73,6 +73,38 @@
 - 作業体制：本リポジトリでサブエージェントの新規作成・既存再利用・別AIタスクへの委譲を中止し、root単独とする。AGENTS.md、project設定、現行手順/skills/索引を更新し、旧分担・3役割TOMLは失効した履歴へ保全する。旧セッション目標の「既存3担当のみ再利用」は今回指示で撤回され、PR/マージ個別承認と1PR後の中断等の他の境界は維持する。
 - root自身の点検を独立レビューと称さない。利用中止前の独立reviewは当時の対象に限り保持し、今回の追加変更へ転用しない。今後の確認は単独運用として記録する。
 
+### 第8回回答：運用条件と具体化の進め方
+
+利用者は「㉒A㉓A㉔A㉕A㉖A㉗A㉘A」「㉙~㉜比較案を提示」と回答した。
+
+- ㉒A：PC-Aの同期処理に続けてarchive可否を判定する方式。別の定期archive taskや手動専用方式は今回採用しない。起動連結はarchive許可ではなく、明示許可・両PC証拠・現在Drive内容の独立検証を維持し、不足時は保留する。PC-Bにarchive能力を追加しない。
+- ㉓A：両PCともAC接続時のみ実行する。実行中のAC切断時の停止境界・結果不明な通信の照合・次回補完条件は具体化が残る。電源条件による未実行を成功扱いしない。
+- ㉔A：処理のためにスリープから復帰させない。ログオン中のみの既決条件と月内未実行補完を維持する。実際のtrigger登録は未実施。
+- ㉕A：4操作のexecuted/planの具体field契約をまとめて作り、利用者へ提示して確定する進め方。未提示field一式の承認ではない。
+- ㉖A：Windowsの保護APIで暗号化した専用ファイル方式を選択。T1のWindows user-boundを維持する。具体API・暗号化blob形式・配置・ACL・排他・更新・再consent・backup/復旧は未確定。平文token保存やPC間コピーを許可しない。
+- ㉗A：owner-v2のfield契約と実OS providerを分けて段階確定する。F1/B1は維持し、field契約成功を実provider資格へ転用しない。
+- ㉘A：E1の明示承認後にGitHub ActionsがDriveへ公開する方式。人がローカルから公開する方式は今回採用しない。配布用principal・認証方式・secret供給・provenanceの具体契約は未確定で、通常PCのOAuth/T1をCIへ流用する決定ではない。
+- ㉙〜㉜は比較提示の依頼であり選択済みではない。[比較案](remaining-policy-options-20261024.md)を参照。今回もアプリケーション実装・実task/認証/Drive操作・PR/マージを行わない。
+
+### 第9回回答：㉙〜㉜の全A選択
+
+利用者は㉙A、㉚aA/bA/cA、㉛aA/bA、㉜aA/bAと回答した。[比較資料](remaining-policy-options-20261024.md)の各Aを次の範囲で採用する。
+
+- 29A：manifestをrun結果の正本とし、別versionの補助checkpointへ確認回数・次回確認予定・処理位置等を保存するモデル。checkpointから成功・安全性を認可せず、不一致/欠落を補完しない。29Bの別追記専用遷移履歴は採用しない。必要な遷移検査を満たせなければ判断へ戻し、既承認C1〜C4を省略しない。
+- 30aA：Google公式Python clientを採用する。具体package/版・OAuth flow・token refresh通信・retry/page等の暗黙動作の制御/資格確認は別途残る。
+- 30bA：初期uploadはmultipart・5 MB以下に限定し、超過はupload前に保留する。resumableへの自動fallbackはしない。MBの正確なbyte境界・対象fileのsize/使用点検査は具体契約で確定し、実装都合で先決めしない。
+- 30cA：固定error codeごとの厳格なretryable真偽表を採用する。DRIVE_TRANSIENT_FAILUREのみtrue、その他の既存固定error codeはfalseとする。unknown code/真偽矛盾を拒否し、trueでもupload結果不明時の照合前再送は禁止。OPERATION_TIMEOUTからの自動再送や結果不明からfailedへの昇格を許可しない。PSのみ最大4回・1/5/15分待機の既決条件を維持する。
+- 31aA：PC別/version別の明示file manifestはstrict JSON＋JSON Schema方式を採用する。field名・digest・必須/任意依存・最終実file一覧は別途確定する。
+- 31bA：設定移行は専用PowerShellコマンドを入口とし、移行元/先version指定・backup・差分提示・実行前の明示確認を必須とする。通常更新の実設定保持を維持し、具体mapping/原本保全/失敗復旧/コマンド名は未確定、実移行は行わない。
+- 32aA：Windows App SDKのローカルapp通知helper方式を採用する。具体API/登録・配布依存/対象PS環境の資格確認・helper寿命等は未確定。WinForms balloonへの自動fallbackを追加しない。
+- 32bA：同一未解決事象の画面通知は初回と状態変化/悪化時とし、同じ未解決状態だけを理由に毎回再通知しない。状態/ログでは継続表示する。重複抑制key・永続化・送信失敗時の再扱いは別途確定し、通知API成功を閲覧証拠にせず、通知失敗を処理成功にしない。
+
+すべて方針選択であり、未提示のfield/API設定/資格・実装の完成ではない。アプリケーションコード/schema/tests・実task/認証/Drive/本番操作、PR/マージは今回行わない。
+
+### 第10回指示：現行実装から4件を具体化
+
+利用者の「4つの具体案を確定させる」を受け、[限定4件の具体決定](implementation-grounded-four-decisions-20261024.md)を現物と既承認方針に基づいて記録した。(1)固定code別retryable真偽表、(2)PC-A確認予算checkpointの最小field/拒否境界、(3)version 0.1.0の現行**非配布レビュー**package 40ファイル、(4)owner record v1の互換境界である。正式runtimeの最終package一覧とowner-v2全field/providerは対象外として残す。決定に対するコード/schema/testsの追従は未実施であり、実接続・実保存・PR/マージを認可しない。
+
 ## 2. B2 V1の意味と保全
 
 - validation.statusがcompletedとは、対象入力の分類処理を全て完了したことを表す。invalid/relevant errorを発見しなかったという意味にはしない。
@@ -101,7 +133,7 @@ R5のexact manifest＋B2による再生成、同一identity同一bytesの冪等�
 
 ## 4. 残る確認と実施範囲
 
-C-01の範囲・検査配置・L1詳細・現1.0改訂、B2 V1、report G1、C-02のR1/N1/D1の方針は確定した。DriveのI1/A1/S1も方針として確定した。T1・F1・B1も方向として確定した。具体store API/配置/lifecycle、SDK/flow/資格、owner-v2全fieldとprovider、C-02の具体field集合、状態遷移/E1/全版保持/PC別version別file manifest/明示的設定移行/ローカル画面通知＋状態ログの方向も確定した。最終file一覧・具体manifest/移行mapping・notification API/運用trigger等の未確定事項は維持する。仕様決定の記録と利用中止の指示文書/Codex project設定改訂だけを行い、アプリケーションコード/runtime schema/tests/実設定の変更、PR公開・マージ、実接続・本番適用は行っていない。
+①〜㉜の提示済み選択は第1〜9回回答で確定した。第10回指示で現行実装由来の4件を限定確定した。具体store API/配置/ACL/lifecycle、SDK版/OAuth flow/暗黙通信制御、owner-v2全fieldと適格provider、C-02の4操作の具体field集合、checkpoint永続writer/root/FS資格、5 MBの正確なbyte境界、CI配布identity/認証/provenance、正式runtimeの最終file一覧/manifest field/移行mapping、通知登録/重複抑制/送信失敗時の扱い、AC切断/停止境界・具体trigger等は別途具体化する。方針選択を詳細契約・実装・資格確認の完了とは扱わない。仕様決定の記録と利用中止の指示文書/Codex project設定改訂だけを行い、アプリケーションコード/runtime schema/tests/実設定の変更、PR公開・マージ、実接続・本番適用は行っていない。
 
 ## 5. 記録変更の検証とレビュー範囲
 

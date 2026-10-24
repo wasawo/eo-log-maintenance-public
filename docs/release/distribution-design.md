@@ -17,7 +17,7 @@ GitHub is the only authoritative source for managed code and documentation. Goog
 
 This workflow is separate from ElectronicObserver log synchronization, manifests, archival, and deletion. A distribution failure must not trigger, skip, or otherwise change log maintenance or deletion behavior.
 
-The workflow described here is a design. Google Drive API authentication and upload automation are not yet configured.
+The workflow described here is a design. Google Drive API authentication and upload automation are not yet configured. The maintainer selected GitHub Actions as the publisher after the E1 approval gate (selection ㉘A); the distribution principal, authentication and provenance controls remain undecided. This does not reuse the desktop OAuth credential store or authorize live publication.
 
 ## 2. Distribution architecture
 
@@ -28,7 +28,7 @@ The workflow described here is a design. Google Drive API authentication and upl
 5. Only after upload and integrity checks succeed is `latest.json` updated.
 6. PC-A and PC-B can retrieve and inspect a release. Applying it to a runtime directory remains a separate, manually approved operation.
 
-A normal push or pull-request validation must not upload to Google Drive. The selected E1 gate uses a reviewed-tag release event plus explicit manual approval by the maintainer. Tag/VERSION/commit/package must agree; choosing this policy does not authorize an actual release or decide the distribution credential identity.
+A normal push or pull-request validation must not upload to Google Drive. The selected E1 gate uses a reviewed-tag release event plus explicit manual approval by the maintainer, followed by publication from GitHub Actions under selection ㉘A. Tag/VERSION/commit/package must agree; choosing this policy does not authorize an actual release or decide the distribution credential identity.
 
 ## 3. Package format and destination
 
