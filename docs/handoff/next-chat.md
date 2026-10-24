@@ -13,6 +13,8 @@
 - branch `fix/mutex-close-failure` で、analystが指摘したnative mutex adapterのCloseHandle失敗見逃しと通常lockのNaN timeout入力検証不足を修正。closeのBOOL失敗を固定理由で拒否し、成功時だけhandle参照をclear、診断helperのcleanup失敗へ接続。NaNはtoken/path/mutex準備前に拒否し、無限大・巨大整数の既存理由を維持する。両小修正の独立reviewer指摘なし。
 - 検証: Python 3.11.9、対象lock16件/diagnostic mutex14件成功。通常環境で全320件成功（既存2件skip）、PowerShell 7.6.7を使う既存合成回帰を含む。差分検査成功。CI Python3.12は未実行。PS実装・配布の変更はなく独立PS/package回帰は未実行。native無効handleを実際にcloseする検証は行わずfake kernel32で戻り値を注入した。
 - この修正単位はローカルに記録し、未push・PR未作成。scope identity/access、root authority、IPC等の未確定仕様は含めず、runtime・実環境資格/耐久性の受け入れは未完。後続候補は承認済み部分の残存ギャップ、またはC-01/C-02の判断資料をanalystが調査中。新しいPR/マージはまだ実施していない。
+- 上記mutex修正はローカル `93537b01da58f4febeef69a3cd486eef74327e1ab` に記録済み。継続branch `docs/ipc-path-result-decision-options` はこのローカルコミット上で、[C-01/C-02の回答用判断資料](../decisions/c01-c02-ipc-contract-options.md) と索引・所見参照を追加。独立reviewer指摘なし、4文書のローカルリンク91件欠落0、差分検査成功。文書のみのため機能テスト再実行なし。
+- schema・規範契約・adapterの変更や承認状態の更新は行っていない。C-01のP1（drive-rootedのみ）+ V1（schemaにも構文検査）で未実装1.0を改訂する案を利用者へ確認中。回答なしを承認としない。C-02の操作別field/null/計画形と移行、root/排他資格、OSD-05、IPC全体レビューは未決/未完のまま。正本mainは引き続き `a0b37bf`。両作業単位は未pushで新しいPRなし。
 
 - 新セッションで実Git/GitHub状態を照合。最新mainは `6a20240e57a80b02d5b121e455c14e09d2deefd2`（[PR #32](https://github.com/wasawo/eo-log-maintenance-public/pull/32) マージ済み）。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40030809179) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40030808925) 成功。開始時の作業ツリーはclean。
 - 最新の利用者指示により `agent-workflow.md` 記載のanalyst/implementer/reviewerに限って新規生成・分担を許可。以下の旧「新規agent作成禁止」記録を更新する。他の担当は生成しない。

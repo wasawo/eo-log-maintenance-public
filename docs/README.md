@@ -80,6 +80,7 @@ docs/
 ### 承認記録・判断案・比較検討（承認状態は本文参照）
 
 - [Aggregation Inventory Integrity — Decision Options](decisions/aggregation-inventory-integrity-options.md)
+- [C-01/C-02: IPCパス・操作別resultの判断資料](decisions/c01-c02-ipc-contract-options.md)
 - [C-45 event identity conflict handling options](decisions/c45-event-identity-conflict-options.md)
 - [C-50 structured condition input model — non-normative proposal](decisions/c50-condition-input-model-options.md)
 - [C-51 structured processing-context input model options](decisions/c51-context-input-model-options.md)
