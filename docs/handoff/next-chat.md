@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+- 2026-10-25、利用者が「ここまでの実装をまとめてPR作成してマージして」と明示承認。最新取得mainは`fea8753`（PR #40）、`codex/work-branch-policy`の実装8コミット`b4d4600`〜`f8cdea8`を1PRへまとめる。この記録コミットも同じPRに含める。
+- 範囲はmain直接push禁止/branch運用、manifest遷移snapshot検査、checkpoint schema/reader/試行plan/使用点検査/模擬保存、実Win32負例probe、AC観測、PS再試行観測と関連試験・文書。正式writer/adapter/task、実counter/待機/再送、C-02詳細、実Drive/Tier B/C/電源断の資格は未完のまま。
+- 各実装単位の対象検査・環境差は下記記録を保持し、無変更の成功検査は再実行しない。rootが累積差分と配布範囲を自己点検し、文書相対リンク/差分を最終確認する。独立レビューは未実施。この記録時点はpush/PR/新CI/マージ前で、最新PR HEADのValidateとPackage Validation両成功を確認してからマージする。
+- 今回の承認はこの累積PR作成・マージまで。マージ後は次実装に着手せず指示待ち。次変更は最新mainから新しい作業ブランチを切り、マージ済みbranchへ追記しない。
+
+## 直前の実装単位（PS再試行観測・f8cdea8）
+
 - 基準`df03f55`、同じ`codex/work-branch-policy`で既存PS応答helperへ`Get-DriveRetryObservation`を追加。[再試行観測](../design/drive-retry-observation.md)は相関/exit/envelope/retryable検査と、完了試行1〜4・1/5/15分の固定候補をまとめる。
 - 整合した成功は再試行せずresult検証を要求。upload一時失敗/全操作timeoutは照合待ち、その他非一時失敗は非再試行、応答欠落/不正・番号欠落/型/範囲不正は拒否する。download候補は新規/空staging等の資格を要求し、4回後に次番号を出さない。全MayRetry=false、実counter・経過時間・request/scope由来の真正性・現在Drive照合を証明しない。
 - 新fileは設計文書だけで配布file集合は47件のまま。既存PS試験に4操作/9error/4試行/成功/矛盾/不正番号等の行列を追加。PS 7.6.7で既存応答検査＋追加再試行行列の計490件成功、変更2fileの構文/PSScriptAnalyzer Error検査成功。実行ラッパーの未設定LASTEXITCODE誤判定で解析前に停止したため、成功した試験は繰り返さず未実行の解析だけを別実行した。配布file集合/構成が不変のためpackage回帰は再実行せず、Pythonも変更なしで未実行。root自己点検のみ、独立レビュー・新CI・runtime受け入れは未実施。root単独、ローカルコミットまでで待機し、push/PRなし。
