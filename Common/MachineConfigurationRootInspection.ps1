@@ -153,6 +153,24 @@ function Get-EoExistingDirectoryObservation {
     return $observation
 }
 
+function Get-EoExistingDirectoryChainObservation {
+    param([Parameter(Mandatory)][string]$LiteralPath)
+    $full = [IO.Path]::GetFullPath($LiteralPath)
+    Assert-EoDirectoryComponents -LiteralPath $full
+    $observations = [Collections.Generic.List[EoLogMaintenance.DirectoryObservation]]::new()
+    $cursor = [IO.DirectoryInfo]::new($full)
+    while ($null -ne $cursor) {
+        $observed = [EoLogMaintenance.DirectoryMetadata]::ObserveDirectoryIdentity($cursor.FullName)
+        if (-not $observed.CanonicalPath.StartsWith('\\?\Volume{', [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'configuration_root_inspection_failed'
+        }
+        $observations.Add($observed)
+        $cursor = $cursor.Parent
+    }
+    Assert-EoDirectoryComponents -LiteralPath $full
+    return $observations.ToArray()
+}
+
 function Get-EoStagingFreeSpaceObservation {
     <# Metadata observation only: no creation, reservation or root qualification. #>
     [CmdletBinding()]
@@ -166,20 +184,25 @@ function Get-EoStagingFreeSpaceObservation {
             $LiteralPath.Substring(2) -match '[<>:"|?*/\x00-\x1f]') { throw 'invalid' }
         $full = [IO.Path]::GetFullPath($LiteralPath)
         Initialize-EoDirectoryMetadataType
-        $before = Get-EoExistingDirectoryObservation -LiteralPath $full
-        if ($before -isnot [EoLogMaintenance.DirectoryObservation] -or -not $before.HasExtendedIdentity) {
-            throw 'invalid'
+        $before = @(Get-EoExistingDirectoryChainObservation -LiteralPath $full)
+        if ($before.Count -eq 0) { throw 'invalid' }
+        foreach ($item in $before) {
+            if ($item -isnot [EoLogMaintenance.DirectoryObservation] -or -not $item.HasExtendedIdentity) {
+                throw 'invalid'
+            }
         }
         $observed = Get-EoDirectoryAvailableBytes -LiteralPath $full
-        $after = Get-EoExistingDirectoryObservation -LiteralPath $full
-        if ($observed -isnot [ulong] -or $before -isnot [EoLogMaintenance.DirectoryObservation] -or
-            $after -isnot [EoLogMaintenance.DirectoryObservation] -or
-            -not $after.HasExtendedIdentity -or
-            -not $before.CanonicalPath.Equals($after.CanonicalPath, [StringComparison]::OrdinalIgnoreCase) -or
-            $before.VolumeSerial -ne $after.VolumeSerial -or $before.IndexHigh -ne $after.IndexHigh -or
-            $before.IndexLow -ne $after.IndexLow -or $before.VolumeId -ne $after.VolumeId -or
-            $before.IdPart0 -ne $after.IdPart0 -or $before.IdPart1 -ne $after.IdPart1) {
-            throw 'invalid'
+        $after = @(Get-EoExistingDirectoryChainObservation -LiteralPath $full)
+        if ($observed -isnot [ulong] -or $before.Count -ne $after.Count) { throw 'invalid' }
+        for ($index = 0; $index -lt $before.Count; $index++) {
+            $old = $before[$index]; $new = $after[$index]
+            if ($new -isnot [EoLogMaintenance.DirectoryObservation] -or -not $new.HasExtendedIdentity -or
+                -not $old.CanonicalPath.Equals($new.CanonicalPath, [StringComparison]::OrdinalIgnoreCase) -or
+                $old.VolumeSerial -ne $new.VolumeSerial -or $old.IndexHigh -ne $new.IndexHigh -or
+                $old.IndexLow -ne $new.IndexLow -or $old.VolumeId -ne $new.VolumeId -or
+                $old.IdPart0 -ne $new.IdPart0 -or $old.IdPart1 -ne $new.IdPart1) {
+                throw 'invalid'
+            }
         }
         $available = [bigint]$observed
         $status = 'requires_runtime_evidence'

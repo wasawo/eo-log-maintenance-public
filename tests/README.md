@@ -362,3 +362,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `Test-StagingFreeSpace.ps1`は同じcanonical名でもvolume serial/file indexの差や、隔離directoryの同名差替えを拒否することも確認する。identityの一意性/再利用/FS資格や観測間ABAの解決は主張しない。
 
 空きbytes試験はnative FileIdInfoと各UInt64部分の最大値付近の差、pre/postの未取得を追加確認する。64-bit-only fallbackを許さず、実運用FS全般の対応やID再利用/ABA排除とは区別する。
+
+空きbytes試験はleafのID/bytesを維持した親directoryの実差替えと、空/長さ変化/parent-only変化のchain拒否を追加確認する。実移動はすべて自作temp配下の絶対pathを検査してから行う。

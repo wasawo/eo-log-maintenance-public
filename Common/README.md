@@ -163,3 +163,5 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 `MachineConfigurationRootInspection.ps1`の`Get-EoStagingFreeSpaceObservation`は既存directoryのcaller利用可能bytesをWindows APIから観測します。前後canonical/volume serial/file index観測を比較し、出力はBigInteger・FreeSpaceReliable=false・作成/Upload不可です。実root/FS/token資格や容量予約を証明しません。
 
 空きbytes観測の内部directory identityはFileIdInfoの64-bit volume serial＋128-bit file IDも要求します。未取得/前後不一致は保留し、legacy 64-bit照合へfallbackしません。既存canonical文字列APIは互換を維持し、FS資格や権限は付与しません。
+
+空きbytes観測はleafからdrive rootまでの祖先chainも前後照合します。leafのIDが同じでも親の差替え・chain欠落/長さ変化を保留し、内部path/IDを公開結果へ出しません。同時snapshot/ABA排除やroot資格は証明しません。
