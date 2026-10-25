@@ -90,7 +90,7 @@ class SourceInventoryReparseTests(unittest.TestCase):
                 with patch.object(builder, "_hash_stable_file") as hash_file:
                     value = self.build(self.source)
                     hash_file.assert_not_called()
-                self.assertEqual([Path(call.args[0]) for call in scan.call_args_list], [self.source])
+                self.assertEqual({Path(call.args[0]) for call in scan.call_args_list}, {self.source})
         self.assertTrue(swapped)
         self.assertEqual(value["enumeration"]["status"], "incomplete")
         self.assertGreater(value["enumeration"]["enumeration_errors"], 0)

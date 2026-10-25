@@ -6,13 +6,19 @@ aggregation, persistence or authorization is provided by this inspection.
 from __future__ import annotations
 
 import re
+import json
+from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 
 from Common.AggregationReportBuilder import (
     AggregationBuildError, build_aggregation_report, _parse, _validator, _validate,
 )
-from Common.LatestManifestSelection import _utc_key
-from Common.RunInputEvidenceIntegrity import _safe_relative_path, _SHA256_RE
+from Common.LatestManifestSelection import _utc_key, _clock_key
+from Common.SourceInventoryEvidenceBuilder import _classify_filename
+from Common.RunInputEvidenceIntegrity import (
+    EvidenceIntegrityError, validate_evidence_invariants, validate_evidence_matches_manifest,
+    _safe_relative_path, _SHA256_RE,
+)
 
 
 _FILE_PAIRS = frozenset({
@@ -143,6 +149,64 @@ class TerminalManifestPlan:
     may_change_state: bool = field(default=False, init=False)
 
 
+@dataclass(frozen=True, repr=False)
+class InitialManifestPlan:
+    proposed_bytes: bytes
+    evidence_bytes: bytes
+    may_publish: bool = field(default=False, init=False)
+    may_upload: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+
+
+def prepare_initial_manifest(
+    evidence_bytes, *, expected_pc_id, expected_log_type, expected_target_period,
+    expected_run_id, started_at_utc, current_utc, current_utc_reliable,
+    manifest_schema, evidence_schema,
+):
+    """Build a non-authorizing running/pending snapshot from exact supplied B2.
+
+    No run ID, clock, missing evidence or destination absence is invented.
+    Incomplete/failed observations remain in B2, never become success/no_work.
+    Trusted origin, fresh enumeration, locks and publication remain external.
+    """
+    try:
+        if (current_utc_reliable is not True or not isinstance(current_utc, datetime)
+                or current_utc.tzinfo is None or current_utc.utcoffset() != timedelta(0)):
+            _reject("initial_clock_untrusted")
+        supplied = _parse(evidence_bytes)
+        _validate(_validator(evidence_schema), supplied)
+        validate_evidence_invariants(supplied, evidence_schema)
+        if any(_classify_filename(item["filename"], expected_log_type) is None
+               for item in supplied["inventory"]["targets"]):
+            _reject("initial_inventory_filename_unclassifiable")
+        proposed = dict(schema_version=1, pc_id=expected_pc_id, log_type=expected_log_type,
+            target_period=expected_target_period, run_id=expected_run_id, status="running", outcome=None,
+            started_at_utc=started_at_utc, finished_at_utc=None, files=[
+                dict(relative_path=item["relative_path"], filename=item["filename"], size_bytes=item["size_bytes"],
+                     sha256=item["expected_sha256"], status="pending", drive_file_id=None,
+                     verification=dict(status="not_checked", method="not_performed",
+                                       checked_at_utc=None, observed_sha256=None))
+                for item in supplied["inventory"]["targets"]])
+        raw = (json.dumps(proposed, ensure_ascii=False, sort_keys=True,
+                          separators=(",", ":"), allow_nan=False) + "\n").encode("utf-8")
+        inspect_manifest_transition(None, raw, manifest_schema=manifest_schema)
+        validate_evidence_matches_manifest(supplied, proposed, manifest_schema)
+        start = _utc_key(started_at_utc)
+        enum_start = _utc_key(supplied["enumeration"]["started_at_utc"])
+        enum_finish = _utc_key(supplied["enumeration"]["finished_at_utc"])
+        if not start <= enum_start <= enum_finish:
+            _reject("initial_time_order_invalid")
+        if enum_finish > _clock_key(current_utc + timedelta(minutes=5)):
+            _reject("initial_timestamp_in_future")
+        return InitialManifestPlan(raw, evidence_bytes)
+    except ManifestTransitionError:
+        raise
+    except (AggregationBuildError, EvidenceIntegrityError) as exc:
+        raise ManifestTransitionError(exc.reason_code) from None
+    except Exception:
+        _reject("initial_manifest_input_invalid")
+
+
 def prepare_terminal_manifest_transition(
     previous_bytes, proposed_bytes, evidence_bytes, *, manifest_path, evidence_path,
     current_utc, current_utc_reliable, manifest_schema, evidence_schema, report_schema,
@@ -170,3 +234,44 @@ def prepare_terminal_manifest_transition(
         raise ManifestTransitionError(exc.reason_code) from None
     except Exception:
         _reject("terminal_transition_input_invalid")
+
+
+def revalidate_terminal_manifest_plan(
+    plan, *, expected_previous_bytes, expected_evidence_bytes, expected_pc_id,
+    expected_log_type, expected_target_period, expected_run_id, ac_connected,
+    manifest_path, evidence_path, current_utc, current_utc_reliable,
+    manifest_schema, evidence_schema, report_schema,
+):
+    """Re-derive a terminal candidate from independent use-point observations.
+
+    Supplied previous/B2 bytes and AC are observations, not trusted OS reads or
+    receipts. This pure check performs no I/O and grants no publication rights.
+    Every call rebuilds the report; a saved plan is never a completed check.
+    """
+    if (type(plan) is not TerminalManifestPlan or any(flag is not False for flag in
+            (plan.may_publish, plan.may_archive, plan.may_change_state))):
+        _reject("terminal_usepoint_plan_invalid")
+    if ac_connected is not True:
+        _reject("terminal_usepoint_ac_unconfirmed")
+    if (type(expected_previous_bytes) is not bytes or type(expected_evidence_bytes) is not bytes
+            or type(plan.expected_bytes) is not bytes or type(plan.proposed_bytes) is not bytes
+            or type(plan.evidence_bytes) is not bytes or type(plan.report_bytes) is not bytes):
+        _reject("terminal_usepoint_snapshot_invalid")
+    if (plan.expected_bytes != expected_previous_bytes or plan.evidence_bytes != expected_evidence_bytes):
+        _reject("terminal_usepoint_snapshot_changed")
+    try:
+        restored = prepare_terminal_manifest_transition(expected_previous_bytes, plan.proposed_bytes,
+            expected_evidence_bytes, manifest_path=manifest_path, evidence_path=evidence_path,
+            current_utc=current_utc, current_utc_reliable=current_utc_reliable,
+            manifest_schema=manifest_schema, evidence_schema=evidence_schema, report_schema=report_schema)
+        value = _parse(restored.proposed_bytes)
+        if ((value["pc_id"], value["log_type"], value["target_period"], value["run_id"]) !=
+                (expected_pc_id, expected_log_type, expected_target_period, expected_run_id)):
+            _reject("terminal_usepoint_scope_mismatch")
+        if restored != plan:
+            _reject("terminal_usepoint_plan_changed")
+        return restored
+    except ManifestTransitionError:
+        raise
+    except Exception:
+        _reject("terminal_usepoint_context_invalid")

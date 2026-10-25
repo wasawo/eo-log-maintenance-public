@@ -71,10 +71,12 @@ class CandidateBundleFixture:
         if not self.bundle.is_dir() or not self.prior.is_file() or self.prior.read_bytes() != self.plan.expected_bytes:
             raise RuntimeError("fixture_prior_changed")
 
-    def publish(self):
+    def publish(self, *, before_publish=None):
         self._guard()
         with acquire_owned_lock(self.scope, self.root / "synthetic-owner.json", timeout_seconds=0):
             self._guard()
+            if before_publish is not None:
+                before_publish()
             result = publish_artifact_set_marker_last(str(self.bundle), self.payloads, transaction_id=self.transaction)
             self._guard()
             return result

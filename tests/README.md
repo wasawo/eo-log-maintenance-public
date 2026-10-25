@@ -314,3 +314,19 @@ artifact-setの既存試験へ期待transactionの型/不一致/未指定互換�
 単一file公開の試験はstaging readback、内容/identity差替え、cleanup時の別file保全、final identity不一致・既存handle不一致を追加確認します。全変更は専用tempの合成artifactで、実データ削除・回復・比較更新は実装しません。
 
 Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを渡す起動を避け、`python -B -m unittest discover ...` または一時的な`PYTHONPATH=tests`設定下で`python -B -m unittest <module/case> ...`を使います。spawnが起動元を再読込できる形で、対象caseをまとめて指定します。
+
+`test_initial_manifest_plan.py`はB2→running/pendingの純粋構築を、両PC/log、改変/scope/時計境界、空/失敗/不完全、Unicode/元bytes、掲載ペアを経る終端report接続で検証します。実run生成/保存/Drive操作は実行しません。
+
+`test_initial_source_integration.py`は専用tempの実source列挙/hashからB2・初期plan・別candidateへの実mutex/create-only/marker-last公開/読戻しを接続します。両PC/log・分類/失敗・source変更/競合を扱います。固定clockとfixture IDは合成観測で、runtime資格やUpload認可ではありません。
+
+`test_source_inventory_revalidation.py`は凍結B2と実再列挙/hashの合成比較です。変更・分類・coverage不完全・scope/clock/date不明を拒否し、元B2を補完せず全may_*がfalseであること、non-target内容が比較範囲外であることを確認します。
+
+`test_initial_source_usepoint.py`は初期planの再構成とAC/source再観測を接続し、改変・scope不一致・AC不明の事前拒否と、合成所有lock内でのcandidate保存/書込み前停止を検証します。観測からruntime権限を付与しません。
+
+`test_source_enumeration_stability.py`はhash後/空scan後の追加・削除・rename・属性変更・directory差替え・rescan不明をincompleteとして保持し、使用点でcandidateを書かないことを合成検証します。最後の再確認後の変更や敵対的ABAは未実証です。
+
+`test_source_hash_identity.py`はhandle identityの読取前拒否、観測サイズ超過時の早期停止、short read、空/1 MiB境界のexact hashも合成検証する。OS readのtimeoutやruntime受け入れではない。
+
+`test_terminal_plan_usepoint.py`は終端planの独立prior/B2/contextからの再導出と、所有mutex内の候補公開前停止を合成検証する。C1比較更新やDrive/runtimeの受け入れではない。
+
+`test_drive_content_comparison.py`はOSD-01の0/1/複数候補、完全列挙・scope・source信頼の必須性、metadata/download SHA照合と不明時保留を合成検証する。API接続や復元・archive認可は含まない。

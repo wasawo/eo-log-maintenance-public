@@ -6,7 +6,73 @@
 正本は Public の `wasawo/eo-log-maintenance-public`。元リポジトリは Private のまま。
 この文書の状態は記録コミット時点。実際のmain/PR/CIは作業開始時に照合する。
 
-## 最新基準と今回の作業
+## 今回の累積PR承認・準備
+
+- 2026-10-25、利用者が「ここまでの実装をまとめてPR作成してマージして」と明示承認。最新取得main`1036b30`（PR #42）に対し、`codex/initial-manifest-plan`の8実装コミット`efc6733`〜`5e38d7f`と本記録を1PRにまとめる。記録時点はpush/PR/新CI/マージ前。
+- 範囲：B2初期running/pending plan、source実列挙との隔離接続、凍結B2再観測と初期使用点、列挙完了前再確認、hashの早期identity/サイズ上限検査、終端plan使用点再導出、OSD-01の同一内容比較候補。関連tests/docs/CIと両roleレビューpackage49件を含む。IPC/保存schemaとPS runtime契約は変えない。
+- 各単位の対象検証結果は以下に保持。最新単位のPython 3.11.9の比較9件、PS 7.6.7の両role package/変更PS検査は成功済み。既に成功したローカル試験は重複実行せず、今回の最新PR HEADに対するValidate（Python 3.12）/Package Validation両成功をマージ条件とする。root自己点検のみ、独立レビュー未実施。
+- 未完：実Drive SDK/OAuth/credential・C-02詳細、真正なsource/folder/metadata・全page/download観測、C1/C2 writer、実root/ACL/FS/owner/clock、両PC/Drive/archive gateとruntime受け入れ。純粋helper/合成fixture/レビューpackage成功で代替しない。
+- 承認はこの累積PR作成とCI成功後のマージまで。マージ後は指示待ち。次変更は最新mainから新作業ブランチを作り、マージ済みbranchへ追記しない。
+
+## 直前の実装単位（OSD-01比較・5e38d7f）
+
+- 基準`6e40614`、同じ`codex/initial-manifest-plan`で[OSD-01同一内容比較](../design/drive-content-comparison.md)を実装。source信頼・folder scope・完全列挙を要求し、exact name/size/hashの一意候補のみ返す。cloud SHA欠落/未確認はIDへ結び付いた完了download hashを要求し、0/複数/不明/重複ID/矛盾は保留する。結果は全may_*falseで、IPC C-02結果fieldを定めず、出所・復元・同期成功・archiveを認可しない。
+- 追加helperを両roleレビューpackageへ登録しfile集合は49件。Python 3.11.9（CI 3.12）で追加比較試験9件成功（skipなし）。PS 7.6.7で両role package回帰・変更PS構文/PSScriptAnalyzer Error検査成功。文書相対リンク欠落0・差分検査成功。既存source/manifest/report/schemaは変更がなく再実行しない。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：source/folder/metadataの真正性・最新性、実全page取得/download検証、C-02詳細とSDK/credential資格、同期runtime・両PC証拠/Drive/archive gate。C1/C2 writerや実root/FS/owner/clock受け入れも未完。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（終端plan使用点・6e40614）
+
+- 基準`f774aaa`、同じ`codex/initial-manifest-plan`で[終端plan使用点再導出](../design/manifest-transition-inspection.md)を追加。独立prior/B2 exact bytes・PC/log/period/run・AC・現在時計/schema/参照pathを要求し、既存遷移/report生成を毎回実行してplan全体とexact一致を検査する。型/flag/snapshot/AC/scope/reportの不一致を拒否し、返すplanも全may_*false。
+- 合成試験は両PC/logのempty/成功/混在、改変行列、実mutex/owner内の公開前再検査と不一致時の候補書込み0件・prior保全・owner解放を確認する。fixtureのcallbackはtests専用で、正式writer/provider契約へ採用しない。Python 3.11.9（CI 3.12）で追加使用点＋既存終端plan/遷移/候補bundle/初期planの計42件成功（skipなし）。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・runtime受け入れは未実施。配布file集合48件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：入力prior/B2/ACの出所・最新性、実root/owner/clock/FSの資格、検査後の変化・敵対的ABA、C1比較更新・Drive/runtime受け入れ。次は確定済みの独立作業かprovider未決境界の候補整理。
+
+## 直前の実装単位（hash早期照合・サイズ超過停止・f774aaa）
+
+- 基準`307dd67`、同じ`codex/initial-manifest-plan`で[source hashの早期照合・サイズ超過停止](../design/source-enumeration-stability.md)を追加。開いたhandleのidentityが直前path観測と違えばbyte読取前に拒否し、読取上限を観測サイズ＋1 byteへ制限する。連続追記のEOFを追い続けず、short readも拒否する。既存理由code/不完全coverage/観測済みデータの保持を維持する。
+- 合成試験で別handleのread未呼出し・context解放、EOFのない模擬streamの停止、short read、空/1 MiB境界のexact hashを追加。Python 3.11.9（CI 3.12）で追加hash試験＋既存source列挙/再観測/使用点/初期接続の計56件成功（skipなし）。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・runtime受け入れは未実施。配布file集合48件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：OS read自体のblock/timeout、hash後から使用までの変化、atomic snapshot/敵対的ABA、実root/ACL/FS/clock/owner/provider資格、C1/C2 writer・Drive/runtime受け入れ。次は確定済みの独立作業かprovider未決境界の候補整理。
+
+## 直前の実装単位（列挙完了前再確認・307dd67）
+
+- 基準`a72d6fd`、同じ`codex/initial-manifest-plan`で[source列挙の完了前再確認](../design/source-enumeration-stability.md)を追加。directory/ancestor identityとchild名・属性の初期snapshotを保持し、hash/分類完了後に全directoryを再列挙する。追加/削除/rename/属性変化/差替え/読取不明はcoverage incompleteへ落とす。
+- 観測済みtarget/hash/errorを保持し、空集合やno_workへリセットしない。snapshot時にreparse/属性不明があれば不完全とし、その先へ走査しない。scandirを明示closeし、root metadataとchainの初期対応も検査する。最後の再確認は再hashではなくnamespace/metadata観測で、ABAや同時snapshotの資格ではない。
+- 合成試験は後続追加/削除/rename/既読file変更、directory追加/差替え、空scan後追加、rescan失敗、non-targetの列挙中変更、使用点再観測の不成立によるcandidate書込み0件を追加。既存junction試験の期待値を「再走査回数」から「source外を走査しない」境界へ整合した。
+- Python 3.11.9（CI 3.12）で追加列挙安定性＋既存builder/reparse/再観測/使用点/初期接続の計47件成功（skipなし）。配布file集合48件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実環境受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：最終観測から使用までの変化、原子的snapshot・敵対的ABA/属性復元、実root/ACL/FS/owner/clockの資格、C1/C2 writer・Drive/runtime受け入れ。次はprovider未決境界の候補整理か、確定済みの独立作業を選ぶ。
+
+## 直前の実装単位（初期source使用点・a72d6fd）
+
+- 基準`673052d`、同じ`codex/initial-manifest-plan`で`revalidate_initial_manifest_source`を接続。厳密なInitialManifestPlan型/全false flag・明示AC trueを検査し、独立PC/log/period/run/開始時刻・現在時計/schemaから初期planを再構成してexact一致を要求してから、sourceを新しく再観測する。
+- planの書式だけの変更/別state/別B2やscope変更、AC未確認・不正flagはsource I/O前に拒否する。保存済みSourceInventoryObservationやtrue値をreceiptとして受け付けず、呼出しごとに再列挙/hashする。返す結果は全may_*falseの観測で、実root/AC/token/clock/owner資格を認証しない。
+- 合成の実mutex/owner内で使用点検査を候補公開の前へ接続し、一致時の候補保存・source変更/AC切断時のcandidate書込み0件・owner解放/元plan保全を確認する。callback/配置はtests専用で、正式runtime契約やC1/C2 providerの採用ではない。
+- 追加使用点・既存再観測/初期接続を一括検証する。配布file集合48件/PS/schema契約は不変。Python 3.11.9（CI 3.12）で追加使用点＋既存再観測/初期接続の計27件成功（skipなし）。改変/AC/contextの行列は試験内subcase。変更のないsource/report/terminal/配布構成・PS/schema検査は再実行しない。root自己点検のみ、独立レビュー・新CI・runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：観測直後から実使用までのnamespace/bytes/AC変化、同時atomic snapshot/ABA排除、実fresh run/24時間資格・root/ACL/owner/clock/provider、C1/C2 writerとDrive/runtime受け入れ。次はそれらのprovider境界候補の整理か、確定済みの独立実装を選ぶ。
+
+## 直前の実装単位（凍結source再観測・673052d）
+
+- 基準`ac29ec1`、同じ`codex/initial-manifest-plan`で[凍結source再観測](../design/source-inventory-revalidation.md)を追加。独立source/scope/reference date/現在UTCとexact B2を検査し、元coverageがcompleteの場合だけ既存builderで再列挙/hashしてtarget集合と分類観測を比較する。元/再観測の不完全・追加/削除/rename/内容/分類変更を保留する。
+- 結果は元B2 bytes/target数のimmutable observationで全may_*はfalse。再生成B2や内部のhost終了時刻を保存/証拠化せず、旧B2を補完/更新しない。既知validation errorを消さず、non-target fileの内容/identityは比較範囲外と明示した。root IDは独立期待ラベルで、物理root認可や時計/ownerの真正性を認証しない。
+- 両PC/log、変更行列、不完全/読取失敗、事前scope/clock/date/schema拒否、元bytes不変と比較限界を合成検証する。Common helper1件を追加し、両roleレビュー配布のfile集合は48件。CIとpackage fixtureへ登録した。
+- 対象再観測/source builder/初期接続と両role package・変更PS構文/Error解析を一括確認する。Python 3.11.9（CI 3.12）で追加再観測＋既存source/初期接続の計25件成功（skipなし）。PS 7.6.7で両role package回帰と変更PS構文/PSScriptAnalyzer Error検査成功。変更のないreport/terminal等は再実行しない。root自己点検のみ、独立レビュー・新CI・実環境受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：再観測後の使用点同一性、atomic snapshot/ABA排除、実root/ACL/token/clock/run/ownerの資格、C1/C2 writerとDrive/runtime受け入れ。次はこの観測と初期候補の使用点検査/隔離接続、またはprovider未決境界の候補整理。
+
+## 直前の実装単位（source→初期候補接続・ac29ec1）
+
+- 基準`efc6733`、同じ`codex/initial-manifest-plan`でsource列挙/hash→B2→初期plan→隔離候補公開/読戻しを接続した。新規tests専用fixtureは自作tempのsource/candidateを分離し、固定合成clock/reference dateと明示run contextで既存source builderを呼ぶ。実運用path/clock資格やsource使用点の認可を実装したとはしない。
+- 初期plan producerは既存の承認filename文法/実在日付helperも使い、B2内部整合が取れていてもunclassifiableなeligible targetを拒否する。対象period/保持範囲の選択は既存source builder/独立contextに留め、新しい年/月filterを推測しない。
+- 両PC/log・Unicode階層の実bytes/hash、空/対象外/invalid分類、hash不明のincomplete保全、source変更後も旧plan不変/別runで再列挙、実mutex/create-only/marker-last候補保存、既存競合、同じ固定観測の決定性を合成検証する。候補artifact-setのcommittedを実run開始/manifest更新/Upload認可へ昇格しない。
+- 追加接続・既存initial plan/source builderを一括検証する。配布file集合47件/PS/schema契約は不変。Python 3.11.9（CI 3.12）で追加source接続＋既存initial/source builderの計23件成功（skipなし）。両PC/log・分類状態などは試験内subcase。変更のないterminal/report/readback・package/PS/schema検査は再実行しない。root自己点検のみで独立レビュー・新CI・実運用受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：source列挙後から使用点までの同一性、fresh run/clock/token/root/ownerの真正性、C1/C2の初回publication/比較更新runtime統合、Drive/受け入れ。次はそれらの境界の候補整理、または確定済みの独立実装を選ぶ。
+
+## 直前の実装単位（B2初期plan・efc6733）
+
+- 最新mainは`1036b304aaac13d60dfae5d5e8ed51a3354edf1d`。[PR #42](https://github.com/wasawo/eo-log-maintenance-public/pull/42)はマージ済み、mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40163423575) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40163423523)も成功確認済み。再開指示を受け、最新取得mainから新branch`codex/initial-manifest-plan`を作成した。
+- 既存遷移moduleへ`prepare_initial_manifest`を追加。独立したPC/log/target period/run ID/開始UTCと信頼できる現在UTC、exact B2 bytes、static schemaから、running・全pending・未検証metadataの初期候補を構築する。B2 digest/count/scope/inventoryを既存validatorで照合し、開始→列挙開始→列挙完了の順序と現在+5分上限を検査する。
+- immutable planはproposed/evidence bytesを保持し、may_publish/may_upload/may_archiveはfalse。空/failed/incomplete/error B2を成功/no_workへ昇格せず、識別子/時刻/欠落入力を補完しない。B2の出所・実際のfresh inventory・保存先不在・実clock/owner/FS資格を認証しない。
+- 両PC/log、欠落/改変/scope不一致、Unicode/開始表記/元bytes、時間境界、I/Oなしと、初期→掲載中間ペア→終端reportの合成接続を追加。関連initial/snapshot/terminal planだけを一括検証する。配布file集合47件/PS/schema契約は不変。Python 3.11.9（CI 3.12）で追加initial plan＋既存snapshot/terminal planの計28件成功（skipなし）。両PC/logとB2状態・時刻境界は試験内subcaseとして扱う。変更のないsource builder/report/保存・package/PS/schema検査は再実行しない。root自己点検のみ、独立レビュー・新CI・runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：実source選択/列挙の使用点資格、fresh runと真正scopeのbinding、C1/C2の初回create-only/比較更新writer、現在Drive確認、正式runtime/受け入れ。次は初期planと既存source builder/隔離保存の接続、またはprovider未決境界の候補整理。
+
+## 前PRの準備記録（PR #42へ統合済み）
 
 - 2026-10-25、利用者が「ここまでの実装をまとめてPR作成してマージして」と明示承認。最新main`42221e3`（PR #41）に対し、`codex/manifest-evidence-integration`の実装7コミット`eb3f6c5`〜`a206e4e`と本記録を1PRへまとめる。この時点はpush/PR/新CI/マージ前。
 - 範囲：終端遷移/B2/report plan接続、全report意味論再導出、隔離候補bundleの実公開/読戻し、参照file/schemaの安定読取観測、最新manifest/report path・bytes binding、artifact-set transactionと再観測、単一公開staging/final/所有temp cleanupの防御。配布file集合は47件で不変、PS/保存schemaの契約は変えない。

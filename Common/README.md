@@ -125,3 +125,15 @@ CompletionWaitBudget.py assesses the approved PC-A 24-hour/25-attempt hourly bud
 artifact-set classifier/directory verifierはoptionalな`expected_transaction_id`をexact比較し、期待hash集合のcopyとpath/handle・全file/marker・directoryの再観測を行います。未指定時の従来分類は保持します。期待値の真正性やreceiptの一回性、atomic snapshot・ABA排除を保証せず、実操作の認可にはしません。
 
 `AtomicArtifactPublication.py`は公開前stagingと公開後finalのexact bytes/identity/親chainを検査し、同一既存fileもhandleと前後metadataに結び付けます。cleanupは同じ所有tempを再確認できる場合だけ行い、不明・差替え・内容変更tempは保全します。敵対的raceの完全排除、電源断耐久性、正式manifest比較更新の資格は与えません。
+
+`ManifestTransitionInspection.py`の`prepare_initial_manifest`は独立run contextとexact B2から初期running/pending候補を構築し、schema・digest・scope/inventory・時系列を照合します。空/不完全/失敗B2を成功/no_workへ変えず、元bytesを保持します。全may_*はfalseで、run ID・時計・保存先不在を補完/認証しません。
+
+初期plan生成でも既存filename分類を使い、内部整合するB2のeligible targetであっても文法外/実在しない日付は拒否します。source builderからの[隔離接続試験](../tests/test_initial_source_integration.py)は候補保存までを検証し、source使用点や実run/clockの資格は別gateに残します。
+
+`SourceInventoryRevalidation.py`は[凍結B2とsourceの再観測](../docs/design/source-inventory-revalidation.md)を比較する読取専用helperです。独立scope/reference dateと完全な元coverageを要求し、再列挙/hashで観測が変わったら拒否します。元B2を更新せず、対象外fileの内容や後続使用点までの不変性を認証しません。全may_*はfalseです。
+
+同moduleの`revalidate_initial_manifest_source`は、独立run contextで初期planを再構成し、AC/plan/flagsの不整合をsource I/O前に拒否してから毎回sourceを再観測します。全may_*はfalseで、旧観測をreceiptとして再利用する経路は設けません。使用点後の変化や実provider資格は別gateです。
+
+source builderは[列挙完了前の再確認](../docs/design/source-enumeration-stability.md)でdirectory/child集合・identity/属性を再走査し、途中変更や不明を検出すると既存targetを保持したままcoverageをincompleteにします。最終bytes再hash・atomic snapshot・後続使用までの保護を証明するものではありません。
+
+`DriveContentComparison.py`は[OSD-01の同一内容比較](../docs/design/drive-content-comparison.md)を内部観測から判定する純粋helperです。完全列挙・信頼済みsource・exact name/size/hashを要求し、cloud SHA未確認ならdownload hashを要します。比較候補は復元・同期成功・archiveの認可ではありません。

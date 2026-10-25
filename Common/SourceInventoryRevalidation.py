@@ -1,0 +1,115 @@
+"""Read-only re-observation against exact frozen B2; never upload authority."""
+from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta
+
+from Common.AggregationReportBuilder import _parse, _validate, _validator
+from Common.LatestManifestSelection import _utc_key, _clock_key
+from Common.RunInputEvidenceIntegrity import validate_evidence_invariants
+from Common.SourceInventoryEvidenceBuilder import build_run_input_evidence
+from Common.ManifestTransitionInspection import InitialManifestPlan, prepare_initial_manifest
+
+
+class SourceRevalidationError(ValueError):
+    def __init__(self, reason_code):
+        self.reason_code = reason_code
+        super().__init__(reason_code)
+
+
+@dataclass(frozen=True, repr=False)
+class SourceInventoryObservation:
+    evidence_bytes: bytes
+    target_count: int
+    status: str = field(default="requires_runtime_evidence", init=False)
+    may_upload: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+    may_change_state: bool = field(default=False, init=False)
+
+
+def _reject(reason):
+    raise SourceRevalidationError(reason) from None
+
+
+def _observations(value):
+    return (value["source_scope"], value["inventory"], value["validation"],
+            {key: value["enumeration"][key] for key in (
+                "status", "entries_observed", "eligible_target_count", "inventory_sha256", "enumeration_errors")})
+
+
+def revalidate_source_inventory(
+    source_root, evidence_bytes, *, schema, expected_pc_id, expected_log_type, expected_run_id,
+    expected_root_id, expected_relative_scope, reference_date, current_utc, current_utc_reliable,
+):
+    """Rebuild read observations using independently supplied scope/date/root.
+
+    Only complete original coverage may be compared. Known validation errors
+    remain errors, and no new B2 is returned or written. Builder timing is not
+    clock evidence and is excluded from the observation comparison. Non-target
+    contents/identities, qualified roots, races/ABA and later use remain outside
+    this helper; all returned permission flags are false.
+    """
+    try:
+        if (current_utc_reliable is not True or not isinstance(current_utc, datetime)
+                or current_utc.tzinfo is None or current_utc.utcoffset() != timedelta(0)):
+            _reject("source_revalidation_clock_untrusted")
+        if type(reference_date) is not date:
+            _reject("source_revalidation_reference_date_invalid")
+        value = _parse(evidence_bytes)
+        _validate(_validator(schema), value)
+        validate_evidence_invariants(value, schema)
+        if ((value["pc_id"], value["log_type"], value["run_id"]) !=
+                (expected_pc_id, expected_log_type, expected_run_id)
+                or value["source_scope"] != dict(root_id=expected_root_id, relative_scope=expected_relative_scope)):
+            _reject("source_revalidation_scope_mismatch")
+        if value["enumeration"]["status"] != "completed" or value["validation"]["status"] != "completed":
+            _reject("source_frozen_coverage_incomplete")
+        start, finish = (_utc_key(value["enumeration"][key]) for key in ("started_at_utc", "finished_at_utc"))
+        if start > finish or finish > _clock_key(current_utc + timedelta(minutes=5)):
+            _reject("source_revalidation_time_invalid")
+        observed = build_run_input_evidence(source_root, root_id=expected_root_id,
+            relative_scope=expected_relative_scope, pc_id=expected_pc_id, log_type=expected_log_type,
+            run_id=expected_run_id, evidence_id=value["evidence_id"], reference_date=reference_date,
+            started_at=current_utc)
+        validate_evidence_invariants(observed, schema)
+        if observed["enumeration"]["status"] != "completed" or observed["validation"]["status"] != "completed":
+            _reject("source_revalidation_incomplete")
+        if _observations(observed) != _observations(value):
+            _reject("source_inventory_observation_changed")
+        return SourceInventoryObservation(evidence_bytes, len(value["inventory"]["targets"]))
+    except SourceRevalidationError:
+        raise
+    except Exception:
+        _reject("source_revalidation_input_invalid")
+
+
+def revalidate_initial_manifest_source(
+    source_root, plan, *, ac_connected, expected_pc_id, expected_log_type, expected_target_period,
+    expected_run_id, started_at_utc, current_utc, current_utc_reliable,
+    manifest_schema, evidence_schema, expected_root_id, expected_relative_scope, reference_date,
+):
+    """Reconstruct a bound initial plan before making a new source observation.
+
+    AC/context are supplied observations, not OS proof. No saved observation
+    is accepted as a receipt; every invocation rechecks the actual source. A
+    successful result still grants no publication/upload and is not a lease.
+    """
+    if (type(plan) is not InitialManifestPlan
+            or any(flag is not False for flag in (plan.may_publish, plan.may_upload, plan.may_archive))):
+        _reject("initial_source_plan_invalid")
+    if ac_connected is not True:
+        _reject("initial_source_ac_unconfirmed")
+    try:
+        restored = prepare_initial_manifest(plan.evidence_bytes, expected_pc_id=expected_pc_id,
+            expected_log_type=expected_log_type, expected_target_period=expected_target_period,
+            expected_run_id=expected_run_id, started_at_utc=started_at_utc, current_utc=current_utc,
+            current_utc_reliable=current_utc_reliable, manifest_schema=manifest_schema,
+            evidence_schema=evidence_schema)
+        if restored != plan:
+            _reject("initial_source_plan_invalid")
+    except SourceRevalidationError:
+        raise
+    except Exception:
+        _reject("initial_source_plan_invalid")
+    return revalidate_source_inventory(source_root, plan.evidence_bytes, schema=evidence_schema,
+        expected_pc_id=expected_pc_id, expected_log_type=expected_log_type, expected_run_id=expected_run_id,
+        expected_root_id=expected_root_id, expected_relative_scope=expected_relative_scope,
+        reference_date=reference_date, current_utc=current_utc, current_utc_reliable=current_utc_reliable)

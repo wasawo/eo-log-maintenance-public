@@ -47,3 +47,31 @@ create-only単一file公開helperは、fsync/close後にstagingのexact bytesと
 これらは合成fixtureでの検出防御であり、観測後の敵対的namespace差替えやcheck/unlink raceを完全に排除するものではない。書込み/flush失敗で再確認不能なtempが残り得る。実root/ACL/FSの資格と所有権に基づく回復は別gateで、create-only helperをC1の条件付きmanifest更新providerへ昇格しない。
 
 PR #42のCIでWindows Python 3.12のstat/fstat ctimeの意味差が比較に混入したため、Windowsでは明示birthtime_nsを使い、未対応版は従来ctimeへfallbackする。POSIXのctime比較と、identity/size/mtime/bytesの検査は維持する。根拠は[CPython path statの互換処理](https://github.com/python/cpython/blob/3.12/Modules/posixmodule.c)と[handle情報の構築](https://github.com/python/cpython/blob/3.12/Python/fileutils.c)。時刻属性は観測metadataで、真正な現在時刻やprovider資格にはしない。
+
+
+## B2から初期running manifestを構築
+
+`prepare_initial_manifest`は独立入力のPC/log/target period/run ID/開始UTCと、信頼できる現在UTC、exact B2 bytes、static schemaを要求する。B2のschema/digest/count/target集合を検査し、既承認の初期状態（run=running、file=pending）を構築して既存遷移検査/manifest-to-B2 validatorへ再投入する。開始UTCは元文字列表記を保持し、`started_at <= enumeration.started_at <= enumeration.finished_at <= current_utc + 5分`を要求する。不明・欠落・不正時刻や不整合を実時計/別保存物から補わない。
+
+manifest v1 fieldだけを出力し、finished/outcome/Drive IDはnull、verificationはnot_checked/not_performed・時刻/hashはnullとする。B2のtargets順とfilename/path/size/hashを保持し、元evidence bytesをimmutable planへ結び付ける。空集合やfailed/incomplete/errorをrunningのまま保ち、no_work/successを生成しない。将来の終端statusは別途B2/report集約で判定する。対象periodやsourceの選択をこのfactoryで推測しない。
+
+`InitialManifestPlan`のmay_publish/may_upload/may_archiveはfalse。新規候補を作れたことは保存先の不在、新runの真正性、実fresh inventory、現在の資格や初回公開/実行の許可ではない。UUIDを自動生成せず、旧run/欠落checkpointの再利用や回復にも接続しない。[合成試験](../../tests/test_initial_manifest_plan.py)は両PC/log種別・不完全B2・改変/時間境界等と、掲載された中間ペアを経た終端reportまでの純粋接続を確認する。実writer/Drive/FS/Tier B/C/runtime受け入れは未完である。
+
+
+## Source builderから初期候補までの隔離接続
+
+[合成source接続試験](../../tests/test_initial_source_integration.py)は、自作OS-tempのsourceを既存builderで実列挙/hashし、B2の検査/serialize、初期plan生成、別candidate directoryへの実mutex/create-only/marker-last保存とtransaction付き読戻しまで接続する。source/candidateは分離し、元source bytesを保持する。固定clock/reference dateとfixtureのrun IDは合成観測で、実clock/providerの資格ではない。fixtureのAPI/配置は正式runtime契約ではない。
+
+初期producerでも既存filename分類を使い、B2でeligibleとされたtargetが文法外/実在しない日付なら拒否する。B2 digest/countが整合することだけでsource分類を省略しない。期間の絞込みや保持年/月の方針を変更せず、report builderと同じ承認文法を再利用する。
+
+試験は両PC/log、Unicode階層、empty/ineligible/invalid・hash不明、source変更後の旧plan保持と別runの新hash、PC-B候補保存/競合、決定性を扱う。初期候補はrunning/pendingのままで、markerのcommittedや計上0件を成功/no_work/Upload許可に変えない。sourceが変わっても旧planは自動で無効化/書換えされないため、実行前の再検証・root/所有権・fresh run bindingは未実装gateのままである。
+
+## 終端planの使用点再導出
+
+`revalidate_terminal_manifest_plan`は厳密なTerminalManifestPlan型、全false flag、明示AC trueと、独立入力の直前manifest exact bytes・凍結B2 exact bytes・PC/log/period/runを要求する。保存済みplanのexpected/B2が独立観測と違う場合は拒否する。bytes型を厳格に扱い、bytearray等をsnapshotとして取り込まない。
+
+呼出しごとに現在UTC/reliable・static schema・参照pathを使って既存の遷移/B2/report生成を再実行し、scopeとplan全体をexact比較する。report改変・書式変更・参照path差替え・時計不明・不正遷移を、過去のplan成功で省略しない。一致時は再生成したimmutable planを返すが、全may_*はfalseのまま。
+
+このhelperはI/Oを行わず、引数の直前manifest/B2/AC自体の出所・最新性・真正性を保証しない。実保存先からの安定read・期待scope/provider・owner/root/FS資格、検査後の変更とC1比較更新は外部gateである。同一結果をreceiptや実行許可へ昇格しない。
+
+[合成使用点試験](../../tests/test_terminal_plan_usepoint.py)は両PC/logのempty/成功/混在、snapshot/flag/AC/scope/report/context改変を検査する。既存の候補bundle fixtureにtests専用の公開前callbackを設け、実mutex/owner内で直前bytesを読み、検査一致時の候補公開・不一致時の書込み0件・prior保全とowner解放を確認する。これはimmutable候補への隔離接続であり、現在manifestの置換やruntime受け入れではない。
