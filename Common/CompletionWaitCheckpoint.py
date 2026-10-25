@@ -77,6 +77,48 @@ class CompletionWaitCheckpoint:
             _reject("checkpoint_state_invalid")
 
 
+@dataclass(frozen=True, repr=False)
+class CompletionWaitCheckpointTransition:
+    expected_bytes: bytes
+    checkpoint: CompletionWaitCheckpoint
+    added_check_count: int
+    status: str
+    may_check: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+    may_change_state: bool = field(default=False, init=False)
+
+
+def inspect_completion_wait_checkpoint_transition(
+    previous_bytes, proposed_bytes, *, schema, expected_log_type, expected_target_period,
+    expected_run_id, current_utc, current_utc_reliable,
+):
+    """Inspect supplied checkpoint evolution; never create/reset a lost prior.
+
+    Exact byte replay is unchanged, otherwise precisely one new check is required.
+    Prior trust, elapsed-time providers, durable CAS and actual checks are absent.
+    """
+    try:
+        if type(previous_bytes) is not bytes or type(proposed_bytes) is not bytes:
+            _reject("checkpoint_transition_bytes_required")
+        context = dict(schema=schema, expected_log_type=expected_log_type,
+            expected_target_period=expected_target_period, expected_run_id=expected_run_id,
+            current_utc=current_utc, current_utc_reliable=current_utc_reliable)
+        before = read_completion_wait_checkpoint(previous_bytes, **context)
+        after = read_completion_wait_checkpoint(proposed_bytes, **context)
+        if previous_bytes == proposed_bytes:
+            return CompletionWaitCheckpointTransition(previous_bytes, after, 0, "unchanged")
+        if before.started_at_utc != after.started_at_utc:
+            _reject("checkpoint_transition_start_changed")
+        if (len(after.check_times_utc) != len(before.check_times_utc)+1
+                or after.check_times_utc[:-1] != before.check_times_utc):
+            _reject("checkpoint_transition_history_changed")
+        return CompletionWaitCheckpointTransition(previous_bytes, after, 1, "requires_runtime_evidence")
+    except CompletionWaitCheckpointError:
+        raise
+    except Exception:
+        _reject("checkpoint_transition_input_invalid")
+
+
 def read_completion_wait_checkpoint(raw_bytes, *, schema, expected_log_type, expected_target_period,
                                     expected_run_id, current_utc, current_utc_reliable):
     """Parse supplied bytes with independent scope/clock; never reconstruct a loss.

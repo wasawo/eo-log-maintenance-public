@@ -4,7 +4,8 @@ from datetime import timedelta
 import json
 
 from Common.CompletionWaitBudget import CompletionWaitBudgetError, record_completion_check_attempt
-from Common.CompletionWaitCheckpoint import CompletionWaitCheckpointError, read_completion_wait_checkpoint
+from Common.CompletionWaitCheckpoint import (CompletionWaitCheckpointError, read_completion_wait_checkpoint,
+    inspect_completion_wait_checkpoint_transition)
 
 
 class CompletionWaitAttemptError(ValueError):
@@ -47,7 +48,8 @@ def prepare_completion_wait_attempt(raw_bytes, *, schema, expected_log_type, exp
                         started_at_utc=record.started_at_utc,
                         check_times_utc=[*record.check_times_utc, current_utc.isoformat().replace("+00:00", "Z")])
         candidate = (json.dumps(proposed, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n").encode("utf-8")
-        restored = read_completion_wait_checkpoint(candidate, **read_context)
+        transition = inspect_completion_wait_checkpoint_transition(record.original_bytes, candidate, **read_context)
+        restored = transition.checkpoint
         if restored.as_budget_state() != advanced or len(restored.check_times_utc) != len(record.check_times_utc) + 1:
             raise CompletionWaitAttemptError("attempt_roundtrip_invalid")
         return CompletionWaitAttemptPlan(record.original_bytes, candidate, len(restored.check_times_utc))

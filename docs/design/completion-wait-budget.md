@@ -35,6 +35,12 @@ helperは新しい予算を自動作成・リセットしない。明示再開�
 
 ## Checkpoint schemaと純粋reader（2026-10-25）
 
+### 更新前後の追記検査（2026-10-26）
+
+`inspect_completion_wait_checkpoint_transition`は独立scope/現在UTC/static schemaで前後exact bytesをreaderへ通す。元記録の不在/不正を補完せず、exact bytes再掲載だけをunchanged/added_check_count=0とする。それ以外は元started_at_utc文字列と既存check_times_utc全件の文字列/順序を保持し、1件だけ追記する更新を要求する。短縮、過去試行の置換、複数追記、開始時刻の再表記、追記なしの書式変更を拒否する。scope/version・間隔/24時間/25回/時計逆行のreader検査も維持する。
+
+結果は元bytesと新checkpoint、追加件数、固定statusだけを持つimmutable非表示repr型で、全may_check/may_archive/may_change_state=false。既存`prepare_completion_wait_attempt`はcandidateの読戻しにこの検査を利用する。readerが扱える高精度UTC文字列を丸めずに保持し、budget状態への変換精度制限は緩和しない。これは提示された2記録の比較であり、元記録の真正性/現在性・保存喪失/rollback/ABA・原子的compare-and-publish・実試行前の永続化や資格の証拠ではない。exact再掲載も新しい試行receiptにしない。[合成試験](../../tests/test_completion_wait_checkpoint_transition.py)で追記/保全/事前拒否とplan生成への接続を確認する。
+
 [schema](../../contracts/completion-wait-checkpoint-v1.schema.json)は承認済みの7fieldだけを持つclosed v1で、manifestとは別契約。PC-A限定、log種別ごとのperiod形、UUID、UTC Z、0〜25回を規定する。periodの4桁年に未決の範囲制約を追加しない。
 
 `Common/CompletionWaitCheckpoint.py`の`read_completion_wait_checkpoint`は、callerが供給するexact bytes・信頼済みstatic schema、別入力の期待log/period/run IDと信頼できる現在UTCを要求する。I/Oをせず、未知/欠落/null field、重複JSON key、不正UTF-8/JSON/version、schema外部参照、scope不一致、不正日時、開始〜24時間外の試行、1時間未満の間隔、25回超、現在時計の逆行を拒否する。読取不能や欠落の代わりに空履歴を生成しない。現在が期限後でも有効な元履歴を保持し、既存予算helperで期限/回数のhold判定を行う。

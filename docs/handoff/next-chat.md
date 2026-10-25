@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`3f2dea3`、同じ`codex/drive-download-observation`で[PC-A checkpoint前後の1試行追記検査](../design/completion-wait-budget.md#更新前後の追記検査2026-10-26)を追加。両recordを独立scope/clock/schemaで検査し、元start/既存確認履歴の文字列/順序を保全した1件追記かexact再掲載だけを許す。短縮/置換/一括追記/元時刻の再表記を拒否。既存試行planのcandidate読戻しへ接続、全確認/状態変更/Archive許可false。
+- Python 3.11.9（CI 3.12）で新規transition8件＋既存checkpoint/attempt25件の計33件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 25回目/24時間/間隔と高精度時刻の既存制限を維持。exact再掲載を新試行receiptにしない。元recordの真正性/現在性・保存喪失/rollback/ABA防止・原子的compare-and-publish/試行前永続化・OS/clock/root/FS/owner/資格・実確認/runtime受け入れは未実証。次は既承認の独立作業を選び、未決provider契約を推測しない。
+
+## 直前の実装単位（manifest履歴のUpload上限・3f2dea3）
+
 - 基準`8afa7c4`、同じ`codex/drive-download-observation`で[提示manifest履歴のfile別Upload上限](../design/manifest-transition-inspection.md#提示履歴のupload試行上限)を追加。ready→pendingを初回、unknown→pendingを再試行境界として最大4回を検査し、5回目を拒否。登録pending/同一snapshot/配列順で消費・リセットせず、別file予算を合算しない。4回後のunknownをfailedへ変えず、超過履歴は終端report生成前に停止する。
 - Python 3.11.9（CI 3.12）で新規予算8件＋既存履歴10件＋終端履歴9件の計27件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
 - 提示履歴の境界検査であり、実API試行の漏れない記録/実送信・永続counter・60/300/900秒待機・unknown retry前の完全不在照合やPS orchestratorを実装/認証しない。全公開/Upload/retry/Archive許可false。metadata-first/event/provider/root/FS/使用点・writer/runtime受け入れは未完。次は既承認の独立作業を選び、未決仕様を推測しない。

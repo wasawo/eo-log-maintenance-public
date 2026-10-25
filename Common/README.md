@@ -6,6 +6,8 @@
 
 `CompletionWaitCheckpoint.py`は[確認予算checkpoint](../docs/design/completion-wait-budget.md)のclosed schemaと期待scope・現在UTCを使う純粋readerです。元bytes・時刻文字列・履歴順を保持し、欠落/破損から予算をリセットしません。既存helperへの変換で精度を失う時刻は拒否し、実保存・現在性/rollback防止・試行前永続計上は別ゲートです。
 
+同moduleの`inspect_completion_wait_checkpoint_transition`は前後2記録のstart/既存履歴原文字列を保全し、exact再掲載か1試行だけの追記を検査します。既存試行plan生成へ接続済みで、短縮/置換/一括追記を拒否します。全許可false、実保存/CAS/rollback防止や確認receiptではありません。
+
 `ManifestTransitionInspection.py`は[遷移表の前後snapshot検査](../docs/design/manifest-transition-inspection.md)を行う純粋helperです。schema/identity/凍結inventory、verificationと時刻整合、終端不変性、未掲載ペアを確認します。掲載ペアの結果も`requires_runtime_evidence`であり、所有権・staging・Drive・OSD-03集約・永続更新の認可にはなりません。
 
 同moduleの`inspect_manifest_history`は初期登録からの明示snapshot tupleを検査し、登録pendingとUpload直前pendingをpath単位で区別します。登録pendingからuploaded/unknownへの飛越しやUpload pendingからのstaging再開を拒否し、retry pendingを別計数します。結果は件数のみ/全許可falseで、真正な履歴・event証拠・実writerの受け入れではありません。

@@ -10,6 +10,8 @@
 
 `test_completion_wait_checkpoint.py`はclosed schema、exact bytes/時刻表記/配列順、期待scopeと信頼できる現在時計、25回/24時間/1時間間隔、精度の保持と変換拒否、欠落/破損・I/Oなしを合成検証します。既存budget helperへ接続しても、実保存/rollback防止/実確認の証明にはしません。
 
+`test_completion_wait_checkpoint_transition.py`は前後recordの1試行追記、exact再掲載、開始/既存履歴原文字列保全、短縮/置換/一括追記拒否、25回境界と高精度時刻を検証します。試行plan生成への接続と全許可falseを確認し、実保存やrollback防止を認証しません。
+
 `test_manifest_transition_inspection.py`は採用済みfile/runペアの行列、初期状態、identity/凍結inventory、verification/hash/time、終端の不変性、入力不変・I/Oなし・固定理由を合成検証します。掲載ペアの結果もrequires_runtime_evidenceであり、実event/Drive/排他/集約/永続更新の受け入れではありません。
 
 `test_manifest_history_inspection.py`は初期登録からのsnapshot履歴を使い、2種のpending・retry pending・path単位追跡・飛越し/逆戻り拒否・終端bytes保全を確認します。空/途中履歴の拒否、入力不変/I/Oなし、全許可falseも検証し、提示履歴の真正性や実event/永続更新を証明しません。
