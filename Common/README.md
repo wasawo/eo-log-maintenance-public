@@ -1,6 +1,6 @@
 # Common PowerShell functions
 
-`CompletionWaitAttempt.py`は[確認予算の試行plan](../docs/design/completion-wait-budget.md)を作る純粋helperです。元checkpoint bytesに結び付け、観測を再判定して1件だけ追加したcandidateを再読込検査します。実保存・確認は行わず、全may_* flagはfalseです。接続試験のcompare-and-publishはメモリmockで、実OS更新providerの資格にはしません。
+`CompletionWaitAttempt.py`は[確認予算の試行planと使用点検査](../docs/design/completion-wait-budget.md)を扱う純粋helperです。元checkpoint bytesに結び付けて1件だけ追加したcandidateを再読込検査し、保存前/記録後の観測bytes・scope・現在時計/期限・実行条件/ACを再検査します。実保存・確認は行わず、全may_* flagはfalseです。反復検査は一回限りのcommit receiptではなく、接続fixtureの比較更新もメモリmockです。
 
 `CompletionWaitCheckpoint.py`は[確認予算checkpoint](../docs/design/completion-wait-budget.md)のclosed schemaと期待scope・現在UTCを使う純粋readerです。元bytes・時刻文字列・履歴順を保持し、欠落/破損から予算をリセットしません。既存helperへの変換で精度を失う時刻は拒否し、実保存・現在性/rollback防止・試行前永続計上は別ゲートです。
 

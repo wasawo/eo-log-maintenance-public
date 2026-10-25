@@ -15,7 +15,9 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from Common.AtomicArtifactPublication import ArtifactPublicationError, publish_bytes_no_overwrite
-from Common.CompletionWaitAttempt import CompletionWaitAttemptError, prepare_completion_wait_attempt
+from Common.CompletionWaitAttempt import (
+    CompletionWaitAttemptError, prepare_completion_wait_attempt, inspect_completion_wait_attempt_usepoint,
+)
 from Common.CompletionWaitCheckpoint import read_completion_wait_checkpoint
 from Common.OwnedRunLock import LockAcquisitionError, acquire_owned_lock
 from test_completion_wait_checkpoint import SCHEMA, START, RUN, checkpoint, encode, stamp
@@ -111,8 +113,7 @@ class MockCheckpointProvider:
         return self.current if self.readback_override is None else self.readback_override
 
 
-@unittest.skipUnless(os.name == "nt", "real Windows mutex required for isolated integration")
-class CompletionWaitAttemptIntegrationTests(unittest.TestCase):
+class CompletionWaitAttemptFixture:
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="eolm-wait-attempt-")
         self.addCleanup(self.temp.cleanup)
@@ -123,7 +124,8 @@ class CompletionWaitAttemptIntegrationTests(unittest.TestCase):
         self.stages = 0
         self.checks = 0
 
-    def execute_fixture(self, *, now=START, plan=None, stage=None, fault=None, before_commit=None):
+    def execute_fixture(self, *, now=START, plan=None, stage=None, fault=None, before_commit=None,
+                        at_commit=None, before_observations=None, after_observations=None):
         # This driver is deliberately test-only; it supplies no runtime root,
         # qualification boolean, real Drive callback or replacement primitive.
         with acquire_owned_lock(self.scope, self.owner, timeout_seconds=0):
@@ -138,15 +140,23 @@ class CompletionWaitAttemptIntegrationTests(unittest.TestCase):
             read_completion_wait_checkpoint(staged, **read_context(now))
             if fault == "before_commit": raise FixtureFailure("before_commit")
             if before_commit is not None: before_commit()
+            usepoint = {**options(now), "ac_connected": True, **(before_observations or {})}
+            inspect_completion_wait_attempt_usepoint(plan, self.provider.current, phase="before_commit", **usepoint)
+            if at_commit is not None: at_commit()
             self.provider.compare_and_publish(plan.expected_bytes, staged)
             if fault == "after_commit": raise FixtureFailure("after_commit_before_check")
             observed = self.provider.readback()
             if observed != staged: raise FixtureFailure("publication_unconfirmed")
             read_completion_wait_checkpoint(observed, **read_context(now))
+            usepoint = {**options(now), "ac_connected": True, **(after_observations or {})}
+            inspect_completion_wait_attempt_usepoint(plan, observed, phase="after_commit", **usepoint)
             self.checks += 1  # Synthetic check occurs ONLY after commit + readback.
             if fault == "check_failed": raise FixtureFailure("synthetic_check_failed")
             return plan
 
+
+@unittest.skipUnless(os.name == "nt", "real Windows mutex required for isolated integration")
+class CompletionWaitAttemptIntegrationTests(CompletionWaitAttemptFixture, unittest.TestCase):
     def test_record_is_visible_before_synthetic_check(self):
         plan = self.execute_fixture()
         self.assertEqual(1, self.checks)
@@ -186,7 +196,7 @@ class CompletionWaitAttemptIntegrationTests(unittest.TestCase):
         path = self.root / "identical-candidate.json"
         self.execute_fixture(plan=plan, stage=path)
         committed = self.provider.current
-        with self.assertRaisesRegex(FixtureFailure, "expected_prior_changed"):
+        with self.assertRaisesRegex(CompletionWaitAttemptError, "attempt_checkpoint_changed"):
             self.execute_fixture(plan=plan, stage=path)
         self.assertEqual(committed, self.provider.current)
         self.assertEqual(1, self.checks)
@@ -194,7 +204,7 @@ class CompletionWaitAttemptIntegrationTests(unittest.TestCase):
     def test_interleaving_update_cannot_be_overwritten(self):
         other = prepare_completion_wait_attempt(self.provider.current, **options()).proposed_bytes
         def interleave(): self.provider.current = other
-        with self.assertRaisesRegex(FixtureFailure, "expected_prior_changed"):
+        with self.assertRaisesRegex(CompletionWaitAttemptError, "attempt_checkpoint_changed"):
             self.execute_fixture(before_commit=interleave)
         self.assertEqual(other, self.provider.current)
         self.assertEqual(0, self.checks)

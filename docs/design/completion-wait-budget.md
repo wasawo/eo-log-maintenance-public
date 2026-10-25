@@ -59,6 +59,21 @@ stagingの`already_exists_identical`はcheckpoint更新のreceiptではなく、
 
 実checkpointの比較更新provider、trusted read/root/ACL/FS資格、正式scopeと実ownerのbinding、実確認前のdurable publicationは引き続き未実装。create-only helperには既存checkpointのatomic replacement能力がないため、無条件os.replaceによるwriterを追加しない。上の試験はstagingファイルだけを実公開し、checkpoint自体の更新はmockである。障害注入はfixtureの例外であり、実process再起動・電源断・target FS耐久性を証明しない。C3の実回復や旧run再利用も認可しない。
 
+### 使用点検査とproviderの資格境界（2026-10-25）
+
+`inspect_completion_wait_attempt_usepoint`は同じmoduleの純粋検査で、plan・現在観測したbytes・phase、別入力のscope/現在UTC/実行条件と明示boolのAC接続状態を要求する。既存artifactのfield/versionは変えない。
+
+| phase | 検査 | 検査だけでは証明できないもの |
+| --- | --- | --- |
+| `before_commit` | 観測bytesがexact expected bytes、candidateが元の1試行planと一致、scope/clock/実行条件/ACが整合し、現在が元の24時間期限内 | 読取元・owner/rootの真正性、検査直後の競合を含むcompare-and-publishの保証 |
+| `after_commit` | 観測bytesがexact proposed bytes、同じplan/context/AC/期限を再検査 | 新しい一回限りのcommit receipt、同じbytesを再度確認してよい根拠、実readbackの現在性 |
+
+candidateの最終計上時刻で元planを再構成して完全一致を要求し、余分な試行・開始時刻/履歴変更・別形式bytesによる偽装を拒否する。現在時計がcandidateの試行時刻より前なら拒否し、期限ちょうどは整合範囲、1microsecond超過も拒否する。計画時刻を現在時計として再利用せず、使用点ごとに新しい観測を渡す。
+
+結果は固定metadataの`requires_runtime_evidence`で、全may_*はfalse。反復して同じ結果が出てもreceiptや確認許可にはならない。保存前のAC/資格喪失はcheckpoint更新/確認を止め、保存後は確認を止めても計上済み試行を払い戻さない。接続fixtureも両phaseで検査するが、実保存providerは依然mockである。
+
+正式providerは[C1/C2](../decisions/osd-02-crash-concurrency-options.md)と[FS資格](../validation/target-filesystem-acceptance.md)を満たし、真正で現在のread・実owner/scope binding・実効ACL/祖先/使用点・原子的比較更新・確認可能なcommit/readbackを実証する必要がある。使用点検査と置換の間にも変更が入り得るため、単なる再読込＋無条件renameを保証の代わりにしない。実API/実root/電源断耐久性は未資格。観測flagの真偽だけで資格を作らず、AC切断時のin-flight中断/結果不明処理や計画から実確認までの時間の結び付けも本helperでは確定・実装しない。
+
 既存16件の予算helper合成テストでは25回の全履歴、期限前後、遅れ・間隔、少ない機会での期限、再構成、scope/時計/資格不明、履歴破損、失敗試行、不変性/IOなし、最大日時境界を確認。
 既存の純粋予算試験はDrive API・OS clock・task・待機・予約・書込を使わない。追加の接続fixtureの書込も専用合成領域のstagingに限り、runtime/STORE/P0/Tier B受け入れには数えない。
 

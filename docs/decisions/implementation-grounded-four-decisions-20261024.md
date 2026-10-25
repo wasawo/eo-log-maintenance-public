@@ -38,7 +38,7 @@
 
 未知field、欠落、null、重複key、非UTF-8、不正日時、scope不一致、時計逆行、期限外・1時間未満の間隔、25件超は拒否する。配列順を保持し、UTC表記の精度を丸めて履歴を変えない。`next_check_at_utc`、成功/失敗、`may_archive`は保存しない。必要な次回時刻はhelperが履歴から導出する。実確認の前に試行1件を確定し、失敗した確認も消費する。試行確定後にクラッシュした場合も予算を戻さない。欠落/読取不能/不一致から空履歴を作らない。
 
-保存・読取は既承認C1の同一directory一時保存・再読込検査・atomic publication/compare-before-replace、C2のmutex＋owner record、元runとscopeの独立照合に従う。具体的なfilename/root、作成時のtrusted evidence、FSのatomicity/電源断耐久性は別途資格を要する。2026-10-25に[schema](../../contracts/completion-wait-checkpoint-v1.schema.json)と[純粋reader](../../Common/CompletionWaitCheckpoint.py)を実装した。元bytes/時刻文字列/履歴順を保持し、scope・現在時計・履歴を検査する。既存microsecond helperへの変換で精度を失う入力は拒否し、丸めない。試行1件を追加する純粋planと、実mutex/create-only staging＋メモリmock保存の合成接続も実装した。writer、信頼できる読取元/provider、現在性・原子更新と実確認前のdurable計上は未実装。[reader試験](../../tests/test_completion_wait_checkpoint.py)は[既存予算試験](../../tests/test_completion_wait_budget.py)と合成接続する。
+保存・読取は既承認C1の同一directory一時保存・再読込検査・atomic publication/compare-before-replace、C2のmutex＋owner record、元runとscopeの独立照合に従う。具体的なfilename/root、作成時のtrusted evidence、FSのatomicity/電源断耐久性は別途資格を要する。2026-10-25に[schema](../../contracts/completion-wait-checkpoint-v1.schema.json)と[純粋reader](../../Common/CompletionWaitCheckpoint.py)を実装した。元bytes/時刻文字列/履歴順を保持し、scope・現在時計・履歴を検査する。既存microsecond helperへの変換で精度を失う入力は拒否し、丸めない。試行1件を追加する純粋plan、保存前/記録後のbytes・現在clock/期限・scope・実行条件/ACの使用点検査と、実mutex/create-only staging＋メモリmock保存の合成接続も実装した。writer、信頼できる読取元/provider、現在性・原子更新と実確認前のdurable計上は未実装。[reader試験](../../tests/test_completion_wait_checkpoint.py)は[既存予算試験](../../tests/test_completion_wait_budget.py)と合成接続する。
 
 ## 3. version 0.1.0のレビューpackage snapshot（2026-10-24）
 
