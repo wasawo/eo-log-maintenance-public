@@ -312,3 +312,11 @@ Invalid numeric inputs return `rejected` with a fixed reason and null RequiredFr
 The eventual uploader still needs an independently qualified initial observation and a fresh per-file observation, plus safe handling if capacity changes after a check. Reusing an earlier result is not a capacity reservation or write authorization. This implements the approved upload-staging formula only; it does not adopt a capacity policy for API downloads or qualify the download test fixture.
 
 [Tests](../../tests/Test-StagingCapacity.ps1) cover ceil boundaries, exact threshold and one-byte deficit, zero, numbers beyond Int64/IEEE-754 precision, type/reliability rejection, changing supplied capacity and non-authorizing flags. Formal staging/copy/runtime integration, real filesystem free-space observations and capacity-change failure acceptance remain pending.
+
+## Explicit remaining-target size aggregation (2026-10-25)
+
+`Get-EoStagingCapacityFromSizes` accepts a one-dimensional array snapshot of explicitly selected remaining target sizes, validates every member as a nonnegative Int32/Int64/BigInteger, sums in BigInteger and calls the capacity observation helper. It preserves the input and returns RemainingTargetBytes/TargetCount plus the existing required-space observation. One invalid member rejects the entire set with no partial total. Scalar/string/null, nested members and multidimensional arrays are not coerced into size snapshots.
+
+Selection is external: the helper does not inspect manifest states, subtract uploaded/unknown files, authenticate frozen inventory or decide which targets remain. Empty arrays yield total zero but still require the fixed reserve; they are not evidence of no work. Valid totals remain available for diagnostics when an independent free-space observation is invalid/unconfirmed, but every result retains MayCreateStaging=false and MayUpload=false. Fresh initial/per-file space, source/inventory qualification, safe copy and mid-copy capacity loss handling remain runtime gates.
+
+The same [capacity test](../../tests/Test-StagingCapacity.ps1) covers empty/typed/mixed arrays, totals beyond Int64, ceil after summation, invalid members without partial totals, input preservation and independently supplied start/per-file selections. This does not set a download capacity policy or mark EOLM-STG-009 fully verified.

@@ -350,3 +350,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `download_staging_fixture.py` / `test_download_staging_integration.py`は自作OS-tempの新規stagingと実読戻しhash、部分file保全・別試行・競合/変更拒否を実mutex内で合成検証する。配布対象外のtests専用で、正式download writerやDry Run許可ではない。
 
 `Test-StagingCapacity.ps1`はupload stagingの整数容量式、10%切上げ・0/巨大値・1 byte不足・型/信頼不正・容量変化を合成検証する。実volumeの容量取得や作成/Upload許可は検証しない。
+
+`Test-StagingCapacity.ps1`は明示size配列の全件検査/合計、型付き配列/空/巨大合計・合算後の切上げ・部分合計禁止も確認する。残り対象選択やinventory真正性は外部gateに残す。

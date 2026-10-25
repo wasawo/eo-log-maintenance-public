@@ -82,6 +82,42 @@ function Get-EoStagingCapacityObservation {
     }
 }
 
+function Get-EoStagingCapacityFromSizes {
+    <# Sum an explicitly selected remaining-target snapshot, without choosing states. #>
+    [CmdletBinding()]
+    param(
+        [AllowNull()] [object] $RemainingTargetSizes,
+        [AllowNull()] [object] $AvailableFreeBytes,
+        [AllowNull()] [object] $FreeSpaceReliable
+    )
+
+    $invalid = {
+        [pscustomobject]@{
+            Status = 'rejected'; ReasonCode = 'staging_target_sizes_invalid'
+            RemainingTargetBytes = $null; TargetCount = $null; RequiredFreeBytes = $null
+            MayCreateStaging = $false; MayUpload = $false
+        }
+    }
+    if ($RemainingTargetSizes -isnot [Array] -or $RemainingTargetSizes.Rank -ne 1) {
+        return (& $invalid)
+    }
+    $remaining = [bigint]0
+    foreach ($size in $RemainingTargetSizes) {
+        if (($size -isnot [int] -and $size -isnot [long] -and $size -isnot [bigint]) -or $size -lt 0) {
+            return (& $invalid)
+        }
+        $remaining += [bigint]$size
+    }
+    $observed = Get-EoStagingCapacityObservation -RemainingTargetBytes $remaining `
+        -AvailableFreeBytes $AvailableFreeBytes -FreeSpaceReliable $FreeSpaceReliable
+    return [pscustomobject]@{
+        Status = $observed.Status; ReasonCode = $observed.ReasonCode
+        RemainingTargetBytes = $remaining; TargetCount = $RemainingTargetSizes.Length
+        RequiredFreeBytes = $observed.RequiredFreeBytes
+        MayCreateStaging = $false; MayUpload = $false
+    }
+}
+
 function Get-LogFileDate {
     [CmdletBinding()]
     param(

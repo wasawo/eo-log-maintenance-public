@@ -59,3 +59,47 @@ Assert-Capacity $first 'requires_runtime_evidence' 'staging_capacity_observed_su
 Assert-Capacity $later 'held' 'staging_capacity_insufficient' ([bigint]100000110)
 if ($first.MayCreateStaging -or $later.MayCreateStaging) { throw 'Observation became a permit.' }
 Write-Host "PASS: $checks capacity observations; no staging or upload authority."
+
+# An explicit remaining-size snapshot is summed without selecting file states.
+$sumCases = @(
+    @{ Sizes = [object[]]@(); Total = [bigint]0; Count = 0; Required = [bigint]100000000 },
+    @{ Sizes = [int[]]@(1, 9); Total = [bigint]10; Count = 2; Required = [bigint]100000011 },
+    @{ Sizes = [long[]]@(1, 1, 1); Total = [bigint]3; Count = 3; Required = [bigint]100000004 },
+    @{ Sizes = [object[]]@([int]0, [long]11, [bigint]99); Total = [bigint]110; Count = 3; Required = [bigint]100000121 },
+    @{ Sizes = [bigint[]]@($large, $large); Total = $large*2; Count = 2; Required = ($largeRequired*2)-100000001 }
+)
+foreach ($case in $sumCases) {
+    $result = Get-EoStagingCapacityFromSizes -RemainingTargetSizes $case.Sizes `
+        -AvailableFreeBytes $case.Required -FreeSpaceReliable $true
+    Assert-Capacity $result 'requires_runtime_evidence' 'staging_capacity_observed_sufficient' $case.Required
+    if ($result.RemainingTargetBytes -isnot [bigint] -or $result.RemainingTargetBytes -ne $case.Total -or
+        $result.TargetCount -ne $case.Count) { throw 'Remaining-target total mismatch.' }
+    Assert-Capacity (Get-EoStagingCapacityFromSizes $case.Sizes ($case.Required-1) $true) `
+        'held' 'staging_capacity_insufficient' $case.Required
+}
+foreach ($bad in @($null, $true, -1, 1.0, '1', [decimal]1)) {
+    $result = Get-EoStagingCapacityFromSizes -RemainingTargetSizes ([object[]]@(10, $bad)) `
+        -AvailableFreeBytes 200000000 -FreeSpaceReliable $true
+    Assert-Capacity $result 'rejected' 'staging_target_sizes_invalid' $null
+    if ($null -ne $result.RemainingTargetBytes -or $null -ne $result.TargetCount) {
+        throw 'An invalid member produced a partial total.'
+    }
+}
+foreach ($invalidSet in @(@{ value = 10 }, @{ value = '10' }, @{ value = $null },
+                          @{ value = [Array]::CreateInstance([int], 1, 1) })) {
+    Assert-Capacity (Get-EoStagingCapacityFromSizes -RemainingTargetSizes $invalidSet.value `
+        -AvailableFreeBytes 200000000 -FreeSpaceReliable $true) `
+        'rejected' 'staging_target_sizes_invalid' $null
+}
+$initialSizes = [object[]]@(10, 20)
+$initialCopy = $initialSizes.Clone()
+$initial = Get-EoStagingCapacityFromSizes $initialSizes 100000033 $true
+$next = Get-EoStagingCapacityFromSizes ([object[]]@(20)) 100000021 $true
+Assert-Capacity $initial 'requires_runtime_evidence' 'staging_capacity_observed_sufficient' ([bigint]100000033)
+Assert-Capacity $next 'held' 'staging_capacity_insufficient' ([bigint]100000022)
+if (($initialSizes -join ',') -cne ($initialCopy -join ',')) { throw 'Input sizes changed.' }
+Assert-Capacity (Get-EoStagingCapacityFromSizes ([object[]]@(1)) 200000000 $false) `
+    'held' 'staging_capacity_unconfirmed' ([bigint]100000002)
+Assert-Capacity (Get-EoStagingCapacityFromSizes ([object[]]@(1)) $null $true) `
+    'rejected' 'staging_available_bytes_invalid' $null
+Write-Host "PASS: $checks total capacity observations including explicit target-size snapshots."

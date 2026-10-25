@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`c52d359`、同じ`codex/drive-download-observation`で[明示target size集合の容量合計](../design/staging-file-lifecycle.md)を追加。1次元配列の非負Int32/Int64/BigIntegerを全件検査してBigInteger合計を導出し、既存容量観測へ接続する。不正memberで部分合計を返さず、空配列も固定reserve計算を省略しない。
+- 残りtarget/manifest状態の選択やinventory出所は外部gateに残し、入力を変更せず、全MayCreateStaging/MayUpload=false。EOLM-STG-009を純粋計算/合計のみpartialとして対象行だけ更新する。PS 7.6.7で容量観測/配列合計の計67件成功（既存43件を含む）。変更PS構文/PSScriptAnalyzer Error検査成功。前単位で成功した変更のないLogFunctions既存49件は重複実行しない。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実target選択/凍結inventoryと容量/root/ACL/FS/clock/owner資格、開始/各file直前の取得・容量変化時copy失敗、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（upload容量式・c52d359）
+
 - 基準`f579da4`、同じ`codex/drive-download-observation`で[upload staging容量式の純粋観測](../design/staging-file-lifecycle.md)を既存PS helperへ追加。非負Int32/Int64/BigIntegerのremaining/freeと明示reliableから、残りbytes＋ceil(10%)＋100,000,000 bytesを整数のみで算出する。型不正は拒否、不明/不足は保留。0残量も固定reserveを省略しない。
 - 結果はMayCreateStaging/MayUpload=falseで、実空き容量を取得/予約せず、downloadの容量方針へ転用しない。開始時/各file直前のfreshなprovider観測・容量変化時の保存失敗対応は正式runtime gateに残す。PS 7.6.7で追加容量観測43件＋既存LogFunctions 49件成功。変更PS構文/PSScriptAnalyzer Error検査成功。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：実容量/root/ACL/FS/clock/owner資格とupload copy接続、実SDK/C-02/credential・全page/download成功binding、同時snapshot/ABA/電源断、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
