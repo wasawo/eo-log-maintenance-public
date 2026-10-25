@@ -197,6 +197,8 @@ Python は標準出力に、UTF-8 の JSON オブジェクトを 1 件だけ出�
 
 実装slice：`Common/DriveResponseSemantics.ps1` はcallerが渡すdecoded IDictionaryと期待request ID/operation、int/long/BigInteger exitを純粋に比較し、ordinal相関と§6のexit/envelope/error-code対応、固定retryable真偽表を固定Status/ReasonCodeで返す。`consistent` はこの限定対応の判定で、操作別resultの正しさ、運用続行、retry、cloud検証の認可ではない。retryableはbool型を必須とし、`DRIVE_TRANSIENT_FAILURE`だけtrue、他8codeはfalseを要求する。表との矛盾は`retryable_error_code_mismatch`で拒否する。transport/UTF-8/JSON一件/重複key/schema（未知field・UUID構文等）検証と実request由来期待値の確保はcaller側の未実装ゲート。C-01/C-02、C-05の残りとRETRY-02、IPC全体・runtime受け入れは未完了である。
 
+追加slice：同moduleの`Get-DriveRetryObservation`は完了試行番号1〜4と整合した応答から、最大4回/60・300・900秒の候補を返す。uploadの一時的失敗・全操作timeoutは結果照合を要求し、応答喪失/不正は拒否する。全結果MayRetry=falseで、実counter・経過時間・schema・staging/Drive照合等の使用点資格を与えない。[詳細と未実装gate](drive-retry-observation.md)。
+
 - 再試行の唯一の所有者はPowerShellとする。初回を含む最大4回とし、失敗後の待機は1分・5分・15分とする。ジッター付き指数バックオフは使用しない。
 - 認証、権限、リクエスト不正、検証失敗、曖昧性のエラーは、根本原因を解消せずに再試行しない。
 - Pythonは一覧取得・メタデータ取得を含むすべての操作を1回だけ試行する。PowerShellは `retryable` と固定エラーコードを確認して一時的エラーだけを再試行する。認証・権限・リクエスト不正・検証失敗・競合は再試行しない。

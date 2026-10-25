@@ -142,3 +142,71 @@ function Test-DriveResponseSemantics {
         return (& $rejected 'response_value_invalid')
     }
 }
+
+function Get-DriveRetryObservation {
+    <#
+    .SYNOPSIS
+    Observes the approved four-attempt budget without sending or sleeping.
+    .DESCRIPTION
+    AttemptNumber is the completed attempt, including the first (1..4).
+    Candidate delays are minimum waits after that failure, not an authorization
+    or a durable counter. Real response parsing/schema, request/counter binding,
+    elapsed time, current execution conditions and operation-specific safety
+    remain caller obligations. Upload uncertainty is never cleared by a bool.
+    #>
+    [CmdletBinding()]
+    param(
+        [AllowNull()] [AllowEmptyString()] [object] $ExpectedRequestId,
+        [AllowNull()] [AllowEmptyString()] [object] $ExpectedOperation,
+        [AllowNull()] [object] $Response,
+        [AllowNull()] [object] $ExitCode,
+        [AllowNull()] [object] $AttemptNumber
+    )
+
+    $makeResult = {
+        param([string] $Status, [string] $Reason, $Attempt, $Next, $Delay)
+        [pscustomobject]@{
+            Status = $Status; ReasonCode = $Reason; AttemptNumber = $Attempt
+            NextAttemptNumber = $Next; DelaySeconds = $Delay; MayRetry = $false
+        }
+    }
+    try {
+        if (($AttemptNumber -isnot [int] -and $AttemptNumber -isnot [long] -and $AttemptNumber -isnot [bigint]) -or
+            $AttemptNumber -lt 1 -or $AttemptNumber -gt 4) {
+            return (& $makeResult 'rejected' 'retry_attempt_invalid' $null $null $null)
+        }
+        $attempt = [int]$AttemptNumber
+        $semantics = Test-DriveResponseSemantics -ExpectedRequestId $ExpectedRequestId `
+            -ExpectedOperation $ExpectedOperation -Response $Response -ExitCode $ExitCode
+        if ($semantics.Status -cne 'consistent') {
+            return (& $makeResult 'rejected' 'retry_response_invalid' $attempt $null $null)
+        }
+        if ($Response.success) {
+            return (& $makeResult 'no_retry' 'retry_response_success_requires_validation' $attempt $null $null)
+        }
+        if ($Response.error.code -ceq 'OPERATION_TIMEOUT') {
+            return (& $makeResult 'reconciliation_required' 'retry_timeout_outcome_unknown' $attempt $null $null)
+        }
+        if ($Response.error.code -cne 'DRIVE_TRANSIENT_FAILURE') {
+            return (& $makeResult 'no_retry' 'retry_error_not_transient' $attempt $null $null)
+        }
+        # A transient upload error does not establish whether creation happened.
+        # No caller-provided "safe to resend" flag can bypass reconciliation.
+        if ($ExpectedOperation -ceq 'upload_file') {
+            return (& $makeResult 'reconciliation_required' 'retry_upload_outcome_unverified' $attempt $null $null)
+        }
+        if ($attempt -eq 4) {
+            return (& $makeResult 'exhausted' 'retry_attempt_limit_reached' $attempt $null $null)
+        }
+        $delay = @(60, 300, 900)[$attempt - 1]
+        $reason = if ($ExpectedOperation -ceq 'download_file') {
+            'retry_candidate_requires_fresh_staging'
+        } else {
+            'retry_candidate_requires_runtime_evidence'
+        }
+        return (& $makeResult 'candidate' $reason $attempt ($attempt + 1) $delay)
+    }
+    catch {
+        return (& $makeResult 'rejected' 'retry_input_invalid' $null $null $null)
+    }
+}

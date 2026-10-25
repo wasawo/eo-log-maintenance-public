@@ -139,3 +139,5 @@ docs/
 - [2026-10-23までの検証・マージ記録](handoff/archive/validation-history-20261023.md)
 
 - [2026-10-24のPR #27〜33前後セッション記録](handoff/archive/pr27-pr33-session-history-20261024.md)
+
+- [Drive再試行のPS側観測](design/drive-retry-observation.md)

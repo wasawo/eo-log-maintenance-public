@@ -296,3 +296,5 @@ Run python -m unittest discover -s tests -p test_latest_manifest_selection.py -v
 `test_monthly_schedule_observation.py` adds 12 fixed-clock tests covering JST/UTC month/year boundaries, leap year, staggered role times, exact microsecond boundaries, logged-off/untrusted context, overflow and non-authorizing immutable output. It does not test task registration, missed-run completion or PC-A hourly polling.
 
 `test_completion_wait_budget.py` adds 16 synthetic history/clock tests: full 25-attempt boundary, inclusive deadline, delayed checks without compressed spacing or extended budget, copied state preserving its origin, corrupt history/scope, clock rollback, unconfirmed context and failed attempts. It does not establish actual restart-safe persistence or execute hourly tasks.
+
+`Test-DriveResponseSemantics.ps1`には再試行観測も含めます。4操作×全error×試行1〜4で候補/上限/照合待ちを検査し、1/5/15分・upload/timeoutの非再送・不正応答/番号の拒否を確認します。実sleep・API・再送を行わず、RETRY-02全体の受け入れにはしません。
