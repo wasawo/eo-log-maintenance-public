@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+- 基準`db2e774`、同じ`codex/manifest-evidence-integration`で最新manifest選択とreport意味論を接続。既存directory readerへ`read_latest_manifest_with_report`を追加し、C4で選んだexact bytesと規定basename/pathを参照validatorの独立期待値へ渡す。report位置は明示入力で、自動推定/生成しない。
+- 参照validatorのoptional期待bytes/pathは両方セットのみ許可し、未知型・片方欠落・別path・読取bytes不一致を拒否。従来の期待値なしAPI/CLIは互換保持。report検査後に最新候補を再列挙/選択し、別候補への変化や新しい未完runを保留する。古い成功/reportへfallbackしない。
+- 両PC/log種別、別runの旧report、別pathの同一bytes、選択後bytes＋report hash改変、検証後の新success/running、偽成功、終端failure観測/非終端拒否、期待値不正・時計不明/欠落reportを合成試験に追加。全I/Oは専用tempで実ログ/Driveなし。
+- 追加接続・既存directory reader/参照validatorを対象に一括検証する。配布file集合47件/PS/schema契約は不変。Python 3.11.9（CI 3.12）で追加10件＋既存directory/参照validatorの計44件成功（skipなし）。両PC/logや状態の組合せは試験内subcase。変更のないcore選択/builder/bundle、package/PS/schema検査は再実行しない。root自己点検のみで独立レビュー・新CI・実環境受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。返すものは読取観測のみ。実root/ACL/tokenの認可、時計の取得/信頼性、24時間の実行鮮度、実Drive/両PC安全証拠、同時原子snapshot/ABA排除、C1/C2比較更新とreceipt、runtime/受け入れは未完。次はそれらのprovider境界の候補整理か、確定済みの独立作業を選ぶ。
+
+## 直前の実装単位（安定読取観測・db2e774）
+
 - 基準`a988964`、同じ`codex/manifest-evidence-integration`で参照validatorのreport/manifest/B2/schema読取を強化。resolve前にroot/祖先/reparse属性を検査し、各fileのlstat・open後/読取後fstat・読取後lstat・親chain・byte長を照合する。判定直前に全読取fileをexact bytes/metadata/chainで再読込し、途中変更を検出したら結果を返さない。
 - schemaも同じ読取集合へ含め、既に読んだschemaを再利用。外部参照を取得しない既存static schema validatorを使い、不正/解決不能schemaを固定理由で拒否する。root/ACL資格やatomic snapshot、敵対的ABAの完全排除を証明せず、通常読取のTOCTOUを完全に解決したとはしない。
 - 合成試験は全6fileのlate変更、handle identity/読取中変更、親chain変更、root/report/参照/schemaのreparse属性、実Win32 junction root、不正/外部/broken schemaのnetwork不呼出しを追加。全データは専用tempで、schemaは追跡中のstatic資料をtempへcopyしたもの。実ログ/Drive/秘密を使わない。

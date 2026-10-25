@@ -119,3 +119,5 @@ CompletionWaitBudget.py assesses the approved PC-A 24-hour/25-attempt hourly bud
 `derive_aggregation_report`は現在時計を要求しない履歴reportの純粋な再導出です。参照validatorは読取済みexact manifest/B2から再導出し、reportの全field・件数・period/error順序を比較します。JSON whitespace/key順は許容し、偽集約や整数fieldのfloat表現を拒否します。通常builderの明示時計/未来時刻検査は維持し、履歴再導出から現在の適格性を推定しません。
 
 参照validatorはreport/manifest/B2/schemaをpath・handle・親chain・前後metadataに結び付けて読み、成功直前にexact bytesを再確認します。resolve前のreparse属性とschema外部参照も拒否します。これは検出防御で、実効ACL/root認可・原子的snapshot・ABA排除の証明ではありません。
+
+`ManifestDirectoryReader.py`の`read_latest_manifest_with_report`は[最新snapshotとreportのbinding](../docs/design/latest-manifest-selection.md)を行います。独立した選択bytes/pathとの一致と全report意味論を検査し、最後に同じ最新候補を再確認します。別run/別pathの正常reportを流用せず、新しい未完runから古い成功へfallbackしません。読取観測でありruntime/archiveの認可ではありません。

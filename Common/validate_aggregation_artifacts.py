@@ -173,9 +173,14 @@ def validate_referenced_artifacts(
     root_path: str | Path,
     report_path: str | Path,
     contracts_path: str | Path,
+    *, expected_manifest_bytes: bytes | None = None, expected_manifest_path: str | None = None,
 ) -> dict[str, Any]:
     """Validate report and exact referenced artifact bytes, then bind identity fields."""
     try:
+        if ((expected_manifest_bytes is None) != (expected_manifest_path is None)
+                or (expected_manifest_bytes is not None and
+                    (type(expected_manifest_bytes) is not bytes or type(expected_manifest_path) is not str))):
+            raise ArtifactValidationError("expected_manifest_binding_invalid")
         snapshots = {}
         root = Path(root_path).absolute()
         root_chain = _directory_chain(root)
@@ -186,6 +191,8 @@ def validate_referenced_artifacts(
         contracts = Path(contracts_path).absolute()
         contracts_chain = _directory_chain(contracts)
         report_schema = _validate_schema(report, contracts / "aggregation-report-v1.schema.json", "report", snapshots)
+        if expected_manifest_path is not None and report["manifest_ref"]["path"] != expected_manifest_path:
+            raise ArtifactValidationError("selected_manifest_reference_mismatch")
         identity = {key: report[key] for key in ("run_id", "pc_id", "log_type")}
         checked: dict[str, dict[str, str]] = {}
         loaded_artifacts: dict[str, dict[str, Any]] = {}
@@ -200,6 +207,8 @@ def validate_referenced_artifacts(
                 raise ArtifactValidationError(f"unsupported_reference_schema_version:{name}")
             artifact_path = _safe_artifact_path(root, ref["path"])
             raw, artifact = _read_json_bytes(artifact_path, snapshots)
+            if name == "manifest_ref" and expected_manifest_bytes is not None and raw != expected_manifest_bytes:
+                raise ArtifactValidationError("selected_manifest_bytes_mismatch")
             actual_digest = hashlib.sha256(raw).hexdigest()
             if actual_digest != ref["sha256"]:
                 raise ArtifactValidationError(f"sha256_mismatch:{name}")
