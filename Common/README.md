@@ -107,3 +107,5 @@ PrivateFileSecurityDescriptor.ps1 normalizes supplied binary file descriptors fo
 MonthlyScheduleObservation.py observes the approved monthly boundary from supplied reliable UTC/session/account claims. It uses day 1 PC-B 20:00 / PC-A 21:00 JST; all results keep may_start_run=false. It never queries the host, reads completion records, creates tasks or starts work. See [observation scope](../docs/design/monthly-schedule-observation.md).
 
 CompletionWaitBudget.py assesses the approved PC-A 24-hour/25-attempt hourly budget and returns immutable updated attempt histories only after revalidation. All advice denies archive/state-change authority. It performs no waits/tasks/Drive/persistence; trusted state binding and durable crash-safe accounting remain pending. See [budget scope](../docs/design/completion-wait-budget.md).
+
+比較更新の[実Win32負例probe・資格調査](../docs/design/checkpoint-compare-provider-qualification.md)はtests専用で、実runtime providerとして配布しません。

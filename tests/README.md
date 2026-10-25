@@ -1,5 +1,7 @@
 # テスト計画
 
+`test_checkpoint_replace_probe.py`はcaller指定先を受けない専用OS-temp probeで、実CreateFileW共有guardとReplaceFileW、使用点検査後の競合反例を確認します。許可名外/root marker変更/hardlinkでもnative変更へ進みません。これは不十分なAPI組合せを検出する負例であり、provider採用・Tier B/C・電源断耐久性の証拠ではありません。
+
 `test_completion_wait_usepoint.py`は保存前/記録後のexact bytes、plan偽装、最新scope/時計/期限/実行条件/ACを純粋検査し、既存の実mutex・staging・mock保存fixtureへ接続します。資格喪失時の確認停止/試行保持と、使用点検査後の競合にもprovider側の比較が必要なことを確認します。runtime provider/一回限りreceipt/in-flight中断の受け入れではありません。
 
 `test_completion_wait_attempt.py`は1試行だけの純粋candidate planと、実Windows owner/mutex・create-only staging・メモリmock compare-and-publishを接続します。保存前/後の失敗、stale/競合、偽ack/読取不一致、確認失敗時の予算保全を合成検証します。実checkpoint置換・電源断・runtime受け入れの証拠ではありません。

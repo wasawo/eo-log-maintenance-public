@@ -68,6 +68,7 @@ docs/
 - [Maintenance Manifest Schema v1 — Approved Field Specification](design/manifest-schema-v1-proposal.md)
 - [Maintenance Manifest v1 — 採用済み状態遷移表](design/manifest-state-transition-v1-proposal.md)
 - [Manifest transition snapshot inspection](design/manifest-transition-inspection.md): 採用ペア・終端不変性の純粋検査と、実event証拠の境界。
+- [Checkpoint比較更新providerの資格調査](design/checkpoint-compare-provider-qualification.md): Win32一次資料と専用OS-tempの負例probe。正式providerは未資格。
 - [承認済み月次時刻の分離観測](design/monthly-schedule-observation.md)
 - [PowerShell・Python 責務分担／連携契約書](design/powershell-python-contract.md)
 - [private証拠file ACLの限定形状](design/private-evidence-acl-profile.md)

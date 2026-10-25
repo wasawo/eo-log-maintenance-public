@@ -78,3 +78,7 @@ candidateの最終計上時刻で元planを再構成して完全一致を要求�
 既存の純粋予算試験はDrive API・OS clock・task・待機・予約・書込を使わない。追加の接続fixtureの書込も専用合成領域のstagingに限り、runtime/STORE/P0/Tier B受け入れには数えない。
 
 追加の[reader試験](../../tests/test_completion_wait_checkpoint.py)はschema・元bytes/文字列・精度境界・scope/時計・25回/24時間・破損/IOなしと既存helper接続を合成検証する。次に必要なのは信頼できる保存/読取provider・原子更新と、最新manifest/Drive確認の統合である。
+
+## 実Win32 APIの負例probe（2026-10-25）
+
+[比較更新providerの資格調査](checkpoint-compare-provider-qualification.md)に一次資料と隔離実験をまとめた。tests専用probeはdeny-write/delete handle下の置換失敗と、handle解放後の成功、使用点検査/実mutex後にも非協調操作の更新を古いcandidateが上書きできる反例を確認する。実APIを使うが保存先は自作OS-temp fixtureに固定し、正式provider/実root/FS資格へ昇格しない。
