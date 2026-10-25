@@ -180,49 +180,65 @@ def _valid_drive_file(item):
             and type(item.sha256_trusted) is bool)
 
 
-def compare_drive_content(source, files, *, source_trusted, expected_folder_id,
-                          observed_folder_id, enumeration_completed, downloads=()):
-    """Find exactly one name/size/SHA-256 match in supplied complete observations.
+@dataclass(frozen=True, repr=False)
+class ContentComparisonBatch:
+    status: str
+    reason_code: str
+    results: tuple[ContentComparison, ...] = ()
+    may_restore: bool = field(default=False, init=False)
+    may_report_sync_success: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
 
-    Trust/completeness flags are caller observations, never authenticated here.
-    Missing/untrusted cloud SHA requires a completed download hash observation.
-    No result authorizes sync, restore, rename, overwrite, archive or deletion.
-    These internal dataclasses do not define the unresolved IPC result fields.
-    """
-    def held(reason):
-        return ContentComparison("held", reason)
 
-    if source_trusted is not True:
-        return held("comparison_source_untrusted")
-    if (type(source) is not ComparisonSource or not _text(source.filename)
-            or not _size(source.size_bytes) or not _hash(source.sha256)):
-        return held("comparison_source_invalid")
-    if (not _text(expected_folder_id) or not _text(observed_folder_id)
-            or expected_folder_id != observed_folder_id):
-        return held("comparison_folder_unconfirmed")
-    if enumeration_completed is not True:
-        return held("comparison_listing_incomplete")
-    if type(files) is not tuple or type(downloads) is not tuple:
-        return held("comparison_observations_invalid")
+class _ComparisonInputError(ValueError):
+    pass
+
+
+def _valid_source(source):
+    return (type(source) is ComparisonSource and _text(source.filename)
+            and _size(source.size_bytes) and _hash(source.sha256))
+
+
+def _index_files(files):
+    if type(files) is not tuple:
+        raise _ComparisonInputError("comparison_observations_invalid")
     by_id = {}
     for item in files:
         if not _valid_drive_file(item):
-            return held("comparison_observations_invalid")
+            raise _ComparisonInputError("comparison_observations_invalid")
         if item.file_id in by_id:
-            return held("comparison_identity_ambiguous")
+            raise _ComparisonInputError("comparison_identity_ambiguous")
         by_id[item.file_id] = item
+    return by_id
+
+
+def _index_downloads(downloads, by_id):
+    if type(downloads) is not tuple:
+        raise _ComparisonInputError("comparison_observations_invalid")
     downloaded = {}
     for item in downloads:
         if (type(item) is not DownloadHashObservation or not _text(item.file_id)
                 or not _size(item.size_bytes) or not _hash(item.sha256)):
-            return held("comparison_download_invalid")
+            raise _ComparisonInputError("comparison_download_invalid")
         if item.file_id in downloaded or item.file_id not in by_id:
-            return held("comparison_download_unbound")
+            raise _ComparisonInputError("comparison_download_unbound")
         downloaded[item.file_id] = item
+    return downloaded
+
+
+def _group_files(by_id):
+    by_name = {}
+    for item in by_id.values():
+        by_name.setdefault(item.filename, []).append(item)
+    return by_name
+
+
+def _compare_source(source, by_name, downloaded):
+    def held(reason):
+        return ContentComparison("held", reason)
+
     matches = []
-    for item in files:
-        if item.filename != source.filename:
-            continue
+    for item in by_name.get(source.filename, ()):
         if item.size_bytes is None:
             return held("comparison_metadata_unavailable")
         if item.size_bytes != source.size_bytes:
@@ -242,41 +258,80 @@ def compare_drive_content(source, files, *, source_trusted, expected_folder_id,
     return ContentComparison("comparison_candidate", "comparison_unique_content_match", matches[0])
 
 
-def compare_reobserved_drive_content(source, before, after, *, source_trusted,
-                                     expected_folder_id, downloads=()):
-    """Compare only unchanged complete listing observations around a download.
-
-    File order is immaterial; every observed file ID and metadata must agree.
-    This performs no re-query and does not authenticate freshness or prevent ABA.
-    Reused/saved observations and matching results are never execution receipts.
-    """
+def compare_drive_content(source, files, *, source_trusted, expected_folder_id,
+                          observed_folder_id, enumeration_completed, downloads=()):
+    """Find one exact name/size/hash candidate, without provenance or authority."""
     def held(reason):
         return ContentComparison("held", reason)
 
     if source_trusted is not True:
         return held("comparison_source_untrusted")
-    if not _text(expected_folder_id):
+    if not _valid_source(source):
+        return held("comparison_source_invalid")
+    if (not _text(expected_folder_id) or not _text(observed_folder_id)
+            or expected_folder_id != observed_folder_id):
         return held("comparison_folder_unconfirmed")
+    if enumeration_completed is not True:
+        return held("comparison_listing_incomplete")
+    try:
+        by_id = _index_files(files)
+        downloaded = _index_downloads(downloads, by_id)
+        return _compare_source(source, _group_files(by_id), downloaded)
+    except _ComparisonInputError as exc:
+        return held(str(exc))
+
+
+def _unchanged_listings(before, after, expected_folder_id):
+    if not _text(expected_folder_id):
+        raise _ComparisonInputError("comparison_folder_unconfirmed")
     snapshots = []
     for listing in (before, after):
         if (type(listing) is not DriveListingObservation or type(listing.files) is not tuple
                 or any(flag is not False for flag in (listing.may_restore,
                     listing.may_report_sync_success, listing.may_archive))):
-            return held("comparison_listing_invalid")
+            raise _ComparisonInputError("comparison_listing_invalid")
         if listing.enumeration_completed is not True:
-            return held("comparison_listing_incomplete")
+            raise _ComparisonInputError("comparison_listing_incomplete")
         if not _text(listing.folder_id) or listing.folder_id != expected_folder_id:
-            return held("comparison_folder_unconfirmed")
-        files = {}
-        for item in listing.files:
-            if not _valid_drive_file(item):
-                return held("comparison_observations_invalid")
-            if item.file_id in files:
-                return held("comparison_identity_ambiguous")
-            files[item.file_id] = item
-        snapshots.append(files)
+            raise _ComparisonInputError("comparison_folder_unconfirmed")
+        snapshots.append(_index_files(listing.files))
     if snapshots[0] != snapshots[1]:
-        return held("comparison_listing_changed")
-    return compare_drive_content(source, after.files, source_trusted=source_trusted,
-        expected_folder_id=expected_folder_id, observed_folder_id=after.folder_id,
-        enumeration_completed=after.enumeration_completed, downloads=downloads)
+        raise _ComparisonInputError("comparison_listing_changed")
+    return snapshots[1]
+
+
+def compare_reobserved_drive_contents(sources, before, after, *, source_trusted,
+                                      expected_folder_id, downloads=()):
+    """Validate shared observations once and compare explicit sources in order.
+
+    Global input/listing failure returns no partial results. Per-source held
+    results remain held, and compared never means sync success or no_work.
+    No API re-query, provenance/freshness proof, cache or receipt is provided.
+    """
+    def held(reason):
+        return ContentComparisonBatch("held", reason)
+
+    if source_trusted is not True:
+        return held("comparison_source_untrusted")
+    if type(sources) is not tuple:
+        return held("comparison_sources_invalid")
+    if any(not _valid_source(source) for source in sources):
+        return held("comparison_source_invalid")
+    try:
+        by_id = _unchanged_listings(before, after, expected_folder_id)
+        downloaded = _index_downloads(downloads, by_id)
+        by_name = _group_files(by_id)
+        return ContentComparisonBatch("compared", "comparison_batch_observations_consistent",
+            tuple(_compare_source(source, by_name, downloaded) for source in sources))
+    except _ComparisonInputError as exc:
+        return held(str(exc))
+
+
+def compare_reobserved_drive_content(source, before, after, *, source_trusted,
+                                     expected_folder_id, downloads=()):
+    """Single-source compatibility API; matching metadata is never a receipt."""
+    result = compare_reobserved_drive_contents((source,), before, after,
+        source_trusted=source_trusted, expected_folder_id=expected_folder_id, downloads=downloads)
+    if result.status == "held":
+        return ContentComparison("held", result.reason_code)
+    return result.results[0]

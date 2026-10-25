@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`be0df71`、同じ`codex/drive-download-observation`で[共通Drive観測の複数source一括比較](../design/drive-content-comparison.md)を追加。前後列挙・download集合を一括検査し、名前別indexから指定順の各ContentComparisonを返す。共通不備は部分結果なしのheld、file固有の不明/不一致/0/複数候補は各結果のheldに残す。
+- batchのcomparedは比較処理完了のみで、同期成功/no_workへ変えない。空入力でも共通観測を検査し、重複sourceを勝手にdedupしない。batch/各結果の全may_*false。単一source API/直接比較は共通部品へ接続し、source batchから共通page/download/一括前後比較への合成接続も更新する。Python 3.11.9（CI 3.12）で追加Drive batch＋既存source batch/単一接続/前後照合/page/download hash/直接比較の計54件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDK/全page/query/成功binding・C-02/credential、観測の真正性/鮮度・同時snapshot/ABA・使用点資格、実source/root/FS/owner/clock、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（source一括再観測・be0df71）
+
 - 基準`79e2f29`、同じ`codex/drive-download-observation`で[PC-A比較元の複数target一括再観測](../design/drive-content-comparison.md)を追加。明示path tupleの型/字句/重複/target存在/filenameを全件I/O前に検査し、1回の全source再列挙/hashから指定順の比較元tupleを返す。単一target APIは1要素batchへ委譲して互換性を維持する。
 - 選択外を含むinventory変化/不完全で全体を拒否する。空選択も全再観測し、空結果をno_work/成功へ変えない。元B2 bytesを参照し、cache・暗黙の選択/期間補完・権限昇格なし。合成の複数source→共通page/download→前後比較まで接続する。Python 3.11.9（CI 3.12）で追加batch＋既存単一source接続/Drive前後照合の計21件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：実SDK/全page/query/成功binding・C-02/credential、source/metadataで見えない変化/ABA/同時snapshotと使用点資格、実root/FS/owner/clock、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。

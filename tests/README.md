@@ -340,3 +340,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_drive_comparison_reobservation.py`はdownload前後の完全列挙観測の集合照合と比較への接続を合成検証する。保存済み観測やmetadata一致を実再取得/現在性・archive許可へ昇格しない。
 
 `test_comparison_source_batch.py`は複数targetを1回の全source再観測へまとめる処理と、共通page/download観測からの比較を合成検証する。空選択をno_workへ変換せず、呼出し間のcacheや実行許可を設けない。
+
+`test_drive_comparison_batch.py`は共通Drive観測の一括検査・混在結果/順序・空入力・非認可と、source数に乗算されないfile検査を確認する。単一比較の既存境界も維持する。

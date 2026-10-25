@@ -59,3 +59,13 @@ collectorはfile/network APIを直接呼ばず、page提供側のI/O・timeout�
 空tupleは明示的な0件選択であり、全source再観測を省略せず、不完全な元B2や変更sourceを通さない。返却の空tupleをno_work/同期成功へ昇格しない。選択・順序・scope/PC-A/source信頼確認はcallerの独立入力で、未指定のfileや期間を自動補完しない。
 
 [合成batch試験](../../tests/test_comparison_source_batch.py)はUnicode複数target、指定順と1回の再hash呼出し、全path事前検査、選択外を含む変更/空選択/空inventory/不完全/信頼とPC-A境界、複数sourceから共通のpage/download/前後比較までを確認する。batchも同時atomic snapshotや真正な使用点資格、Drive/runtime受け入れの証明ではなく、各結果の全may_*はfalseである。
+
+## 共通Drive観測による複数sourceの比較
+
+`compare_reobserved_drive_contents`はComparisonSourceの明示tupleを受け、前後の列挙集合を1回ずつ検査し、共通download集合を1回検査する。名前別indexを作り、各sourceの同名候補だけを既存name/size/hash規則で比較する。全fileをsource数だけ再検査せず、結果tupleはcaller指定順を保持する。単一sourceの前後比較APIは1要素batchへ委譲し、直接比較APIも同じ検査/比較部品を使う。
+
+ContentComparisonBatchの`status=compared`は共通入力の検査と比較処理が完了したことだけを表す。各結果のheld/candidateは独立に保持し、全件同期成功やaggregate reportを生成しない。共通の型/信頼/folder/列挙変化/download ID不備はbatch全体をheldとし、部分結果は返さない。file固有のhash不明・不一致・0/複数一致は各ContentComparisonのheldに残す。全結果とbatchのmay_*はfalseである。
+
+空source tupleでも共通観測/downloadを検査し、空結果をno_workへ変えない。source tupleをdedupせず、同じ比較値を持つ別local pathの対応はcallerに残す。複数sourceが同じcloud IDを比較候補とすることから出所や共有・復元を認可しない。batch objectはIPC result field集合の採用でもなく、永続状態やreceipt/cacheにしない。
+
+[Drive batch試験](../../tests/test_drive_comparison_batch.py)は候補/不明/不在の混在と順序、file検査回数がsource数に乗算されないこと、共通不備の全体保留、download fallback、空選択、重複sourceの保全、単一APIの既存境界を確認する。[source batch接続](../../tests/test_comparison_source_batch.py)も1回のsource再観測→共通page/download→一括前後比較へ接続する。実API・観測真正性・同時snapshot/ABA・runtime受け入れは未実装gateのまま。
