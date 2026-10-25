@@ -1,12 +1,234 @@
 # 現在の引き継ぎ
 
-更新日: 2026-10-25（日本時間）
+更新日: 2026-10-26（日本時間）
 
 恒久ルール: [AGENTS.md](../../AGENTS.md)。旧記録: [アーカイブ](archive/pre-agents-history.md)。
 正本は Public の `wasawo/eo-log-maintenance-public`。元リポジトリは Private のまま。
 この文書の状態は記録コミット時点。実際のmain/PR/CIは作業開始時に照合する。
 
-## 今回の累積PR承認・準備
+## 最新基準と今回の作業
+
+### 累積PR承認と本セッションの終了範囲（2026-10-26）
+
+- 利用者が`c24b13a`までの実装35コミットをまとめたPR作成・マージを明示承認。本節の引き継ぎ記録を同じPRへ含め、最新PR HEADのValidate/Package Validation両成功を確認してsquash mergeする。作業branchは`codex/drive-download-observation`、比較基準は正本main `ccd4ffaf2d785828a700afe8a294f35ef308df43`。本記録時点では未push/未PR/未マージであり、結果はGitHub実状態を確認する。
+- 累積範囲：Drive完全page/hash/不足download計画/前後・一括内容比較、source/B2と初期inventory/件数要約、stagingコピーの単一/一括読取・source/Drive隔離接続、明示容量式/size射影と未資格Windows空きbytes/128-bit祖先identity、残存entry件数観測、manifest全履歴/pending段階/file別Upload4回上限/初期B2から終端report/使用点候補接続、checkpoint追記/file読取/予算・使用点接続とWin32負例、manifest候補のcaller指定bytes上限。schema/event/providerの未決契約を推測せず、実行権限は付与しない。レビューpackageは50 files。
+- PR前統合検証：Python 3.11.9（CI 3.12）で`python -B -m unittest discover -s tests -p test_*.py`計742件、740成功/既存symlink作成不可2skip。PS bridgeは7.6.7を明示。PS 7.6.7でlog49・容量67・空き領域35・root142成功、両role package回帰と変更PS構文/PSScriptAnalyzer Error成功。累積相対リンク欠落0・diff検査成功。root自己点検のみ、独立レビューなし。これらは新CIやruntime受け入れの代替ではない。
+- **マージ後は本セッションで次の実装を始めず終了する。後続作業は新規セッションで行う。** 次の担当はこの節・現在main/PR/CI・作業ツリーを照合し、マージ済みbranchを再利用せず最新mainから新しい`codex/`作業branchを作る。PR作成は利用者指示時のみ。実現したPR/merge SHAとCI結果は本チャットの添付PR/最終報告およびGitHubを照合する。
+- 未完：実Drive/credential/C-02詳細・正式PS orchestrator/task、metadata-first/event/永続run writer/CASとtrusted writer排除・一回限りreceipt、実root/ACL/FS/owner/clock/AC/session/account/provider資格、rollback/ABA・電源断・両PC/Tier B/C/runtime受け入れ。helper/CI成功を配布/実適用/削除/PC-B archiveの許可にしない。次の実装範囲は新規セッションで既承認契約と未決事項を照合して選ぶ。
+
+### 直近の実装単位
+
+- 基準`d073ebc`、同じ`codex/drive-download-observation`で[manifest directory読取りの明示bytes上限](../design/latest-manifest-selection.md#explicit-byte-budgets-for-directory-observations-2026-10-26)を追加。caller指定のoptional候補別/全候補合計上限を型検査し、旧run/別period等も含む初期size全件をpayload open前に検査する。超過候補をskip/fallbackせず全体拒否。読取りは最大65,536 byte/chunk・初期size+1 byteで増大停止し、既存signature/最終再列挙は維持する。
+- report付き選択も前後2回のmanifest観測へ同じ上限を渡す。Python 3.11.9（CI 3.12）で新規bounds7件＋既存directory/report29件の計36件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 固定の本番上限値/新schema制約は採用せず、Noneではcaller上限なし。report/evidence validator内の読取り・entry数/JSON複雑度/全memoryは今回の上限対象外。root/FS/owner/clock/現在性/ABA・実Drive/runtime受け入れは未実証。次は既承認の独立作業を選び、未決provider/資源方針を推測しない。
+
+## 直前の実装単位（checkpoint file→予算観測・d073ebc）
+
+- 基準`859e966`、同じ`codex/drive-download-observation`で[既存checkpoint file→確認待ち予算観測](../design/completion-wait-budget.md#既存fileの上限付き読取観測2026-10-26)を追加。独立scope/clock/AC/指定上限で毎回fileを読み、元checkpointと既存budgetのcheck_due/wait/hold助言をimmutable型へ保持する。全確認/待機/Archive/状態変更許可false、plan作成/試行消費・file更新・sleep/task予約を行わない。
+- Python 3.11.9（CI 3.12）で新規file予算8件＋既存budget16件＋file観測8件の計32件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 24時間/25回/間隔/残余window不足や資格不足は既存holdを保持。AC不明・欠落/破損・scope/clock/精度不備は拒否し、空履歴/通常waitへ変換しない。前回dueを流用しない。root/owner/clock/AC/session/account/provider資格、rollback/ABA・正式CAS/永続試行前計上・実確認/毎時task/runtime受け入れは未完。次は既承認の独立作業を選び、未決保存provider契約を推測しない。
+
+## 直前の実装単位（file使用点/実Win32負例接続・859e966）
+
+- 基準`f9116d5`、同じ`codex/drive-download-observation`で[file plan/使用点と実Win32置換probeの隔離接続](../design/checkpoint-compare-provider-qualification.md#file使用点との実置換接続2026-10-26)を追加。自作/所有検査済みtemp内の固定名だけで共有guard中の置換失敗/保全と解除後読戻し、competitor置換後のfresh before_commit拒否を確認する。製品provider/更新APIは追加しない。
+- 負例として、競合を古いcandidateで無条件上書きした後のafter_commit bytes一致と、同一bytes別fileへの置換で実identityが変わった後のbefore_commit一致を確認。全確認/状態変更/Archive許可falseを維持し、bytes一致を途中writer不在/identity lease/receipt/rollback/ABA防止と解釈しない。
+- Python 3.11.9（CI 3.12）で新規native接続4件＋既存probe5件＋file使用点8件の計17件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schema/製品codeは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 正式CAS/provider・trusted writer排除・predecessor/更新/readback/一回限りreceipt binding・owner/root/ACL/FS/clock/資格・永続計上/実確認・対象volume/再起動/電源断/runtime受け入れは未実証。次は保存providerの既承認境界と未決writer排除/receipt条件を照合し、未決事項を推測せず独立範囲を選ぶ。
+
+## 直前の実装単位（checkpoint file→plan/使用点接続・f9116d5）
+
+- 基準`ae4191b`、同じ`codex/drive-download-observation`で[checkpoint file観測→試行plan/保存前後使用点の接続](../design/completion-wait-budget.md#既存fileの上限付き読取観測2026-10-26)を追加。明示AC/資格boolを検査して既存fileからexact plan生成、使用点はplan/phase/clock/scope/資格の純粋事前検査後に毎回再読取し、保存前expected/保存後proposed bytesを再確認する。両入口はread-only、全確認/状態変更/Archive許可false。
+- Python 3.11.9（CI 3.12）で新規file使用点8件＋既存純粋使用点10件＋file観測8件の計26件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 保存済み成功/観測をfile代用にせず、欠落/破損/変更を非fallbackで拒否。合成所有lock取得後の変更でもownerを解放して変更bytesを保全。fixture内の候補bytes書込みは正式CAS/provider証拠ではない。実root/ACL/FS/owner/clock/AC/session/account資格、rollback/ABA・永続試行前計上・実確認/task/runtime受け入れは未実証。次は既承認の独立作業を選び、未決保存provider契約を推測しない。
+
+## 直前の実装単位（checkpoint既存file読取観測・ae4191b）
+
+- 基準`093658d`、同じ`codex/drive-download-observation`で[checkpoint既存fileの上限付き読取観測](../design/completion-wait-budget.md#既存fileの上限付き読取観測2026-10-26)を追加。明示絶対path/Windows L1・caller指定bytes上限・祖先/reparse・regular/単一link・path/handle signatureを検査し、初期size+1以内を読んで既存schema/scope/clock readerへ渡す。解析後もsignature/祖先chainを確認。file作成/更新/削除なし、全確認/Archive/状態変更許可false。
+- Python 3.11.9（CI 3.12）で新規file観測8件＋既存transition8件＋checkpoint reader12件の計28件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 既定file名/配置/サイズ制限は採用せず、上限はcaller資源制限。実root/ACL/token/FS/owner/provider資格、rollback/ABA/同時snapshot/後続不変性、正式CAS/試行前永続化・実確認/runtime受け入れは未実証。次はfile観測を既存試行plan/使用点と接続する独立範囲を選び、実更新providerの未決契約を推測しない。
+
+## 直前の実装単位（checkpoint前後追記検査・093658d）
+
+- 基準`3f2dea3`、同じ`codex/drive-download-observation`で[PC-A checkpoint前後の1試行追記検査](../design/completion-wait-budget.md#更新前後の追記検査2026-10-26)を追加。両recordを独立scope/clock/schemaで検査し、元start/既存確認履歴の文字列/順序を保全した1件追記かexact再掲載だけを許す。短縮/置換/一括追記/元時刻の再表記を拒否。既存試行planのcandidate読戻しへ接続、全確認/状態変更/Archive許可false。
+- Python 3.11.9（CI 3.12）で新規transition8件＋既存checkpoint/attempt25件の計33件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 25回目/24時間/間隔と高精度時刻の既存制限を維持。exact再掲載を新試行receiptにしない。元recordの真正性/現在性・保存喪失/rollback/ABA防止・原子的compare-and-publish/試行前永続化・OS/clock/root/FS/owner/資格・実確認/runtime受け入れは未実証。次は既承認の独立作業を選び、未決provider契約を推測しない。
+
+## 直前の実装単位（manifest履歴のUpload上限・3f2dea3）
+
+- 基準`8afa7c4`、同じ`codex/drive-download-observation`で[提示manifest履歴のfile別Upload上限](../design/manifest-transition-inspection.md#提示履歴のupload試行上限)を追加。ready→pendingを初回、unknown→pendingを再試行境界として最大4回を検査し、5回目を拒否。登録pending/同一snapshot/配列順で消費・リセットせず、別file予算を合算しない。4回後のunknownをfailedへ変えず、超過履歴は終端report生成前に停止する。
+- Python 3.11.9（CI 3.12）で新規予算8件＋既存履歴10件＋終端履歴9件の計27件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 提示履歴の境界検査であり、実API試行の漏れない記録/実送信・永続counter・60/300/900秒待機・unknown retry前の完全不在照合やPS orchestratorを実装/認証しない。全公開/Upload/retry/Archive許可false。metadata-first/event/provider/root/FS/使用点・writer/runtime受け入れは未完。次は既承認の独立作業を選び、未決仕様を推測しない。
+
+## 直前の実装単位（終端履歴使用点/候補bundle接続・8afa7c4）
+
+- 基準`70d4cb9`、同じ`codex/drive-download-observation`で[終端履歴planの使用点再導出＋候補bundle隔離接続](../design/manifest-transition-inspection.md#初期planからの全履歴binding)を追加。独立初期plan/履歴/B2/現在running bytes/AC/contextと厳密型/flagsを確認し、全履歴/reportを毎回再構成してplan全体とexact照合する。自作tempの合成所有lock内で現在runningを読み、別candidate保存/semantic読戻しを両PC相当で接続。元runningは更新せず、全公開/Upload/retry/Archive/状態変更許可false。
+- Python 3.11.9（CI 3.12）で新規使用点/隔離接続9件＋既存全履歴9件の計18種類成功、skipなし。初回27件にはimportによる既存9件の重複実行を含み、module aliasへ整理。nested plan/historyの厳密型/flag検査強化後、新規9件のみ再実行して成功。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- lock取得後の現在running変更/AC喪失では候補fileを書かず、変更bytesを保全してowner解放。独立引数のprovider真正性/履歴完全性・metadata-first/event証拠・実copy/Drive/API・owner/root/clock/FS/容量/使用点・実writer/永続化/runtime受け入れは未実証。次は既承認の独立作業を選び、未決provider/event契約を推測しない。
+
+## 直前の実装単位（初期plan/全履歴/終端report binding・70d4cb9）
+
+- 基準`f964bca`、同じ`codex/drive-download-observation`で[初期plan/B2→連続履歴→終端report候補のbinding](../design/manifest-transition-inspection.md#初期planからの全履歴binding)を追加。独立contextでexact初期planを再構成し、先頭exact一致と全履歴のpending段階/遷移/終端を検査。最初のterminalと本来のrunning priorを既存OSD-03/G1 report builderへ接続し、終端繰返しでもpriorを取り違えない。専用immutable plan/全公開・Upload・retry・Archive・状態変更許可false。
+- Python 3.11.9（CI 3.12）で新規9件＋既存history10件＋terminal plan9件の計28件成功、skipなし。初回はテストのreport status参照先2か所が既存schemaと不一致、修正後新規9件成功。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 未解決file/error/不完全coverageをsuccess/no_workへ補完せず、runningだけの履歴は終端reportへ変換しない。履歴真正性/完全性・event/metadata-first証拠・実copy/Drive/API・owner/clock/FS/容量/使用点・writer/永続化/runtime受け入れは未実証。次は既承認の独立作業を選び、未決writer/event契約を推測しない。
+
+## 直前の実装単位（manifest連続履歴検査・f964bca）
+
+- 基準`8721021`、同じ`codex/drive-download-observation`で[初期登録からのmanifest連続履歴検査](../design/manifest-transition-inspection.md#初期登録からの連続履歴検査)を追加。exact snapshot tupleを既存pair/schema/identity/凍結inventory/時刻/verification/終端検査へ通し、path単位で登録pendingとUpload直前pendingを区別する。登録pending→uploaded/unknownとUpload pending→stagingを拒否、unknown→pendingのretry遷移を別計数。全公開/Upload/retry/Archive許可false。
+- Python 3.11.9（CI 3.12）で新規history10件＋既存pair11件の計21件成功、skipなし。初回はtest fixtureへschema外outcomeを設定した1件error、修正後history10件成功。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 入力履歴の真正性/完全性・metadata-first/event証拠・実copy/Drive/API・retry不在照合/予算/待機・所有権/clock/FS/使用点・実writer/永続化/runtime受け入れは未実証。終端もOSD-03/B2集約の代替にならず、crash-left runningを修復しない。次は既承認の独立作業を選び、未決writer/event契約を推測しない。
+
+## 直前の実装単位（staging/Drive内容観測接続・8721021）
+
+- 基準`7205366`、同じ`codex/drive-download-observation`で[毎回のstaging再読取とDrive内容観測比較の接続](../design/source-inventory-revalidation.md#既存stagingとdrive観測の接続)を追加。独立context/初期plan/明示allocationでcopyを再照合してから、元basename/size/hashを独立source信頼・前後完全列挙・不足hash計画/完了集合の厳密比較へ渡す。共通Drive不備はlocal観測保全/比較集合なしheld、file単位不一致は個別held。全Upload/retry/同期成功/状態変更/Archive許可false。
+- Python 3.11.9（CI 3.12）で新規接続8件＋既存staging batch8件＋計画比較7件の計23件成功、skipなし。初回は既存suite名を取り違えImportError、正名で実行して成功。接続内部の型/tuple/件数/全false flag検査強化後、新規接続＋計画比較15件成功。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- PC suffixの暗黙alias/出所推測なし。空選択はno_workではなく、copy一致からsource信頼や実Upload結果を推測しない。正式metadata/history・割当identity/root/FS/owner/容量/使用点資格・実API/Upload/再試行/同期/runtime受け入れは未完。次は既承認の独立作業を選び、未決writer/adapter契約を推測しない。
+
+## 直前の実装単位（既存staging一括照合・7205366）
+
+- 基準`fc7dc29`、同じ`codex/drive-download-observation`で[既存staging一括照合](../design/source-inventory-revalidation.md#既存staging-copyの独立読取観測)を追加。全allocationのI/O前検査・重複target/候補名拒否・plan再構成1回・全選択fileのhash前size確認と全hash後signature/祖先chain照合を行い、指定順tuple全体か拒否のみを返す。単一APIもbatchへ委譲、全操作許可falseを維持する。
+- 共有hash helperへoptional expected_sizeを追加。凍結sizeと初期statが異なるfileはopen前に拒否し、open handle照合/size+1 byte上限も維持する。Python 3.11.9（CI 3.12）で新規batch8件＋単一8件＋既存hash identity9件＋builder7件の計32件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 空選択はno_workではなく、選択外fileを検査しない。逐次観測であり同時snapshot/ABA/後続不変性は未実証。正式metadata-first/history・割当identity binding・root分離/FS/owner/容量/使用点資格・実Upload/adapter/runtime受け入れは未完。次は既承認の独立作業を選び、正式writerの未決field契約は推測しない。
+
+## 直前の実装単位（既存staging copy読取照合・fc7dc29）
+
+- 基準`4ab120a`、同じ`codex/drive-download-observation`で[凍結planと既存staging copyの読取照合](../design/source-inventory-revalidation.md#既存staging-copyの独立読取観測)を既存SourceInventoryRevalidation moduleへ追加。独立contextでexact planを再構成し、明示target/sequence・basename L1字句を検査。source非読取で既存copyの祖先chain/reparse/regular/単一link・前後entry signature・bounded size/hashを確認する。全Upload/状態変更/cleanup/Archive許可false。
+- Python 3.11.9（CI 3.12）で新規8件＋既存使用点/copy接続16件成功、skipなし。初回はtest側のinit=False field改変方法に1件error、fixtureを修正して新規8件成功。自己点検でbasename L1検査追加後も新規8件成功。CI定義登録、CI自体未実行。配布file集合50件/PS/schemaは不変、無関係な検査を再実行しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 未完：正式metadata-first/history・copy時割当identity binding・root分離/ACL/FS/provider/owner/容量資格・実Upload使用点/adapter/runtime受け入れ。同時snapshot/ABA/後続変化を防止せず、source不在でも照合成立することはUpload認可にならない。次は正式writerの既承認契約と未決field境界を整理してから実装範囲を選ぶ。
+
+## 直前の実装単位（tests専用upload staging copy接続・4ab120a）
+
+- 基準`d178815`、同じ`codex/drive-download-observation`で[tests専用upload staging copy接続](../design/staging-file-lifecycle.md)を追加。凍結plan/B2/source再検査を合成所有lock下のcreate-new copy・fsync/close・identity/単一link/size/hash読戻し・source最終照合に接続する。既存名の上書きなし、次sequenceは明示指定のみ。部分file/変更fileを保全し、失敗時もownerを解放する。
+- 両PC/log、空/複数block、source変化、衝突、部分disk-full注入、short write、copy後改変/元sourceへのhardlink置換を検証。Python 3.11.9（CI 3.12）で新規7件＋既存使用点9件の計16件成功、skipなし。CI定義へ新規suite登録、CI自体は未実行。配布50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミットで区切り、push/PRなし。
+- tests-onlyであり正式copy/metadata-first writer/ready状態/Upload/cleanupを提供しない。全Upload/状態変更許可false。実容量枯渇、電源断、同時snapshot/ABA、root/FS/provider資格・runtime受け入れは未実証。次は既承認の独立作業を選ぶ。正式writer/providerの未決境界は推測せず残す。
+
+## 直前の実装単位（残存staging直下観測・d178815）
+
+- 基準`6e33967`、同じ`codex/drive-download-observation`で[残存staging直下entry観測](../design/staging-residual-observation.md)を追加。既存絶対rootを内容非読取・非再帰で列挙し、file/dir/otherの件数と警告要否を返す。reparse/不明/重複/前後変化はheldとして、初回確定件数を保持する。0観測を不完全なまま完全検査へ変えない。
+- 全作成/Upload/cleanup/Archive許可false。metadata解析/field集合・旧run所有権・時刻based cleanup・運用status変更を採用しない。直下列挙成立は完全startup gateやroot/FS/provider資格ではない。追加moduleを両roleレビューpackageへ登録しfile集合は50件。Python 3.11.9（CI 3.12）で新規8件成功（skipなし）。PS 7.6.7で両role package回帰・変更package試験PS構文/PSScriptAnalyzer Error検査成功。変更のないsource/Drive/容量/native root/schema検査は繰り返さない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実staging/root/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：正式残存metadata/旧run検査・startup warning/失敗/Upload停止の強制とroot/FS/owner/provider資格、実source/容量/copy、実SDK/C-02/credential・C1/C2 writer・Drive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（初期inventory件数要約・6e33967）
+
+- 基準`1b3bb33`、同じ`codex/drive-download-observation`で[初期inventoryの件数のみ要約](../design/initial-inventory-observation.md)を追加。専用観測型・元B2・選択/比較件数/順序/対象対応/全false flagを検査し、inventory全体/選択/比較済み/候補/held/未比較/既知errorを分離する。共通不備は未比較、空選択は全体0件とは区別する。
+- path/filename/ID/hash/bytes/reasonを要約へ転記せず、固定kind/statusと整数件数のみ返す。歴史要約でsource/Driveを再観測せず、保存/診断イベント/通知/正式reportを採用しない。全操作許可false、現在性やreceiptにも昇格しない。Python 3.11.9（CI 3.12）で追加件数要約＋既存初期inventory接続の計13件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実source/Drive/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：初期inventoryの永続schema/root/診断/通知、source/backupとfolder/query/metadata/完了の真正性/現在性、実SDK/C-02/credential・root/FS/owner/clock/使用点、C1/C2 writer・復元/同期/両PC/archive gateとruntime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（初期inventory接続・1b3bb33）
+
+- 基準`ae6ef30`、同じ`codex/drive-download-observation`で[初期inventory専用の読取観測接続](../design/initial-inventory-observation.md)を追加。PC-A sourceを毎回再観測し、明示pathの比較元とDrive前後列挙/計画/完了hashの厳密batch比較を件数・順序付きで結ぶ。専用型へ元B2/選択path/各比較を保持し、共通不備は比較file集合なしでheld、選択/B2は保全する。
+- 運用manifest型/状態/report/保存とは分離し、同期成功/復元/Archive/運用manifest公開の許可は全false。空選択を全件完了/no_workへ変えず、既知errorや過去B2を補完しない。永続inventory schema/rootや実SDK/C-02は採用しない。Python 3.11.9（CI 3.12）で追加初期inventory接続＋既存source batch/計画比較の計21件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実source/Drive/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：専用inventory永続schema/保存領域と診断、source/backup・folder/query/metadata/完了の真正性/現在性、実SDK/C-02/credential・root/FS/owner/clock/使用点、C1/C2 writer・復元/同期/両PC/archive gateとruntime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（PC suffix命名・ae6ef30）
+
+- 基準`930e672`、同じ`codex/drive-download-observation`で[PC suffixの純粋命名観測](../design/drive-content-comparison.md)を追加。承認済みsource filename文法/実在日付と既存L1字句を検査し、元basenameを保持してextension直前へ_PCA/_PCBを付ける。Unicode/case/spacingや既存suffix文字列から出所を推測/修復しない。
+- 元名/候補名/指定PC/logをimmutableに保持し、rename/Upload/上書き/Archive許可は全false。候補名でB2/source文法を変更せず、OSD-01 name比較も別名化しない。既存fileの出所/内容差/競合の確認と衝突解消は別gate。Python 3.11.9（CI 3.12）で追加命名＋既存直接比較/L1字句の計18件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：原名/final名の正式adapter結果/記録・衝突解消orchestratorと現在内容/出所確認、実SDK/C-02/credential、root/FS/token/clock/owner・容量/使用点資格、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（祖先chain照合・930e672）
+
+- 基準`031ecfb`、同じ`codex/drive-download-observation`で[空きbytes観測の祖先chain照合](../design/staging-file-lifecycle.md)を追加。leaf→drive rootのcanonical/extended identityを前後収集し、空/未取得/legacy・長さ変化・各位置の差を拒否する。内部path/IDを公開結果へ出さず、FreeSpaceReliable/作成/Upload許可はfalseのまま。
+- leafのID/bytesを維持したまま親を同名差替えする隔離試験と、合成chain不備を追加する。移動の全絶対pathは自作temp配下を検査する。連続metadata観測であり、同時snapshot・query中pin・ID再利用/ABA・実root/FS資格は未実証。既存canonical API/native layoutは不変。PS 7.6.7で空きbytes/祖先chain35件成功（junction skipなし）。変更PS構文/PSScriptAnalyzer Error検査成功。native layout/既存canonical APIが不変のため前単位で成功したroot142件は重複実行しない。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査も再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実運用root/FS/provider/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実root/FS/provider/token/clock/ownerと容量資格・使用点、正式PS transport/対象履歴/copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（FileIdInfo必須化・031ecfb）
+
+- 基準`cf1cdd4`、同じ`codex/drive-download-observation`で[空きbytes観測のFileIdInfo必須化](../design/staging-file-lifecycle.md)を追加。同一handleで64-bit volume serial/128-bit file IDも取得し、全bitを保持して前後照合する。pre/post未取得・legacy-onlyは保留し、64-bit照合へfallbackしない。pre未取得は空きbytes query前に停止する。
+- 既存canonical文字列/legacy観測APIの互換性は維持。内部形式でありconfig/owner-v2形式を決めず、公開結果へidentityを出さない。native取得・UInt64最大値付近の各field差・pre/post未取得を追加検証する。FSごとの対応・ID再利用/ABA・query中pin/実root資格は未実証で、信頼/許可flagはfalseのまま。PS 7.6.7で空きbytes/extended identity30件＋既存root検査142件成功（junction/short-name skipなし）。変更PS構文/PSScriptAnalyzer Error検査成功。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実運用root/FS/provider/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実FS/provider/token/root/clock/ownerと容量資格・使用点、正式PS transport/対象履歴/copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（directory identity照合・cf1cdd4）
+
+- 基準`b48ac0e`、同じ`codex/drive-download-observation`で[空きbytes query前後のdirectory identity照合](../design/staging-file-lifecycle.md)を追加。同じnative handleからcanonical path/volume serial/file index high・lowを観測し、前後の検出可能な差を拒否する。既存canonical文字列APIは委譲して維持し、内部identityを公開結果やログへ出さない。
+- 同名directoryの実差替えと、同じcanonical名で各identity fieldが変わる合成試験を追加する。FSごとのID制約/再利用/ReFS 64-bit非一意性・query中のpin/ABAは未解決で、FreeSpaceReliable/作成/Upload許可はfalseのまま。PS 7.6.7で空きbytes/identity21件＋既存root検査142件成功（junction/short-name skipなし）。変更PS構文/PSScriptAnalyzer Error検査成功。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実運用root/容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実root/provider/FS/token/clock/ownerと容量資格・使用点、正式PS transport/対象履歴/copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（Windows空きbytes観測・b48ac0e）
+
+- 基準`c6add52`、同じ`codex/drive-download-observation`で[Windows caller利用可能bytesのmetadata観測](../design/staging-file-lifecycle.md)を既存root inspectorへ追加。既存drive-rooted directory/reparse排除・前後canonical観測一致を要求し、GetDiskFreeSpaceExWのcaller available UInt64をBigIntegerで返す。失敗/変更時は固定reason/null bytesで保留し、path/volume/raw例外を返さない。
+- 成功もFreeSpaceReliable=false、MayCreateStaging/MayUpload=falseで、実root/token/ACL/FSの資格・現在性/同時snapshot/ABA・予約を証明しない。Add-Type初期化を含むDry Run A/runtime資格は未実証。自作OS-tempだけでnative読取・mock最大値/障害/変更と既存root回帰を検証する。PS 7.6.7で追加空きbytes16件＋既存root検査142件成功（junction/short-name skipなし）。変更PS構文/PSScriptAnalyzer Error検査成功。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実運用root/容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実root/FS/token/clock/ownerと容量の資格・使用点、正式PS transport/対象履歴/copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（容量stdin bridge・c6add52）
+
+- 基準`078cabc`、同じ`codex/drive-download-observation`で[Python size射影→PS容量の隔離bridge](../design/staging-file-lifecycle.md)をtests専用に追加。合成exact manifest/B2からsizeを導出し、数値/信頼値だけをstdin JSONで固定driverへ渡す。PS 7.6.7の実版と、stdoutの合計/必要量が整数を保つことを検査する。
+- 両PC/log・閾値/1 byte不足・巨大整数・空集合/固定reserve・不明空き容量・不正memberを検査する。入力のcode評価・実path/設定/容量照会/保存/通信はなし。stdin shapeを正式IPC/C-02採用へ昇格せず、全MayCreateStaging/MayUpload=false。Python 3.11.9（CI 3.12）＋PS 7.6.7で追加bridge試験4件・合成入力16ケース成功（skipなし）。変更tests PS構文/PSScriptAnalyzer Error検査成功。配布file集合49件/runtime code/schemaは不変で、既存のsize射影/PS容量67件・package/schema検査は重複実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：正式PS transport/encoding/重複key/security資格、履歴に基づく実target選択とsource/容量/root/FS/clock/owner資格、copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（manifest/B2のsize射影・078cabc）
+
+- 基準`e5b8428`、同じ`codex/drive-download-observation`で[凍結manifest/B2からの明示size射影](../design/staging-file-lifecycle.md)を追加。独立PC/log/period/run・schema/digest/inventory/coverage/clock整合を検査し、明示canonical path群のsize tuple/整数合計を元exact bytesへ結び付ける。空選択も全体検査を省略せず、既知errorsを消さない。
+- pendingはstaging前/Upload直前の両方なので、file状態から残りtargetやcopy可否を推測しない。runningは生存/fresh runの証拠ではなく、全may_create_staging/may_upload/may_archive=false。内部Python観測でPS transport/保存/遷移は未実装。Python 3.11.9（CI 3.12）で追加size射影＋既存initial plan/遷移の計25件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実source/容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：履歴に基づく実target選択・source/容量/root/ACL/FS/clock/owner資格、PS transportと開始/各file直前の取得・copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（明示size配列の合計・e5b8428）
+
+- 基準`c52d359`、同じ`codex/drive-download-observation`で[明示target size集合の容量合計](../design/staging-file-lifecycle.md)を追加。1次元配列の非負Int32/Int64/BigIntegerを全件検査してBigInteger合計を導出し、既存容量観測へ接続する。不正memberで部分合計を返さず、空配列も固定reserve計算を省略しない。
+- 残りtarget/manifest状態の選択やinventory出所は外部gateに残し、入力を変更せず、全MayCreateStaging/MayUpload=false。EOLM-STG-009を純粋計算/合計のみpartialとして対象行だけ更新する。PS 7.6.7で容量観測/配列合計の計67件成功（既存43件を含む）。変更PS構文/PSScriptAnalyzer Error検査成功。前単位で成功した変更のないLogFunctions既存49件は重複実行しない。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実target選択/凍結inventoryと容量/root/ACL/FS/clock/owner資格、開始/各file直前の取得・容量変化時copy失敗、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（upload容量式・c52d359）
+
+- 基準`f579da4`、同じ`codex/drive-download-observation`で[upload staging容量式の純粋観測](../design/staging-file-lifecycle.md)を既存PS helperへ追加。非負Int32/Int64/BigIntegerのremaining/freeと明示reliableから、残りbytes＋ceil(10%)＋100,000,000 bytesを整数のみで算出する。型不正は拒否、不明/不足は保留。0残量も固定reserveを省略しない。
+- 結果はMayCreateStaging/MayUpload=falseで、実空き容量を取得/予約せず、downloadの容量方針へ転用しない。開始時/各file直前のfreshなprovider観測・容量変化時の保存失敗対応は正式runtime gateに残す。PS 7.6.7で追加容量観測43件＋既存LogFunctions 49件成功。変更PS構文/PSScriptAnalyzer Error検査成功。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実容量/root/ACL/FS/clock/owner資格とupload copy接続、実SDK/C-02/credential・全page/download成功binding、同時snapshot/ABA/電源断、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（download staging隔離接続・f579da4）
+
+- 基準`0659bc3`、同じ`codex/drive-download-observation`で[download新規stagingの隔離接続](../design/drive-content-comparison.md)をtests専用に追加。自作OS-temp/所有marker/実mutex内で試行ごとに別directoryとcreate-new fileを使い、flush/close後の実fileをhash観測へ接続する。計画→実staging→読戻しhash→再page→計画完了集合検査/比較までを合成接続する。
+- 途中失敗/short/overlong/未完了/不正chunk/root/requirementと読戻し前変更を拒否し、旧部分file/競合fileを保全する。次試行は新file、失敗時もowner解放。cleanupは自作rootのidentity/marker確認後だけ。正式root/filename/API/容量方針は採用せず、Dry Run Aを緩和しない。Python 3.11.9（CI 3.12）で追加staging接続＋既存計画完了集合/hashの計21件成功（skipなし、通常の隔離試験権限で実行）。配布file集合49件/PS/schema/runtime codeは不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDK/ID・bytes・完了/queryの真正binding・C-02/credential、PS retry予算/時間/新staging資格、正式root/ACL/容量/FS/owner/clock、敵対的ABA/同時snapshot・process crash/電源断耐久性、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（計画/完了集合検査・0659bc3）
+
+- 基準`8f13fd0`、同じ`codex/drive-download-observation`で[計画と完了download集合の整合接続](../design/drive-content-comparison.md)を追加。plan/requirementの厳密型/全false flagを確認し、現source/列挙から毎回再導出して一致を要求する。前後列挙不変、計画IDと完了観測IDの全件一致・実size一致の場合だけ各sourceの比較へ進む。
+- 改変/不足/余分/重複/未知ID/size不一致/共通不備は部分結果なしで全体保留。誤hashは各結果で保留し、既存のfileごと不足観測を保留するAPIは維持。source batch→page→計画→合成bytes/hash→再page→完了集合検査→比較を接続し、計画/観測再利用・空集合を権限/成功/no_workへ変えない。Python 3.11.9（CI 3.12）で追加計画接続＋既存download計画/Drive batch/source batchの計28件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDK/ID・bytes・完了/queryの真正binding・C-02/credential、source/観測の現在性・同時snapshot/ABAと使用点資格、実root/FS/owner/clock、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（不足hash対象計画・8f13fd0）
+
+- 基準`ca81da1`、同じ`codex/drive-download-observation`で[不足download hash観測の対象計画](../design/drive-content-comparison.md)を追加。完全列挙・明示source信頼/folderに対し、同名同sizeのSHA欠落/未確認fileをIDごとにまとめて安定順序で返す。信頼済みSHA・名前/既知size違いは除外し、同名size不明や共通不備は部分計画なしで保留する。
+- statusは必要観測あり/比較入力あり/heldを区別し、may_downloadを含む全may_*false。対象0件・計画再利用から成功/no_work/実行/再送を認可しない。source batch→page→計画→合成download hash→再page→一括比較を接続する。Python 3.11.9（CI 3.12）で追加download計画＋既存Drive batch/前後照合/直接比較/source batchの計37件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDK/取得時ID・完了・size/queryの真正binding・C-02/credential、観測の現在性/同時snapshot/ABAと使用点資格、実source/root/FS/owner/clock、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（Drive一括比較・ca81da1）
+
+- 基準`be0df71`、同じ`codex/drive-download-observation`で[共通Drive観測の複数source一括比較](../design/drive-content-comparison.md)を追加。前後列挙・download集合を一括検査し、名前別indexから指定順の各ContentComparisonを返す。共通不備は部分結果なしのheld、file固有の不明/不一致/0/複数候補は各結果のheldに残す。
+- batchのcomparedは比較処理完了のみで、同期成功/no_workへ変えない。空入力でも共通観測を検査し、重複sourceを勝手にdedupしない。batch/各結果の全may_*false。単一source API/直接比較は共通部品へ接続し、source batchから共通page/download/一括前後比較への合成接続も更新する。Python 3.11.9（CI 3.12）で追加Drive batch＋既存source batch/単一接続/前後照合/page/download hash/直接比較の計54件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDK/全page/query/成功binding・C-02/credential、観測の真正性/鮮度・同時snapshot/ABA・使用点資格、実source/root/FS/owner/clock、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（source一括再観測・be0df71）
+
+- 基準`79e2f29`、同じ`codex/drive-download-observation`で[PC-A比較元の複数target一括再観測](../design/drive-content-comparison.md)を追加。明示path tupleの型/字句/重複/target存在/filenameを全件I/O前に検査し、1回の全source再列挙/hashから指定順の比較元tupleを返す。単一target APIは1要素batchへ委譲して互換性を維持する。
+- 選択外を含むinventory変化/不完全で全体を拒否する。空選択も全再観測し、空結果をno_work/成功へ変えない。元B2 bytesを参照し、cache・暗黙の選択/期間補完・権限昇格なし。合成の複数source→共通page/download→前後比較まで接続する。Python 3.11.9（CI 3.12）で追加batch＋既存単一source接続/Drive前後照合の計21件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDK/全page/query/成功binding・C-02/credential、source/metadataで見えない変化/ABA/同時snapshotと使用点資格、実root/FS/owner/clock、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（Drive前後照合・79e2f29）
+
+- 基準`1ca5cd4`、同じ`codex/drive-download-observation`で[download前後の完全列挙観測照合](../design/drive-content-comparison.md)を追加。両観測の型/flags/完全性/folder/file/ID一意性と全metadata集合を照合し、変化なしの場合だけ既存比較へ進む。並び順差は許すが、追加/削除/rename/ID置換/size/hash/信頼確認状態や対象外fileの変化は保留する。
+- 実APIの再取得や前後関係/現在性は認証せず、保存済み観測やmetadata一致をreceipt/実行許可へ変えない。結果は全may_*false。PC-A source再観測→page→download hash→再page→比較の合成接続も更新する。Python 3.11.9（CI 3.12）で追加前後照合＋既存source接続/page/download hash/比較の計40件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDK/全page/query/成功の真正なbinding・C-02/credential、metadataで見えない内容変化/ABA/同時snapshotと使用点資格、実source/root/FS/owner/clock、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（比較元source再観測・1ca5cd4）
+
+- 基準`b2155d6`、同じ`codex/drive-download-observation`で[比較元のPC-A source再観測接続](../design/drive-content-comparison.md)を追加。exact B2とcanonical relative path・独立scope/clock/reference date・明示source信頼確認を要求する。PC-Aの一意targetを選択し、全sourceを毎回再列挙/hashして一致時だけ比較元と元B2を返す。同名別pathを推測せず、PC-B/未信頼/対象不在・不正/不完全・source変更を拒否する。
+- immutable観測も全may_*false。sourceの真正性をPC-Aラベル/hashから認証せず、既知validation errorsをrun成功へ変えない。合成source→page→download hash→比較まで接続し、元bytes/source保全とcandidate書込み0件を確認する。Python 3.11.9（CI 3.12）で対象43件中、初回42件成功・既存rename試験1件がsandbox temp内アクセス拒否。コード/期待値を変えず、その1件を通常の隔離試験権限で再実行して成功（skipなし）。対象は追加比較元接続＋既存source再観測/page/download hash/比較。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：source/folder/metadata/clock/owner/root/FSの真正性と使用点資格、観測後の変化/ABA・同時snapshot、実SDK/全page/download成功binding、C-02/credential、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（page集約・b2155d6）
+
+- 基準`148fe6f`、同じ`codex/drive-download-observation`で[内部pageの完全列挙観測集約](../design/drive-content-comparison.md)を追加。各pageのfolder/成功・requested/next tokenの連続性・循環なし・一意終端とID重複なしを検査し、全iteratorの正常終了後だけfile集合を返す。0 page/終端欠落/途中例外/余分なpage/不明fileを完全な0件へ変換しない。
+- page/結果は内部immutable観測で、IPC C-02結果schemaを定めず、実API応答の出所/成功/全件を認証しない。結果も全may_*false。既存file検査を共通化し、合成page→download実bytes hash→比較の接続と複数内容一致時保留を追加する。Python 3.11.9（CI 3.12）で追加page集約＋既存download hash/比較の計26件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDKとquery/folder/token/成功の真正なbinding、pagination/timeout/件数予算/resource管理、C-02詳細/credential、実source/metadata/clock/owner/root/FS、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（download stream観測・148fe6f）
+
+- main`ccd4ffaf2d785828a700afe8a294f35ef308df43`は[PR #43](https://github.com/wasawo/eo-log-maintenance-public/pull/43)マージ済み。mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40174574117) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40174574154)とも成功確認済み。再開指示を受け、最新取得mainから新branch`codex/drive-download-observation`を作成した。
+- 既存比較moduleへ[download chunkの実bytes/hash観測](../design/drive-content-comparison.md)を追加。独立期待sizeと明示完了・file IDを要求し、非空exact bytes chunkをstream処理して既存DownloadHashObservationへ結び付ける。size超過時は残りを読まず停止し、不足/途中例外/不正chunkで観測を返さない。raw例外は固定reasonへ置き換える。
+- bytes蓄積・自動retry/close・temp保存は行わない。stream所有権/解放とfile ID・完了の真正なbindingはcaller/providerに残る。合成chunk/hashからOSD-01比較fallbackまで接続する。Python 3.11.9（CI 3.12）で追加stream観測＋既存比較の計17件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDK/IPC C-02/credential、全page取得と信頼済みsource/folder/metadata・download完了/ID binding、timeout/resource管理、C1/C2 writer、実root/ACL/FS/owner/clock、両PC/Drive/archive gateとruntime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 前PRの準備記録（PR #43へ統合済み）
 
 - 2026-10-25、利用者が「ここまでの実装をまとめてPR作成してマージして」と明示承認。最新取得main`1036b30`（PR #42）に対し、`codex/initial-manifest-plan`の8実装コミット`efc6733`〜`5e38d7f`と本記録を1PRにまとめる。記録時点はpush/PR/新CI/マージ前。
 - 範囲：B2初期running/pending plan、source実列挙との隔離接続、凍結B2再観測と初期使用点、列挙完了前再確認、hashの早期identity/サイズ上限検査、終端plan使用点再導出、OSD-01の同一内容比較候補。関連tests/docs/CIと両roleレビューpackage49件を含む。IPC/保存schemaとPS runtime契約は変えない。

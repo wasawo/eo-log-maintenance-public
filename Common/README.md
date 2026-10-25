@@ -6,7 +6,23 @@
 
 `CompletionWaitCheckpoint.py`は[確認予算checkpoint](../docs/design/completion-wait-budget.md)のclosed schemaと期待scope・現在UTCを使う純粋readerです。元bytes・時刻文字列・履歴順を保持し、欠落/破損から予算をリセットしません。既存helperへの変換で精度を失う時刻は拒否し、実保存・現在性/rollback防止・試行前永続計上は別ゲートです。
 
+同moduleの`inspect_completion_wait_checkpoint_transition`は前後2記録のstart/既存履歴原文字列を保全し、exact再掲載か1試行だけの追記を検査します。既存試行plan生成へ接続済みで、短縮/置換/一括追記を拒否します。全許可false、実保存/CAS/rollback防止や確認receiptではありません。
+
+`observe_completion_wait_checkpoint_file`は明示既存絶対pathとcaller指定bytes上限でread-only観測します。祖先/reparse・単一link・path/handle signature・初期size+1上限を検査し、schema読取り後もmetadataを確認します。元bytesを保持して全許可false、欠落時作成/更新なし。実root/FS/owner資格やrollback/ABA防止は別gateです。
+
+`assess_completion_wait_checkpoint_file`は毎回のfile読取を既存予算のcheck_due/wait/hold判定へ接続します。元checkpoint/次候補UTCを保持する非認可観測で、試行消費・plan作成・sleep/taskを実行せず、全確認/待機/Archive/状態変更許可false。欠落/破損/不明を空履歴や通常waitへ補完しません。
+
+`CompletionWaitAttempt.py`の`prepare_completion_wait_attempt_from_file`はこの読取から1試行planを構築します。`inspect_completion_wait_attempt_file_usepoint`はplan/資格の純粋事前検査後に毎回fileを再読取し、保存前はexpected/保存後はproposed bytesを再確認します。両方ともread-onlyで、確認/状態変更/Archiveを認可せず、正式CAS/providerの資格は別gateです。
+
 `ManifestTransitionInspection.py`は[遷移表の前後snapshot検査](../docs/design/manifest-transition-inspection.md)を行う純粋helperです。schema/identity/凍結inventory、verificationと時刻整合、終端不変性、未掲載ペアを確認します。掲載ペアの結果も`requires_runtime_evidence`であり、所有権・staging・Drive・OSD-03集約・永続更新の認可にはなりません。
+
+同moduleの`inspect_manifest_history`は初期登録からの明示snapshot tupleを検査し、登録pendingとUpload直前pendingをpath単位で区別します。登録pendingからuploaded/unknownへの飛越しやUpload pendingからのstaging再開を拒否し、retry pendingを別計数します。結果は件数のみ/全許可falseで、真正な履歴・event証拠・実writerの受け入れではありません。
+
+履歴中のUpload pending境界にはfile別の最大4回上限を適用します。5回目は拒否し、重複snapshot/配列順で予算を消費/リセットしません。上限到達だけでunknownをfailedへ変えず、実API回数/待機/不在照合は認証しません。
+
+`prepare_terminal_manifest_history`は独立contextで初期planを再構成し、exact先頭から終端までの連続履歴とB2/OSD-03/G1 report生成を接続します。終端の繰返しでも本来のrunning priorを保持し、途中省略や集約不備を拒否します。結果は専用非認可planで、event/永続化や実copy/Driveの証明ではありません。
+
+`revalidate_terminal_manifest_history`は独立履歴/B2/現在running bytes/AC/contextを要求し、型/flagsとexact対応を確認して全plan/reportを毎回再導出します。結果は引き続き非認可で、実provider/現在性/write leaseではありません。tests専用の所有lock→別candidate保存/読戻し接続でも元runningを更新しません。
 
 `DriveRequestPath.ps1`の`Test-DriveRequestFilePath`と`DriveRequestPath.py`の`is_drive_request_file_path`はC-01 P1/L1のrequestファイルパス字句だけを検査する純粋bool helperです。drive-rooted形と各componentを独立して検査し、予約stemはASCIIだけで大小比較します。文字列の修復/正規化、固定maxLength、file/root/FS照会は行いません。request schemaも同じgrammarを適用し、指定先/root/使用点の認可と正式adapter接続は別ゲートです。
 
@@ -96,6 +112,8 @@ LatestManifestSelection.py independently parses the defined manifest basename an
 
 ManifestDirectoryReader.py adds read-only observations of the defined per-PC manifest directory and returns the exact validated byte snapshot plus SHA-256. Unknown/reparse entries, read uncertainty and observed changes block selection. Approved-root authority and runtime integration remain pending; see [selection scope](../docs/design/latest-manifest-selection.md).
 
+Both directory-reader entry points accept caller-selected per-candidate/aggregate byte ceilings. All initial entry sizes, including older/foreign periods, are checked before payload opens; reads stop at initial size plus one byte on growth. Defaults do not impose a new schema ceiling. Report/evidence validator reads and entry/JSON complexity are outside these resource bounds.
+
 RecoveryDiagnostic.py classifies supplied fixed gate observations into a sanitized, immutable, non-authorizing diagnostic result. Even all-satisfied observations produce review_required with may_change_state=false. It performs no I/O and does not establish the truth of its supplied observations.
 
 RecoveryDiagnosticMutex.py acquires the existing global scope mutex without ownership-record I/O or token generation. It reports abandonment as non-authorizing evidence and releases/closes on completion or failure. It is an isolated diagnosis lease, not normal lock acquisition, approved-root qualification, or an operational recovery entrypoint.
@@ -134,6 +152,48 @@ artifact-set classifier/directory verifierはoptionalな`expected_transaction_id
 
 同moduleの`revalidate_initial_manifest_source`は、独立run contextで初期planを再構成し、AC/plan/flagsの不整合をsource I/O前に拒否してから毎回sourceを再観測します。全may_*はfalseで、旧観測をreceiptとして再利用する経路は設けません。使用点後の変化や実provider資格は別gateです。
 
+`observe_initial_staging_copy`は独立run contextで初期planを再構成し、明示target/sequenceに対応する既存stagingの祖先chain・regular/単一link・前後identity/size/hashを確認します。source payloadを読まず、全操作許可falseの観測を返します。正式metadata/history、root分離/資格、コピー時に確保したidentityとの対応、後続Uploadの使用点は別gateです。
+
+複数fileは`observe_initial_staging_copies`へ明示allocation tupleを渡します。全指定の事前検査・全sizeのhash前検査・全hash後のsignature/祖先chain照合で、全観測tupleか拒否のどちらかを返します。凍結sizeから変わったfileはopen前に拒否。空選択はno_workではなく、全結果は引き続き非認可です。
+
+`inspect_initial_staged_drive_contents`は毎回のstaging一括再読取を、独立source信頼確認・Drive前後完全列挙・不足hash計画/完了集合の比較へ接続します。元basenameをexact比較し、PC suffixや出所を推測しません。共通Drive不備はlocal copy観測を保持して比較集合なしのheld。全Upload/retry/同期成功/状態変更/Archive許可falseで、API/正式metadata/Upload結果の証明ではありません。
+
 source builderは[列挙完了前の再確認](../docs/design/source-enumeration-stability.md)でdirectory/child集合・identity/属性を再走査し、途中変更や不明を検出すると既存targetを保持したままcoverageをincompleteにします。最終bytes再hash・atomic snapshot・後続使用までの保護を証明するものではありません。
 
 `DriveContentComparison.py`は[OSD-01の同一内容比較](../docs/design/drive-content-comparison.md)を内部観測から判定する純粋helperです。完全列挙・信頼済みsource・exact name/size/hashを要求し、cloud SHA未確認ならdownload hashを要します。比較候補は復元・同期成功・archiveの認可ではありません。
+
+`DriveContentComparison.py`の`hash_downloaded_content`は完了済みdownloadのchunk列から実byte数/SHAを計算し、既存比較観測へ渡します。途中失敗・size超過/不足・完了不明では返さず、stream所有権・解放と実Drive ID/成功の資格はcaller/provider側に残ります。
+
+`DriveContentComparison.py`の`collect_drive_listing`は内部page観測のfolder・成功・token連続性/終端・ID重複を検査し、全pageが揃った場合だけ比較用観測を返します。部分列挙を0件へ変換せず、実API/応答の真正性・resource管理はprovider側の未完gateです。
+
+`SourceInventoryRevalidation.py`の`revalidate_comparison_source`はPC-A凍結B2の指定targetと毎回の実source再観測を比較元へ結び付けます。同名別pathを推測せず、sourceの独立信頼確認を必須とし、返却観測も復元・同期成功・archiveを認可しません。
+
+`DriveContentComparison.py`の`compare_reobserved_drive_content`は前後2つの完全列挙観測を全file ID/metadataで照合し、変化なしの場合だけ既存比較を行います。順序差は許し、古い一意候補で変化を覆い隠しません。実再取得・観測の鮮度/真正性・ABA排除の証明や実行許可にはなりません。
+
+`revalidate_comparison_sources`は複数の明示targetを1回の全source再観測へまとめ、比較元を指定順で返します。単一target APIも委譲して互換性を維持し、空選択・選択外変更・不完全coverageでも再検査を省略しません。
+
+`compare_reobserved_drive_contents`は複数sourceの共通列挙/downloadを一括検査し、名前別indexから指定順に各比較結果を返します。共通不備は部分結果なしのheld、file固有不明は各結果のheldとし、batchのcomparedを同期成功へ変えません。
+
+`plan_content_downloads`は完全列挙中の同名同size・cloud SHA欠落/未確認候補をIDごとにまとめ、不足hash観測の計画を返します。may_downloadもfalseで、計画や対象0件はdownload実行・同期成功・upload再送の認可になりません。
+
+`compare_planned_drive_contents`は計画の再導出と、完了download ID集合・期待sizeの全件一致を要求して一括比較へ接続します。不足/余分/改変で部分結果を返さず、計画やhash一致を実行権限にしません。
+
+`LogFunctions.ps1`の`Get-EoStagingCapacityObservation`はupload用の既承認容量式をBigIntegerで計算します。信頼未確認/不足を保留し、全結果MayCreateStaging/MayUpload=falseです。実空き容量の取得・予約・download容量方針は含みません。
+
+`Get-EoStagingCapacityFromSizes`はcallerが明示選択した残りtargetのsize配列を全件検査し、BigInteger合計を容量観測へ渡します。残り対象やmanifest状態を推測せず、不正memberから部分合計を返しません。
+
+`ManifestTransitionInspection.py`の`inspect_staging_target_sizes`はrunning manifest/B2のexact整合とscope/coverage/clockを検査し、明示path群のsize集合・合計だけを返します。pending等から対象を選ばず、元bytesを保持し、作成/Upload/Archiveの許可やPS transportを提供しません。
+
+`MachineConfigurationRootInspection.ps1`の`Get-EoStagingFreeSpaceObservation`は既存directoryのcaller利用可能bytesをWindows APIから観測します。前後canonical/volume serial/file index観測を比較し、出力はBigInteger・FreeSpaceReliable=false・作成/Upload不可です。実root/FS/token資格や容量予約を証明しません。
+
+空きbytes観測の内部directory identityはFileIdInfoの64-bit volume serial＋128-bit file IDも要求します。未取得/前後不一致は保留し、legacy 64-bit照合へfallbackしません。既存canonical文字列APIは互換を維持し、FS資格や権限は付与しません。
+
+空きbytes観測はleafからdrive rootまでの祖先chainも前後照合します。leafのIDが同じでも親の差替え・chain欠落/長さ変化を保留し、内部path/IDを公開結果へ出しません。同時snapshot/ABA排除やroot資格は証明しません。
+
+`observe_pc_suffixed_name`は元source basenameを保持してDrive候補名の_PCA/_PCBを拡張子前へ付けます。出所や衝突を判定せず、rename/Upload/上書き/Archive許可はfalse。候補名でB2を変更したりOSD-01のname照合を別名化したりしません。
+
+`inspect_initial_inventory`は[初期inventory専用の読取観測](../docs/design/initial-inventory-observation.md)として、PC-A source再観測とDrive計画/hash/前後比較をpathへ結び付けます。共通不備でも選択/B2を保持し、運用manifest/同期成功/復元/Archiveへ昇格しません。
+
+`summarize_initial_inventory`は専用観測とB2/対象対応を検査し、候補/保留/未比較・既知error等の件数だけを返します。path/ID/hash/bytes/reasonを転記せず、歴史要約を現在性や同期成功・復元/Archive許可にしません。
+
+`StagingResidualObservation.py`は[残存staging直下entry](../docs/design/staging-residual-observation.md)を内容非読取・非再帰で件数観測します。不明/変化は保留して初回件数を保持し、metadata検査やcleanup/Upload/Archiveを許可しません。

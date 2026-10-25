@@ -35,6 +35,30 @@ helperは新しい予算を自動作成・リセットしない。明示再開�
 
 ## Checkpoint schemaと純粋reader（2026-10-25）
 
+### 既存fileの上限付き読取観測（2026-10-26）
+
+予算の観測入口は`assess_completion_wait_checkpoint_file`。明示AC/既存絶対path/bytes上限と独立scope/clockから毎回fileを読み、保持したcheckpointを精度を落とさず既存budget helperへ渡す。結果は元checkpointと`check_due / wait / hold`助言を持つ専用immutable型で、全確認/待機/Archive/状態変更許可false。check_due=trueでも試行plan生成/消費・確認を自動実行せず、waitの次候補UTCもsleep/task予約ではない。
+
+期限後/25回/次の間隔が入らない場合やsession/account/自同期/待機条件不成立は既存budgetのholdを保つ。AC未確認、file欠落/破損/不明、scope/clock不備、変換精度非対応は固定reason例外で拒否し、空履歴や通常waitへ変換しない。月次scheduleから対象periodや元開始時刻を推測しない。前回のdueをreceiptにせず、fileの更新/新規予算生成を行わない。[file予算接続試験](../../tests/test_completion_wait_file_assessment.py)は自作tempで境界と非消費を確認する。provider資格/rollback/ABA/永続試行前計上・実確認は引き続き別gate。
+
+実Win32置換とのtests専用接続では、再読取りによる競合拒否と、競合を無条件上書きした後/同一bytes別identity置換後の検査限界を確認している。[provider負例の詳細](checkpoint-compare-provider-qualification.md#file使用点との実置換接続2026-10-26)。これを正式CAS/providerの採用や確認実行許可にしない。
+
+接続入口は`CompletionWaitAttempt.prepare_completion_wait_attempt_from_file`と`inspect_completion_wait_attempt_file_usepoint`。前者は明示ACと資格boolがTrueの場合だけ既存fileを指定上限で読み、そのexact bytesから従来の1試行planを構築する。保存や試行消費を行わず、pathを権限としてplanへ埋め込まない。
+
+後者はplan/phase/AC/現在時計・scope/資格条件を既存純粋use-point検査へ通してから、毎回fileを開き直し、得たexact bytesでも同じ検査を繰り返す。before_commitはexpected bytes、after_commitはproposed bytesを要求する。保存済み観測や前回成功をfileの代用にせず、欠落/破損/変更は固定reasonのattempt errorで拒否する。両入口は作成/更新/削除・CAS・実確認を行わず、全確認/Archive/状態変更許可false。反復after_commitも新たな試行/一回限りreceiptにはならず、実保存先の資格や後続不変性は証明しない。[file使用点接続テスト](../../tests/test_completion_wait_file_usepoint.py)は自作tempだけを使う。
+
+`observe_completion_wait_checkpoint_file`は明示された既存絶対file pathと正の整数maximum_bytes（bool不可）を要求する。既定のfile名/配置/サイズ上限は選ばず、指定上限はcallerの資源制限であってschema field/互換方針の追加ではない。Windowsでは既存L1字句も検査し、ADS/UNC等へ暗黙対応しない。欠落を作成/空履歴へ補完しない。
+
+既存metadata providerで祖先chain/reparse・regular/単一linkと初期sizeを検査し、上限超過はopen前に拒否する。pathとopen handleのsignature（volume/file identity・size/mtime・Windows birthtime等・link数）を照合し、読取りを初期size+1 byteに制限する。fstat/byte数を照合して既存schema/scope/clock readerへ渡し、解析後にもpath signature/reparse/祖先chainを再確認する。不備は固定reason例外、file作成/更新/削除は行わない。
+
+結果はexact bytesを持つcheckpointを内包するimmutable・非表示reprの観測で、status=requires_runtime_evidence、全確認/Archive/状態変更許可false。毎回fileを開き直し、前回の観測をpath/receiptとして受け付けない。root/ACL/token/owner/FS/providerの資格、rollback/ABA防止、同時snapshot/後続変化、正式CAS/試行前永続化・実確認は未実証。[合成試験](../../tests/test_completion_wait_checkpoint_file.py)は自作tempだけを使い、境界bytes・上限事前拒否・欠落/dir/hardlink・解析不備/途中変更・provider失敗と保全を確認する。
+
+### 更新前後の追記検査（2026-10-26）
+
+`inspect_completion_wait_checkpoint_transition`は独立scope/現在UTC/static schemaで前後exact bytesをreaderへ通す。元記録の不在/不正を補完せず、exact bytes再掲載だけをunchanged/added_check_count=0とする。それ以外は元started_at_utc文字列と既存check_times_utc全件の文字列/順序を保持し、1件だけ追記する更新を要求する。短縮、過去試行の置換、複数追記、開始時刻の再表記、追記なしの書式変更を拒否する。scope/version・間隔/24時間/25回/時計逆行のreader検査も維持する。
+
+結果は元bytesと新checkpoint、追加件数、固定statusだけを持つimmutable非表示repr型で、全may_check/may_archive/may_change_state=false。既存`prepare_completion_wait_attempt`はcandidateの読戻しにこの検査を利用する。readerが扱える高精度UTC文字列を丸めずに保持し、budget状態への変換精度制限は緩和しない。これは提示された2記録の比較であり、元記録の真正性/現在性・保存喪失/rollback/ABA・原子的compare-and-publish・実試行前の永続化や資格の証拠ではない。exact再掲載も新しい試行receiptにしない。[合成試験](../../tests/test_completion_wait_checkpoint_transition.py)で追記/保全/事前拒否とplan生成への接続を確認する。
+
 [schema](../../contracts/completion-wait-checkpoint-v1.schema.json)は承認済みの7fieldだけを持つclosed v1で、manifestとは別契約。PC-A限定、log種別ごとのperiod形、UUID、UTC Z、0〜25回を規定する。periodの4桁年に未決の範囲制約を追加しない。
 
 `Common/CompletionWaitCheckpoint.py`の`read_completion_wait_checkpoint`は、callerが供給するexact bytes・信頼済みstatic schema、別入力の期待log/period/run IDと信頼できる現在UTCを要求する。I/Oをせず、未知/欠落/null field、重複JSON key、不正UTF-8/JSON/version、schema外部参照、scope不一致、不正日時、開始〜24時間外の試行、1時間未満の間隔、25回超、現在時計の逆行を拒否する。読取不能や欠落の代わりに空履歴を生成しない。現在が期限後でも有効な元履歴を保持し、既存予算helperで期限/回数のhold判定を行う。

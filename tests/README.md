@@ -4,13 +4,31 @@
 
 `test_checkpoint_replace_probe.py`はcaller指定先を受けない専用OS-temp probeで、実CreateFileW共有guardとReplaceFileW、使用点検査後の競合反例を確認します。許可名外/root marker変更/hardlinkでもnative変更へ進みません。これは不十分なAPI組合せを検出する負例であり、provider採用・Tier B/C・電源断耐久性の証拠ではありません。
 
+`test_checkpoint_file_replace_integration.py`は同じ自作probeへfile plan/使用点検査を接続します。guard内置換失敗・競合後の再読拒否・無条件上書き後のbytes一致限界・同一bytes別identity置換後の非認可結果を確認します。意図的な危険順序は隔離負例だけで、正式provider/CAS/ABA防止を実装しません。
+
 `test_completion_wait_usepoint.py`は保存前/記録後のexact bytes、plan偽装、最新scope/時計/期限/実行条件/ACを純粋検査し、既存の実mutex・staging・mock保存fixtureへ接続します。資格喪失時の確認停止/試行保持と、使用点検査後の競合にもprovider側の比較が必要なことを確認します。runtime provider/一回限りreceipt/in-flight中断の受け入れではありません。
 
 `test_completion_wait_attempt.py`は1試行だけの純粋candidate planと、実Windows owner/mutex・create-only staging・メモリmock compare-and-publishを接続します。保存前/後の失敗、stale/競合、偽ack/読取不一致、確認失敗時の予算保全を合成検証します。実checkpoint置換・電源断・runtime受け入れの証拠ではありません。
 
 `test_completion_wait_checkpoint.py`はclosed schema、exact bytes/時刻表記/配列順、期待scopeと信頼できる現在時計、25回/24時間/1時間間隔、精度の保持と変換拒否、欠落/破損・I/Oなしを合成検証します。既存budget helperへ接続しても、実保存/rollback防止/実確認の証明にはしません。
 
+`test_completion_wait_checkpoint_transition.py`は前後recordの1試行追記、exact再掲載、開始/既存履歴原文字列保全、短縮/置換/一括追記拒否、25回境界と高精度時刻を検証します。試行plan生成への接続と全許可falseを確認し、実保存やrollback防止を認証しません。
+
+`test_completion_wait_checkpoint_file.py`は自作tempの既存fileに対して指定bytes上限・path/handle/祖先signature・単一link・schema読取り後の再確認を検証します。上限超過時open禁止、stat後増大、途中変更、hardlink/reparse/provider不備・欠落/破損時保全、再読取り・全許可falseを確認します。実root/FS資格・rollback/ABA/CASの証拠ではありません。
+
+`test_completion_wait_file_assessment.py`はfileの再読取から既存予算のdue/wait/hold助言への接続を確認します。元bytes非変更/試行非消費、毎時間隔/24時間/25回、資格条件、欠落/破損/精度不備の非fallback、別log scopeを検証します。全許可falseで、待機/確認taskを実行しません。
+
+`test_completion_wait_file_usepoint.py`は既存fileから試行planへの接続と保存前後の毎回再読取を確認します。exact元/候補bytesの区別、古い成功の非流用、plan/資格/期限のI/O前拒否、欠落/破損時非fallback、合成所有lock境界での変更拒否/owner解放を検証します。fixture内の候補bytes書込みはCAS/providerの資格ではなく、実確認/更新は認可しません。
+
 `test_manifest_transition_inspection.py`は採用済みfile/runペアの行列、初期状態、identity/凍結inventory、verification/hash/time、終端の不変性、入力不変・I/Oなし・固定理由を合成検証します。掲載ペアの結果もrequires_runtime_evidenceであり、実event/Drive/排他/集約/永続更新の受け入れではありません。
+
+`test_manifest_history_inspection.py`は初期登録からのsnapshot履歴を使い、2種のpending・retry pending・path単位追跡・飛越し/逆戻り拒否・終端bytes保全を確認します。空/途中履歴の拒否、入力不変/I/Oなし、全許可falseも検証し、提示履歴の真正性や実event/永続更新を証明しません。
+
+`test_manifest_history_retry_budget.py`は提示履歴のfile別Upload pending最大4回、5回目拒否、file独立予算、重複/並べ替えによる消費/リセット防止を確認します。4回後のunknown保持と、超過履歴の終端report生成前停止を検証し、実API回数/待機/不在照合やretry許可の証拠にはしません。
+
+`test_terminal_manifest_history.py`は独立context/元B2で初期planを再構成し、exact連続履歴から終端report候補までを接続します。両PC/log、exact先頭、終端繰返し時のrunning prior保持、履歴省略/集約不備/未完の拒否、未解決/error保持、全許可falseを検証します。履歴真正性や永続更新の証拠ではありません。
+
+`test_terminal_history_usepoint.py`は独立履歴/B2/現在running bytes/ACからの毎回再導出、scope/path/clock/report/件数/型/flagの変更拒否を確認します。自作tempの合成所有lock内で再検査→別candidateのmarker-last保存→hash/semantic読戻しを両PC相当で接続し、元running保全・AC喪失/現在bytes変更時の書込み前停止とowner解放を検証します。正式writerやruntime受け入れではありません。
 
 `test_drive_request_path.py`と`Test-DriveRequestPath.ps1`は共通L1 fixtureをschema/Python/PSへ適用します。両request path field・Dry Runの両値、予約名/Unicode/末尾改行/禁止文字、型の非変換・入力保持・操作副作用なし・固定maxLengthなしを検査します。実root/指定先/使用点やtransportの受け入れ試験ではありません。
 
@@ -281,6 +299,8 @@ Run python -m unittest discover -s tests -p test_latest_manifest_selection.py -v
 
 `test_manifest_directory_reader.py` exercises synthetic local manifest enumeration/read binding, opened-file replacement, final rescan changes, partial enumeration and real Windows junction rejection. It never uses operational roots and does not establish full Tier B or runtime acceptance.
 
+`test_manifest_reader_bounds.py` checks explicit per-candidate/aggregate byte budgets, including old/foreign-period files, before any payload read. It verifies strict limit types, exact boundaries, handle/growth rejection within initial size + 1 byte, and forwarding to both report-wrapper observations. It does not qualify roots/FS or bound the separate report/evidence validator.
+
 `test_manifest_recovery_integration.py` adds seven synthetic compositions of checked manifest-directory snapshots and pure recovery classification. The real Windows abandonment scenario in `test_owned_publication_integration.py` also uses the disk reader. A positive classification never adopts/removes the stale record; later external changes require fresh observations. These tests do not authorize operational recovery or extend the recorded PC-B Tier B result.
 
 `test_recovery_diagnostic.py` covers the pure diagnostic result boundary: incomplete/unknown owner and Drive evidence, rejected raw secrets and invalid scopes, public-field allowlisting, immutable snapshots, tampered export refusal and absence of file I/O. These tests do not execute the full DIAG command acceptance matrix.
@@ -323,6 +343,14 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 
 `test_initial_source_usepoint.py`は初期planの再構成とAC/source再観測を接続し、改変・scope不一致・AC不明の事前拒否と、合成所有lock内でのcandidate保存/書込み前停止を検証します。観測からruntime権限を付与しません。
 
+`test_upload_staging_integration.py`は同じsource再検査を自作temp内のcreate-new copyと接続します。両PC/log・空/複数block・source変化・名前衝突・部分disk-full注入・short write・copy後改変/hardlink置換を検査し、失敗fileを保持してlockを解放します。明示sequence以外の自動retryはなく、metadata-first writer/ready状態/実Upload・cleanupは未実装、結果のUpload/状態変更許可はfalseです。実容量枯渇・電源断・root/FS資格の証拠ではありません。
+
+`test_initial_staging_copy_observation.py`は製品helperによる既存stagingと凍結plan/B2の読取照合を検証します。sourceを読まず、両PC/log・入力/内容不備・hardlink/観測中変更・provider失敗で拒否/保全し、全操作許可falseを維持します。正式metadata/ready状態・Upload adapterの受け入れではありません。
+
+`test_initial_staging_copy_batch.py`は明示allocationの一括検査を確認します。全指定のI/O前検査、plan再構成1回、指定順、後続不備で部分tupleを返さないこと、先行fileの後続読取り中変更、凍結sizeから増大したfileのopen禁止、空選択時root検査を検証します。FS snapshot/ABAやUpload許可の証拠ではありません。
+
+`test_staged_drive_content_observation.py`はstaging再読取とDrive前後完全列挙/不足hash計画/完了集合比較の接続を確認します。両PC/log、source非読取、local不備時事前停止、global heldでlocal観測保全、file別不一致、空選択、再読取と旧観測拒否、PC suffix非alias、内部型/件数不備を検証します。実Upload・再試行・同期成功・Archiveを認可しません。
+
 `test_source_enumeration_stability.py`はhash後/空scan後の追加・削除・rename・属性変更・directory差替え・rescan不明をincompleteとして保持し、使用点でcandidateを書かないことを合成検証します。最後の再確認後の変更や敵対的ABAは未実証です。
 
 `test_source_hash_identity.py`はhandle identityの読取前拒否、観測サイズ超過時の早期停止、short read、空/1 MiB境界のexact hashも合成検証する。OS readのtimeoutやruntime受け入れではない。
@@ -330,3 +358,45 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_terminal_plan_usepoint.py`は終端planの独立prior/B2/contextからの再導出と、所有mutex内の候補公開前停止を合成検証する。C1比較更新やDrive/runtimeの受け入れではない。
 
 `test_drive_content_comparison.py`はOSD-01の0/1/複数候補、完全列挙・scope・source信頼の必須性、metadata/download SHA照合と不明時保留を合成検証する。API接続や復元・archive認可は含まない。
+
+`test_download_hash_observation.py`は合成streamのexact bytes/hash、サイズ上限/不足/途中失敗・未完了・不正chunkと、OSD-01比較へのfallback接続を検証する。実SDK/Driveやdownload成功の真正性は検証しない。
+
+`test_drive_listing_observation.py`は内部pageの連続性/終端/重複・失敗を検査し、全page観測からdownload hash・OSD-01比較までを合成接続する。実API paginationの受け入れではない。
+
+`test_comparison_source_revalidation.py`はPC-AのB2/実sourceからpage・download hash・同一内容比較までを合成接続し、変更・不完全・未信頼と同名別pathの境界を検証する。実Drive/出所認証/runtime受け入れではない。
+
+`test_drive_comparison_reobservation.py`はdownload前後の完全列挙観測の集合照合と比較への接続を合成検証する。保存済み観測やmetadata一致を実再取得/現在性・archive許可へ昇格しない。
+
+`test_comparison_source_batch.py`は複数targetを1回の全source再観測へまとめる処理と、共通page/download観測からの比較を合成検証する。空選択をno_workへ変換せず、呼出し間のcacheや実行許可を設けない。
+
+`test_drive_comparison_batch.py`は共通Drive観測の一括検査・混在結果/順序・空入力・非認可と、source数に乗算されないfile検査を確認する。単一比較の既存境界も維持する。
+
+`test_content_download_plan.py`は不足hash候補の計画・共有IDの一意化/安定順序・不明時保留と、合成download/一括比較への接続を確認する。計画をdownload権限や完了観測へ変換しない。
+
+`test_planned_drive_comparison.py`は計画と完了download集合の全件整合、改変/欠落/余分/サイズ不一致と、比較結果の保留・非認可を合成検証する。
+
+`download_staging_fixture.py` / `test_download_staging_integration.py`は自作OS-tempの新規stagingと実読戻しhash、部分file保全・別試行・競合/変更拒否を実mutex内で合成検証する。配布対象外のtests専用で、正式download writerやDry Run許可ではない。
+
+`Test-StagingCapacity.ps1`はupload stagingの整数容量式、10%切上げ・0/巨大値・1 byte不足・型/信頼不正・容量変化を合成検証する。実volumeの容量取得や作成/Upload許可は検証しない。
+
+`Test-StagingCapacity.ps1`は明示size配列の全件検査/合計、型付き配列/空/巨大合計・合算後の切上げ・部分合計禁止も確認する。残り対象選択やinventory真正性は外部gateに残す。
+
+`test_staging_size_observation.py`は凍結manifest/B2から明示size集合を取り出す純粋検査を確認する。file状態から残り対象を推測せず、巨大整数・空選択・不完全/改変/別scopeの境界を扱う。
+
+`test_staging_capacity_bridge.py` / `staging_capacity_bridge.ps1`は合成manifest/B2のsize射影→stdin JSON→PS 7.6.7容量観測→stdout整数を接続する。実行版を確認し、ローカルでは必要に応じEOLM_TEST_PWSHで固定版を指定する。tests専用で正式IPCや実容量取得ではない。
+
+`Test-StagingFreeSpace.ps1`は自作OS-tempでWindows空きbytes観測、UInt64精度・不明/reparse/変更の保留と未資格の容量gate停止を検査する。実root/容量/FS受け入れやDry Run A資格ではない。
+
+`Test-StagingFreeSpace.ps1`は同じcanonical名でもvolume serial/file indexの差や、隔離directoryの同名差替えを拒否することも確認する。identityの一意性/再利用/FS資格や観測間ABAの解決は主張しない。
+
+空きbytes試験はnative FileIdInfoと各UInt64部分の最大値付近の差、pre/postの未取得を追加確認する。64-bit-only fallbackを許さず、実運用FS全般の対応やID再利用/ABA排除とは区別する。
+
+空きbytes試験はleafのID/bytesを維持した親directoryの実差替えと、空/長さ変化/parent-only変化のchain拒否を追加確認する。実移動はすべて自作temp配下の絶対pathを検査してから行う。
+
+`test_pc_suffixed_name.py`は承認済みPC suffixの純粋命名、元文字列保持・文法/UTF-8境界・非認可を確認する。Drive側候補名はsource文法/出所証拠や衝突解消の許可ではない。
+
+`test_initial_inventory_observation.py`はsource再観測/Drive計画・完了hash/前後比較を初期inventory専用の型へ接続し、保留・選択/B2保全・非認可を確認する。運用manifest/schemaや実復元は生成しない。
+
+`test_initial_inventory_summary.py`は初期inventoryの件数要約・共通保留と未比較の区別、機密原データ非露出・対応不整合拒否・I/Oなしを確認する。要約は実行許可/正式運用reportではない。
+
+`test_staging_residual_observation.py`は残存staging直下の件数・内容非読取/非再帰・変化/不明の保留と保全を合成検証する。metadata解析やcleanup、運用run statusの受け入れではない。

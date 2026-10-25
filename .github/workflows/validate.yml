@@ -87,15 +87,39 @@ jobs:
           python -m unittest discover -s tests -p "test_crash_recovery_decision.py" -v
           python -m unittest discover -s tests -p "test_latest_manifest_selection.py" -v
           python -m unittest discover -s tests -p "test_manifest_directory_reader.py" -v
+          python -B -m unittest discover -s tests -p "test_manifest_reader_bounds.py" -v
           python -m unittest discover -s tests -p "test_manifest_recovery_integration.py" -v
           python -B -m unittest discover -s tests -p "test_manifest_transition_inspection.py" -v
+          python -B -m unittest discover -s tests -p "test_manifest_history_inspection.py" -v
+          python -B -m unittest discover -s tests -p "test_manifest_history_retry_budget.py" -v
+          python -B -m unittest discover -s tests -p "test_terminal_manifest_history.py" -v
+          python -B -m unittest discover -s tests -p "test_terminal_history_usepoint.py" -v
           python -B -m unittest discover -s tests -p "test_terminal_manifest_plan.py" -v
           python -B -m unittest discover -s tests -p "test_terminal_plan_usepoint.py" -v
           python -B -m unittest discover -s tests -p "test_drive_content_comparison.py" -v
+          python -B -m unittest discover -s tests -p "test_pc_suffixed_name.py" -v
+          python -B -m unittest discover -s tests -p "test_download_hash_observation.py" -v
+          python -B -m unittest discover -s tests -p "test_drive_listing_observation.py" -v
+          python -B -m unittest discover -s tests -p "test_drive_comparison_reobservation.py" -v
+          python -B -m unittest discover -s tests -p "test_drive_comparison_batch.py" -v
+          python -B -m unittest discover -s tests -p "test_content_download_plan.py" -v
+          python -B -m unittest discover -s tests -p "test_planned_drive_comparison.py" -v
+          python -B -m unittest discover -s tests -p "test_download_staging_integration.py" -v
+          python -B -m unittest discover -s tests -p "test_comparison_source_revalidation.py" -v
+          python -B -m unittest discover -s tests -p "test_comparison_source_batch.py" -v
+          python -B -m unittest discover -s tests -p "test_initial_inventory_observation.py" -v
+          python -B -m unittest discover -s tests -p "test_initial_inventory_summary.py" -v
+          python -B -m unittest discover -s tests -p "test_staging_residual_observation.py" -v
           python -B -m unittest discover -s tests -p "test_initial_manifest_plan.py" -v
+          python -B -m unittest discover -s tests -p "test_staging_size_observation.py" -v
+          python -B -m unittest discover -s tests -p "test_staging_capacity_bridge.py" -v
           python -B -m unittest discover -s tests -p "test_initial_source_integration.py" -v
           python -B -m unittest discover -s tests -p "test_source_inventory_revalidation.py" -v
           python -B -m unittest discover -s tests -p "test_initial_source_usepoint.py" -v
+          python -B -m unittest discover -s tests -p "test_upload_staging_integration.py" -v
+          python -B -m unittest discover -s tests -p "test_initial_staging_copy_observation.py" -v
+          python -B -m unittest discover -s tests -p "test_initial_staging_copy_batch.py" -v
+          python -B -m unittest discover -s tests -p "test_staged_drive_content_observation.py" -v
           python -B -m unittest discover -s tests -p "test_source_enumeration_stability.py" -v
           python -B -m unittest discover -s tests -p "test_terminal_bundle_integration.py" -v
           python -B -m unittest discover -s tests -p "test_artifact_read_stability.py" -v
@@ -108,9 +132,14 @@ jobs:
           python -m unittest discover -s tests -p "test_monthly_schedule_observation.py" -v
           python -m unittest discover -s tests -p "test_completion_wait_budget.py" -v
           python -B -m unittest discover -s tests -p "test_completion_wait_checkpoint.py" -v
+          python -B -m unittest discover -s tests -p "test_completion_wait_checkpoint_transition.py" -v
+          python -B -m unittest discover -s tests -p "test_completion_wait_checkpoint_file.py" -v
+          python -B -m unittest discover -s tests -p "test_completion_wait_file_assessment.py" -v
+          python -B -m unittest discover -s tests -p "test_completion_wait_file_usepoint.py" -v
           python -B -m unittest discover -s tests -p "test_completion_wait_attempt.py" -v
           python -B -m unittest discover -s tests -p "test_completion_wait_usepoint.py" -v
           python -B -m unittest discover -s tests -p "test_checkpoint_replace_probe.py" -v
+          python -B -m unittest discover -s tests -p "test_checkpoint_file_replace_integration.py" -v
           python -B -m unittest discover -s tests -p "test_power_status_observation.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_recovery.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_publication.py" -v
@@ -136,7 +165,9 @@ jobs:
 
       - name: Run PowerShell log-function tests
         shell: pwsh
-        run: ./tests/Test-LogFunctions.ps1
+        run: |
+          ./tests/Test-LogFunctions.ps1
+          ./tests/Test-StagingCapacity.ps1
 
       - name: Run read-only machine configuration tests
         shell: pwsh
@@ -148,7 +179,9 @@ jobs:
 
       - name: Run read-only configuration root inspection tests
         shell: pwsh
-        run: ./tests/Test-MachineConfigurationRootInspection.ps1
+        run: |
+          ./tests/Test-MachineConfigurationRootInspection.ps1
+          ./tests/Test-StagingFreeSpace.ps1
 
       - name: Run aggregation report internal consistency tests
         shell: pwsh

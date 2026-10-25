@@ -138,6 +138,74 @@ def inspect_manifest_transition(previous_bytes, proposed_bytes, *, manifest_sche
         _reject("manifest_transition_input_invalid")
 
 
+@dataclass(frozen=True)
+class ManifestHistoryObservation:
+    snapshot_count: int
+    file_transition_count: int
+    upload_pending_transition_count: int
+    retry_pending_transition_count: int
+    registered_pending_file_count: int
+    upload_pending_file_count: int
+    aggregation_required: bool
+    status: str = field(default="requires_runtime_evidence", init=False)
+    may_publish: bool = field(default=False, init=False)
+    may_upload: bool = field(default=False, init=False)
+    may_retry: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+
+
+def inspect_manifest_history(snapshots, *, manifest_schema):
+    """Check a supplied history from initial registration, without I/O.
+
+    A syntactically complete trace does not authenticate event evidence,
+    missing snapshots, ownership, metadata-first persistence or API outcomes.
+    Never infer history from one arbitrary running/terminal snapshot.
+    """
+    try:
+        if type(snapshots) is not tuple or not snapshots or any(type(raw) is not bytes for raw in snapshots):
+            _reject("manifest_history_input_invalid")
+        validator = _validator(manifest_schema)
+        inspect_manifest_transition(None, snapshots[0], manifest_schema=manifest_schema)
+        last, old_files = _snapshot(snapshots[0], validator)
+        pending_upload = set()
+        upload_attempts = {path: 0 for path in old_files}
+        changed = upload_entries = retry_entries = 0
+        for previous, proposed in zip(snapshots, snapshots[1:]):
+            pair = inspect_manifest_transition(previous, proposed, manifest_schema=manifest_schema)
+            last, new_files = _snapshot(proposed, validator)
+            changed += pair.get("file_transition_count", 0)
+            for path, old in old_files.items():
+                before, after = old["status"], new_files[path]["status"]
+                if before == after:
+                    continue
+                if before == "pending":
+                    if after in ("uploaded", "unknown") and path not in pending_upload:
+                        _reject("planning_pending_used_as_upload")
+                    if after == "staging" and path in pending_upload:
+                        _reject("upload_pending_restarted_staging")
+                    pending_upload.discard(path)
+                if after == "pending":
+                    # Count the supplied trace's upload-attempt boundaries;
+                    # repeated snapshots never consume or reset the budget.
+                    upload_attempts[path] += 1
+                    if upload_attempts[path] > 4:
+                        _reject("manifest_history_upload_attempt_limit_exceeded")
+                    pending_upload.add(path)
+                    if before == "ready":
+                        upload_entries += 1
+                    else:  # The adopted pair table permits only unknown here.
+                        retry_entries += 1
+            old_files = new_files
+        registered = sum(item["status"] == "pending" and path not in pending_upload
+                         for path, item in old_files.items())
+        return ManifestHistoryObservation(len(snapshots), changed, upload_entries, retry_entries,
+            registered, len(pending_upload), last["status"] != "running")
+    except ManifestTransitionError:
+        raise
+    except Exception:
+        _reject("manifest_history_input_invalid")
+
+
 @dataclass(frozen=True, repr=False)
 class TerminalManifestPlan:
     expected_bytes: bytes
@@ -156,6 +224,18 @@ class InitialManifestPlan:
     may_publish: bool = field(default=False, init=False)
     may_upload: bool = field(default=False, init=False)
     may_archive: bool = field(default=False, init=False)
+
+
+@dataclass(frozen=True, repr=False)
+class TerminalManifestHistoryPlan:
+    snapshots: tuple[bytes, ...]
+    history: ManifestHistoryObservation
+    terminal: TerminalManifestPlan
+    may_publish: bool = field(default=False, init=False)
+    may_upload: bool = field(default=False, init=False)
+    may_retry: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+    may_change_state: bool = field(default=False, init=False)
 
 
 def prepare_initial_manifest(
@@ -236,6 +316,98 @@ def prepare_terminal_manifest_transition(
         _reject("terminal_transition_input_invalid")
 
 
+def prepare_terminal_manifest_history(
+    initial_plan, snapshots, *, expected_pc_id, expected_log_type, expected_target_period,
+    expected_run_id, started_at_utc, manifest_path, evidence_path, current_utc,
+    current_utc_reliable, manifest_schema, evidence_schema, report_schema,
+):
+    """Bind an explicit initial-to-terminal trace, frozen B2 and derived report.
+
+    The trace is supplied evidence, not authentic persisted event history.
+    No I/O, repair, missing snapshots, state changes or permissions are added.
+    """
+    try:
+        if (type(initial_plan) is not InitialManifestPlan or any(flag is not False for flag in
+                (initial_plan.may_publish, initial_plan.may_upload, initial_plan.may_archive))):
+            _reject("terminal_history_initial_plan_invalid")
+        restored = prepare_initial_manifest(initial_plan.evidence_bytes,
+            expected_pc_id=expected_pc_id, expected_log_type=expected_log_type,
+            expected_target_period=expected_target_period, expected_run_id=expected_run_id,
+            started_at_utc=started_at_utc, current_utc=current_utc,
+            current_utc_reliable=current_utc_reliable, manifest_schema=manifest_schema,
+            evidence_schema=evidence_schema)
+        if restored != initial_plan:
+            _reject("terminal_history_initial_plan_invalid")
+        if (type(snapshots) is not tuple or not snapshots
+                or type(snapshots[0]) is not bytes or snapshots[0] != restored.proposed_bytes):
+            _reject("terminal_history_initial_snapshot_mismatch")
+        history = inspect_manifest_history(snapshots, manifest_schema=manifest_schema)
+        if not history.aggregation_required:
+            _reject("terminal_history_incomplete")
+        # Later exact terminal duplicates do not replace the real running prior.
+        terminal_index = next(index for index, raw in enumerate(snapshots)
+                              if _parse(raw)["status"] != "running")
+        terminal = prepare_terminal_manifest_transition(snapshots[terminal_index-1],
+            snapshots[terminal_index], restored.evidence_bytes, manifest_path=manifest_path,
+            evidence_path=evidence_path, current_utc=current_utc,
+            current_utc_reliable=current_utc_reliable, manifest_schema=manifest_schema,
+            evidence_schema=evidence_schema, report_schema=report_schema)
+        return TerminalManifestHistoryPlan(snapshots, history, terminal)
+    except ManifestTransitionError:
+        raise
+    except Exception:
+        _reject("terminal_history_input_invalid")
+
+
+def revalidate_terminal_manifest_history(
+    plan, *, initial_plan, expected_snapshots, expected_previous_bytes, expected_evidence_bytes,
+    ac_connected, expected_pc_id, expected_log_type, expected_target_period, expected_run_id,
+    started_at_utc, manifest_path, evidence_path, current_utc, current_utc_reliable,
+    manifest_schema, evidence_schema, report_schema,
+):
+    """Rebuild the entire candidate from independent use-point observations.
+
+    Supplied AC/bytes/context are not authenticated providers or a write lease.
+    No I/O or permissions are provided, even after exact re-derivation.
+    """
+    if (type(plan) is not TerminalManifestHistoryPlan or type(plan.terminal) is not TerminalManifestPlan
+            or type(plan.history) is not ManifestHistoryObservation
+            or any(flag is not False for flag in (plan.may_publish, plan.may_upload,
+                plan.may_retry, plan.may_archive, plan.may_change_state))):
+        _reject("terminal_history_usepoint_plan_invalid")
+    if (any(type(raw) is not bytes for raw in (plan.terminal.expected_bytes, plan.terminal.proposed_bytes,
+                plan.terminal.evidence_bytes, plan.terminal.report_bytes))
+            or any(type(count) is not int or count < 0 for count in (plan.history.snapshot_count,
+                plan.history.file_transition_count, plan.history.upload_pending_transition_count,
+                plan.history.retry_pending_transition_count, plan.history.registered_pending_file_count,
+                plan.history.upload_pending_file_count))
+            or type(plan.history.aggregation_required) is not bool
+            or type(plan.history.status) is not str or plan.history.status != "requires_runtime_evidence"
+            or any(flag is not False for flag in (plan.terminal.may_publish, plan.terminal.may_archive,
+                plan.terminal.may_change_state, plan.history.may_publish, plan.history.may_upload,
+                plan.history.may_retry, plan.history.may_archive))):
+        _reject("terminal_history_usepoint_plan_invalid")
+    if ac_connected is not True:
+        _reject("terminal_history_usepoint_ac_unconfirmed")
+    if (type(expected_snapshots) is not tuple or type(plan.snapshots) is not tuple
+            or any(type(raw) is not bytes for raw in expected_snapshots)
+            or any(type(raw) is not bytes for raw in plan.snapshots)
+            or type(expected_previous_bytes) is not bytes or type(expected_evidence_bytes) is not bytes):
+        _reject("terminal_history_usepoint_snapshot_invalid")
+    if (plan.snapshots != expected_snapshots or plan.terminal.expected_bytes != expected_previous_bytes
+            or plan.terminal.evidence_bytes != expected_evidence_bytes):
+        _reject("terminal_history_usepoint_snapshot_changed")
+    restored = prepare_terminal_manifest_history(initial_plan, expected_snapshots,
+        expected_pc_id=expected_pc_id, expected_log_type=expected_log_type,
+        expected_target_period=expected_target_period, expected_run_id=expected_run_id,
+        started_at_utc=started_at_utc, manifest_path=manifest_path, evidence_path=evidence_path,
+        current_utc=current_utc, current_utc_reliable=current_utc_reliable,
+        manifest_schema=manifest_schema, evidence_schema=evidence_schema, report_schema=report_schema)
+    if restored != plan:
+        _reject("terminal_history_usepoint_plan_changed")
+    return restored
+
+
 def revalidate_terminal_manifest_plan(
     plan, *, expected_previous_bytes, expected_evidence_bytes, expected_pc_id,
     expected_log_type, expected_target_period, expected_run_id, ac_connected,
@@ -275,3 +447,72 @@ def revalidate_terminal_manifest_plan(
         raise
     except Exception:
         _reject("terminal_usepoint_context_invalid")
+
+
+@dataclass(frozen=True, repr=False)
+class StagingSizeObservation:
+    manifest_bytes: bytes
+    evidence_bytes: bytes
+    relative_paths: tuple[str, ...]
+    target_sizes: tuple[int, ...]
+    remaining_target_bytes: int
+    may_create_staging: bool = field(default=False, init=False)
+    may_upload: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+
+
+def inspect_staging_target_sizes(
+    manifest_bytes, evidence_bytes, *, relative_paths, expected_pc_id, expected_log_type,
+    expected_target_period, expected_run_id, current_utc, current_utc_reliable,
+    manifest_schema, evidence_schema,
+):
+    """Project explicit targets from a complete running manifest/B2 pair.
+
+    Never infer remaining work from pending/ready or other file states. Event
+    history, freshness, actual source/root/free-space and writer gates remain
+    external. Empty selection is an observation, not no_work or permission.
+    """
+    try:
+        if (current_utc_reliable is not True or not isinstance(current_utc, datetime)
+                or current_utc.tzinfo is None or current_utc.utcoffset() != timedelta(0)):
+            _reject("staging_size_clock_untrusted")
+        if (type(manifest_bytes) is not bytes or type(evidence_bytes) is not bytes
+                or type(relative_paths) is not tuple):
+            _reject("staging_size_input_invalid")
+        seen = set()
+        for path in relative_paths:
+            if type(path) is not str:
+                _reject("staging_size_input_invalid")
+            _safe_relative_path(path)
+            if path in seen:
+                _reject("staging_size_duplicate_target")
+            seen.add(path)
+        manifest, files = _snapshot(manifest_bytes, _validator(manifest_schema))
+        if ((manifest["pc_id"], manifest["log_type"], manifest["target_period"], manifest["run_id"]) !=
+                (expected_pc_id, expected_log_type, expected_target_period, expected_run_id)):
+            _reject("staging_size_scope_mismatch")
+        if manifest["status"] != "running":
+            _reject("staging_size_run_not_running")
+        evidence = _parse(evidence_bytes)
+        _validate(_validator(evidence_schema), evidence)
+        validate_evidence_invariants(evidence, evidence_schema)
+        validate_evidence_matches_manifest(evidence, manifest, manifest_schema)
+        if evidence["enumeration"]["status"] != "completed" or evidence["validation"]["status"] != "completed":
+            _reject("staging_size_coverage_incomplete")
+        start = _utc_key(manifest["started_at_utc"])
+        enum_start, finish = (_utc_key(evidence["enumeration"][key]) for key in ("started_at_utc", "finished_at_utc"))
+        if not start <= enum_start <= finish or finish > _clock_key(current_utc+timedelta(minutes=5)):
+            _reject("staging_size_time_invalid")
+        sizes = []
+        for path in relative_paths:
+            if path not in files:
+                _reject("staging_size_target_missing")
+            file = files[path]
+            if _classify_filename(file["filename"], expected_log_type) is None:
+                _reject("staging_size_filename_invalid")
+            sizes.append(file["size_bytes"])
+        return StagingSizeObservation(manifest_bytes, evidence_bytes, relative_paths, tuple(sizes), sum(sizes))
+    except ManifestTransitionError:
+        raise
+    except Exception:
+        _reject("staging_size_input_invalid")

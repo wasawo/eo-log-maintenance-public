@@ -1,10 +1,16 @@
-"""Pure checkpoint reader: original bytes/strings, exact time comparison, no I/O."""
+"""Checkpoint byte validation and explicit existing-file observations; no writes."""
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import re
+import os
+from pathlib import Path
+import stat
 
 from Common.AggregationReportBuilder import _parse, _validate, _validator
-from Common.CompletionWaitBudget import CompletionWaitState, _identity, _utc
+from Common.CompletionWaitBudget import (CompletionWaitState, CompletionWaitDecision,
+    assess_completion_wait_budget, _identity, _utc)
+from Common.ArtifactSetDirectoryVerification import _signature, _chain, _is_link_or_reparse
+from Common.DriveRequestPath import is_drive_request_file_path
 
 
 class CompletionWaitCheckpointError(ValueError):
@@ -75,6 +81,143 @@ class CompletionWaitCheckpoint:
             raise
         except Exception:
             _reject("checkpoint_state_invalid")
+
+
+@dataclass(frozen=True, repr=False)
+class CompletionWaitCheckpointTransition:
+    expected_bytes: bytes
+    checkpoint: CompletionWaitCheckpoint
+    added_check_count: int
+    status: str
+    may_check: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+    may_change_state: bool = field(default=False, init=False)
+
+
+def inspect_completion_wait_checkpoint_transition(
+    previous_bytes, proposed_bytes, *, schema, expected_log_type, expected_target_period,
+    expected_run_id, current_utc, current_utc_reliable,
+):
+    """Inspect supplied checkpoint evolution; never create/reset a lost prior.
+
+    Exact byte replay is unchanged, otherwise precisely one new check is required.
+    Prior trust, elapsed-time providers, durable CAS and actual checks are absent.
+    """
+    try:
+        if type(previous_bytes) is not bytes or type(proposed_bytes) is not bytes:
+            _reject("checkpoint_transition_bytes_required")
+        context = dict(schema=schema, expected_log_type=expected_log_type,
+            expected_target_period=expected_target_period, expected_run_id=expected_run_id,
+            current_utc=current_utc, current_utc_reliable=current_utc_reliable)
+        before = read_completion_wait_checkpoint(previous_bytes, **context)
+        after = read_completion_wait_checkpoint(proposed_bytes, **context)
+        if previous_bytes == proposed_bytes:
+            return CompletionWaitCheckpointTransition(previous_bytes, after, 0, "unchanged")
+        if before.started_at_utc != after.started_at_utc:
+            _reject("checkpoint_transition_start_changed")
+        if (len(after.check_times_utc) != len(before.check_times_utc)+1
+                or after.check_times_utc[:-1] != before.check_times_utc):
+            _reject("checkpoint_transition_history_changed")
+        return CompletionWaitCheckpointTransition(previous_bytes, after, 1, "requires_runtime_evidence")
+    except CompletionWaitCheckpointError:
+        raise
+    except Exception:
+        _reject("checkpoint_transition_input_invalid")
+
+
+@dataclass(frozen=True, repr=False)
+class CompletionWaitCheckpointFileObservation:
+    checkpoint: CompletionWaitCheckpoint
+    status: str = field(default="requires_runtime_evidence", init=False)
+    may_check: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+    may_change_state: bool = field(default=False, init=False)
+
+
+def observe_completion_wait_checkpoint_file(
+    checkpoint_path, *, maximum_bytes, schema, expected_log_type, expected_target_period,
+    expected_run_id, current_utc, current_utc_reliable,
+):
+    """Bounded read of one explicit existing file, never a qualified receipt.
+
+    No default byte limit or filename/layout policy is selected. The caller's
+    limit is a resource bound, not a change to the checkpoint schema contract.
+    """
+    try:
+        if type(maximum_bytes) is not int or maximum_bytes < 1:
+            _reject("checkpoint_file_limit_invalid")
+        path = Path(checkpoint_path)
+        if not path.is_absolute() or (os.name == "nt" and not is_drive_request_file_path(str(path))):
+            _reject("checkpoint_file_path_invalid")
+        chain = _chain(path.parent)
+        before = path.lstat()
+        if _is_link_or_reparse(path) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            _reject("checkpoint_file_not_regular")
+        if before.st_size > maximum_bytes:
+            _reject("checkpoint_file_limit_exceeded")
+        expected = _signature(before)
+        blocks, count = [], 0
+        with path.open("rb") as stream:
+            opened = os.fstat(stream.fileno())
+            if not stat.S_ISREG(opened.st_mode) or _signature(opened) != expected:
+                _reject("checkpoint_file_changed")
+            while True:
+                block = stream.read(min(65536, before.st_size-count+1))
+                if not block:
+                    break
+                count += len(block)
+                if count > before.st_size:
+                    _reject("checkpoint_file_changed")
+                blocks.append(block)
+            finished = os.fstat(stream.fileno())
+        if _signature(finished) != expected or count != before.st_size:
+            _reject("checkpoint_file_changed")
+        record = read_completion_wait_checkpoint(b"".join(blocks), schema=schema,
+            expected_log_type=expected_log_type, expected_target_period=expected_target_period,
+            expected_run_id=expected_run_id, current_utc=current_utc,
+            current_utc_reliable=current_utc_reliable)
+        if (_is_link_or_reparse(path) or _signature(path.lstat()) != expected
+                or _chain(path.parent) != chain):
+            _reject("checkpoint_file_changed")
+        return CompletionWaitCheckpointFileObservation(record)
+    except CompletionWaitCheckpointError:
+        raise
+    except Exception:
+        _reject("checkpoint_file_observation_unavailable")
+
+
+@dataclass(frozen=True, repr=False)
+class CompletionWaitFileAssessment:
+    checkpoint: CompletionWaitCheckpoint
+    budget: CompletionWaitDecision
+    status: str = field(default="requires_runtime_evidence", init=False)
+    may_check: bool = field(default=False, init=False)
+    may_wait: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+    may_change_state: bool = field(default=False, init=False)
+
+
+def assess_completion_wait_checkpoint_file(
+    checkpoint_path, *, maximum_bytes, ac_connected, schema, expected_log_type,
+    expected_target_period, expected_run_id, current_utc, current_utc_reliable,
+    logged_on, same_account_verified, own_sync_complete, waiting_confirmed,
+):
+    """Fresh read -> budget advice, without allocation, persistence or execution.
+
+    check_due is an observation only. Missing/unreadable records are rejected,
+    never converted to an empty budget or a normal waiting condition.
+    """
+    if ac_connected is not True:
+        _reject("checkpoint_file_ac_unconfirmed")
+    observation = observe_completion_wait_checkpoint_file(checkpoint_path, maximum_bytes=maximum_bytes,
+        schema=schema, expected_log_type=expected_log_type, expected_target_period=expected_target_period,
+        expected_run_id=expected_run_id, current_utc=current_utc, current_utc_reliable=current_utc_reliable)
+    budget = assess_completion_wait_budget(observation.checkpoint.as_budget_state(),
+        expected_log_type=expected_log_type, expected_target_period=expected_target_period,
+        expected_run_id=expected_run_id, current_utc=current_utc, current_utc_reliable=current_utc_reliable,
+        logged_on=logged_on, same_account_verified=same_account_verified,
+        own_sync_complete=own_sync_complete, waiting_confirmed=waiting_confirmed)
+    return CompletionWaitFileAssessment(observation.checkpoint, budget)
 
 
 def read_completion_wait_checkpoint(raw_bytes, *, schema, expected_log_type, expected_target_period,

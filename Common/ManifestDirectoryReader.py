@@ -86,7 +86,16 @@ def _read_stable(path, expected, directory, chain):
         opened = os.fstat(stream.fileno())
         if not stat.S_ISREG(opened.st_mode) or _signature(opened) != expected:
             _reject("manifest_candidate_changed")
-        content = stream.read()
+        blocks, byte_count = [], 0
+        while True:
+            block = stream.read(min(65536, before.st_size-byte_count+1))
+            if not block:
+                break
+            byte_count += len(block)
+            if byte_count > before.st_size:
+                _reject("manifest_candidate_changed")
+            blocks.append(block)
+        content = b"".join(blocks)
         finished = os.fstat(stream.fileno())
     after = path.lstat()
     if (_reparse(after) or not stat.S_ISREG(after.st_mode)
@@ -108,6 +117,8 @@ def read_latest_manifest(
     current_utc_reliable: bool,
     require_current_success: bool = True,
     future_tolerance: timedelta = timedelta(minutes=5),
+    maximum_candidate_bytes: int | None = None,
+    maximum_total_bytes: int | None = None,
 ) -> ReadManifestSelection:
     """Observe fixed PC directory, select scoped latest, recheck before return.
 
@@ -123,6 +134,9 @@ def read_latest_manifest(
         future_tolerance=future_tolerance, enumeration_completed=True,
     )
     _validate_context(**options)  # Reject invalid scope/clock/mode before any root IO.
+    if any(value is not None and (type(value) is not int or value < 1)
+           for value in (maximum_candidate_bytes, maximum_total_bytes)):
+        _reject("manifest_read_limit_invalid")
     try:
         root = Path(maintenance_root)
         if not root.is_absolute() or ".." in root.parts:
@@ -130,6 +144,13 @@ def read_latest_manifest(
         directory = root / "_maintenance" / "manifests" / expected_pc_id
         chain = _chain(directory)
         initial = _scan(directory, chain)
+        # Include older/foreign-period entries: resource limits must not become
+        # a way to skip unknown candidates and fall back to an older success.
+        if (maximum_candidate_bytes is not None
+                and any(signature[2] > maximum_candidate_bytes for signature in initial.values())):
+            _reject("manifest_candidate_limit_exceeded")
+        if maximum_total_bytes is not None and sum(signature[2] for signature in initial.values()) > maximum_total_bytes:
+            _reject("manifest_total_limit_exceeded")
         candidates = []
         for name, signature in initial.items():
             identity = parse_manifest_filename(name)
@@ -169,6 +190,8 @@ def read_latest_manifest_with_report(
     current_utc: datetime | None, current_utc_reliable: bool,
     require_current_success: bool = True,
     future_tolerance: timedelta = timedelta(minutes=5),
+    maximum_candidate_bytes: int | None = None,
+    maximum_total_bytes: int | None = None,
 ) -> ReadManifestSelection:
     """Bind scoped latest bytes to a semantically verified report, then reselect.
 
@@ -179,7 +202,8 @@ def read_latest_manifest_with_report(
     options = dict(expected_pc_id=expected_pc_id, expected_log_type=expected_log_type,
         expected_target_period=expected_target_period, current_utc=current_utc,
         current_utc_reliable=current_utc_reliable, require_current_success=require_current_success,
-        future_tolerance=future_tolerance)
+        future_tolerance=future_tolerance, maximum_candidate_bytes=maximum_candidate_bytes,
+        maximum_total_bytes=maximum_total_bytes)
     selected = read_latest_manifest(maintenance_root, **options)
     reference = f"_maintenance/manifests/{expected_pc_id}/{selected.filename}"
     result = validate_referenced_artifacts(maintenance_root, report_path, contracts_path,

@@ -3,6 +3,14 @@
 - Basis: approved C4-A in osd-02-crash-concurrency-options.md; EOLM-MAN-002 in requirements-traceability.md; staging-file-lifecycle.md section 8.
 - Scope: supplied candidate observations only. No runtime enumeration, source/Drive access, manifest rewrite, lock disposition or operation authorization.
 
+## Explicit byte budgets for directory observations (2026-10-26)
+
+`read_latest_manifest` and `read_latest_manifest_with_report` accept optional `maximum_candidate_bytes` and `maximum_total_bytes`. Each must be None or a positive exact integer; bool/string/fractional values are rejected before root I/O. No fixed production ceiling is chosen and the schema remains unchanged. None preserves the existing caller interface without imposing that ceiling.
+
+After metadata enumeration, every entry's initial size is checked before any payload opens. Per-file and aggregate budgets include older and foreign-period/log entries, rather than skipping large candidates or falling back to an older success. An exceeded bound rejects the entire observation. Payload reads use chunks of at most 65,536 bytes and stop at the file's initial size plus one byte; observed growth rejects immediately. Existing handle/path signature and final enumeration checks remain in place.
+
+The report wrapper passes the same bounds to both manifest directory observations. These bounds do not limit report/evidence reads inside the separate referenced-artifact validator, entry count, JSON complexity, or all memory use. They are caller-selected resource controls, not root/FS qualification, an atomic snapshot, ABA protection or authorization. [Synthetic bounds tests](../../tests/test_manifest_reader_bounds.py) cover exact limits, aggregate scope, pre-open rejection, growth and wrapper forwarding.
+
 ## Inputs and identity
 
 Common/LatestManifestSelection.py provides ManifestCandidate(filename, content)

@@ -1,5 +1,7 @@
 # Drive再試行のPS側観測
 
+Uploadの提示manifest履歴については[履歴側のfile別4回上限](manifest-transition-inspection.md#提示履歴のupload試行上限)も検査する。ready→pending/unknown→pending境界の過剰記録を拒否する純粋検査であり、PSの実counter/待機・API送信やunknown不在照合の実装ではない。
+
 2026-10-25。[PS/Python契約§7](powershell-python-contract.md#7-再試行と冪等性)と[固定retryable表](../decisions/implementation-grounded-four-decisions-20261024.md)を、既存の[PS helper](../../Common/DriveResponseSemantics.ps1)へ接続する。正式orchestrator、sleep、API呼出しは実装しない。
 
 `Get-DriveRetryObservation`は実request由来の期待ID/operation、decoded response、整数exit、**完了した試行番号**（初回=1、最大4）を受け取る。番号はint/long/BigIntegerの1〜4だけを許し、bool/小数/文字列/欠落を暗黙変換しない。既存`Test-DriveResponseSemantics`を毎回呼び、相関・exit・envelope・固定retryable表の矛盾を拒否する。

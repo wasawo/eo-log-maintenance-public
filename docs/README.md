@@ -147,3 +147,7 @@ docs/
 - [Source列挙の完了前再確認](design/source-enumeration-stability.md)
 
 - [Drive同一内容の比較候補](design/drive-content-comparison.md) — OSD-01の純粋観測比較とdownload hash fallback。
+
+- [初期inventoryの読取観測接続](design/initial-inventory-observation.md) — PC-A sourceとDrive比較を結び付ける内部観測。
+
+- [残存staging直下entryの読取観測](design/staging-residual-observation.md) — 件数・変化/不明の保留、完全startup検査は未実装。

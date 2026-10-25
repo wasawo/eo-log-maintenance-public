@@ -15,7 +15,37 @@
 
 run終端はexact immutable B2等による既存report builderのOSD-03集約検査が必要で、本helperは集約を認証しない。C3のcrash-left runningは保全し、回復後も新runを作る。掲載ペアを根拠に中断履歴を書き換えず、retry枯渇/timeout/不完全一覧だけでfailedや再送へ進めない。writer・証拠provider・永続化・runtime受け入れは未実装。[合成試験](../../tests/test_manifest_transition_inspection.py)はsnapshot/pair検査に限る。
 
+## 初期登録からの連続履歴検査
+
+`inspect_manifest_history(snapshots, manifest_schema=...)`は空でないexact bytes tupleを要求し、初回を新規running/pendingとして既存検査へ渡す。各隣接ペアも既存schema/identity/凍結inventory/時刻/verification/掲載ペア/終端不変性の検査を通す。途中snapshotから過去のstaging履歴を補完しない。
+
+fileのrelative pathごとにpending段階を追跡する。初期登録のpendingからuploaded/unknownへ飛ぶ履歴を拒否し、ready→pendingでUpload直前pending、unknown→pendingで再試行pendingを記録する。Upload pendingからpending→stagingへ戻る履歴も拒否する。登録pending→failedはsource不備等の処理前失敗を記述できるが、実failureの証拠は別途必要。順序を変えたfile配列や変化しないsnapshotでも段階を混同せず、終端runの同一bytes再掲載は遷移数を増やさない。
+
+結果はimmutableな件数とaggregation_required、status=requires_runtime_evidenceおよび全may_publish/may_upload/may_retry/may_archive=false。Upload直前への遷移数とunknownからのretry遷移数は分離し、最後の登録pending件数とUpload pending件数も区別する。run終端でもOSD-03/B2集約検査を代替しない。空inventory/登録pendingだけの履歴をno_workへ変えない。
+
+このAPIは履歴形式やevent field/schemaを新設せず、保存・I/Oを行わない。提示された全snapshotの真正性/完全性・省略/捏造の不在・metadata-first保存順序・copy内容・API応答・unknown retry前の不在照合/予算/待機・所有権/時計/FS/使用点は証明しない。crash-left runningの自動修復や履歴の書換えは行わない。[合成履歴検査](../../tests/test_manifest_history_inspection.py)はこの純粋な段階検査に限る。
+
 ## 終端planとB2／report生成の接続
+
+### 提示履歴のUpload試行上限
+
+`inspect_manifest_history`は[最大4回の既承認契約](powershell-python-contract.md#7-再試行と冪等性)に従い、fileごとにready→pendingを初回、unknown→pendingを再試行の境界として数える。5回目のUpload pendingは固定reason `manifest_history_upload_attempt_limit_exceeded`で拒否する。登録pending、同じsnapshotの再掲載、file配列の並べ替えは予算を消費/リセットしない。別fileの予算を合算せず、stagingへの逆戻りでのリセットも既存段階検査が拒否する。
+
+上限到達だけではfailed/successへ変えず、4回後のunknownもそのまま保持する。全履歴binding/使用点再導出も同じ検査を経由し、上限超過の終端reportは生成しない。掲載snapshotが実API試行を漏れなく示す証拠にはならず、開始前pendingが実送信/完了したかは判定しない。実counter/永続予算・信頼できる60/300/900秒待機・unknownからの完全な不在照合・retryable判定・PS orchestratorは未実装。全may_*falseで、本文の「予算の証明はしない」は実運用の予算を指す。[合成上限試験](../../tests/test_manifest_history_retry_budget.py)は提示履歴の境界だけを確認する。
+
+### 初期planからの全履歴binding
+
+使用点では`revalidate_terminal_manifest_history`へ初期plan・独立expected snapshot tuple/B2/現在running bytes・明示AC・context/schemaを渡す。wrapper/内包plan/historyの厳密型、bytes/件数の型、全false flagを検査し、ACが明示Trueでなければ再導出前に拒否する。履歴/元B2/現在running bytesの不一致も事前拒否する。全履歴/B2/reportを毎回再導出し、元plan全体とexact一致する場合だけ新しい非認可planを返す。旧report、件数改変、boolを整数に代用した件数、scope/path/clock変化で成功を流用しない。
+
+これらの独立引数もprovider認証やwrite leaseではない。正式root/FS/owner/clock/AC・履歴真正性/完全性・使用点の取得/保持は未実装。保存済みplanや再検査成功がその後の更新を許可するわけではない。
+
+[使用点/候補bundle隔離接続](../../tests/test_terminal_history_usepoint.py)では自作で所有を確認したOS-tempのみ使用し、合成mutex内で現在runningを読み、全履歴再導出後に別candidateへmarker-last保存し、既存hash/semantic readerで読戻す。PC-A/Bとも元runningを置換せず、候補の検証もmay_update_manifest/Archive=false。lock取得後のrunning変更/AC喪失は全candidate書込み前に停止し、変更bytesを保全してownerを解放する。このfixtureはtests専用で、正式writer/実ログ/Drive/電源断受け入れではない。
+
+`prepare_terminal_manifest_history`は独立PC/log/period/run/start/clock/schemaから初期planを再構成し、元planの厳密型/全false flag/元B2/proposed bytesのexact整合を確認する。空でないsnapshot tupleの先頭はその初期bytesとexact一致しなければならず、以降を連続履歴検査へ渡す。最後がrunningならreportを構築せずincompleteとして拒否する。
+
+最初の終端snapshotとその直前のrunning snapshotを既存終端plan/B2/OSD-03/G1 report生成へ接続する。同じ終端bytesの再掲載があっても、本来のrunning priorをterminal bytesに置き換えない。集約が不正なら掲載ペアや履歴が成立しても拒否する。未解決file/既知validation errors・不完全coverageをsuccess/no_workへ補完しない。
+
+専用immutable `TerminalManifestHistoryPlan`は元snapshot tuple、件数観測、exact prior/proposed/B2/report bytesを持つ既存terminal planを保持し、reprは非表示、全公開/Upload/retry/Archive/状態変更許可false。既存terminal planと別型で、保存済み結果を初期planとして再利用できない。これは供給履歴と元B2の整合検査だけであり、履歴真正性/完全性、event証拠、metadata-first、実copy/Drive、所有権/FS/clock/使用点や永続化の証明ではない。schema/event fieldやwriterを新設しない。[合成接続試験](../../tests/test_terminal_manifest_history.py)は両PC/log・exact trace・途中省略・集約不備・未完・終端繰返しを扱う。
 
 同moduleの`prepare_terminal_manifest_transition`は、既存のexact prior/proposed manifest bytesと固定B2 bytes、参照先の安全な相対path、信頼済みstatic schema、現在UTCとreliableを要求する。先に上記遷移検査を実行し、続けて既存report builderでB2のdigest・scope・凍結inventory一致、終端fileの検証結果、OSD-03集約status/outcome、G1時刻と未来時刻条件を検査する。どちらかが不成立ならplanを返さず、入力statusや証拠を修正しない。
 
