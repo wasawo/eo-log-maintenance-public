@@ -1,5 +1,6 @@
 """Pure OSD-01 comparison observations; no API, provenance proof or authority."""
 from dataclasses import dataclass, field
+import hashlib
 import re
 
 
@@ -24,6 +25,49 @@ class DownloadHashObservation:
     file_id: str
     size_bytes: int
     sha256: str
+
+
+class DownloadObservationError(ValueError):
+    def __init__(self, reason_code):
+        self.reason_code = reason_code
+        super().__init__(reason_code)
+
+
+def hash_downloaded_content(file_id, chunks, *, expected_size_bytes, download_completed):
+    """Hash completed download chunks without retaining contents or owning transport.
+
+    The caller must bind the stream and completion to the requested Drive ID.
+    Neither a caller flag nor this digest authenticates that binding. Each chunk
+    is nonempty exact bytes; an empty payload is represented by zero chunks.
+    """
+    if not _text(file_id) or not _size(expected_size_bytes):
+        raise DownloadObservationError("download_context_invalid")
+    if download_completed is not True:
+        raise DownloadObservationError("download_completion_unconfirmed")
+    if isinstance(chunks, (bytes, bytearray, str)):
+        raise DownloadObservationError("download_chunks_invalid")
+    digest = hashlib.sha256()
+    size = 0
+    try:
+        iterator = iter(chunks)
+    except Exception:
+        raise DownloadObservationError("download_read_failed") from None
+    while True:
+        try:
+            chunk = next(iterator)
+        except StopIteration:
+            break
+        except Exception:
+            raise DownloadObservationError("download_read_failed") from None
+        if type(chunk) is not bytes or not chunk:
+            raise DownloadObservationError("download_chunk_invalid")
+        size += len(chunk)
+        if size > expected_size_bytes:
+            raise DownloadObservationError("download_size_mismatch")
+        digest.update(chunk)
+    if size != expected_size_bytes:
+        raise DownloadObservationError("download_size_mismatch")
+    return DownloadHashObservation(file_id, size, digest.hexdigest())
 
 
 @dataclass(frozen=True, repr=False)

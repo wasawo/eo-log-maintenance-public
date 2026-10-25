@@ -6,7 +6,14 @@
 正本は Public の `wasawo/eo-log-maintenance-public`。元リポジトリは Private のまま。
 この文書の状態は記録コミット時点。実際のmain/PR/CIは作業開始時に照合する。
 
-## 今回の累積PR承認・準備
+## 最新基準と今回の作業
+
+- main`ccd4ffaf2d785828a700afe8a294f35ef308df43`は[PR #43](https://github.com/wasawo/eo-log-maintenance-public/pull/43)マージ済み。mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40174574117) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40174574154)とも成功確認済み。再開指示を受け、最新取得mainから新branch`codex/drive-download-observation`を作成した。
+- 既存比較moduleへ[download chunkの実bytes/hash観測](../design/drive-content-comparison.md)を追加。独立期待sizeと明示完了・file IDを要求し、非空exact bytes chunkをstream処理して既存DownloadHashObservationへ結び付ける。size超過時は残りを読まず停止し、不足/途中例外/不正chunkで観測を返さない。raw例外は固定reasonへ置き換える。
+- bytes蓄積・自動retry/close・temp保存は行わない。stream所有権/解放とfile ID・完了の真正なbindingはcaller/providerに残る。合成chunk/hashからOSD-01比較fallbackまで接続する。Python 3.11.9（CI 3.12）で追加stream観測＋既存比較の計17件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDK/IPC C-02/credential、全page取得と信頼済みsource/folder/metadata・download完了/ID binding、timeout/resource管理、C1/C2 writer、実root/ACL/FS/owner/clock、両PC/Drive/archive gateとruntime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 前PRの準備記録（PR #43へ統合済み）
 
 - 2026-10-25、利用者が「ここまでの実装をまとめてPR作成してマージして」と明示承認。最新取得main`1036b30`（PR #42）に対し、`codex/initial-manifest-plan`の8実装コミット`efc6733`〜`5e38d7f`と本記録を1PRにまとめる。記録時点はpush/PR/新CI/マージ前。
 - 範囲：B2初期running/pending plan、source実列挙との隔離接続、凍結B2再観測と初期使用点、列挙完了前再確認、hashの早期identity/サイズ上限検査、終端plan使用点再導出、OSD-01の同一内容比較候補。関連tests/docs/CIと両roleレビューpackage49件を含む。IPC/保存schemaとPS runtime契約は変えない。
