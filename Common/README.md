@@ -112,6 +112,8 @@ LatestManifestSelection.py independently parses the defined manifest basename an
 
 ManifestDirectoryReader.py adds read-only observations of the defined per-PC manifest directory and returns the exact validated byte snapshot plus SHA-256. Unknown/reparse entries, read uncertainty and observed changes block selection. Approved-root authority and runtime integration remain pending; see [selection scope](../docs/design/latest-manifest-selection.md).
 
+Both directory-reader entry points accept caller-selected per-candidate/aggregate byte ceilings. All initial entry sizes, including older/foreign periods, are checked before payload opens; reads stop at initial size plus one byte on growth. Defaults do not impose a new schema ceiling. Report/evidence validator reads and entry/JSON complexity are outside these resource bounds.
+
 RecoveryDiagnostic.py classifies supplied fixed gate observations into a sanitized, immutable, non-authorizing diagnostic result. Even all-satisfied observations produce review_required with may_change_state=false. It performs no I/O and does not establish the truth of its supplied observations.
 
 RecoveryDiagnosticMutex.py acquires the existing global scope mutex without ownership-record I/O or token generation. It reports abandonment as non-authorizing evidence and releases/closes on completion or failure. It is an isolated diagnosis lease, not normal lock acquisition, approved-root qualification, or an operational recovery entrypoint.

@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`d073ebc`、同じ`codex/drive-download-observation`で[manifest directory読取りの明示bytes上限](../design/latest-manifest-selection.md#explicit-byte-budgets-for-directory-observations-2026-10-26)を追加。caller指定のoptional候補別/全候補合計上限を型検査し、旧run/別period等も含む初期size全件をpayload open前に検査する。超過候補をskip/fallbackせず全体拒否。読取りは最大65,536 byte/chunk・初期size+1 byteで増大停止し、既存signature/最終再列挙は維持する。
+- report付き選択も前後2回のmanifest観測へ同じ上限を渡す。Python 3.11.9（CI 3.12）で新規bounds7件＋既存directory/report29件の計36件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 固定の本番上限値/新schema制約は採用せず、Noneではcaller上限なし。report/evidence validator内の読取り・entry数/JSON複雑度/全memoryは今回の上限対象外。root/FS/owner/clock/現在性/ABA・実Drive/runtime受け入れは未実証。次は既承認の独立作業を選び、未決provider/資源方針を推測しない。
+
+## 直前の実装単位（checkpoint file→予算観測・d073ebc）
+
 - 基準`859e966`、同じ`codex/drive-download-observation`で[既存checkpoint file→確認待ち予算観測](../design/completion-wait-budget.md#既存fileの上限付き読取観測2026-10-26)を追加。独立scope/clock/AC/指定上限で毎回fileを読み、元checkpointと既存budgetのcheck_due/wait/hold助言をimmutable型へ保持する。全確認/待機/Archive/状態変更許可false、plan作成/試行消費・file更新・sleep/task予約を行わない。
 - Python 3.11.9（CI 3.12）で新規file予算8件＋既存budget16件＋file観測8件の計32件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
 - 24時間/25回/間隔/残余window不足や資格不足は既存holdを保持。AC不明・欠落/破損・scope/clock/精度不備は拒否し、空履歴/通常waitへ変換しない。前回dueを流用しない。root/owner/clock/AC/session/account/provider資格、rollback/ABA・正式CAS/永続試行前計上・実確認/毎時task/runtime受け入れは未完。次は既承認の独立作業を選び、未決保存provider契約を推測しない。
