@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+- 基準`673052d`、同じ`codex/initial-manifest-plan`で`revalidate_initial_manifest_source`を接続。厳密なInitialManifestPlan型/全false flag・明示AC trueを検査し、独立PC/log/period/run/開始時刻・現在時計/schemaから初期planを再構成してexact一致を要求してから、sourceを新しく再観測する。
+- planの書式だけの変更/別state/別B2やscope変更、AC未確認・不正flagはsource I/O前に拒否する。保存済みSourceInventoryObservationやtrue値をreceiptとして受け付けず、呼出しごとに再列挙/hashする。返す結果は全may_*falseの観測で、実root/AC/token/clock/owner資格を認証しない。
+- 合成の実mutex/owner内で使用点検査を候補公開の前へ接続し、一致時の候補保存・source変更/AC切断時のcandidate書込み0件・owner解放/元plan保全を確認する。callback/配置はtests専用で、正式runtime契約やC1/C2 providerの採用ではない。
+- 追加使用点・既存再観測/初期接続を一括検証する。配布file集合48件/PS/schema契約は不変。Python 3.11.9（CI 3.12）で追加使用点＋既存再観測/初期接続の計27件成功（skipなし）。改変/AC/contextの行列は試験内subcase。変更のないsource/report/terminal/配布構成・PS/schema検査は再実行しない。root自己点検のみ、独立レビュー・新CI・runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：観測直後から実使用までのnamespace/bytes/AC変化、同時atomic snapshot/ABA排除、実fresh run/24時間資格・root/ACL/owner/clock/provider、C1/C2 writerとDrive/runtime受け入れ。次はそれらのprovider境界候補の整理か、確定済みの独立実装を選ぶ。
+
+## 直前の実装単位（凍結source再観測・673052d）
+
 - 基準`ac29ec1`、同じ`codex/initial-manifest-plan`で[凍結source再観測](../design/source-inventory-revalidation.md)を追加。独立source/scope/reference date/現在UTCとexact B2を検査し、元coverageがcompleteの場合だけ既存builderで再列挙/hashしてtarget集合と分類観測を比較する。元/再観測の不完全・追加/削除/rename/内容/分類変更を保留する。
 - 結果は元B2 bytes/target数のimmutable observationで全may_*はfalse。再生成B2や内部のhost終了時刻を保存/証拠化せず、旧B2を補完/更新しない。既知validation errorを消さず、non-target fileの内容/identityは比較範囲外と明示した。root IDは独立期待ラベルで、物理root認可や時計/ownerの真正性を認証しない。
 - 両PC/log、変更行列、不完全/読取失敗、事前scope/clock/date/schema拒否、元bytes不変と比較限界を合成検証する。Common helper1件を追加し、両roleレビュー配布のfile集合は48件。CIとpackage fixtureへ登録した。

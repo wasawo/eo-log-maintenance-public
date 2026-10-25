@@ -131,3 +131,5 @@ artifact-set classifier/directory verifierはoptionalな`expected_transaction_id
 初期plan生成でも既存filename分類を使い、内部整合するB2のeligible targetであっても文法外/実在しない日付は拒否します。source builderからの[隔離接続試験](../tests/test_initial_source_integration.py)は候補保存までを検証し、source使用点や実run/clockの資格は別gateに残します。
 
 `SourceInventoryRevalidation.py`は[凍結B2とsourceの再観測](../docs/design/source-inventory-revalidation.md)を比較する読取専用helperです。独立scope/reference dateと完全な元coverageを要求し、再列挙/hashで観測が変わったら拒否します。元B2を更新せず、対象外fileの内容や後続使用点までの不変性を認証しません。全may_*はfalseです。
+
+同moduleの`revalidate_initial_manifest_source`は、独立run contextで初期planを再構成し、AC/plan/flagsの不整合をsource I/O前に拒否してから毎回sourceを再観測します。全may_*はfalseで、旧観測をreceiptとして再利用する経路は設けません。使用点後の変化や実provider資格は別gateです。

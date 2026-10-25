@@ -320,3 +320,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_initial_source_integration.py`は専用tempの実source列挙/hashからB2・初期plan・別candidateへの実mutex/create-only/marker-last公開/読戻しを接続します。両PC/log・分類/失敗・source変更/競合を扱います。固定clockとfixture IDは合成観測で、runtime資格やUpload認可ではありません。
 
 `test_source_inventory_revalidation.py`は凍結B2と実再列挙/hashの合成比較です。変更・分類・coverage不完全・scope/clock/date不明を拒否し、元B2を補完せず全may_*がfalseであること、non-target内容が比較範囲外であることを確認します。
+
+`test_initial_source_usepoint.py`は初期planの再構成とAC/source再観測を接続し、改変・scope不一致・AC不明の事前拒否と、合成所有lock内でのcandidate保存/書込み前停止を検証します。観測からruntime権限を付与しません。

@@ -11,3 +11,12 @@ source rootの物理的認可・root IDとの真正な結び付き、実clock/ru
 [合成試験](../../tests/test_source_inventory_revalidation.py)は両PC/log、同一観測・元bytes保持、不変/非認可結果、追加/削除/rename/同サイズ変更、分類/error保持、不完全な元B2、再scan/hash失敗、scope/clock/reference date不正・欠落/破損B2の事前拒否、対象外内容の比較限界を検査する。全I/Oは専用tempの合成sourceで、実ログ/本番Driveや実設定には接続しない。
 
 B2には元sourceのOS file IDやreference dateそのものを保存していないため、同じpath/bytesで置換された別実fileや、分類結果が同じになる異なる基準日をこの比較だけで見分けるとはしない。独立contextと使用点の資格を外部で確保する。
+
+
+## 初期planの使用点接続
+
+`revalidate_initial_manifest_source`は初期planと独立run context/現在時計/static schema、明示AC接続状態、source/root scope/reference dateを要求する。planの厳密型と全false flagを確認し、ACが明示Trueの場合だけ初期候補を再構成する。再構成bytes/B2/flagsが元planとexact一致しなければsourceを読まず拒否する。同じinstantでも開始UTCの表記差や候補の書式差を勝手に正規化しない。
+
+その後、毎回`revalidate_source_inventory`で新しくsourceを再列挙/hashする。過去の観測objectやcallerの「検査済み」boolから再確認を省略する経路はない。返す観測は全may_*falseで、同じ結果の反復も一回限りreceiptや実行許可にはならない。AC値はcallerの観測で、OS取得の真正性・継続接続・in-flight停止は別gateである。
+
+[合成使用点試験](../../tests/test_initial_source_usepoint.py)はplan/B2/flag/context改変とAC不明をsource I/O前に拒否し、実fixture mutex/ownerの保持中に検査→候補公開へ接続する。一致時は候補を保存できるがruntime認可ではなく、source変更/AC切断ではcandidateを書かずownerを解放する。検査後の変更・敵対的ABA・scope/実ownerの資格を排除した証拠ではない。現在時計を取るprovider、実runの鮮度、実root/ACL/FS/C1比較更新とupload/runtime受け入れは未実装のまま。

@@ -6,6 +6,7 @@ from Common.AggregationReportBuilder import _parse, _validate, _validator
 from Common.LatestManifestSelection import _utc_key, _clock_key
 from Common.RunInputEvidenceIntegrity import validate_evidence_invariants
 from Common.SourceInventoryEvidenceBuilder import build_run_input_evidence
+from Common.ManifestTransitionInspection import InitialManifestPlan, prepare_initial_manifest
 
 
 class SourceRevalidationError(ValueError):
@@ -78,3 +79,37 @@ def revalidate_source_inventory(
         raise
     except Exception:
         _reject("source_revalidation_input_invalid")
+
+
+def revalidate_initial_manifest_source(
+    source_root, plan, *, ac_connected, expected_pc_id, expected_log_type, expected_target_period,
+    expected_run_id, started_at_utc, current_utc, current_utc_reliable,
+    manifest_schema, evidence_schema, expected_root_id, expected_relative_scope, reference_date,
+):
+    """Reconstruct a bound initial plan before making a new source observation.
+
+    AC/context are supplied observations, not OS proof. No saved observation
+    is accepted as a receipt; every invocation rechecks the actual source. A
+    successful result still grants no publication/upload and is not a lease.
+    """
+    if (type(plan) is not InitialManifestPlan
+            or any(flag is not False for flag in (plan.may_publish, plan.may_upload, plan.may_archive))):
+        _reject("initial_source_plan_invalid")
+    if ac_connected is not True:
+        _reject("initial_source_ac_unconfirmed")
+    try:
+        restored = prepare_initial_manifest(plan.evidence_bytes, expected_pc_id=expected_pc_id,
+            expected_log_type=expected_log_type, expected_target_period=expected_target_period,
+            expected_run_id=expected_run_id, started_at_utc=started_at_utc, current_utc=current_utc,
+            current_utc_reliable=current_utc_reliable, manifest_schema=manifest_schema,
+            evidence_schema=evidence_schema)
+        if restored != plan:
+            _reject("initial_source_plan_invalid")
+    except SourceRevalidationError:
+        raise
+    except Exception:
+        _reject("initial_source_plan_invalid")
+    return revalidate_source_inventory(source_root, plan.evidence_bytes, schema=evidence_schema,
+        expected_pc_id=expected_pc_id, expected_log_type=expected_log_type, expected_run_id=expected_run_id,
+        expected_root_id=expected_root_id, expected_relative_scope=expected_relative_scope,
+        reference_date=reference_date, current_utc=current_utc, current_utc_reliable=current_utc_reliable)

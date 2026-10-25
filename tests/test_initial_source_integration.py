@@ -63,11 +63,13 @@ class InitialSourceIntegrationTests(unittest.TestCase):
         raw = builder.serialize_evidence(e, SCHEMAS["evidence_schema"])
         return e, prepare_initial_manifest(raw, **context)
 
-    def publish(self, plan):
+    def publish(self, plan, *, before_publish=None):
         m = json.loads(plan.proposed_bytes)
         name = f'{m["pc_id"]}_{m["log_type"]}_{m["target_period"]}_{m["run_id"]}.json'
         payloads = {name: plan.proposed_bytes, "evidence.json": plan.evidence_bytes}
         with acquire_owned_lock("synthetic-" + self.transaction, self.root / "owner.json", timeout_seconds=0):
+            if before_publish is not None:
+                before_publish()
             result = publish_artifact_set_marker_last(str(self.candidate), payloads, transaction_id=self.transaction)
             expected = {name: hashlib.sha256(raw).hexdigest() for name, raw in payloads.items()}
             verified = verify_published_artifact_set(self.candidate, expected, expected_transaction_id=self.transaction)
