@@ -29,6 +29,12 @@ fileのrelative pathごとにpending段階を追跡する。初期登録のpendi
 
 ### 初期planからの全履歴binding
 
+使用点では`revalidate_terminal_manifest_history`へ初期plan・独立expected snapshot tuple/B2/現在running bytes・明示AC・context/schemaを渡す。wrapper/内包plan/historyの厳密型、bytes/件数の型、全false flagを検査し、ACが明示Trueでなければ再導出前に拒否する。履歴/元B2/現在running bytesの不一致も事前拒否する。全履歴/B2/reportを毎回再導出し、元plan全体とexact一致する場合だけ新しい非認可planを返す。旧report、件数改変、boolを整数に代用した件数、scope/path/clock変化で成功を流用しない。
+
+これらの独立引数もprovider認証やwrite leaseではない。正式root/FS/owner/clock/AC・履歴真正性/完全性・使用点の取得/保持は未実装。保存済みplanや再検査成功がその後の更新を許可するわけではない。
+
+[使用点/候補bundle隔離接続](../../tests/test_terminal_history_usepoint.py)では自作で所有を確認したOS-tempのみ使用し、合成mutex内で現在runningを読み、全履歴再導出後に別candidateへmarker-last保存し、既存hash/semantic readerで読戻す。PC-A/Bとも元runningを置換せず、候補の検証もmay_update_manifest/Archive=false。lock取得後のrunning変更/AC喪失は全candidate書込み前に停止し、変更bytesを保全してownerを解放する。このfixtureはtests専用で、正式writer/実ログ/Drive/電源断受け入れではない。
+
 `prepare_terminal_manifest_history`は独立PC/log/period/run/start/clock/schemaから初期planを再構成し、元planの厳密型/全false flag/元B2/proposed bytesのexact整合を確認する。空でないsnapshot tupleの先頭はその初期bytesとexact一致しなければならず、以降を連続履歴検査へ渡す。最後がrunningならreportを構築せずincompleteとして拒否する。
 
 最初の終端snapshotとその直前のrunning snapshotを既存終端plan/B2/OSD-03/G1 report生成へ接続する。同じ終端bytesの再掲載があっても、本来のrunning priorをterminal bytesに置き換えない。集約が不正なら掲載ペアや履歴が成立しても拒否する。未解決file/既知validation errors・不完全coverageをsuccess/no_workへ補完しない。

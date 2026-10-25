@@ -353,6 +353,55 @@ def prepare_terminal_manifest_history(
         _reject("terminal_history_input_invalid")
 
 
+def revalidate_terminal_manifest_history(
+    plan, *, initial_plan, expected_snapshots, expected_previous_bytes, expected_evidence_bytes,
+    ac_connected, expected_pc_id, expected_log_type, expected_target_period, expected_run_id,
+    started_at_utc, manifest_path, evidence_path, current_utc, current_utc_reliable,
+    manifest_schema, evidence_schema, report_schema,
+):
+    """Rebuild the entire candidate from independent use-point observations.
+
+    Supplied AC/bytes/context are not authenticated providers or a write lease.
+    No I/O or permissions are provided, even after exact re-derivation.
+    """
+    if (type(plan) is not TerminalManifestHistoryPlan or type(plan.terminal) is not TerminalManifestPlan
+            or type(plan.history) is not ManifestHistoryObservation
+            or any(flag is not False for flag in (plan.may_publish, plan.may_upload,
+                plan.may_retry, plan.may_archive, plan.may_change_state))):
+        _reject("terminal_history_usepoint_plan_invalid")
+    if (any(type(raw) is not bytes for raw in (plan.terminal.expected_bytes, plan.terminal.proposed_bytes,
+                plan.terminal.evidence_bytes, plan.terminal.report_bytes))
+            or any(type(count) is not int or count < 0 for count in (plan.history.snapshot_count,
+                plan.history.file_transition_count, plan.history.upload_pending_transition_count,
+                plan.history.retry_pending_transition_count, plan.history.registered_pending_file_count,
+                plan.history.upload_pending_file_count))
+            or type(plan.history.aggregation_required) is not bool
+            or type(plan.history.status) is not str or plan.history.status != "requires_runtime_evidence"
+            or any(flag is not False for flag in (plan.terminal.may_publish, plan.terminal.may_archive,
+                plan.terminal.may_change_state, plan.history.may_publish, plan.history.may_upload,
+                plan.history.may_retry, plan.history.may_archive))):
+        _reject("terminal_history_usepoint_plan_invalid")
+    if ac_connected is not True:
+        _reject("terminal_history_usepoint_ac_unconfirmed")
+    if (type(expected_snapshots) is not tuple or type(plan.snapshots) is not tuple
+            or any(type(raw) is not bytes for raw in expected_snapshots)
+            or any(type(raw) is not bytes for raw in plan.snapshots)
+            or type(expected_previous_bytes) is not bytes or type(expected_evidence_bytes) is not bytes):
+        _reject("terminal_history_usepoint_snapshot_invalid")
+    if (plan.snapshots != expected_snapshots or plan.terminal.expected_bytes != expected_previous_bytes
+            or plan.terminal.evidence_bytes != expected_evidence_bytes):
+        _reject("terminal_history_usepoint_snapshot_changed")
+    restored = prepare_terminal_manifest_history(initial_plan, expected_snapshots,
+        expected_pc_id=expected_pc_id, expected_log_type=expected_log_type,
+        expected_target_period=expected_target_period, expected_run_id=expected_run_id,
+        started_at_utc=started_at_utc, manifest_path=manifest_path, evidence_path=evidence_path,
+        current_utc=current_utc, current_utc_reliable=current_utc_reliable,
+        manifest_schema=manifest_schema, evidence_schema=evidence_schema, report_schema=report_schema)
+    if restored != plan:
+        _reject("terminal_history_usepoint_plan_changed")
+    return restored
+
+
 def revalidate_terminal_manifest_plan(
     plan, *, expected_previous_bytes, expected_evidence_bytes, expected_pc_id,
     expected_log_type, expected_target_period, expected_run_id, ac_connected,

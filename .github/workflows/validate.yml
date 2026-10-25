@@ -91,6 +91,7 @@ jobs:
           python -B -m unittest discover -s tests -p "test_manifest_transition_inspection.py" -v
           python -B -m unittest discover -s tests -p "test_manifest_history_inspection.py" -v
           python -B -m unittest discover -s tests -p "test_terminal_manifest_history.py" -v
+          python -B -m unittest discover -s tests -p "test_terminal_history_usepoint.py" -v
           python -B -m unittest discover -s tests -p "test_terminal_manifest_plan.py" -v
           python -B -m unittest discover -s tests -p "test_terminal_plan_usepoint.py" -v
           python -B -m unittest discover -s tests -p "test_drive_content_comparison.py" -v

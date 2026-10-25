@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`70d4cb9`、同じ`codex/drive-download-observation`で[終端履歴planの使用点再導出＋候補bundle隔離接続](../design/manifest-transition-inspection.md#初期planからの全履歴binding)を追加。独立初期plan/履歴/B2/現在running bytes/AC/contextと厳密型/flagsを確認し、全履歴/reportを毎回再構成してplan全体とexact照合する。自作tempの合成所有lock内で現在runningを読み、別candidate保存/semantic読戻しを両PC相当で接続。元runningは更新せず、全公開/Upload/retry/Archive/状態変更許可false。
+- Python 3.11.9（CI 3.12）で新規使用点/隔離接続9件＋既存全履歴9件の計18種類成功、skipなし。初回27件にはimportによる既存9件の重複実行を含み、module aliasへ整理。nested plan/historyの厳密型/flag検査強化後、新規9件のみ再実行して成功。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- lock取得後の現在running変更/AC喪失では候補fileを書かず、変更bytesを保全してowner解放。独立引数のprovider真正性/履歴完全性・metadata-first/event証拠・実copy/Drive/API・owner/root/clock/FS/容量/使用点・実writer/永続化/runtime受け入れは未実証。次は既承認の独立作業を選び、未決provider/event契約を推測しない。
+
+## 直前の実装単位（初期plan/全履歴/終端report binding・70d4cb9）
+
 - 基準`f964bca`、同じ`codex/drive-download-observation`で[初期plan/B2→連続履歴→終端report候補のbinding](../design/manifest-transition-inspection.md#初期planからの全履歴binding)を追加。独立contextでexact初期planを再構成し、先頭exact一致と全履歴のpending段階/遷移/終端を検査。最初のterminalと本来のrunning priorを既存OSD-03/G1 report builderへ接続し、終端繰返しでもpriorを取り違えない。専用immutable plan/全公開・Upload・retry・Archive・状態変更許可false。
 - Python 3.11.9（CI 3.12）で新規9件＋既存history10件＋terminal plan9件の計28件成功、skipなし。初回はテストのreport status参照先2か所が既存schemaと不一致、修正後新規9件成功。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
 - 未解決file/error/不完全coverageをsuccess/no_workへ補完せず、runningだけの履歴は終端reportへ変換しない。履歴真正性/完全性・event/metadata-first証拠・実copy/Drive/API・owner/clock/FS/容量/使用点・writer/永続化/runtime受け入れは未実証。次は既承認の独立作業を選び、未決writer/event契約を推測しない。
