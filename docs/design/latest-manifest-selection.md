@@ -97,3 +97,14 @@ Windows abandoned-mutex integration also reads the defined per-PC directory.
 A positive classifier result remains evidence about its supplied snapshot only;
 it does not transfer ownership, dispose of stale records or prove later path
 state. No operational recovery adapter or new-run creation is introduced.
+
+
+## Latest snapshot and report binding (2026-10-25)
+
+`read_latest_manifest_with_report` in the existing directory reader first performs the same complete scoped C4 read/selection. It supplies the chosen exact bytes and the normative `_maintenance/manifests/<PC-ID>/<basename>` reference as independent expectations to the report validator. A caller explicitly supplies the report and contracts paths; no report location is inferred and no missing report is generated. A valid report for another run or a copy at another path does not substitute for the selected manifest.
+
+The optional `expected_manifest_bytes` / `expected_manifest_path` validator inputs must be provided together with exact bytes/string types. Both omitted retain the existing standalone validator/CLI behavior. A reference-path mismatch or changed selected bytes fails closed even if the report reference hash was refreshed to match the changed content. The report must also pass the complete B2/G1/semantic and stable-read checks.
+
+After report validation the reader enumerates/selects again and requires the same filename, identity, status, hash and exact bytes. A newer success is a changed observation; a newer running/partial/failure blocks the default current-success query without older-success fallback. Inspection mode may observe a terminal failure with a matching report; a running manifest cannot manufacture a terminal report.
+
+The returned `ReadManifestSelection` remains an observation. These sequential checks do not create an atomic snapshot, prevent ABA or all changes after the last read, acquire a qualified runtime lock, obtain a reliable clock, enforce current-execution freshness or verify current Drive contents. Synthetic tests cover both PCs/log types and injected selection/report changes; no archive or state mutation is authorized.

@@ -8,6 +8,72 @@
 
 ## 最新基準と今回の作業
 
+- 2026-10-25、利用者が「ここまでの実装をまとめてPR作成してマージして」と明示承認。最新main`42221e3`（PR #41）に対し、`codex/manifest-evidence-integration`の実装7コミット`eb3f6c5`〜`a206e4e`と本記録を1PRへまとめる。この時点はpush/PR/新CI/マージ前。
+- 範囲：終端遷移/B2/report plan接続、全report意味論再導出、隔離候補bundleの実公開/読戻し、参照file/schemaの安定読取観測、最新manifest/report path・bytes binding、artifact-set transactionと再観測、単一公開staging/final/所有temp cleanupの防御。配布file集合は47件で不変、PS/保存schemaの契約は変えない。
+- 各単位のPython 3.11.9での対象検証結果・skip・再実行理由は下記に保持。CIはPython 3.12/PS 7.6.7で最新PR HEADのValidateとPackage Validation両成功を確認する。root自己点検のみで独立レビュー未実施。実Drive/実root・ACL・FS/Tier B/C、atomic snapshot/敵対的ABA、C1比較更新/receipt/runtime受け入れは未完のまま。
+- 今回の承認はこの累積PR作成・CI成功後マージまで。マージ後は次実装へ進まず指示待ち。次変更は最新mainから新branchを切り、マージ済みbranchへ追記しない。
+
+- [PR #42](https://github.com/wasawo/eo-log-maintenance-public/pull/42)作成済み。初回HEAD`efdda2f`はPackage Validation成功・Validate失敗。Windows Python 3.12でstat/fstatのctimeが異なる意味になる比較を含んでいたため、4moduleで明示birthtime_ns（未対応版は従来ctime）を使うよう整合した。POSIXのctime比較、identity/size/mtime/bytes検査は維持。CPython 3.12一次実装を確認し、模擬回帰を追加した。
+- ローカルPython 3.11.9で修正影響の62件中60件成功・既存symlink不可2件skip。新HEADの両CI成功を確認するまでマージしない。初回失敗は[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40162859743)の記録として保持する。
+
+## 直前の実装単位（単一公開readback/cleanup・a206e4e）
+
+- 基準`7d9a891`、同じ`codex/manifest-evidence-integration`でcreate-only単一file公開のstaging/readback/cleanupを強化。既存helperはfsync後の再読込をせず、temp名を無条件にunlinkしていたため、handle由来のtemp identityと親chainを保存し、公開前にexact bytes＋identityを再検査する。
+- 公開後もfinal pathが当該temp由来のidentityで内容が一致することを確認する。同一既存fileの比較はpath/handle・前後metadata・親chainに結び付いたexact bytes比較へ変更。root/reparseはresolve前に拒否する。既存file上書きや比較更新能力は追加しない。
+- cleanupは同じ親chain・regular temp identity・exact bytesを再確認できる場合だけ既存のtemp unlinkへ進め、差替え/内容変更/不明なtempは保全する。観測とunlinkの間の敵対的raceまで閉じたとはしない。公開後不明/不一致でもfinalをrollback/削除せず、電源断耐久性を保証しない。
+- staging内容/identity差替え、cleanup直前の同一bytes別file、偽link成功、既存fileのhandle不一致を合成試験に追加。対象単一公開・artifact-set公開・所有lock接続・process crash harness・終端bundleを一括検証する。配布file集合47件/PS/schema契約は不変。Python 3.11.9（CI 3.12）で関連37件を実施。初回stdin起動ではmultiprocessingの8件が子processから起動元を読めず未検証となり、通常の`python -B -m unittest`＋PYTHONPATH=testsで当該7件＋残り1件だけを確認して全成功。最終的に36件成功・既存symlink作成不可の1件skip。既に成功した試験は再実行しない。PS/schema/配布構成不変のためpackage/PS検査は未実行。root自己点検のみで独立レビュー・新CI・実環境受け入れは未実施。root単独、ローカルコミットまでで待機、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：root/ACL/FS・実owner/scopeの資格、敵対的namespace変更の完全防止、C1比較更新・一回限りreceipt、実Drive/Tier B/C/runtime受け入れ。これはcreate-only helperの防御強化で、正式manifest更新providerの採用ではない。次はprovider境界の候補整理か、確定済みの独立作業を選ぶ。
+
+## 直前の実装単位（artifact-set transaction/読戻し・7d9a891）
+
+- 基準`afca3ce`、同じ`codex/manifest-evidence-integration`でartifact-set classifierとdirectory verifierを強化。optionalな独立期待transaction IDを共通APIへ接続し、valid UUIDであっても期待文字列とexact不一致ならcommittedにしない。未指定時は従来のunbound分類を維持し、marker schema/fieldは変更しない。
+- directory verifierはcaller期待hash集合を開始時copyし、root/祖先chain・file path/handle・読取前後metadata/byte長を照合。分類後にdirectoryを再列挙し、全artifact/markerのexact bytesを再読込、さらに再列挙して変化を拒否する。fixture固有だったtransaction照合を既存終端bundleにも接続した。
+- 共通分類の型/別transaction/文字列非正規化、directoryのlate変更/追加・handle不一致・読取中変更・期待map変更を合成試験へ追加。既存reparse/read失敗試験はstream open経路へ障害注入を合わせ、reparse先を読まないことも維持する。
+- 対象はclassifier/directory/reparse/終端bundleの関連試験を一括。配布file集合47件/PS/schema契約は不変。Python 3.11.9（CI 3.12）で関連38件中37件成功・1件skip。skipは既存symlink作成が端末で利用できないcaseで、実Windows junction/reparse・read失敗試験は成功。変更のないlatest/report/builder・package/PS/schema検査は再実行しない。root自己点検のみ、独立レビュー・新CI・実環境受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。期待transactionもcaller由来観測で、実owner/run binding・一回限りreceiptを認証しない。unboundなcommittedを特定試行の認可にせず、同時atomic snapshot/敵対的ABA・実root/ACL/FS/C1比較更新・実Drive・Tier B/C/runtime受け入れは未完。次はprovider未決境界の候補整理か、確定済みの独立作業を選ぶ。
+
+## 直前の実装単位（最新manifest/report binding・afca3ce）
+
+- 基準`db2e774`、同じ`codex/manifest-evidence-integration`で最新manifest選択とreport意味論を接続。既存directory readerへ`read_latest_manifest_with_report`を追加し、C4で選んだexact bytesと規定basename/pathを参照validatorの独立期待値へ渡す。report位置は明示入力で、自動推定/生成しない。
+- 参照validatorのoptional期待bytes/pathは両方セットのみ許可し、未知型・片方欠落・別path・読取bytes不一致を拒否。従来の期待値なしAPI/CLIは互換保持。report検査後に最新候補を再列挙/選択し、別候補への変化や新しい未完runを保留する。古い成功/reportへfallbackしない。
+- 両PC/log種別、別runの旧report、別pathの同一bytes、選択後bytes＋report hash改変、検証後の新success/running、偽成功、終端failure観測/非終端拒否、期待値不正・時計不明/欠落reportを合成試験に追加。全I/Oは専用tempで実ログ/Driveなし。
+- 追加接続・既存directory reader/参照validatorを対象に一括検証する。配布file集合47件/PS/schema契約は不変。Python 3.11.9（CI 3.12）で追加10件＋既存directory/参照validatorの計44件成功（skipなし）。両PC/logや状態の組合せは試験内subcase。変更のないcore選択/builder/bundle、package/PS/schema検査は再実行しない。root自己点検のみで独立レビュー・新CI・実環境受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。返すものは読取観測のみ。実root/ACL/tokenの認可、時計の取得/信頼性、24時間の実行鮮度、実Drive/両PC安全証拠、同時原子snapshot/ABA排除、C1/C2比較更新とreceipt、runtime/受け入れは未完。次はそれらのprovider境界の候補整理か、確定済みの独立作業を選ぶ。
+
+## 直前の実装単位（安定読取観測・db2e774）
+
+- 基準`a988964`、同じ`codex/manifest-evidence-integration`で参照validatorのreport/manifest/B2/schema読取を強化。resolve前にroot/祖先/reparse属性を検査し、各fileのlstat・open後/読取後fstat・読取後lstat・親chain・byte長を照合する。判定直前に全読取fileをexact bytes/metadata/chainで再読込し、途中変更を検出したら結果を返さない。
+- schemaも同じ読取集合へ含め、既に読んだschemaを再利用。外部参照を取得しない既存static schema validatorを使い、不正/解決不能schemaを固定理由で拒否する。root/ACL資格やatomic snapshot、敵対的ABAの完全排除を証明せず、通常読取のTOCTOUを完全に解決したとはしない。
+- 合成試験は全6fileのlate変更、handle identity/読取中変更、親chain変更、root/report/参照/schemaのreparse属性、実Win32 junction root、不正/外部/broken schemaのnetwork不呼出しを追加。全データは専用tempで、schemaは追跡中のstatic資料をtempへcopyしたもの。実ログ/Drive/秘密を使わない。
+- 関連参照validator・追加読取試験・終端bundle接続を一括検証する。配布file集合（47件）/PS/schema契約に変更なし。Python 3.11.9（CI 3.12）で追加7件＋既存参照/bundleの計30件成功（skipなし、専用tempの実junctionを含む）。各file/reparse/schemaの行列は試験内subcaseとして扱う。変更のないbuilder/plan・package/PS検査は再実行しない。root自己点検のみ、独立レビュー・新CI・実運用受け入れは未実施。root単独、ローカルコミットまでで待機、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：実効ACL/実token/root認可、file read集合の同時原子性・ABA/競合の完全防止、C1/C2 writer/receipt、現在時計/実Drive/Tier B/C/runtime受け入れ。次は比較更新providerの信頼境界・保存/回復条件を候補化するか、確定仕様の別作業を選ぶ。
+
+## 直前の実装単位（終端候補bundle・a988964）
+
+- 基準`187bae2`、同じ`codex/manifest-evidence-integration`でtests専用の終端候補bundle接続を実装。呼出元rootを受けず自作OS-tempに固定し、別置きprior-runningを保持したまま、実mutex/owner＋既存create-only helperでB2/提案manifest/reportを公開し、markerを最後に公開する。fixtureの名前/配置/APIはruntime契約ではない。
+- exact plan由来hash/bytes、markerのtransaction、既存directory分類、参照validatorによる全report意味論、最後の再観測を接続した。候補bundleだけが検証済みでもmay_update_manifest/may_archiveはfalse。正式manifestを更新せず、C1比較更新providerや真正な一回限りreceiptを実装したとはしない。
+- 両PC/empty/成功/混在、4公開境界での例外・部分file保全・同一bytes再試行、既存競合、marker後応答喪失、別transaction、report改変＋marker再binding、意味論検査直後の変更を合成試験へ追加。process killや電源断ではなくfixtureの例外/変更注入。cleanupは自作・解決済み・所有marker付きtemp rootを再確認してから行う。
+- Common/PS/schema/配布file集合（47件）は変更しない。CIに追加接続試験を登録。追加fixtureだけを一括検証し、変更のない既存成功検査は繰り返さない。Python 3.11.9（CI 3.12）で追加8件成功（skipなし）。両PC×3種の結果と4公開境界は各試験内のsubcaseで、独立した件数として加算しない。既存の成功済みreport/plan/publication試験、package/PS検査は変更なしのため再実行しない。root自己点検のみで独立レビュー・新CI・実環境受け入れは未実施。root単独、ローカルコミットまでで待機し、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：実manifest比較更新、root/ACL/FSと真正な実owner/scope、ABA/読取間競合の完全排除、B2の出所/固定性、使用点clock/鮮度・実Drive/両PC証拠、C3回復、Tier B/C/runtime受け入れ。次はproviderの未決信頼境界・失敗時保存/回復条件を候補化するか、確定済みの独立作業を選ぶ。
+
+## 直前の実装単位（report意味論再導出・187bae2）
+
+- 基準`eb3f6c5`、同じ`codex/manifest-evidence-integration`で終端planのreportと参照validatorを接続した。従来はhash/identity/B2/G1/inventory照合までで、reportの集約status・期間件数・run-scope error等の再導出比較が欠けていたため、既存の決定的builderを共有して全文意味論を検査する。
+- `derive_aggregation_report`は明示的に現在時計を観測しない履歴再導出API。内部schema/B2/終端/時系列/G1条件は維持し、通常`build_aggregation_report`と終端planの現在時計/未来許容検査は省略しない。report自身の時刻をtrusted nowに代用せず、旧reportの意味論検査から現在の資格を作らない。
+- 参照validatorは読取済みexact bytesから再導出し、JSON whitespace/key順だけを許して全field/array順/整数表現を比較する。偽status/件数/completion/error/順序やfloat整数表現を拒否。direct CLIも同じCommon moduleを実行位置に依存せずロードする。既存empty成功fixtureのmanifest outcomeを承認済みno_workへ修正した。
+- 追加/既存のreport builder・参照validator・終端planだけを対象検証する。配布file集合は47件で不変、PS/schemaコード変更なし。Python 3.11.9（CI 3.12）で関連48件を一括実行し47件成功。既存no_work fixture修正に伴う非空inventoryの1件はschemaで先に拒否されたため、当該試験のoutcomeをNoneへ整合し、その1件だけ再実行して成功。成功済み47件は再実行せず、関連48件を確認済み。配布構成/PS/schema不変のためpackage/PS/schema単独検査は再実行しない。root自己点検のみ、独立レビュー・新CI・実運用受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：trusted root/ACL/使用点read、意味論検査中の変更対策、C1/C2比較更新・marker-last実統合・receipt、現在時計/鮮度・実Drive/両PC証拠・runtime受け入れ。再導出成功は保存・archive認可ではない。次は隔離artifact setとの接続またはproviderの未決信頼境界/障害回復条件の候補整理。
+
+## 直前の実装単位（終端plan・eb3f6c5）
+
+- 最新mainは`42221e36886773b7efbb4e3d58658890690f55b6`。[PR #41](https://github.com/wasawo/eo-log-maintenance-public/pull/41)はマージ済み、mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40159576258) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40159576256)も成功確認済み。利用者の再開指示を受け、新branch`codex/manifest-evidence-integration`を最新取得mainから作成した。
+- 既存moduleに`prepare_terminal_manifest_transition`を追加。exact prior/proposed manifestの掲載遷移・凍結inventory・終端不変を検査した後、B2 digest/scope/target一致とOSD-03集約/G1 report生成を既存builderへ接続する。immutable planは元/提案/B2/report bytesを保持し、全may_*はfalse。欠落prior・不正遷移・未終端file・偽成功を修正せず拒否する。
+- reportは提案bytesの派生物で、保存済み/commitの証拠ではない。B2の真正性・固定性・最新性、実event履歴、root/ACL/所有権・C1/C2比較更新・一回限りreadback・実Drive内容は未実装gateのまま。PC-Bも検査できるがarchive権限は与えない。
+- 既存配布module内の拡張でfile集合は47件のまま。追加接続試験と既存snapshot/report builderを一括で対象検証する。Python 3.11.9（CI 3.12）で追加接続9件＋既存snapshot/report builderの計42件成功（skipなし）。両log種別のT01〜T12相当は追加試験内の24 subcaseとして確認し、独立した24試験とは数えない。配布file集合/PSコードが不変のためpackage/PS検査は再実行しない。root自己点検のみ、独立レビュー・新CI・実保存/受け入れは未実施。root単独、ローカルコミット後は指示待ち。今回はpush/PR/マージを行わない。
+- 文書相対リンク欠落0・差分検査成功。次はこのplanと既存のartifact参照validator/模擬保存の接続、またはproviderの未決信頼境界・障害回復条件の候補整理。planから正式publicationやruntimeの受け入れを推定しない。
+
+## 前PRの準備記録（PR #41へ統合済み）
+
 - 2026-10-25、利用者が「ここまでの実装をまとめてPR作成してマージして」と明示承認。最新取得mainは`fea8753`（PR #40）、`codex/work-branch-policy`の実装8コミット`b4d4600`〜`f8cdea8`を1PRへまとめる。この記録コミットも同じPRに含める。
 - 範囲はmain直接push禁止/branch運用、manifest遷移snapshot検査、checkpoint schema/reader/試行plan/使用点検査/模擬保存、実Win32負例probe、AC観測、PS再試行観測と関連試験・文書。正式writer/adapter/task、実counter/待機/再送、C-02詳細、実Drive/Tier B/C/電源断の資格は未完のまま。
 - 各実装単位の対象検査・環境差は下記記録を保持し、無変更の成功検査は再実行しない。rootが累積差分と配布範囲を自己点検し、文書相対リンク/差分を最終確認する。独立レビューは未実施。この記録時点はpush/PR/新CI/マージ前で、最新PR HEADのValidateとPackage Validation両成功を確認してからマージする。

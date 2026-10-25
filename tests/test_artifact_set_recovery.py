@@ -7,6 +7,21 @@ from Common.ArtifactSetRecovery import classify_artifact_set
 
 
 class ArtifactSetRecoveryTests(unittest.TestCase):
+    def test_independent_transaction_binding_rejects_other_or_nonexact_identity(self):
+        for expected in ("123e4567-e89b-42d3-a456-426614174000", "123e4567-e89b-42d3-a456-426614174001",
+                         "123E4567-E89B-42D3-A456-426614174000"):
+            result = self.classify(published_sha256=dict(self.expected), staged_sha256={},
+                commit_marker=self.marker, expected_transaction_id=expected)
+            self.assertEqual(result.may_report_committed, expected == self.marker["transaction_id"])
+            if not result.may_report_committed:
+                self.assertEqual("commit_marker_transaction_id_mismatch", result.reason_code)
+
+    def test_invalid_transaction_expectation_is_blocked_without_coercion(self):
+        for expected in ("", "not-a-uuid", True, 1, b"123e4567-e89b-42d3-a456-426614174000"):
+            result = self.classify(expected_transaction_id=expected)
+            self.assertEqual("expected_transaction_id_invalid", result.reason_code)
+            self.assertFalse(result.may_publish_next or result.may_report_committed)
+
     def setUp(self):
         self.expected = {
             "manifest.json": "a" * 64,

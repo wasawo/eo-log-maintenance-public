@@ -3,9 +3,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
+
+from Common import ArtifactSetDirectoryVerification as verification
 
 from Common.ArtifactSetDirectoryVerification import (
     ArtifactSetDirectoryVerificationError,
@@ -14,6 +19,76 @@ from Common.ArtifactSetDirectoryVerification import (
 
 
 class ArtifactSetDirectoryVerificationTests(unittest.TestCase):
+    def test_expected_transaction_is_independently_bound_and_optional(self):
+        self.write_complete_set()
+        self.assertTrue(verify_published_artifact_set(self.root, self.expected,
+            expected_transaction_id=self.transaction_id).may_report_committed)
+        result = verify_published_artifact_set(self.root, self.expected,
+            expected_transaction_id="123e4567-e89b-42d3-a456-426614174001")
+        self.assertEqual("commit_marker_transaction_id_mismatch", result.reason_code)
+        self.assertFalse(result.may_report_committed)
+        self.assertTrue(verify_published_artifact_set(self.root, self.expected).may_report_committed)
+
+    def test_all_observed_files_are_rechecked_after_classification(self):
+        for name in ("manifest.json", "report.json", "commit-marker.json"):
+            with self.subTest(name=name):
+                self.write_complete_set()
+                real = verification.classify_artifact_set
+                def changed(**kwargs):
+                    decision = real(**kwargs)
+                    path = self.root / name
+                    path.write_bytes(path.read_bytes() + b"\n")
+                    return decision
+                with patch.object(verification, "classify_artifact_set", side_effect=changed):
+                    with self.assertRaises(ArtifactSetDirectoryVerificationError):
+                        verify_published_artifact_set(self.root, self.expected)
+
+    def test_directory_addition_after_classification_is_rejected(self):
+        self.write_complete_set()
+        real = verification.classify_artifact_set
+        def changed(**kwargs):
+            result = real(**kwargs)
+            (self.root / "unexpected.tmp").write_bytes(b"synthetic")
+            return result
+        with patch.object(verification, "classify_artifact_set", side_effect=changed):
+            with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "unexpected_directory_entry"):
+                verify_published_artifact_set(self.root, self.expected)
+
+    def test_opened_handle_identity_and_mid_read_changes_are_rejected(self):
+        self.write_complete_set()
+        real = os.fstat
+        def wrong_handle(fd):
+            info = real(fd)
+            values = {name: getattr(info, name) for name in
+                ("st_mode", "st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns", "st_nlink")}
+            values["st_ino"] += 1
+            return SimpleNamespace(**values)
+        with patch.object(verification.os, "fstat", side_effect=wrong_handle):
+            with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "artifact_changed"):
+                verify_published_artifact_set(self.root, self.expected)
+        calls = 0
+        def mid_read(fd):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                for path in self.root.iterdir(): path.write_bytes(path.read_bytes() + b"\n")
+            return real(fd)
+        with patch.object(verification.os, "fstat", side_effect=mid_read):
+            with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "artifact_changed"):
+                verify_published_artifact_set(self.root, self.expected)
+
+    def test_expected_hashes_are_copied_before_observing_the_directory(self):
+        self.write_complete_set()
+        original = dict(self.expected)
+        real = verification._read_stable
+        def changed(*args):
+            self.expected.clear()
+            return real(*args)
+        with patch.object(verification, "_read_stable", side_effect=changed):
+            self.assertTrue(verify_published_artifact_set(self.root, self.expected).may_report_committed)
+        self.assertEqual({}, self.expected)
+        self.assertEqual(original, json.loads((self.root / "commit-marker.json").read_bytes())["artifact_sha256"])
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

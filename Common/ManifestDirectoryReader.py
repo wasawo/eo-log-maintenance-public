@@ -16,6 +16,7 @@ from Common.LatestManifestSelection import (
     LatestManifestSelectionError, ManifestCandidate, _validate_context,
     parse_manifest_filename, select_latest_manifest,
 )
+from Common.validate_aggregation_artifacts import validate_referenced_artifacts
 
 
 @dataclass(frozen=True)
@@ -42,7 +43,9 @@ def _reparse(info):
 
 
 def _signature(info):
-    return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+    # Windows 3.12 stat/fstat ctime can differ; compare explicit birthtime.
+    stamp = getattr(info, "st_birthtime_ns", info.st_ctime_ns) if os.name == "nt" else info.st_ctime_ns
+    return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, stamp
 
 
 def _chain(directory):
@@ -158,3 +161,32 @@ def read_latest_manifest(
         raise
     except Exception:
         _reject("manifest_directory_read_failed")
+
+
+def read_latest_manifest_with_report(
+    maintenance_root: str | Path, report_path: str | Path, contracts_path: str | Path, *,
+    expected_pc_id: str, expected_log_type: str, expected_target_period: str,
+    current_utc: datetime | None, current_utc_reliable: bool,
+    require_current_success: bool = True,
+    future_tolerance: timedelta = timedelta(minutes=5),
+) -> ReadManifestSelection:
+    """Bind scoped latest bytes to a semantically verified report, then reselect.
+
+    A report path is supplied explicitly; no report location or missing report
+    is inferred. This remains a read observation, not archive permission or a
+    locked/atomic snapshot. Current clock/root/Drive qualification is external.
+    """
+    options = dict(expected_pc_id=expected_pc_id, expected_log_type=expected_log_type,
+        expected_target_period=expected_target_period, current_utc=current_utc,
+        current_utc_reliable=current_utc_reliable, require_current_success=require_current_success,
+        future_tolerance=future_tolerance)
+    selected = read_latest_manifest(maintenance_root, **options)
+    reference = f"_maintenance/manifests/{expected_pc_id}/{selected.filename}"
+    result = validate_referenced_artifacts(maintenance_root, report_path, contracts_path,
+        expected_manifest_bytes=selected.content, expected_manifest_path=reference)
+    if result["status"] != "verified":
+        _reject("selected_manifest_report_invalid")
+    observed_again = read_latest_manifest(maintenance_root, **options)
+    if observed_again != selected:
+        _reject("selected_manifest_changed")
+    return selected
