@@ -38,7 +38,7 @@
 
 未知field、欠落、null、重複key、非UTF-8、不正日時、scope不一致、時計逆行、期限外・1時間未満の間隔、25件超は拒否する。配列順を保持し、UTC表記の精度を丸めて履歴を変えない。`next_check_at_utc`、成功/失敗、`may_archive`は保存しない。必要な次回時刻はhelperが履歴から導出する。実確認の前に試行1件を確定し、失敗した確認も消費する。試行確定後にクラッシュした場合も予算を戻さない。欠落/読取不能/不一致から空履歴を作らない。
 
-保存・読取は既承認C1の同一directory一時保存・再読込検査・atomic publication/compare-before-replace、C2のmutex＋owner record、元runとscopeの独立照合に従う。具体的なfilename/root、作成時のtrusted evidence、FSのatomicity/電源断耐久性は別途資格を要する。現helperは永続化しないため、このschema・writer・readerは**未実装**である。[既存試験](../../tests/test_completion_wait_budget.py)も純粋判定の範囲である。
+保存・読取は既承認C1の同一directory一時保存・再読込検査・atomic publication/compare-before-replace、C2のmutex＋owner record、元runとscopeの独立照合に従う。具体的なfilename/root、作成時のtrusted evidence、FSのatomicity/電源断耐久性は別途資格を要する。2026-10-25に[schema](../../contracts/completion-wait-checkpoint-v1.schema.json)と[純粋reader](../../Common/CompletionWaitCheckpoint.py)を実装した。元bytes/時刻文字列/履歴順を保持し、scope・現在時計・履歴を検査する。既存microsecond helperへの変換で精度を失う入力は拒否し、丸めない。writer、信頼できる読取元/provider、現在性・原子更新と実確認前の永続計上は未実装。[reader試験](../../tests/test_completion_wait_checkpoint.py)は[既存予算試験](../../tests/test_completion_wait_budget.py)と合成接続する。
 
 ## 3. version 0.1.0のレビューpackage snapshot（2026-10-24）
 
@@ -87,7 +87,7 @@ requirements-runtime.txt
 scripts/README.md
 ```
 
-2026-10-25のC-01字句実装で`Common/DriveRequestPath.ps1`と`Common/DriveRequestPath.py`を追加したため、C-01時点のレビューpackageは旧40件＋2件となる。続くmanifest transition inspector 1件の追加後は43件となる。上の一覧は承認時点のsnapshotとして保持し、正式配布manifestとしない。
+2026-10-25のC-01字句実装で`Common/DriveRequestPath.ps1`と`Common/DriveRequestPath.py`を追加したため、C-01時点のレビューpackageは旧40件＋2件となる。続くmanifest transition inspector 1件の追加後は43件となる。続くcheckpoint schema/readerの2件追加後は45件となる。上の一覧は承認時点のsnapshotとして保持し、正式配布manifestとしない。
 
 現在のbuilderは`Common`/`scripts`配下の許容拡張子を走査し、役割別入口の存在を確認する。選択済み31aAの将来の正式manifestでは、このようなglob走査ではなく、**各PC・各versionでファイルを明示列挙するstrict JSON＋JSON Schema**を採る。現行レビュー一覧には両roleの差分がない。最終file一覧・required/optional・manifestのfield/digest、builderの実装変更は正式入口と依存が完成してから別途決める。`docs`/`tests`/`.github`、実設定、token、ログ、private証拠を含めず、PC-Bへarchive入口を渡さない。現行packageテストは[合成試験](../../tests/Test-ReleasePackage.ps1)であり配布可の証明ではない。
 

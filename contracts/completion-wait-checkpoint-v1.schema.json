@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eo-log-maintenance.invalid/contracts/completion-wait-checkpoint-v1.schema.json",
+  "title": "PC-A completion wait budget checkpoint v1",
+  "description": "Auxiliary history only. No runtime permission, implicit reset or manifest success. Scope/time/history and trusted acquisition need independent validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["checkpoint_schema_version", "pc_id", "log_type", "target_period", "run_id", "started_at_utc", "check_times_utc"],
+  "properties": {
+    "checkpoint_schema_version": { "type": "integer", "const": 1 },
+    "pc_id": { "const": "PC-A" },
+    "log_type": { "enum": ["BattleLog", "ErrorReport"] },
+    "target_period": { "type": "string" },
+    "run_id": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}(?![\\s\\S])"
+    },
+    "started_at_utc": { "$ref": "#/$defs/utc" },
+    "check_times_utc": { "type": "array", "maxItems": 25, "items": { "$ref": "#/$defs/utc" } }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "log_type": { "const": "BattleLog" } }, "required": ["log_type"] },
+      "then": { "properties": { "target_period": { "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])(?![\\s\\S])" } } }
+    },
+    {
+      "if": { "properties": { "log_type": { "const": "ErrorReport" } }, "required": ["log_type"] },
+      "then": { "properties": { "target_period": { "pattern": "^[0-9]{4}(?![\\s\\S])" } } }
+    }
+  ],
+  "$defs": {
+    "utc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z(?![\\s\\S])"
+    }
+  }
+}

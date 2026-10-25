@@ -1,5 +1,7 @@
 # テスト計画
 
+`test_completion_wait_checkpoint.py`はclosed schema、exact bytes/時刻表記/配列順、期待scopeと信頼できる現在時計、25回/24時間/1時間間隔、精度の保持と変換拒否、欠落/破損・I/Oなしを合成検証します。既存budget helperへ接続しても、実保存/rollback防止/実確認の証明にはしません。
+
 `test_manifest_transition_inspection.py`は採用済みfile/runペアの行列、初期状態、identity/凍結inventory、verification/hash/time、終端の不変性、入力不変・I/Oなし・固定理由を合成検証します。掲載ペアの結果もrequires_runtime_evidenceであり、実event/Drive/排他/集約/永続更新の受け入れではありません。
 
 `test_drive_request_path.py`と`Test-DriveRequestPath.ps1`は共通L1 fixtureをschema/Python/PSへ適用します。両request path field・Dry Runの両値、予約名/Unicode/末尾改行/禁止文字、型の非変換・入力保持・操作副作用なし・固定maxLengthなしを検査します。実root/指定先/使用点やtransportの受け入れ試験ではありません。

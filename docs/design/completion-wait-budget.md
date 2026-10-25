@@ -31,11 +31,23 @@ record_completion_check_attemptは全観測を再判定し、check_dueの場合�
 その永続化・排他・クラッシュ対策・元記録へのbindingは未実装。履歴が失われたり信頼できなかったら、正式呼出元は新規予算に置き換えず停止しなければならない。
 
 同じstateを再構成して渡すと元の期限を維持するが、これは任意の偽造/巻き戻しstateを検出できることや、実再起動耐性の証明ではない。
-helperは新しい予算を自動作成・リセットしない。明示再開、新runとfresh inventory、通知、永続schema、正式task/毎時確認との接続は別の作業。
+helperは新しい予算を自動作成・リセットしない。明示再開、新runとfresh inventory、通知、正式task/毎時確認との接続は別の作業。
+
+## Checkpoint schemaと純粋reader（2026-10-25）
+
+[schema](../../contracts/completion-wait-checkpoint-v1.schema.json)は承認済みの7fieldだけを持つclosed v1で、manifestとは別契約。PC-A限定、log種別ごとのperiod形、UUID、UTC Z、0〜25回を規定する。periodの4桁年に未決の範囲制約を追加しない。
+
+`Common/CompletionWaitCheckpoint.py`の`read_completion_wait_checkpoint`は、callerが供給するexact bytes・信頼済みstatic schema、別入力の期待log/period/run IDと信頼できる現在UTCを要求する。I/Oをせず、未知/欠落/null field、重複JSON key、不正UTF-8/JSON/version、schema外部参照、scope不一致、不正日時、開始〜24時間外の試行、1時間未満の間隔、25回超、現在時計の逆行を拒否する。読取不能や欠落の代わりに空履歴を生成しない。現在が期限後でも有効な元履歴を保持し、既存予算helperで期限/回数のhold判定を行う。
+
+結果はimmutable `CompletionWaitCheckpoint`で、元の時刻文字列と配列順をtupleとして保持する。`original_bytes`はexact入力を結び付ける内部metadataで、保存schemaの追加fieldではない。戻り値のreprと固定error reasonに内容を露出せず、readerは予算を消費・更新しない。
+
+小数部は固定桁上限を追加せず、秒と小数文字列を使って丸めず比較する。`as_budget_state()`は既存のmicrosecond精度で全時刻を完全に表せる場合だけ`CompletionWaitState`へ変換する。末尾zeroを除く比較用小数が6桁を超えると`checkpoint_precision_not_supported`で拒否し、元文字列やbytesを変更しない。表記が長くても同じinstantをmicrosecondで表せる場合は変換できる。readerやstateの復元は、実行・保存・archiveの許可ではない。
+
+読取元root/file・ACL・作成時の信頼・履歴の現在性/rollback防止、元の適格待ち開始時刻の真正性、C1/C2の排他・原子的読取/試行前publicationは未実装。整合する偽造/古いcheckpointをreaderだけで検出できるとはしない。実確認前の永続計上と、record後クラッシュ時にも試行を戻さないruntime接続は別途必要である。
 
 ## 検証と未完了
 
 16合成テストで25回の全履歴、期限前後、遅れ・間隔、少ない機会での期限、再構成、scope/時計/資格不明、履歴破損、失敗試行、不変性/IOなし、最大日時境界を確認。
 完了記録・Drive API・OS clock・task・待機・予約・書込は使わない。runtime/STORE/P0/Tier B受け入れには数えない。
 
-次に必要なのは予算の信頼できる永続化/読取・原子更新と、最新manifest/Drive確認の統合。再開指示までは着手しない。
+追加の[reader試験](../../tests/test_completion_wait_checkpoint.py)はschema・元bytes/文字列・精度境界・scope/時計・25回/24時間・破損/IOなしと既存helper接続を合成検証する。次に必要なのは信頼できる保存/読取provider・原子更新と、最新manifest/Drive確認の統合である。

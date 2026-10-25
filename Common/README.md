@@ -1,5 +1,7 @@
 # Common PowerShell functions
 
+`CompletionWaitCheckpoint.py`は[確認予算checkpoint](../docs/design/completion-wait-budget.md)のclosed schemaと期待scope・現在UTCを使う純粋readerです。元bytes・時刻文字列・履歴順を保持し、欠落/破損から予算をリセットしません。既存helperへの変換で精度を失う時刻は拒否し、実保存・現在性/rollback防止・試行前永続計上は別ゲートです。
+
 `ManifestTransitionInspection.py`は[遷移表の前後snapshot検査](../docs/design/manifest-transition-inspection.md)を行う純粋helperです。schema/identity/凍結inventory、verificationと時刻整合、終端不変性、未掲載ペアを確認します。掲載ペアの結果も`requires_runtime_evidence`であり、所有権・staging・Drive・OSD-03集約・永続更新の認可にはなりません。
 
 `DriveRequestPath.ps1`の`Test-DriveRequestFilePath`と`DriveRequestPath.py`の`is_drive_request_file_path`はC-01 P1/L1のrequestファイルパス字句だけを検査する純粋bool helperです。drive-rooted形と各componentを独立して検査し、予約stemはASCIIだけで大小比較します。文字列の修復/正規化、固定maxLength、file/root/FS照会は行いません。request schemaも同じgrammarを適用し、指定先/root/使用点の認可と正式adapter接続は別ゲートです。
