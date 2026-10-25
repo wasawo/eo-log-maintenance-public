@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`b2155d6`、同じ`codex/drive-download-observation`で[比較元のPC-A source再観測接続](../design/drive-content-comparison.md)を追加。exact B2とcanonical relative path・独立scope/clock/reference date・明示source信頼確認を要求する。PC-Aの一意targetを選択し、全sourceを毎回再列挙/hashして一致時だけ比較元と元B2を返す。同名別pathを推測せず、PC-B/未信頼/対象不在・不正/不完全・source変更を拒否する。
+- immutable観測も全may_*false。sourceの真正性をPC-Aラベル/hashから認証せず、既知validation errorsをrun成功へ変えない。合成source→page→download hash→比較まで接続し、元bytes/source保全とcandidate書込み0件を確認する。Python 3.11.9（CI 3.12）で対象43件中、初回42件成功・既存rename試験1件がsandbox temp内アクセス拒否。コード/期待値を変えず、その1件を通常の隔離試験権限で再実行して成功（skipなし）。対象は追加比較元接続＋既存source再観測/page/download hash/比較。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：source/folder/metadata/clock/owner/root/FSの真正性と使用点資格、観測後の変化/ABA・同時snapshot、実SDK/全page/download成功binding、C-02/credential、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（page集約・b2155d6）
+
 - 基準`148fe6f`、同じ`codex/drive-download-observation`で[内部pageの完全列挙観測集約](../design/drive-content-comparison.md)を追加。各pageのfolder/成功・requested/next tokenの連続性・循環なし・一意終端とID重複なしを検査し、全iteratorの正常終了後だけfile集合を返す。0 page/終端欠落/途中例外/余分なpage/不明fileを完全な0件へ変換しない。
 - page/結果は内部immutable観測で、IPC C-02結果schemaを定めず、実API応答の出所/成功/全件を認証しない。結果も全may_*false。既存file検査を共通化し、合成page→download実bytes hash→比較の接続と複数内容一致時保留を追加する。Python 3.11.9（CI 3.12）で追加page集約＋既存download hash/比較の計26件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：実SDKとquery/folder/token/成功の真正なbinding、pagination/timeout/件数予算/resource管理、C-02詳細/credential、実source/metadata/clock/owner/root/FS、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。

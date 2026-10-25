@@ -334,3 +334,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_download_hash_observation.py`は合成streamのexact bytes/hash、サイズ上限/不足/途中失敗・未完了・不正chunkと、OSD-01比較へのfallback接続を検証する。実SDK/Driveやdownload成功の真正性は検証しない。
 
 `test_drive_listing_observation.py`は内部pageの連続性/終端/重複・失敗を検査し、全page観測からdownload hash・OSD-01比較までを合成接続する。実API paginationの受け入れではない。
+
+`test_comparison_source_revalidation.py`はPC-AのB2/実sourceからpage・download hash・同一内容比較までを合成接続し、変更・不完全・未信頼と同名別pathの境界を検証する。実Drive/出所認証/runtime受け入れではない。

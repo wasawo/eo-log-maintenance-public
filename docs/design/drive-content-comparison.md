@@ -29,3 +29,13 @@ next_token=nullの終端pageがちょうど1件あり、その後にpageも例�
 返す観測のfile集合/folder/完全列挙値とdownload hash観測を既存比較へ渡せるが、may_restore/may_report_sync_success/may_archiveはfalse。callerは実API応答・対象folder/query/アクセス範囲・token/成功状態を信頼できるproviderでbindingする必要がある。内部pageの整合だけで実クラウド全件・鮮度・出所を証明しない。単純なdataclass生成や保存済み観測も資格証拠ではない。
 
 collectorはfile/network APIを直接呼ばず、page提供側のI/O・timeout・件数/時間予算・resource解放はcaller/providerに残る。途中例外は固定reasonへ置換し、token/IDやraw例外を診断へ出さない。部分観測は返さず、callerの元pageを変更/closeしない。[合成page試験](../../tests/test_drive_listing_observation.py)は空/複数/空中間page、token切断/循環、folder/成功不明、ID重複、終端後page/例外、実bytes hash fallbackと複数内容一致の保留までを接続する。
+
+## PC-Aの凍結B2とsource再観測への接続
+
+[SourceInventoryRevalidation.py](../../Common/SourceInventoryRevalidation.py)の`revalidate_comparison_source`は比較元の明示信頼確認、PC-Aのexact B2 bytesと独立log/run/root/scope/reference date/現在時計、対象relative pathを要求する。B2のschema/digest/inventory不変条件を検査し、canonical相対pathで一意のeligible targetを選ぶ。PC-BのB2や対象不在・不正文法はsourceを読む前に拒否する。同名でも別pathのtargetを推測して選ばない。
+
+既存のsource全列挙/再hash比較を毎回実行し、一致した場合だけtargetのfilename/size/hash、元B2 bytesとrelative pathをimmutableなRevalidatedComparisonSourceへ結び付ける。選択target以外を含むinventory変更や不完全coverageも拒否し、B2を更新/補完しない。既知のvalidation errorsは既存helperと同じく保持し、run全体の成功に変えない。
+
+返すsourceをpage集約/download hashと比較へ渡せるが、全may_*false。PC-Aラベルやhash一致だけで記録の出所・真正性を信頼済みにはしない。source_trustedは独立した必須観測であり、返却objectをcompareのtrust判定へ自動昇格しない。source/rootの実資格・観測後の変化/ABA・cloud観測との同時snapshotは未実証のまま。
+
+[合成接続試験](../../tests/test_comparison_source_revalidation.py)は両log/Unicode/同名別path、PC-B/未信頼/不正B2/context/不完全の事前拒否、source全体の変更と毎回再観測、元bytes保全、source→page→download実bytes hash→比較までを専用tempで確認する。実ログ/Drive・復元/同期成功/archive・候補artifact保存は行わない。

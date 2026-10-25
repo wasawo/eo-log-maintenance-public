@@ -4,9 +4,10 @@ from datetime import date, datetime, timedelta
 
 from Common.AggregationReportBuilder import _parse, _validate, _validator
 from Common.LatestManifestSelection import _utc_key, _clock_key
-from Common.RunInputEvidenceIntegrity import validate_evidence_invariants
-from Common.SourceInventoryEvidenceBuilder import build_run_input_evidence
+from Common.RunInputEvidenceIntegrity import validate_evidence_invariants, _safe_relative_path
+from Common.SourceInventoryEvidenceBuilder import build_run_input_evidence, _classify_filename
 from Common.ManifestTransitionInspection import InitialManifestPlan, prepare_initial_manifest
+from Common.DriveContentComparison import ComparisonSource
 
 
 class SourceRevalidationError(ValueError):
@@ -23,6 +24,16 @@ class SourceInventoryObservation:
     may_upload: bool = field(default=False, init=False)
     may_archive: bool = field(default=False, init=False)
     may_change_state: bool = field(default=False, init=False)
+
+
+@dataclass(frozen=True, repr=False)
+class RevalidatedComparisonSource:
+    source: ComparisonSource
+    evidence_bytes: bytes
+    relative_path: str
+    may_restore: bool = field(default=False, init=False)
+    may_report_sync_success: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
 
 
 def _reject(reason):
@@ -113,3 +124,43 @@ def revalidate_initial_manifest_source(
         expected_pc_id=expected_pc_id, expected_log_type=expected_log_type, expected_run_id=expected_run_id,
         expected_root_id=expected_root_id, expected_relative_scope=expected_relative_scope,
         reference_date=reference_date, current_utc=current_utc, current_utc_reliable=current_utc_reliable)
+
+
+def revalidate_comparison_source(
+    source_root, evidence_bytes, *, relative_path, source_trusted, schema, expected_log_type,
+    expected_run_id, expected_root_id, expected_relative_scope, reference_date,
+    current_utc, current_utc_reliable,
+):
+    """Bind one PC-A comparison target to frozen B2 and a fresh full re-scan.
+
+    Source trust is independently supplied, never inferred from a digest or
+    PC-A label. No observation grants restore/sync/archive or proves later use.
+    """
+    if source_trusted is not True:
+        _reject("comparison_source_untrusted")
+    try:
+        if type(evidence_bytes) is not bytes or type(relative_path) is not str:
+            _reject("comparison_source_input_invalid")
+        _safe_relative_path(relative_path)
+        value = _parse(evidence_bytes)
+        _validate(_validator(schema), value)
+        validate_evidence_invariants(value, schema)
+        if value["pc_id"] != "PC-A":
+            _reject("comparison_source_pc_invalid")
+        selected = [item for item in value["inventory"]["targets"] if item["relative_path"] == relative_path]
+        if len(selected) != 1:
+            _reject("comparison_source_target_missing")
+        target = selected[0]
+        if _classify_filename(target["filename"], expected_log_type) is None:
+            _reject("comparison_source_filename_invalid")
+        observed = revalidate_source_inventory(source_root, evidence_bytes, schema=schema,
+            expected_pc_id="PC-A", expected_log_type=expected_log_type, expected_run_id=expected_run_id,
+            expected_root_id=expected_root_id, expected_relative_scope=expected_relative_scope,
+            reference_date=reference_date, current_utc=current_utc, current_utc_reliable=current_utc_reliable)
+        return RevalidatedComparisonSource(
+            ComparisonSource(target["filename"], target["size_bytes"], target["expected_sha256"]),
+            observed.evidence_bytes, relative_path)
+    except SourceRevalidationError:
+        raise
+    except Exception:
+        _reject("comparison_source_input_invalid")
