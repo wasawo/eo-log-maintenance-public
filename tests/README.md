@@ -302,3 +302,5 @@ Run python -m unittest discover -s tests -p test_latest_manifest_selection.py -v
 `test_terminal_manifest_plan.py`はsnapshot遷移＋B2＋report builderの純粋接続です。両log種別のT01〜T12相当、PC-B、不正遷移・凍結inventory/B2不一致・偽成功・終端不変・exact bytes参照を検査し、実保存・Drive・archiveを実行しません。
 
 report builder/参照validatorの合成試験は、履歴再導出と通常builderのclock gateを分け、終端plan readback、偽status/件数/period completion/error/順序、float整数表現、任意cwdからの直接CLIも確認します。参照hash一致だけでreportの意味論を受け入れません。
+
+`test_terminal_bundle_integration.py`は終端planの候補snapshot一式を、自作OS-tempで実mutex/owner＋create-only/marker-lastへ接続します。元runningは不変で、部分失敗・競合・応答喪失・別transaction・改変を検査します。候補bundleの検証を正式manifest比較更新やruntime受け入れに読み替えません。

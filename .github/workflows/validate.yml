@@ -90,6 +90,7 @@ jobs:
           python -m unittest discover -s tests -p "test_manifest_recovery_integration.py" -v
           python -B -m unittest discover -s tests -p "test_manifest_transition_inspection.py" -v
           python -B -m unittest discover -s tests -p "test_terminal_manifest_plan.py" -v
+          python -B -m unittest discover -s tests -p "test_terminal_bundle_integration.py" -v
           python -m unittest discover -s tests -p "test_recovery_diagnostic.py" -v
           python -m unittest discover -s tests -p "test_recovery_diagnostic_mutex.py" -v
           python -m unittest discover -s tests -p "test_private_recovery_evidence.py" -v

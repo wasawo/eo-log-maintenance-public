@@ -26,3 +26,12 @@ missing priorを新規runへ置き換えず、running提案から終端reportも
 [接続試験](../../tests/test_terminal_manifest_plan.py)はT01〜T12相当の両log種別、PC-B、正しい集約でも不正遷移/凍結inventory変更、掲載ペアでも偽成功/未終端file、B2改変・関連errorとno_work、終端不変・欠落prior・時計/schema/path不正、exact非canonical bytes・決定性・I/Oなしを確認する。C1/C2の実比較更新、実upload/Drive内容、履歴event証拠、真正な使用点readback、marker-lastの実publication、Tier B/Cとruntime受け入れは引き続き未完。
 
 終端planのreportを専用合成領域へ置いた後、参照validatorが元manifest/B2のexact hashだけでなく、全reportの[決定的意味論再導出](aggregation-report-v1-proposal.md#deterministic-semantic-readback-2026-10-25)も比較する接続試験を追加した。これは読取検証で、実manifest更新やC1/C2 publicationの資格試験ではない。
+
+
+## 隔離候補bundleの公開・読戻し接続
+
+[tests専用fixture](../../tests/test_terminal_bundle_integration.py)はcaller指定rootを受けず、自分で作ったOS-tempと固定合成filenameだけを使う。prior-runningを候補directoryの外に保存し、一切置換しない。実Windows mutex/ownerを保持して、既存create-only helperで候補のB2・提案manifest・reportとmarker-lastを保存する。これはimmutableな候補snapshot一式で、現在manifestのC1比較更新ではない。fixture配置/APIを正式runtime契約にしない。
+
+読戻しではplan由来のexact bytes/hash、directoryのmarker分類に加え、そのfixtureで期待したtransaction IDを比較する。generic directory分類のcommittedは任意のvalid transactionを許すため、その分類だけで当該試行へのbindingを証明しない。参照validatorの全report意味論検査後にもdirectory/hash/markerと元priorを再観測する。返す候補検証結果は常にmay_update_manifest/may_archive=falseで、同一bytesの再公開やmarker後の応答喪失から一回限りreceiptを作らない。
+
+合成試験は両PCのempty/成功/混在、4公開位置での例外、部分保存の保全と同一bytes再試行、既存競合、marker後の応答喪失、別transaction、report改変とmarker再binding、意味論検査後の変更を扱う。例外注入は実process crash/電源断の証拠ではない。最後の再観測もABA・任意の敵対的競合・真正なroot/owner/FSを完全に資格化せず、正式writer/Drive/runtimeの受け入れは未完のまま。cleanup対象は自作tempだけで、実データの削除/回復処理は追加しない。

@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+- 基準`187bae2`、同じ`codex/manifest-evidence-integration`でtests専用の終端候補bundle接続を実装。呼出元rootを受けず自作OS-tempに固定し、別置きprior-runningを保持したまま、実mutex/owner＋既存create-only helperでB2/提案manifest/reportを公開し、markerを最後に公開する。fixtureの名前/配置/APIはruntime契約ではない。
+- exact plan由来hash/bytes、markerのtransaction、既存directory分類、参照validatorによる全report意味論、最後の再観測を接続した。候補bundleだけが検証済みでもmay_update_manifest/may_archiveはfalse。正式manifestを更新せず、C1比較更新providerや真正な一回限りreceiptを実装したとはしない。
+- 両PC/empty/成功/混在、4公開境界での例外・部分file保全・同一bytes再試行、既存競合、marker後応答喪失、別transaction、report改変＋marker再binding、意味論検査直後の変更を合成試験へ追加。process killや電源断ではなくfixtureの例外/変更注入。cleanupは自作・解決済み・所有marker付きtemp rootを再確認してから行う。
+- Common/PS/schema/配布file集合（47件）は変更しない。CIに追加接続試験を登録。追加fixtureだけを一括検証し、変更のない既存成功検査は繰り返さない。Python 3.11.9（CI 3.12）で追加8件成功（skipなし）。両PC×3種の結果と4公開境界は各試験内のsubcaseで、独立した件数として加算しない。既存の成功済みreport/plan/publication試験、package/PS検査は変更なしのため再実行しない。root自己点検のみで独立レビュー・新CI・実環境受け入れは未実施。root単独、ローカルコミットまでで待機し、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：実manifest比較更新、root/ACL/FSと真正な実owner/scope、ABA/読取間競合の完全排除、B2の出所/固定性、使用点clock/鮮度・実Drive/両PC証拠、C3回復、Tier B/C/runtime受け入れ。次はproviderの未決信頼境界・失敗時保存/回復条件を候補化するか、確定済みの独立作業を選ぶ。
+
+## 直前の実装単位（report意味論再導出・187bae2）
+
 - 基準`eb3f6c5`、同じ`codex/manifest-evidence-integration`で終端planのreportと参照validatorを接続した。従来はhash/identity/B2/G1/inventory照合までで、reportの集約status・期間件数・run-scope error等の再導出比較が欠けていたため、既存の決定的builderを共有して全文意味論を検査する。
 - `derive_aggregation_report`は明示的に現在時計を観測しない履歴再導出API。内部schema/B2/終端/時系列/G1条件は維持し、通常`build_aggregation_report`と終端planの現在時計/未来許容検査は省略しない。report自身の時刻をtrusted nowに代用せず、旧reportの意味論検査から現在の資格を作らない。
 - 参照validatorは読取済みexact bytesから再導出し、JSON whitespace/key順だけを許して全field/array順/整数表現を比較する。偽status/件数/completion/error/順序やfloat整数表現を拒否。direct CLIも同じCommon moduleを実行位置に依存せずロードする。既存empty成功fixtureのmanifest outcomeを承認済みno_workへ修正した。
