@@ -67,6 +67,7 @@ docs/
 - [Latest manifest selection core](design/latest-manifest-selection.md)
 - [Maintenance Manifest Schema v1 — Approved Field Specification](design/manifest-schema-v1-proposal.md)
 - [Maintenance Manifest v1 — 採用済み状態遷移表](design/manifest-state-transition-v1-proposal.md)
+- [Manifest transition snapshot inspection](design/manifest-transition-inspection.md): 採用ペア・終端不変性の純粋検査と、実event証拠の境界。
 - [承認済み月次時刻の分離観測](design/monthly-schedule-observation.md)
 - [PowerShell・Python 責務分担／連携契約書](design/powershell-python-contract.md)
 - [private証拠file ACLの限定形状](design/private-evidence-acl-profile.md)

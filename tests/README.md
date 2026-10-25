@@ -1,5 +1,7 @@
 # テスト計画
 
+`test_manifest_transition_inspection.py`は採用済みfile/runペアの行列、初期状態、identity/凍結inventory、verification/hash/time、終端の不変性、入力不変・I/Oなし・固定理由を合成検証します。掲載ペアの結果もrequires_runtime_evidenceであり、実event/Drive/排他/集約/永続更新の受け入れではありません。
+
 `test_drive_request_path.py`と`Test-DriveRequestPath.ps1`は共通L1 fixtureをschema/Python/PSへ適用します。両request path field・Dry Runの両値、予約名/Unicode/末尾改行/禁止文字、型の非変換・入力保持・操作副作用なし・固定maxLengthなしを検査します。実root/指定先/使用点やtransportの受け入れ試験ではありません。
 
 `tests/Test-DriveResponseSemantics.ps1` は合成in-memory request期待値/response/exitだけで、4操作成功、exit2–10の独立対応表、既知codeと誤exit、ordinal相関・case、unknown/missing/null/type・implicit cast拒否、raw JSON由来Int64、入力不変、秘密非echoを検査します。4操作×9codeのretryable正常値と矛盾値、非bool拒否を検証し、process/file/network等の禁止commandが呼ばれないことも確認します。`tests/test_contract_schemas.py`も4操作×9codeで正常値、逆のbool、null/数値/文字列等と欠落を検査します。これはC-03/一部C-05のpure補助とschemaの証拠で、実child出力/timeout/transport、RETRY-02のorchestration、C-01/C-02/IPC全体を完了にしません。

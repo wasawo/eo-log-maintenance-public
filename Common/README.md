@@ -1,5 +1,7 @@
 # Common PowerShell functions
 
+`ManifestTransitionInspection.py`は[遷移表の前後snapshot検査](../docs/design/manifest-transition-inspection.md)を行う純粋helperです。schema/identity/凍結inventory、verificationと時刻整合、終端不変性、未掲載ペアを確認します。掲載ペアの結果も`requires_runtime_evidence`であり、所有権・staging・Drive・OSD-03集約・永続更新の認可にはなりません。
+
 `DriveRequestPath.ps1`の`Test-DriveRequestFilePath`と`DriveRequestPath.py`の`is_drive_request_file_path`はC-01 P1/L1のrequestファイルパス字句だけを検査する純粋bool helperです。drive-rooted形と各componentを独立して検査し、予約stemはASCIIだけで大小比較します。文字列の修復/正規化、固定maxLength、file/root/FS照会は行いません。request schemaも同じgrammarを適用し、指定先/root/使用点の認可と正式adapter接続は別ゲートです。
 
 `DriveResponseSemantics.ps1` の `Test-DriveResponseSemantics` は、実request由来の期待ID/operation、decoded IDictionary response、整数exit codeを明示入力し、ordinal完全一致と契約§6のexit/envelope/error-code対応、固定code別retryable真偽表を検査します。IDをUUID正規化せず、int/long/BigInteger以外のexitはcoerceしません。`DRIVE_TRANSIENT_FAILURE`だけtrue、他8codeはfalseが必須で、非boolと矛盾を拒否します。出力は固定Status/ReasonCodeのみで、`consistent` / `correlation_exit_mapping_consistent` はこれらの整合を意味します。resultの信頼、運用続行、retry許可、cloud検証ではありません。transport/UTF-8/単一JSON/重複key/schema、C-01/C-02、RETRY-02のorchestration、IPC全体・runtime受け入れは残ゲートです。helperはprocess/file/network/auth/retry/sleep/lock/logを呼びません。

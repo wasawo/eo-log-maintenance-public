@@ -87,7 +87,7 @@ requirements-runtime.txt
 scripts/README.md
 ```
 
-2026-10-25のC-01字句実装で`Common/DriveRequestPath.ps1`と`Common/DriveRequestPath.py`を追加したため、以後のレビューpackageは旧40件＋2件となる。上の一覧は承認時点のsnapshotとして保持し、正式配布manifestとしない。
+2026-10-25のC-01字句実装で`Common/DriveRequestPath.ps1`と`Common/DriveRequestPath.py`を追加したため、C-01時点のレビューpackageは旧40件＋2件となる。続くmanifest transition inspector 1件の追加後は43件となる。上の一覧は承認時点のsnapshotとして保持し、正式配布manifestとしない。
 
 現在のbuilderは`Common`/`scripts`配下の許容拡張子を走査し、役割別入口の存在を確認する。選択済み31aAの将来の正式manifestでは、このようなglob走査ではなく、**各PC・各versionでファイルを明示列挙するstrict JSON＋JSON Schema**を採る。現行レビュー一覧には両roleの差分がない。最終file一覧・required/optional・manifestのfield/digest、builderの実装変更は正式入口と依存が完成してから別途決める。`docs`/`tests`/`.github`、実設定、token、ログ、private証拠を含めず、PC-Bへarchive入口を渡さない。現行packageテストは[合成試験](../../tests/Test-ReleasePackage.ps1)であり配布可の証明ではない。
 

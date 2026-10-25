@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+- 利用者の「作業再開」により一時中断を解除した。基準`b4d4600`から同じ`codex/work-branch-policy`に実装を蓄積し、今回もローカルコミットまでで次の指示を待つ。main直接push禁止・PR作成の明示指示待ちを維持する。
+- 今回は[manifest遷移snapshot検査](../design/manifest-transition-inspection.md)を追加。schema/JSON・identity/凍結inventory・verification/hash/time・終端不変性を検査し、採用13fileペアと4runペア以外を拒否する。掲載結果もrequires_runtime_evidenceで、実event・staging・Drive照合・OSD-03集約・mutex/永続化を認可しない。crash-left runningの実回復は行わない。
+- CIに合成試験を登録し、レビューpackageへ純粋Python helper 1件を追加した。旧40件snapshotにC-01の2件と今回1件が加わり、非配布レビューは43件となる。PC-B archive/削除は追加しない。検証はPython 3.11.9（CI 3.12）でschema＋snapshot検査50件成功。PS 7.6.7でpackage回帰と変更PS試験の構文/PSScriptAnalyzer Error検査成功。Git対象のクリーンsnapshotで両role各43件・非配布を確認した。文書リンク欠落0・差分検査成功。root自己点検のみで独立レビュー・新CI・実環境検証は未実施。
+- 残る範囲：実writerとevent履歴・所有権/現在性・原子的更新、B2等からの集約検証の実行接続、現在UTC/FS/root/使用点資格。C-02具体result/provider等の未決も維持する。次候補は確定済み確認予算checkpointのschema/純粋reader契約で、今回のコミット後には着手しない。
+
+## 直前の規則追加（b4d4600）
+
 - 2026-10-25の追加規則をAGENTS.md・現行手順・Git/PR skillへ反映：mainへの直接push禁止。マージ後は最新mainから新規作業ブランチを作り、次のPR作成指示までの変更・コミットを同じブランチに蓄積する。今回の`codex/work-branch-policy`はmain `fea8753`から新規作成し、mainをupstreamに設定していない。
 - [PR #40](https://github.com/wasawo/eo-log-maintenance-public/pull/40)は`fea8753a84fe5ca7c9a64b7ec43a3b4686e546b0`でマージ済み。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40109038116) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40109038171) 成功を前作業で確認済み。今回は規則追加の文書変更のみをローカルコミットし、実装の一時中断と次の指示待ちを維持する。
 
