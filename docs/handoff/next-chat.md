@@ -6,7 +6,15 @@
 正本は Public の `wasawo/eo-log-maintenance-public`。元リポジトリは Private のまま。
 この文書の状態は記録コミット時点。実際のmain/PR/CIは作業開始時に照合する。
 
-## 最新基準と今回の作業
+## 今回の累積PR承認・準備
+
+- 2026-10-25、利用者が「ここまでの実装をまとめてPR作成してマージして」と明示承認。最新取得main`1036b30`（PR #42）に対し、`codex/initial-manifest-plan`の8実装コミット`efc6733`〜`5e38d7f`と本記録を1PRにまとめる。記録時点はpush/PR/新CI/マージ前。
+- 範囲：B2初期running/pending plan、source実列挙との隔離接続、凍結B2再観測と初期使用点、列挙完了前再確認、hashの早期identity/サイズ上限検査、終端plan使用点再導出、OSD-01の同一内容比較候補。関連tests/docs/CIと両roleレビューpackage49件を含む。IPC/保存schemaとPS runtime契約は変えない。
+- 各単位の対象検証結果は以下に保持。最新単位のPython 3.11.9の比較9件、PS 7.6.7の両role package/変更PS検査は成功済み。既に成功したローカル試験は重複実行せず、今回の最新PR HEADに対するValidate（Python 3.12）/Package Validation両成功をマージ条件とする。root自己点検のみ、独立レビュー未実施。
+- 未完：実Drive SDK/OAuth/credential・C-02詳細、真正なsource/folder/metadata・全page/download観測、C1/C2 writer、実root/ACL/FS/owner/clock、両PC/Drive/archive gateとruntime受け入れ。純粋helper/合成fixture/レビューpackage成功で代替しない。
+- 承認はこの累積PR作成とCI成功後のマージまで。マージ後は指示待ち。次変更は最新mainから新作業ブランチを作り、マージ済みbranchへ追記しない。
+
+## 直前の実装単位（OSD-01比較・5e38d7f）
 
 - 基準`6e40614`、同じ`codex/initial-manifest-plan`で[OSD-01同一内容比較](../design/drive-content-comparison.md)を実装。source信頼・folder scope・完全列挙を要求し、exact name/size/hashの一意候補のみ返す。cloud SHA欠落/未確認はIDへ結び付いた完了download hashを要求し、0/複数/不明/重複ID/矛盾は保留する。結果は全may_*falseで、IPC C-02結果fieldを定めず、出所・復元・同期成功・archiveを認可しない。
 - 追加helperを両roleレビューpackageへ登録しfile集合は49件。Python 3.11.9（CI 3.12）で追加比較試験9件成功（skipなし）。PS 7.6.7で両role package回帰・変更PS構文/PSScriptAnalyzer Error検査成功。文書相対リンク欠落0・差分検査成功。既存source/manifest/report/schemaは変更がなく再実行しない。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
