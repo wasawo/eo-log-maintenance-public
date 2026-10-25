@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+- 基準`a988964`、同じ`codex/manifest-evidence-integration`で参照validatorのreport/manifest/B2/schema読取を強化。resolve前にroot/祖先/reparse属性を検査し、各fileのlstat・open後/読取後fstat・読取後lstat・親chain・byte長を照合する。判定直前に全読取fileをexact bytes/metadata/chainで再読込し、途中変更を検出したら結果を返さない。
+- schemaも同じ読取集合へ含め、既に読んだschemaを再利用。外部参照を取得しない既存static schema validatorを使い、不正/解決不能schemaを固定理由で拒否する。root/ACL資格やatomic snapshot、敵対的ABAの完全排除を証明せず、通常読取のTOCTOUを完全に解決したとはしない。
+- 合成試験は全6fileのlate変更、handle identity/読取中変更、親chain変更、root/report/参照/schemaのreparse属性、実Win32 junction root、不正/外部/broken schemaのnetwork不呼出しを追加。全データは専用tempで、schemaは追跡中のstatic資料をtempへcopyしたもの。実ログ/Drive/秘密を使わない。
+- 関連参照validator・追加読取試験・終端bundle接続を一括検証する。配布file集合（47件）/PS/schema契約に変更なし。Python 3.11.9（CI 3.12）で追加7件＋既存参照/bundleの計30件成功（skipなし、専用tempの実junctionを含む）。各file/reparse/schemaの行列は試験内subcaseとして扱う。変更のないbuilder/plan・package/PS検査は再実行しない。root自己点検のみ、独立レビュー・新CI・実運用受け入れは未実施。root単独、ローカルコミットまでで待機、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：実効ACL/実token/root認可、file read集合の同時原子性・ABA/競合の完全防止、C1/C2 writer/receipt、現在時計/実Drive/Tier B/C/runtime受け入れ。次は比較更新providerの信頼境界・保存/回復条件を候補化するか、確定仕様の別作業を選ぶ。
+
+## 直前の実装単位（終端候補bundle・a988964）
+
 - 基準`187bae2`、同じ`codex/manifest-evidence-integration`でtests専用の終端候補bundle接続を実装。呼出元rootを受けず自作OS-tempに固定し、別置きprior-runningを保持したまま、実mutex/owner＋既存create-only helperでB2/提案manifest/reportを公開し、markerを最後に公開する。fixtureの名前/配置/APIはruntime契約ではない。
 - exact plan由来hash/bytes、markerのtransaction、既存directory分類、参照validatorによる全report意味論、最後の再観測を接続した。候補bundleだけが検証済みでもmay_update_manifest/may_archiveはfalse。正式manifestを更新せず、C1比較更新providerや真正な一回限りreceiptを実装したとはしない。
 - 両PC/empty/成功/混在、4公開境界での例外・部分file保全・同一bytes再試行、既存競合、marker後応答喪失、別transaction、report改変＋marker再binding、意味論検査直後の変更を合成試験へ追加。process killや電源断ではなくfixtureの例外/変更注入。cleanupは自作・解決済み・所有marker付きtemp rootを再確認してから行う。

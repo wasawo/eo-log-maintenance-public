@@ -268,3 +268,10 @@ The reference validator now re-derives the entire report from the exact manifest
 Historical derivation deliberately has no current-clock observation. It still enforces schema, B2 digest/inventory/scope, terminal results, internal timestamp ordering and exact G1 anchor. It does not substitute a report timestamp or host clock for trusted now. The normal `build_aggregation_report` and terminal transition plan still require explicit reliable current UTC and enforce their future tolerance. Historical semantic equality proves neither freshness nor a current execution condition.
 
 The direct Python CLI uses the same packaged modules from any working directory. Synthetic readback tests include terminal-plan reports, mixed/no-work/failed-enumeration cases and forged status/count/completion/error content. This closes an independent semantic comparison gap, not trusted filesystem reads, race-free snapshots, C1/C2 publication, live Drive verification or runtime/archive acceptance.
+
+
+## Stable read observations (2026-10-25)
+
+The reference validator inspects unresolved root/ancestor and file reparse metadata before resolution, including Windows reparse attributes rather than symlink checks alone. Each report, manifest, B2 and schema read compares path metadata with the opened handle, post-read handle/path metadata, byte length and parent-chain identities. Already-read schema objects are reused; external schema retrieval is rejected. Before returning a successful semantic result, it rereads the complete input set and compares exact bytes, metadata and chains.
+
+Detected handle/namespace/content/schema changes fail closed. Tests use self-created temp artifacts, copied static schemas, injected metadata/late mutations and a Windows junction wholly inside the test fixture. This is point-in-time defensive inspection: it does not prove effective ACL/root approval, prevent hostile ABA or all changes after the last observation, or make several files an atomic snapshot. It adds no lock takeover, repair, write, publication or archive permission.

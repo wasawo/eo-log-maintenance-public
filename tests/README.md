@@ -304,3 +304,5 @@ Run python -m unittest discover -s tests -p test_latest_manifest_selection.py -v
 report builder/参照validatorの合成試験は、履歴再導出と通常builderのclock gateを分け、終端plan readback、偽status/件数/period completion/error/順序、float整数表現、任意cwdからの直接CLIも確認します。参照hash一致だけでreportの意味論を受け入れません。
 
 `test_terminal_bundle_integration.py`は終端planの候補snapshot一式を、自作OS-tempで実mutex/owner＋create-only/marker-lastへ接続します。元runningは不変で、部分失敗・競合・応答喪失・別transaction・改変を検査します。候補bundleの検証を正式manifest比較更新やruntime受け入れに読み替えません。
+
+`test_artifact_read_stability.py`は参照validatorのhandle/path/親chain/read集合の変更検出、reparse属性と専用temp内のWindows junction、静的schema外部取得禁止を検査します。実FSの包括的資格や敵対的ABAの排除を実証しません。
