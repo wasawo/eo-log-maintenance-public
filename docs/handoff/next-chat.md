@@ -8,6 +8,15 @@
 
 ## 最新基準と今回の作業
 
+- 基準`42e7c9f`、同じ`codex/work-branch-policy`でcheckpointの試行前計上を接続する。既存公開helperはcreate-onlyのみで、比較更新providerはないため、今回は純粋attempt planと隔離合成接続を実装した。
+- planはexact元bytesをexpectedとし、既存reader/予算helperで観測を再検査して1試行を追加し、candidateの再読込・state一致を確認する。元の開始/履歴文字列を保持し、欠落初期化・予算リセット・実保存/確認は行わない。全may_* flagはfalse。
+- 接続fixtureは実Windows mutex/ownerとcreate-only stagingを使うが、checkpoint compare-and-publish自体はメモリmock。完全な再読込確認前に模擬確認せず、stale plan/同一stagingの再利用から二重確認しない。保存後の応答喪失・確認失敗も試行を戻さない。実process crash/再起動・電源断・実FS比較更新の証明ではない。
+- 純粋helper 1件を共通packageへ追加し、両roleの非配布レビューは46件。CIへ合成接続試験を登録し、関連検査を一括実行する。検証はPython 3.11.9（CI 3.12）で既存budget/reader＋追加plan/実mutex接続の計41件成功。PS 7.6.7でpackage回帰と変更PS試験の構文/PSScriptAnalyzer Error検査成功。クリーンsource snapshotで両role各46件・非配布を確認。文書リンク欠落0・差分確認成功。root自己点検のみで独立レビュー・新CI・実環境受け入れは未実施。
+- 未完：実compare-and-publish/再読込provider、trusted root/ACL/FS・scope/実ownerのbinding、現在性/rollback防止、durable試行前計上とruntime/task/Drive確認。次は比較更新providerの資格・設計境界を具体化する。実root/filenameやC-02結果field等の未決を実装都合で確定しない。
+- 今回も同branchへローカルコミット後に次指示待ち。main直接push禁止・PRは明示指示時の運用を維持する。
+
+## 直前の実装単位（checkpoint schema/reader・42e7c9f）
+
 - 今回の基準は`2195ba4`、branchは同じ`codex/work-branch-policy`。追加のPC-A確認予算checkpointは承認済み7fieldのclosed v1 schemaと純粋readerまで実装し、PR作成指示までこのbranchに蓄積する。main直接push禁止、ローカルコミット後の次指示待ちを維持する。
 - readerはexact bytes・元時刻文字列・履歴順を保持し、期待log/period/run IDと信頼できる現在UTCを別入力で検証する。欠落/破損から空履歴を作らず、24時間/25回/1時間間隔・時計逆行を拒否する。期限切れ履歴は元予算のまま保持する。任意桁の小数を丸めず比較し、既存microsecond helperで完全に表せない場合は変換を拒否する。
 - 新schemaをpackage必須fileへ、readerを共通helperへ追加。旧43件から両roleの非配布レビューは45件となる。CIへreader試験を登録し、関連検査を改修後に一括実行する。検証はPython 3.11.9（CI 3.12）で既存budget＋追加reader計28件成功。PS 7.6.7でpackage回帰と変更2scriptの構文/PSScriptAnalyzer Error検査成功。クリーンsource snapshotで両role各45件・非配布を確認。文書リンク欠落0・差分確認成功。root自己点検のみで独立レビュー・新CI・実環境検証は未実施。

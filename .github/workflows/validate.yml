@@ -97,6 +97,7 @@ jobs:
           python -m unittest discover -s tests -p "test_monthly_schedule_observation.py" -v
           python -m unittest discover -s tests -p "test_completion_wait_budget.py" -v
           python -B -m unittest discover -s tests -p "test_completion_wait_checkpoint.py" -v
+          python -B -m unittest discover -s tests -p "test_completion_wait_attempt.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_recovery.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_publication.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_directory_verification.py" -v

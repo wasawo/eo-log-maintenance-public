@@ -1,5 +1,7 @@
 # テスト計画
 
+`test_completion_wait_attempt.py`は1試行だけの純粋candidate planと、実Windows owner/mutex・create-only staging・メモリmock compare-and-publishを接続します。保存前/後の失敗、stale/競合、偽ack/読取不一致、確認失敗時の予算保全を合成検証します。実checkpoint置換・電源断・runtime受け入れの証拠ではありません。
+
 `test_completion_wait_checkpoint.py`はclosed schema、exact bytes/時刻表記/配列順、期待scopeと信頼できる現在時計、25回/24時間/1時間間隔、精度の保持と変換拒否、欠落/破損・I/Oなしを合成検証します。既存budget helperへ接続しても、実保存/rollback防止/実確認の証明にはしません。
 
 `test_manifest_transition_inspection.py`は採用済みfile/runペアの行列、初期状態、identity/凍結inventory、verification/hash/time、終端の不変性、入力不変・I/Oなし・固定理由を合成検証します。掲載ペアの結果もrequires_runtime_evidenceであり、実event/Drive/排他/集約/永続更新の受け入れではありません。

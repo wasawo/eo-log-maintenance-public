@@ -64,6 +64,7 @@ try {
     Set-Content (Join-Path $fixture 'Common/DriveRequestPath.py') '# Pure request file path grammar'
     Set-Content (Join-Path $fixture 'Common/ManifestTransitionInspection.py') '# Pure transition snapshot inspection'
     Set-Content (Join-Path $fixture 'Common/CompletionWaitCheckpoint.py') '# Pure checkpoint reader'
+    Set-Content (Join-Path $fixture 'Common/CompletionWaitAttempt.py') '# Pure attempt plan'
     Set-Content (Join-Path $fixture 'Common/AggregationArtifactReference.ps1') '# Aggregation artifact reference verification functions'
     Set-Content (Join-Path $fixture 'Common/AggregationReferencedArtifacts.ps1') '# Referenced artifact schema validation entry point'
     Set-Content (Join-Path $fixture 'Common/validate_aggregation_artifacts.py') '# referenced artifact validator'
@@ -145,6 +146,7 @@ try {
         'Common/DriveRequestPath.py',
         'Common/ManifestTransitionInspection.py',
         'Common/CompletionWaitCheckpoint.py',
+        'Common/CompletionWaitAttempt.py',
         'contracts/completion-wait-checkpoint-v1.schema.json',
         'Common/AggregationArtifactReference.ps1',
         'Common/AggregationReferencedArtifacts.ps1',
@@ -192,6 +194,7 @@ try {
     Assert-True ('scripts/SyncLogs.ps1' -in $pcBEntries) 'PC-B package must include SyncLogs.ps1.'
     Assert-True ('Common/DriveResponseSemantics.ps1' -in $pcBEntries) 'PC-B package must include the pure response checker.'
     Assert-True ('Common/ManifestTransitionInspection.py' -in $pcBEntries) 'PC-B package must include pure manifest transition inspection.'
+    Assert-True ('Common/CompletionWaitAttempt.py' -in $pcBEntries) 'PC-B package must include pure non-authorizing attempt planning.'
     Assert-True ('Common/CompletionWaitCheckpoint.py' -in $pcBEntries -and 'contracts/completion-wait-checkpoint-v1.schema.json' -in $pcBEntries) 'PC-B package must include checkpoint data helpers without archive capability.'
     Assert-True ('Common/DriveRequestPath.ps1' -in $pcBEntries -and 'Common/DriveRequestPath.py' -in $pcBEntries) 'PC-B package must include both pure request path checkers.'
     Assert-True ('scripts/ArchiveLogs.ps1' -notin $pcBEntries) 'PC-B package must exclude ArchiveLogs.ps1.'

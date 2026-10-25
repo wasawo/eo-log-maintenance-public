@@ -47,7 +47,19 @@ helperは新しい予算を自動作成・リセットしない。明示再開�
 
 ## 検証と未完了
 
-16合成テストで25回の全履歴、期限前後、遅れ・間隔、少ない機会での期限、再構成、scope/時計/資格不明、履歴破損、失敗試行、不変性/IOなし、最大日時境界を確認。
-完了記録・Drive API・OS clock・task・待機・予約・書込は使わない。runtime/STORE/P0/Tier B受け入れには数えない。
+### 試行planと模擬保存接続（2026-10-25）
+
+`Common/CompletionWaitAttempt.py`の`prepare_completion_wait_attempt`は元checkpointのexact bytesとreader用の期待scope/現在時計、既存budget helperのログオン・同一account・自同期完了・待ち対象の観測を再検査し、check_dueの場合だけ1試行を加えたcandidate bytesを作る。元の開始時刻/既存履歴の文字列表記を保ち、新しい1時刻だけ現在UTCから追加する。candidateをschema/readerへ再投入し、既存helperのadvanced stateと照合する。欠落/破損からの初期化はしない。
+
+immutable planの`expected_bytes`は元bytes、`proposed_bytes`は7fieldの新bytes、`attempt_number`は追加後の回数である。いずれも内部metadataでschemaを拡張しない。`may_check`/`may_archive`/`may_change_state`は常にfalse。planは保存・確認を実行せず、履歴の真正性や時計/所有権を認証するものではない。 観測は計画時点に限るため、正式writerはpublication/確認の使用点で最新の時計・資格・scopeを独立に再検査し、古いplanだけで確認へ進めない。
+
+[接続試験](../../tests/test_completion_wait_attempt.py)は専用OS-temp内で実Windows mutex＋owner recordと、既存のcreate-only原子的公開helperを使ってcandidateをstagingする。そのbytesを再読込・検査後、**メモリ上の模擬compare-and-publish**がexpected bytesとの一致を再確認し、模擬checkpointを更新する。さらに新bytesの再読込が一致した後だけ模擬確認回数を増やす。このfixture APIや命名はruntime契約ではない。
+
+stagingの`already_exists_identical`はcheckpoint更新のreceiptではなく、stale planによる再確認を許可しない。保存前の失敗/競合では元checkpointを保持し、保存後の応答喪失や読取不一致では確認へ進めず、計上済み試行を戻さない。模擬確認失敗も消費し、次の確認には元の期限内で1時間以上を要する。
+
+実checkpointの比較更新provider、trusted read/root/ACL/FS資格、正式scopeと実ownerのbinding、実確認前のdurable publicationは引き続き未実装。create-only helperには既存checkpointのatomic replacement能力がないため、無条件os.replaceによるwriterを追加しない。上の試験はstagingファイルだけを実公開し、checkpoint自体の更新はmockである。障害注入はfixtureの例外であり、実process再起動・電源断・target FS耐久性を証明しない。C3の実回復や旧run再利用も認可しない。
+
+既存16件の予算helper合成テストでは25回の全履歴、期限前後、遅れ・間隔、少ない機会での期限、再構成、scope/時計/資格不明、履歴破損、失敗試行、不変性/IOなし、最大日時境界を確認。
+既存の純粋予算試験はDrive API・OS clock・task・待機・予約・書込を使わない。追加の接続fixtureの書込も専用合成領域のstagingに限り、runtime/STORE/P0/Tier B受け入れには数えない。
 
 追加の[reader試験](../../tests/test_completion_wait_checkpoint.py)はschema・元bytes/文字列・精度境界・scope/時計・25回/24時間・破損/IOなしと既存helper接続を合成検証する。次に必要なのは信頼できる保存/読取provider・原子更新と、最新manifest/Drive確認の統合である。

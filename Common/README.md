@@ -1,5 +1,7 @@
 # Common PowerShell functions
 
+`CompletionWaitAttempt.py`は[確認予算の試行plan](../docs/design/completion-wait-budget.md)を作る純粋helperです。元checkpoint bytesに結び付け、観測を再判定して1件だけ追加したcandidateを再読込検査します。実保存・確認は行わず、全may_* flagはfalseです。接続試験のcompare-and-publishはメモリmockで、実OS更新providerの資格にはしません。
+
 `CompletionWaitCheckpoint.py`は[確認予算checkpoint](../docs/design/completion-wait-budget.md)のclosed schemaと期待scope・現在UTCを使う純粋readerです。元bytes・時刻文字列・履歴順を保持し、欠落/破損から予算をリセットしません。既存helperへの変換で精度を失う時刻は拒否し、実保存・現在性/rollback防止・試行前永続計上は別ゲートです。
 
 `ManifestTransitionInspection.py`は[遷移表の前後snapshot検査](../docs/design/manifest-transition-inspection.md)を行う純粋helperです。schema/identity/凍結inventory、verificationと時刻整合、終端不変性、未掲載ペアを確認します。掲載ペアの結果も`requires_runtime_evidence`であり、所有権・staging・Drive・OSD-03集約・永続更新の認可にはなりません。
