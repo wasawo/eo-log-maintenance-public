@@ -70,6 +70,7 @@ docs/
 - [Manifest transition snapshot inspection](design/manifest-transition-inspection.md): 採用ペア・終端不変性の純粋検査と、実event証拠の境界。
 - [Checkpoint比較更新providerの資格調査](design/checkpoint-compare-provider-qualification.md): Win32一次資料と専用OS-tempの負例probe。正式providerは未資格。
 - [承認済み月次時刻の分離観測](design/monthly-schedule-observation.md)
+- [Windows AC電源の読取専用観測](design/power-status-observation.md)
 - [PowerShell・Python 責務分担／連携契約書](design/powershell-python-contract.md)
 - [private証拠file ACLの限定形状](design/private-evidence-acl-profile.md)
 - [回復用owner証拠 v2 の設計契約](design/recovery-owner-evidence-v2-contract.md)

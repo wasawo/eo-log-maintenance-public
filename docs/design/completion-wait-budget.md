@@ -82,3 +82,7 @@ candidateの最終計上時刻で元planを再構成して完全一致を要求�
 ## 実Win32 APIの負例probe（2026-10-25）
 
 [比較更新providerの資格調査](checkpoint-compare-provider-qualification.md)に一次資料と隔離実験をまとめた。tests専用probeはdeny-write/delete handle下の置換失敗と、handle解放後の成功、使用点検査/実mutex後にも非協調操作の更新を古いcandidateが上書きできる反例を確認する。実APIを使うが保存先は自作OS-temp fixtureに固定し、正式provider/実root/FS資格へ昇格しない。
+
+## AC電源観測との接続（2026-10-25）
+
+[読取専用Windows AC観測](power-status-observation.md)を追加した。使用点ごとに取得する`ac_connected`がTrueの場合だけ既存検査へ進め、False/Noneは拒否する。合成接続試験は切断/不明時にも元planと計上試行を戻さないことを確認する。単発のAC観測は継続監視・確認receiptではなく、保存後の再接続だけで実確認を再実行しない。in-flight停止境界・実provider/task統合は引き続き未完。

@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+- 基準`b65abde`、同じ`codex/work-branch-policy`で承認㉓Aを支える読取専用`PowerStatusObservation.py`を追加。比較更新providerの信頼境界/資格が未決のため無条件置換を正式採用せず、独立して進められるAC観測を選んだ。
+- GetSystemPowerStatusを呼ぶたびに取得し、成功時のACLineStatus=1/0のみTrue/False。不明・未定義値・API失敗・未対応OSはNone、固定reasonのみでraw例外/電池metadataを返さない。全may_*はfalse。使用点へ合成観測を接続し、保存後AC切断/不明で確認を止めても計上を戻さないことを検査する。
+- APIの単発観測であり、時計/session/account資格・AC切断監視・in-flightの停止/通信結果不明・checkpoint実保存は未実装。AC再接続だけで同じ試行の再確認を許可しない。実PCの切断試験やTier B/Cの受け入れではない。
+- 両roleの非配布レビューへhelper1件追加（現行file集合47件）。CIとpackage fixtureを更新。Python 3.11.9（CI 3.12）で追加AC観測9件＋既存使用点10件の計19件成功（skipなし、実API読取1件を含む）。PS 7.6.7で両roleのpackage回帰・変更PS試験の構文/PSScriptAnalyzer Error検査成功。変更のない既存budget/reader/plan/probe試験は再実行しない。root自己点検のみで独立レビュー・新CI・実運用受け入れは未実施。root単独、ローカルコミットまでで次指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。次は比較更新providerの信頼境界と失敗時保存/回復条件の候補を整理する。未選択の前提を採用せず、正式runtime/taskや実保存の資格をhelper成功から作らない。
+
+## 直前の実装単位（Win32負例probe・b65abde）
+
 - 基準`5213525`、同じ`codex/work-branch-policy`で[比較更新providerの資格調査](../design/checkpoint-compare-provider-qualification.md)と実Win32負例probeを追加した。ReplaceFileW/CreateFileW/byte-range lock/flushの一次資料を2026-10-25に確認し、expected bytes比較・sharing・失敗時状態・耐久性をAPI名だけで資格にしない境界を整理した。
 - tests専用probeはcaller指定先を受けず、自作OS-temp/固定fixture名のroot marker・regular/reparse/hardlinkを検査し、cleanup直前にもrootを確認する。実APIの共有guard下の拒否/解放後置換と、使用点検査＋実mutex後に非協調更新を古いcandidateが上書きできる反例を検証する。実運用pathやDrive/実設定を使わない。
 - これは負例fixtureで、Commonにwriterを追加せず、実providerを採用/資格化しない。全writer協調の信頼境界、root/ACL/handle/scope binding、失敗状態/backup/metadata、真正で一回限りのcommit/readback、FS/電源断の資格は未完。一次資料のAPI条件と、この環境での隔離観測を区別する。
