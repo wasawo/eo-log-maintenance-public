@@ -113,3 +113,5 @@ CompletionWaitBudget.py assesses the approved PC-A 24-hour/25-attempt hourly bud
 比較更新の[実Win32負例probe・資格調査](../docs/design/checkpoint-compare-provider-qualification.md)はtests専用で、実runtime providerとして配布しません。
 
 同moduleの`Get-DriveRetryObservation`は[再試行観測](../docs/design/drive-retry-observation.md)として、完了した試行1〜4と応答整合から1/5/15分の候補を返します。upload一時失敗/timeoutは照合待ち、不正応答は拒否し、全結果MayRetry=falseです。実counter・sleep・再送・結果照合は実装しません。
+
+`ManifestTransitionInspection.py`の`prepare_terminal_manifest_transition`は[終端plan](../docs/design/manifest-transition-inspection.md)として遷移検査とB2/OSD-03/G1 report生成を接続し、exact元/提案/証拠/report bytesを保持します。提案reportを実保存の証拠にせず、全may_*はfalseです。

@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+- 最新mainは`42221e36886773b7efbb4e3d58658890690f55b6`。[PR #41](https://github.com/wasawo/eo-log-maintenance-public/pull/41)はマージ済み、mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40159576258) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40159576256)も成功確認済み。利用者の再開指示を受け、新branch`codex/manifest-evidence-integration`を最新取得mainから作成した。
+- 既存moduleに`prepare_terminal_manifest_transition`を追加。exact prior/proposed manifestの掲載遷移・凍結inventory・終端不変を検査した後、B2 digest/scope/target一致とOSD-03集約/G1 report生成を既存builderへ接続する。immutable planは元/提案/B2/report bytesを保持し、全may_*はfalse。欠落prior・不正遷移・未終端file・偽成功を修正せず拒否する。
+- reportは提案bytesの派生物で、保存済み/commitの証拠ではない。B2の真正性・固定性・最新性、実event履歴、root/ACL/所有権・C1/C2比較更新・一回限りreadback・実Drive内容は未実装gateのまま。PC-Bも検査できるがarchive権限は与えない。
+- 既存配布module内の拡張でfile集合は47件のまま。追加接続試験と既存snapshot/report builderを一括で対象検証する。Python 3.11.9（CI 3.12）で追加接続9件＋既存snapshot/report builderの計42件成功（skipなし）。両log種別のT01〜T12相当は追加試験内の24 subcaseとして確認し、独立した24試験とは数えない。配布file集合/PSコードが不変のためpackage/PS検査は再実行しない。root自己点検のみ、独立レビュー・新CI・実保存/受け入れは未実施。root単独、ローカルコミット後は指示待ち。今回はpush/PR/マージを行わない。
+- 文書相対リンク欠落0・差分検査成功。次はこのplanと既存のartifact参照validator/模擬保存の接続、またはproviderの未決信頼境界・障害回復条件の候補整理。planから正式publicationやruntimeの受け入れを推定しない。
+
+## 前PRの準備記録（PR #41へ統合済み）
+
 - 2026-10-25、利用者が「ここまでの実装をまとめてPR作成してマージして」と明示承認。最新取得mainは`fea8753`（PR #40）、`codex/work-branch-policy`の実装8コミット`b4d4600`〜`f8cdea8`を1PRへまとめる。この記録コミットも同じPRに含める。
 - 範囲はmain直接push禁止/branch運用、manifest遷移snapshot検査、checkpoint schema/reader/試行plan/使用点検査/模擬保存、実Win32負例probe、AC観測、PS再試行観測と関連試験・文書。正式writer/adapter/task、実counter/待機/再送、C-02詳細、実Drive/Tier B/C/電源断の資格は未完のまま。
 - 各実装単位の対象検査・環境差は下記記録を保持し、無変更の成功検査は再実行しない。rootが累積差分と配布範囲を自己点検し、文書相対リンク/差分を最終確認する。独立レビューは未実施。この記録時点はpush/PR/新CI/マージ前で、最新PR HEADのValidateとPackage Validation両成功を確認してからマージする。

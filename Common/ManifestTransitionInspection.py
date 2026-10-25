@@ -6,8 +6,11 @@ aggregation, persistence or authorization is provided by this inspection.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass, field
 
-from Common.AggregationReportBuilder import _parse, _validator, _validate
+from Common.AggregationReportBuilder import (
+    AggregationBuildError, build_aggregation_report, _parse, _validator, _validate,
+)
 from Common.LatestManifestSelection import _utc_key
 from Common.RunInputEvidenceIntegrity import _safe_relative_path, _SHA256_RE
 
@@ -127,3 +130,43 @@ def inspect_manifest_transition(previous_bytes, proposed_bytes, *, manifest_sche
         raise
     except Exception:
         _reject("manifest_transition_input_invalid")
+
+
+@dataclass(frozen=True, repr=False)
+class TerminalManifestPlan:
+    expected_bytes: bytes
+    proposed_bytes: bytes
+    evidence_bytes: bytes
+    report_bytes: bytes
+    may_publish: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+    may_change_state: bool = field(default=False, init=False)
+
+
+def prepare_terminal_manifest_transition(
+    previous_bytes, proposed_bytes, evidence_bytes, *, manifest_path, evidence_path,
+    current_utc, current_utc_reliable, manifest_schema, evidence_schema, report_schema,
+):
+    """Bind a listed terminal transition and OSD-03 report to exact input bytes.
+
+    No missing-prior initialization, status repair, I/O or publication is done.
+    The supplied B2 must independently be a trusted frozen snapshot; binding it
+    here does not prove provenance, currentness or immutability across calls.
+    The report describes proposed bytes, not a committed manifest or receipt.
+    """
+    try:
+        if type(previous_bytes) is not bytes:
+            _reject("terminal_prior_bytes_required")
+        inspect_manifest_transition(previous_bytes, proposed_bytes, manifest_schema=manifest_schema)
+        report = build_aggregation_report(
+            proposed_bytes, evidence_bytes, manifest_path=manifest_path, evidence_path=evidence_path,
+            current_utc=current_utc, current_utc_reliable=current_utc_reliable,
+            manifest_schema=manifest_schema, evidence_schema=evidence_schema, report_schema=report_schema,
+        )
+        return TerminalManifestPlan(previous_bytes, proposed_bytes, evidence_bytes, report)
+    except ManifestTransitionError:
+        raise
+    except AggregationBuildError as exc:
+        raise ManifestTransitionError(exc.reason_code) from None
+    except Exception:
+        _reject("terminal_transition_input_invalid")

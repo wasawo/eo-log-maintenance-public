@@ -19,7 +19,7 @@
 | 設定 | [厳密な設定読取](../../Common/MachineConfiguration.ps1)、[create-only生成](../../Common/MachineConfigurationBootstrap.ps1)、両PCの安全なexample、maintenanceLocalの字句的分離 | 正式導入入口、実root認可、実効権限・祖先・利用直前までの保護。example生成後の実値は各PCのGit管理外設定へ手動入力 |
 | ファイル選択 | [日付・期間等の共通処理](../../Common/LogFunctions.ps1)、[完全列挙・ハッシュ証拠構築](../../Common/SourceInventoryEvidenceBuilder.py) | 正式runへの接続、列挙後の変更と利用までの整合性 |
 | root検査 | [既存Windowsディレクトリの読取専用metadata検査](../../Common/MachineConfigurationRootInspection.ps1) | 対象FS・ACL・実トークンの認可、安全な生成と継続利用の資格確認 |
-| 証拠・集約 | [contracts](../../contracts/)、[A2/B2検証](../../Common/RunInputEvidenceIntegrity.py)、[参照成果物検証](../../Common/validate_aggregation_artifacts.py)、[pure report builder](../../Common/AggregationReportBuilder.py)、条件付き採用済み状態遷移表と[純粋snapshot検査](../design/manifest-transition-inspection.md) | 実run writer/遷移強制、決定的再生成・意味論的統合、Drive反映 |
+| 証拠・集約 | [contracts](../../contracts/)、[A2/B2検証](../../Common/RunInputEvidenceIntegrity.py)、[参照成果物検証](../../Common/validate_aggregation_artifacts.py)、[pure report builder](../../Common/AggregationReportBuilder.py)、条件付き採用済み状態遷移表と[純粋snapshot検査・B2/report終端plan](../design/manifest-transition-inspection.md) | 実run writer/遷移強制、決定的再生成・意味論的統合、Drive反映 |
 | 公開・クラッシュ | [単一ファイル公開](../../Common/AtomicArtifactPublication.py)、[marker-last公開](../../Common/ArtifactSetPublication.py)、復旧分類・ディレクトリ検証 | 永続run状態・処理全体との接続。複数ファイルの原子的トランザクションや電源断耐久性の証明はない |
 | 排他・manifest選択 | [所有run lock](../../Common/OwnedRunLock.py)、[最新候補選択](../../Common/LatestManifestSelection.py)、読取adapter | 旧lockの自動引継ぎはしない。実owner証拠、復旧手順、新runとfresh inventoryの作成、実環境での統合 |
 | 明示回復 | 診断・専用mutex、[private証拠のメモリ上のbinding](../../Common/PrivateRecoveryEvidence.py)、供給ACL/descriptorの検査、v1の5field互換境界 | v2の全fieldと適格machine/boot provider、実効ACLと保存先検証、非公開の実保存。v1は診断・保全限定 |

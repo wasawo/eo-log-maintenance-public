@@ -298,3 +298,5 @@ Run python -m unittest discover -s tests -p test_latest_manifest_selection.py -v
 `test_completion_wait_budget.py` adds 16 synthetic history/clock tests: full 25-attempt boundary, inclusive deadline, delayed checks without compressed spacing or extended budget, copied state preserving its origin, corrupt history/scope, clock rollback, unconfirmed context and failed attempts. It does not establish actual restart-safe persistence or execute hourly tasks.
 
 `Test-DriveResponseSemantics.ps1`には再試行観測も含めます。4操作×全error×試行1〜4で候補/上限/照合待ちを検査し、1/5/15分・upload/timeoutの非再送・不正応答/番号の拒否を確認します。実sleep・API・再送を行わず、RETRY-02全体の受け入れにはしません。
+
+`test_terminal_manifest_plan.py`はsnapshot遷移＋B2＋report builderの純粋接続です。両log種別のT01〜T12相当、PC-B、不正遷移・凍結inventory/B2不一致・偽成功・終端不変・exact bytes参照を検査し、実保存・Drive・archiveを実行しません。
