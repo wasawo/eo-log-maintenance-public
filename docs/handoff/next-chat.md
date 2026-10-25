@@ -1,12 +1,18 @@
 # 現在の引き継ぎ
 
-更新日: 2026-10-25（日本時間）
+更新日: 2026-10-26（日本時間）
 
 恒久ルール: [AGENTS.md](../../AGENTS.md)。旧記録: [アーカイブ](archive/pre-agents-history.md)。
 正本は Public の `wasawo/eo-log-maintenance-public`。元リポジトリは Private のまま。
 この文書の状態は記録コミット時点。実際のmain/PR/CIは作業開始時に照合する。
 
 ## 最新基準と今回の作業
+
+- 基準`f964bca`、同じ`codex/drive-download-observation`で[初期plan/B2→連続履歴→終端report候補のbinding](../design/manifest-transition-inspection.md#初期planからの全履歴binding)を追加。独立contextでexact初期planを再構成し、先頭exact一致と全履歴のpending段階/遷移/終端を検査。最初のterminalと本来のrunning priorを既存OSD-03/G1 report builderへ接続し、終端繰返しでもpriorを取り違えない。専用immutable plan/全公開・Upload・retry・Archive・状態変更許可false。
+- Python 3.11.9（CI 3.12）で新規9件＋既存history10件＋terminal plan9件の計28件成功、skipなし。初回はテストのreport status参照先2か所が既存schemaと不一致、修正後新規9件成功。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 未解決file/error/不完全coverageをsuccess/no_workへ補完せず、runningだけの履歴は終端reportへ変換しない。履歴真正性/完全性・event/metadata-first証拠・実copy/Drive/API・owner/clock/FS/容量/使用点・writer/永続化/runtime受け入れは未実証。次は既承認の独立作業を選び、未決writer/event契約を推測しない。
+
+## 直前の実装単位（manifest連続履歴検査・f964bca）
 
 - 基準`8721021`、同じ`codex/drive-download-observation`で[初期登録からのmanifest連続履歴検査](../design/manifest-transition-inspection.md#初期登録からの連続履歴検査)を追加。exact snapshot tupleを既存pair/schema/identity/凍結inventory/時刻/verification/終端検査へ通し、path単位で登録pendingとUpload直前pendingを区別する。登録pending→uploaded/unknownとUpload pending→stagingを拒否、unknown→pendingのretry遷移を別計数。全公開/Upload/retry/Archive許可false。
 - Python 3.11.9（CI 3.12）で新規history10件＋既存pair11件の計21件成功、skipなし。初回はtest fixtureへschema外outcomeを設定した1件error、修正後history10件成功。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。

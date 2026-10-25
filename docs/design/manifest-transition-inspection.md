@@ -27,6 +27,14 @@ fileのrelative pathごとにpending段階を追跡する。初期登録のpendi
 
 ## 終端planとB2／report生成の接続
 
+### 初期planからの全履歴binding
+
+`prepare_terminal_manifest_history`は独立PC/log/period/run/start/clock/schemaから初期planを再構成し、元planの厳密型/全false flag/元B2/proposed bytesのexact整合を確認する。空でないsnapshot tupleの先頭はその初期bytesとexact一致しなければならず、以降を連続履歴検査へ渡す。最後がrunningならreportを構築せずincompleteとして拒否する。
+
+最初の終端snapshotとその直前のrunning snapshotを既存終端plan/B2/OSD-03/G1 report生成へ接続する。同じ終端bytesの再掲載があっても、本来のrunning priorをterminal bytesに置き換えない。集約が不正なら掲載ペアや履歴が成立しても拒否する。未解決file/既知validation errors・不完全coverageをsuccess/no_workへ補完しない。
+
+専用immutable `TerminalManifestHistoryPlan`は元snapshot tuple、件数観測、exact prior/proposed/B2/report bytesを持つ既存terminal planを保持し、reprは非表示、全公開/Upload/retry/Archive/状態変更許可false。既存terminal planと別型で、保存済み結果を初期planとして再利用できない。これは供給履歴と元B2の整合検査だけであり、履歴真正性/完全性、event証拠、metadata-first、実copy/Drive、所有権/FS/clock/使用点や永続化の証明ではない。schema/event fieldやwriterを新設しない。[合成接続試験](../../tests/test_terminal_manifest_history.py)は両PC/log・exact trace・途中省略・集約不備・未完・終端繰返しを扱う。
+
 同moduleの`prepare_terminal_manifest_transition`は、既存のexact prior/proposed manifest bytesと固定B2 bytes、参照先の安全な相対path、信頼済みstatic schema、現在UTCとreliableを要求する。先に上記遷移検査を実行し、続けて既存report builderでB2のdigest・scope・凍結inventory一致、終端fileの検証結果、OSD-03集約status/outcome、G1時刻と未来時刻条件を検査する。どちらかが不成立ならplanを返さず、入力statusや証拠を修正しない。
 
 返すimmutable `TerminalManifestPlan`はexpected_bytes/proposed_bytes/evidence_bytes/report_bytesを結び付ける内部オブジェクトで、保存schemaのfield追加ではない。reportは**提案manifest**のexact bytesとB2 bytesをhash参照する。保存済みmanifestの証拠、commit receipt、publicationの成功ではなく、may_publish/may_archive/may_change_stateは常にfalse。reprへ内容を出さない。

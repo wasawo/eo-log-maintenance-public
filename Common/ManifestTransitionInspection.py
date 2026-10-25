@@ -220,6 +220,18 @@ class InitialManifestPlan:
     may_archive: bool = field(default=False, init=False)
 
 
+@dataclass(frozen=True, repr=False)
+class TerminalManifestHistoryPlan:
+    snapshots: tuple[bytes, ...]
+    history: ManifestHistoryObservation
+    terminal: TerminalManifestPlan
+    may_publish: bool = field(default=False, init=False)
+    may_upload: bool = field(default=False, init=False)
+    may_retry: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+    may_change_state: bool = field(default=False, init=False)
+
+
 def prepare_initial_manifest(
     evidence_bytes, *, expected_pc_id, expected_log_type, expected_target_period,
     expected_run_id, started_at_utc, current_utc, current_utc_reliable,
@@ -296,6 +308,49 @@ def prepare_terminal_manifest_transition(
         raise ManifestTransitionError(exc.reason_code) from None
     except Exception:
         _reject("terminal_transition_input_invalid")
+
+
+def prepare_terminal_manifest_history(
+    initial_plan, snapshots, *, expected_pc_id, expected_log_type, expected_target_period,
+    expected_run_id, started_at_utc, manifest_path, evidence_path, current_utc,
+    current_utc_reliable, manifest_schema, evidence_schema, report_schema,
+):
+    """Bind an explicit initial-to-terminal trace, frozen B2 and derived report.
+
+    The trace is supplied evidence, not authentic persisted event history.
+    No I/O, repair, missing snapshots, state changes or permissions are added.
+    """
+    try:
+        if (type(initial_plan) is not InitialManifestPlan or any(flag is not False for flag in
+                (initial_plan.may_publish, initial_plan.may_upload, initial_plan.may_archive))):
+            _reject("terminal_history_initial_plan_invalid")
+        restored = prepare_initial_manifest(initial_plan.evidence_bytes,
+            expected_pc_id=expected_pc_id, expected_log_type=expected_log_type,
+            expected_target_period=expected_target_period, expected_run_id=expected_run_id,
+            started_at_utc=started_at_utc, current_utc=current_utc,
+            current_utc_reliable=current_utc_reliable, manifest_schema=manifest_schema,
+            evidence_schema=evidence_schema)
+        if restored != initial_plan:
+            _reject("terminal_history_initial_plan_invalid")
+        if (type(snapshots) is not tuple or not snapshots
+                or type(snapshots[0]) is not bytes or snapshots[0] != restored.proposed_bytes):
+            _reject("terminal_history_initial_snapshot_mismatch")
+        history = inspect_manifest_history(snapshots, manifest_schema=manifest_schema)
+        if not history.aggregation_required:
+            _reject("terminal_history_incomplete")
+        # Later exact terminal duplicates do not replace the real running prior.
+        terminal_index = next(index for index, raw in enumerate(snapshots)
+                              if _parse(raw)["status"] != "running")
+        terminal = prepare_terminal_manifest_transition(snapshots[terminal_index-1],
+            snapshots[terminal_index], restored.evidence_bytes, manifest_path=manifest_path,
+            evidence_path=evidence_path, current_utc=current_utc,
+            current_utc_reliable=current_utc_reliable, manifest_schema=manifest_schema,
+            evidence_schema=evidence_schema, report_schema=report_schema)
+        return TerminalManifestHistoryPlan(snapshots, history, terminal)
+    except ManifestTransitionError:
+        raise
+    except Exception:
+        _reject("terminal_history_input_invalid")
 
 
 def revalidate_terminal_manifest_plan(
