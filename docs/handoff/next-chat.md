@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`ae6ef30`、同じ`codex/drive-download-observation`で[初期inventory専用の読取観測接続](../design/initial-inventory-observation.md)を追加。PC-A sourceを毎回再観測し、明示pathの比較元とDrive前後列挙/計画/完了hashの厳密batch比較を件数・順序付きで結ぶ。専用型へ元B2/選択path/各比較を保持し、共通不備は比較file集合なしでheld、選択/B2は保全する。
+- 運用manifest型/状態/report/保存とは分離し、同期成功/復元/Archive/運用manifest公開の許可は全false。空選択を全件完了/no_workへ変えず、既知errorや過去B2を補完しない。永続inventory schema/rootや実SDK/C-02は採用しない。Python 3.11.9（CI 3.12）で追加初期inventory接続＋既存source batch/計画比較の計21件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実source/Drive/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：専用inventory永続schema/保存領域と診断、source/backup・folder/query/metadata/完了の真正性/現在性、実SDK/C-02/credential・root/FS/owner/clock/使用点、C1/C2 writer・復元/同期/両PC/archive gateとruntime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（PC suffix命名・ae6ef30）
+
 - 基準`930e672`、同じ`codex/drive-download-observation`で[PC suffixの純粋命名観測](../design/drive-content-comparison.md)を追加。承認済みsource filename文法/実在日付と既存L1字句を検査し、元basenameを保持してextension直前へ_PCA/_PCBを付ける。Unicode/case/spacingや既存suffix文字列から出所を推測/修復しない。
 - 元名/候補名/指定PC/logをimmutableに保持し、rename/Upload/上書き/Archive許可は全false。候補名でB2/source文法を変更せず、OSD-01 name比較も別名化しない。既存fileの出所/内容差/競合の確認と衝突解消は別gate。Python 3.11.9（CI 3.12）で追加命名＋既存直接比較/L1字句の計18件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：原名/final名の正式adapter結果/記録・衝突解消orchestratorと現在内容/出所確認、実SDK/C-02/credential、root/FS/token/clock/owner・容量/使用点資格、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。

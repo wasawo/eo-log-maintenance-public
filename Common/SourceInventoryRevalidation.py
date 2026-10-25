@@ -7,7 +7,7 @@ from Common.LatestManifestSelection import _utc_key, _clock_key
 from Common.RunInputEvidenceIntegrity import validate_evidence_invariants, _safe_relative_path
 from Common.SourceInventoryEvidenceBuilder import build_run_input_evidence, _classify_filename
 from Common.ManifestTransitionInspection import InitialManifestPlan, prepare_initial_manifest
-from Common.DriveContentComparison import ComparisonSource
+from Common.DriveContentComparison import ComparisonSource, ContentComparison, compare_planned_drive_contents
 
 
 class SourceRevalidationError(ValueError):
@@ -34,6 +34,26 @@ class RevalidatedComparisonSource:
     may_restore: bool = field(default=False, init=False)
     may_report_sync_success: bool = field(default=False, init=False)
     may_archive: bool = field(default=False, init=False)
+
+
+@dataclass(frozen=True, repr=False)
+class InitialInventoryFileObservation:
+    relative_path: str
+    source: ComparisonSource
+    comparison: ContentComparison
+
+
+@dataclass(frozen=True, repr=False)
+class InitialInventoryObservation:
+    evidence_bytes: bytes
+    selected_paths: tuple[str, ...]
+    files: tuple[InitialInventoryFileObservation, ...]
+    status: str
+    reason_code: str
+    may_restore: bool = field(default=False, init=False)
+    may_report_sync_success: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+    may_publish_operational_manifest: bool = field(default=False, init=False)
 
 
 def _reject(reason):
@@ -188,3 +208,38 @@ def revalidate_comparison_sources(
         raise
     except Exception:
         _reject("comparison_source_input_invalid")
+
+
+def inspect_initial_inventory(
+    source_root, evidence_bytes, *, relative_paths, source_trusted, schema, expected_log_type,
+    expected_run_id, expected_root_id, expected_relative_scope, reference_date,
+    current_utc, current_utc_reliable, drive_before, drive_after, download_plan,
+    downloads, expected_folder_id,
+):
+    """Read-only selected initial-inventory observations, separate from sync state.
+
+    Every call reobserves PC-A source and rechecks supplied Drive/plan/hash data.
+    A global hold retains the explicit selection and B2, not a completed empty
+    inventory. Provenance, actual API freshness and all operations remain gates.
+    """
+    try:
+        sources = revalidate_comparison_sources(source_root, evidence_bytes, relative_paths=relative_paths,
+            source_trusted=source_trusted, schema=schema, expected_log_type=expected_log_type,
+            expected_run_id=expected_run_id, expected_root_id=expected_root_id,
+            expected_relative_scope=expected_relative_scope, reference_date=reference_date,
+            current_utc=current_utc, current_utc_reliable=current_utc_reliable)
+        compared = compare_planned_drive_contents(tuple(item.source for item in sources),
+            drive_before, drive_after, download_plan, source_trusted=source_trusted,
+            expected_folder_id=expected_folder_id, downloads=downloads)
+        if compared.status == "held":
+            return InitialInventoryObservation(evidence_bytes, relative_paths, (), "held", compared.reason_code)
+        if compared.status != "compared" or len(compared.results) != len(sources):
+            _reject("initial_inventory_result_invalid")
+        files = tuple(InitialInventoryFileObservation(item.relative_path, item.source, result)
+                      for item, result in zip(sources, compared.results))
+        return InitialInventoryObservation(evidence_bytes, relative_paths, files,
+            "requires_runtime_evidence", "initial_inventory_observations_consistent")
+    except SourceRevalidationError:
+        raise
+    except Exception:
+        _reject("initial_inventory_input_invalid")

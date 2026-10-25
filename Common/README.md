@@ -167,3 +167,5 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 空きbytes観測はleafからdrive rootまでの祖先chainも前後照合します。leafのIDが同じでも親の差替え・chain欠落/長さ変化を保留し、内部path/IDを公開結果へ出しません。同時snapshot/ABA排除やroot資格は証明しません。
 
 `observe_pc_suffixed_name`は元source basenameを保持してDrive候補名の_PCA/_PCBを拡張子前へ付けます。出所や衝突を判定せず、rename/Upload/上書き/Archive許可はfalse。候補名でB2を変更したりOSD-01のname照合を別名化したりしません。
+
+`inspect_initial_inventory`は[初期inventory専用の読取観測](../docs/design/initial-inventory-observation.md)として、PC-A source再観測とDrive計画/hash/前後比較をpathへ結び付けます。共通不備でも選択/B2を保持し、運用manifest/同期成功/復元/Archiveへ昇格しません。
