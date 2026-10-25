@@ -7,7 +7,7 @@ from Common.LatestManifestSelection import _utc_key, _clock_key
 from Common.RunInputEvidenceIntegrity import validate_evidence_invariants, _safe_relative_path
 from Common.SourceInventoryEvidenceBuilder import build_run_input_evidence, _classify_filename
 from Common.ManifestTransitionInspection import InitialManifestPlan, prepare_initial_manifest
-from Common.DriveContentComparison import ComparisonSource, ContentComparison, compare_planned_drive_contents
+from Common.DriveContentComparison import ComparisonSource, ContentComparison, compare_planned_drive_contents, _valid_source
 
 
 class SourceRevalidationError(ValueError):
@@ -50,6 +50,23 @@ class InitialInventoryObservation:
     files: tuple[InitialInventoryFileObservation, ...]
     status: str
     reason_code: str
+    may_restore: bool = field(default=False, init=False)
+    may_report_sync_success: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+    may_publish_operational_manifest: bool = field(default=False, init=False)
+
+
+@dataclass(frozen=True)
+class InitialInventorySummary:
+    observation_status: str
+    inventory_target_count: int
+    selected_count: int
+    assessed_count: int
+    candidate_count: int
+    held_count: int
+    unassessed_count: int
+    validation_error_count: int
+    kind: str = field(default="initial_inventory_summary", init=False)
     may_restore: bool = field(default=False, init=False)
     may_report_sync_success: bool = field(default=False, init=False)
     may_archive: bool = field(default=False, init=False)
@@ -243,3 +260,70 @@ def inspect_initial_inventory(
         raise
     except Exception:
         _reject("initial_inventory_input_invalid")
+
+
+def summarize_initial_inventory(observation, *, schema):
+    """Return counts only, without paths, IDs, hashes, bytes or reason text.
+
+    This checks historical observation consistency, not current source/Drive
+    provenance or freshness. It never generates an operational run status.
+    """
+    try:
+        if (type(observation) is not InitialInventoryObservation
+                or type(observation.evidence_bytes) is not bytes
+                or type(observation.selected_paths) is not tuple or type(observation.files) is not tuple
+                or type(observation.status) is not str
+                or observation.status not in ("held", "requires_runtime_evidence")
+                or any(flag is not False for flag in (observation.may_restore,
+                    observation.may_report_sync_success, observation.may_archive,
+                    observation.may_publish_operational_manifest))):
+            _reject("initial_inventory_summary_invalid")
+        value = _parse(observation.evidence_bytes)
+        _validate(_validator(schema), value)
+        validate_evidence_invariants(value, schema)
+        if (value["pc_id"] != "PC-A" or value["enumeration"]["status"] != "completed"
+                or value["validation"]["status"] != "completed"):
+            _reject("initial_inventory_summary_invalid")
+        targets = {item["relative_path"]: item for item in value["inventory"]["targets"]}
+        selected = set()
+        for path in observation.selected_paths:
+            if type(path) is not str or path in selected or path not in targets:
+                _reject("initial_inventory_summary_invalid")
+            _safe_relative_path(path)
+            if _classify_filename(targets[path]["filename"], value["log_type"]) is None:
+                _reject("initial_inventory_summary_invalid")
+            selected.add(path)
+        if observation.status == "held":
+            if observation.files:
+                _reject("initial_inventory_summary_invalid")
+        elif len(observation.files) != len(observation.selected_paths):
+            _reject("initial_inventory_summary_invalid")
+        candidates = held = 0
+        for path, item in zip(observation.selected_paths, observation.files):
+            if (type(item) is not InitialInventoryFileObservation or type(item.relative_path) is not str
+                    or item.relative_path != path or not _valid_source(item.source)):
+                _reject("initial_inventory_summary_invalid")
+            target = targets[path]
+            if item.source != ComparisonSource(target["filename"], target["size_bytes"], target["expected_sha256"]):
+                _reject("initial_inventory_summary_invalid")
+            result = item.comparison
+            if (type(result) is not ContentComparison or type(result.status) is not str
+                    or any(flag is not False for flag in
+                           (result.may_restore, result.may_report_sync_success, result.may_archive))):
+                _reject("initial_inventory_summary_invalid")
+            if result.status == "comparison_candidate":
+                if (type(result.candidate_file_id) is not str or not result.candidate_file_id
+                        or "\x00" in result.candidate_file_id):
+                    _reject("initial_inventory_summary_invalid")
+                candidates += 1
+            elif result.status == "held" and result.candidate_file_id is None:
+                held += 1
+            else:
+                _reject("initial_inventory_summary_invalid")
+        assessed = len(observation.files)
+        return InitialInventorySummary(observation.status, len(targets), len(selected), assessed,
+            candidates, held, len(selected)-assessed, value["validation"]["invalid_relevant_count"])
+    except SourceRevalidationError:
+        raise
+    except Exception:
+        _reject("initial_inventory_summary_invalid")

@@ -103,6 +103,7 @@ jobs:
           python -B -m unittest discover -s tests -p "test_comparison_source_revalidation.py" -v
           python -B -m unittest discover -s tests -p "test_comparison_source_batch.py" -v
           python -B -m unittest discover -s tests -p "test_initial_inventory_observation.py" -v
+          python -B -m unittest discover -s tests -p "test_initial_inventory_summary.py" -v
           python -B -m unittest discover -s tests -p "test_initial_manifest_plan.py" -v
           python -B -m unittest discover -s tests -p "test_staging_size_observation.py" -v
           python -B -m unittest discover -s tests -p "test_staging_capacity_bridge.py" -v

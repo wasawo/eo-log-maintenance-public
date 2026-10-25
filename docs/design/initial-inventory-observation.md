@@ -13,3 +13,13 @@
 [合成接続試験](../../tests/test_initial_inventory_observation.py)は両log、指定順とID binding、候補/不在の混在、共通不備時のB2/選択保全、PC-B/未信頼source拒否・source変更、空選択、既知error保全、内部件数不一致の停止を確認する。全FS I/Oは自作tempの合成sourceで、candidate/運用manifestへの書込み・実Drive接続はない。
 
 実source/backup記録とfolder/query/metadata/完了の真正性・現在性、実SDK/C-02/credential、原子的snapshot/ABA・使用点root/FS/owner/clock資格、初期inventory専用の永続schema/保存領域と診断、復元/同期/両PC/archive gateとruntime受け入れは未実装・未実証のまま。
+
+## 件数のみの内部要約
+
+`summarize_initial_inventory`は専用観測型と元B2のschema/digest/inventory、PC-A/完全coverage、明示選択/比較の件数・順序・対象対応と全false flagを検査し、固定kind・観測status・整数件数だけを返す。件数はinventory target全体、明示選択、比較済み、同一内容候補、file別held、未比較、元B2のvalidation errorを分離する。共通不備のheldは未比較であり、file別失敗や完全な0件へ変換しない。選択0件とinventory全体0件も区別する。
+
+結果にpath/filename、file/root/run ID、hash、B2 bytesやreason文字列を含めない。raw/global/file別reasonは転記せず、例外は固定summary-invalid codeとする。対象と比較件数が不一致、対応sourceがB2と違う、未知の比較statusや許可flag改変などは要約を返さない。reason文言の正当性やcloud/sourceの真正性を件数検査で証明するものではない。
+
+immutableなInitialInventorySummaryはrepr/asdictも件数・固定値のみで、運用report/schema・診断イベント・通知の仕様を採用しない。保存/送信/通知は行わず、全may_restore/may_report_sync_success/may_archive/may_publish_operational_manifestはfalse。これは過去観測の要約であり、現在時計/source/Driveを再観測しない。保存済み要約を現在性やreceiptに使わない。
+
+[要約試験](../../tests/test_initial_inventory_summary.py)は混在/共通保留/未比較・空選択と既知error、JSON/reprへの原データ非露出、不正件数/順序/対象/B2/status/flag拒否、I/Oなしと歴史要約の非認可を確認する。正式inventory保存/診断/通知・実API/runtimeの受け入れは未実施のまま。

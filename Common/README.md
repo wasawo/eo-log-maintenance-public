@@ -169,3 +169,5 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 `observe_pc_suffixed_name`は元source basenameを保持してDrive候補名の_PCA/_PCBを拡張子前へ付けます。出所や衝突を判定せず、rename/Upload/上書き/Archive許可はfalse。候補名でB2を変更したりOSD-01のname照合を別名化したりしません。
 
 `inspect_initial_inventory`は[初期inventory専用の読取観測](../docs/design/initial-inventory-observation.md)として、PC-A source再観測とDrive計画/hash/前後比較をpathへ結び付けます。共通不備でも選択/B2を保持し、運用manifest/同期成功/復元/Archiveへ昇格しません。
+
+`summarize_initial_inventory`は専用観測とB2/対象対応を検査し、候補/保留/未比較・既知error等の件数だけを返します。path/ID/hash/bytes/reasonを転記せず、歴史要約を現在性や同期成功・復元/Archive許可にしません。
