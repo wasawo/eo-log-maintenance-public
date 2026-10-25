@@ -370,3 +370,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_initial_inventory_observation.py`はsource再観測/Drive計画・完了hash/前後比較を初期inventory専用の型へ接続し、保留・選択/B2保全・非認可を確認する。運用manifest/schemaや実復元は生成しない。
 
 `test_initial_inventory_summary.py`は初期inventoryの件数要約・共通保留と未比較の区別、機密原データ非露出・対応不整合拒否・I/Oなしを確認する。要約は実行許可/正式運用reportではない。
+
+`test_staging_residual_observation.py`は残存staging直下の件数・内容非読取/非再帰・変化/不明の保留と保全を合成検証する。metadata解析やcleanup、運用run statusの受け入れではない。

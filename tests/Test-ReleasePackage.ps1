@@ -67,6 +67,7 @@ try {
     Set-Content (Join-Path $fixture 'Common/CompletionWaitAttempt.py') '# Pure attempt plan'
     Set-Content (Join-Path $fixture 'Common/PowerStatusObservation.py') '# Read-only AC observation'
     Set-Content (Join-Path $fixture 'Common/SourceInventoryRevalidation.py') '# Read-only frozen inventory comparison'
+    Set-Content (Join-Path $fixture 'Common/StagingResidualObservation.py') '# Read-only immediate residual staging counts'
     Set-Content (Join-Path $fixture 'Common/DriveContentComparison.py') '# Pure non-authorizing content comparison'
     Set-Content (Join-Path $fixture 'Common/AggregationArtifactReference.ps1') '# Aggregation artifact reference verification functions'
     Set-Content (Join-Path $fixture 'Common/AggregationReferencedArtifacts.ps1') '# Referenced artifact schema validation entry point'
@@ -152,6 +153,7 @@ try {
         'Common/CompletionWaitAttempt.py',
         'Common/PowerStatusObservation.py',
         'Common/SourceInventoryRevalidation.py',
+        'Common/StagingResidualObservation.py',
         'Common/DriveContentComparison.py',
         'contracts/completion-wait-checkpoint-v1.schema.json',
         'Common/AggregationArtifactReference.ps1',
@@ -202,6 +204,7 @@ try {
     Assert-True ('Common/ManifestTransitionInspection.py' -in $pcBEntries) 'PC-B package must include pure manifest transition inspection.'
     Assert-True ('Common/PowerStatusObservation.py' -in $pcBEntries) 'Both roles require read-only AC observation.'
     Assert-True ('Common/SourceInventoryRevalidation.py' -in $pcBEntries) 'PC-B requires read-only source revalidation without archive capability.'
+    Assert-True ('Common/StagingResidualObservation.py' -in $pcBEntries) 'PC-B requires residual observation without cleanup or archive capability.'
     Assert-True ('Common/DriveContentComparison.py' -in $pcBEntries) 'PC-B receives comparison observations without archive or restore authority.'
     Assert-True ('Common/CompletionWaitAttempt.py' -in $pcBEntries) 'PC-B package must include pure non-authorizing attempt planning.'
     Assert-True ('Common/CompletionWaitCheckpoint.py' -in $pcBEntries -and 'contracts/completion-wait-checkpoint-v1.schema.json' -in $pcBEntries) 'PC-B package must include checkpoint data helpers without archive capability.'

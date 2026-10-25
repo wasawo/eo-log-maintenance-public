@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`6e33967`、同じ`codex/drive-download-observation`で[残存staging直下entry観測](../design/staging-residual-observation.md)を追加。既存絶対rootを内容非読取・非再帰で列挙し、file/dir/otherの件数と警告要否を返す。reparse/不明/重複/前後変化はheldとして、初回確定件数を保持する。0観測を不完全なまま完全検査へ変えない。
+- 全作成/Upload/cleanup/Archive許可false。metadata解析/field集合・旧run所有権・時刻based cleanup・運用status変更を採用しない。直下列挙成立は完全startup gateやroot/FS/provider資格ではない。追加moduleを両roleレビューpackageへ登録しfile集合は50件。Python 3.11.9（CI 3.12）で新規8件成功（skipなし）。PS 7.6.7で両role package回帰・変更package試験PS構文/PSScriptAnalyzer Error検査成功。変更のないsource/Drive/容量/native root/schema検査は繰り返さない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実staging/root/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：正式残存metadata/旧run検査・startup warning/失敗/Upload停止の強制とroot/FS/owner/provider資格、実source/容量/copy、実SDK/C-02/credential・C1/C2 writer・Drive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（初期inventory件数要約・6e33967）
+
 - 基準`1b3bb33`、同じ`codex/drive-download-observation`で[初期inventoryの件数のみ要約](../design/initial-inventory-observation.md)を追加。専用観測型・元B2・選択/比較件数/順序/対象対応/全false flagを検査し、inventory全体/選択/比較済み/候補/held/未比較/既知errorを分離する。共通不備は未比較、空選択は全体0件とは区別する。
 - path/filename/ID/hash/bytes/reasonを要約へ転記せず、固定kind/statusと整数件数のみ返す。歴史要約でsource/Driveを再観測せず、保存/診断イベント/通知/正式reportを採用しない。全操作許可false、現在性やreceiptにも昇格しない。Python 3.11.9（CI 3.12）で追加件数要約＋既存初期inventory接続の計13件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実source/Drive/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：初期inventoryの永続schema/root/診断/通知、source/backupとfolder/query/metadata/完了の真正性/現在性、実SDK/C-02/credential・root/FS/owner/clock/使用点、C1/C2 writer・復元/同期/両PC/archive gateとruntime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。

@@ -171,3 +171,5 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 `inspect_initial_inventory`は[初期inventory専用の読取観測](../docs/design/initial-inventory-observation.md)として、PC-A source再観測とDrive計画/hash/前後比較をpathへ結び付けます。共通不備でも選択/B2を保持し、運用manifest/同期成功/復元/Archiveへ昇格しません。
 
 `summarize_initial_inventory`は専用観測とB2/対象対応を検査し、候補/保留/未比較・既知error等の件数だけを返します。path/ID/hash/bytes/reasonを転記せず、歴史要約を現在性や同期成功・復元/Archive許可にしません。
+
+`StagingResidualObservation.py`は[残存staging直下entry](../docs/design/staging-residual-observation.md)を内容非読取・非再帰で件数観測します。不明/変化は保留して初回件数を保持し、metadata検査やcleanup/Upload/Archiveを許可しません。
