@@ -8,6 +8,16 @@
 
 ## 最新基準と今回の作業
 
+### 累積PR承認と本セッションの終了範囲（2026-10-26）
+
+- 利用者が`c24b13a`までの実装35コミットをまとめたPR作成・マージを明示承認。本節の引き継ぎ記録を同じPRへ含め、最新PR HEADのValidate/Package Validation両成功を確認してsquash mergeする。作業branchは`codex/drive-download-observation`、比較基準は正本main `ccd4ffaf2d785828a700afe8a294f35ef308df43`。本記録時点では未push/未PR/未マージであり、結果はGitHub実状態を確認する。
+- 累積範囲：Drive完全page/hash/不足download計画/前後・一括内容比較、source/B2と初期inventory/件数要約、stagingコピーの単一/一括読取・source/Drive隔離接続、明示容量式/size射影と未資格Windows空きbytes/128-bit祖先identity、残存entry件数観測、manifest全履歴/pending段階/file別Upload4回上限/初期B2から終端report/使用点候補接続、checkpoint追記/file読取/予算・使用点接続とWin32負例、manifest候補のcaller指定bytes上限。schema/event/providerの未決契約を推測せず、実行権限は付与しない。レビューpackageは50 files。
+- PR前統合検証：Python 3.11.9（CI 3.12）で`python -B -m unittest discover -s tests -p test_*.py`計742件、740成功/既存symlink作成不可2skip。PS bridgeは7.6.7を明示。PS 7.6.7でlog49・容量67・空き領域35・root142成功、両role package回帰と変更PS構文/PSScriptAnalyzer Error成功。累積相対リンク欠落0・diff検査成功。root自己点検のみ、独立レビューなし。これらは新CIやruntime受け入れの代替ではない。
+- **マージ後は本セッションで次の実装を始めず終了する。後続作業は新規セッションで行う。** 次の担当はこの節・現在main/PR/CI・作業ツリーを照合し、マージ済みbranchを再利用せず最新mainから新しい`codex/`作業branchを作る。PR作成は利用者指示時のみ。実現したPR/merge SHAとCI結果は本チャットの添付PR/最終報告およびGitHubを照合する。
+- 未完：実Drive/credential/C-02詳細・正式PS orchestrator/task、metadata-first/event/永続run writer/CASとtrusted writer排除・一回限りreceipt、実root/ACL/FS/owner/clock/AC/session/account/provider資格、rollback/ABA・電源断・両PC/Tier B/C/runtime受け入れ。helper/CI成功を配布/実適用/削除/PC-B archiveの許可にしない。次の実装範囲は新規セッションで既承認契約と未決事項を照合して選ぶ。
+
+### 直近の実装単位
+
 - 基準`d073ebc`、同じ`codex/drive-download-observation`で[manifest directory読取りの明示bytes上限](../design/latest-manifest-selection.md#explicit-byte-budgets-for-directory-observations-2026-10-26)を追加。caller指定のoptional候補別/全候補合計上限を型検査し、旧run/別period等も含む初期size全件をpayload open前に検査する。超過候補をskip/fallbackせず全体拒否。読取りは最大65,536 byte/chunk・初期size+1 byteで増大停止し、既存signature/最終再列挙は維持する。
 - report付き選択も前後2回のmanifest観測へ同じ上限を渡す。Python 3.11.9（CI 3.12）で新規bounds7件＋既存directory/report29件の計36件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
 - 固定の本番上限値/新schema制約は採用せず、Noneではcaller上限なし。report/evidence validator内の読取り・entry数/JSON複雑度/全memoryは今回の上限対象外。root/FS/owner/clock/現在性/ABA・実Drive/runtime受け入れは未実証。次は既承認の独立作業を選び、未決provider/資源方針を推測しない。
