@@ -1,6 +1,6 @@
 # Maintenance Manifest v1 — Adopted State-Transition Table
 
-- Status: transition tables adopted by the maintainer on 2026-10-24, subject to existing approved aggregation, crash/concurrency, terminal-state and immutable-history rules. Unlisted transitions are rejected. Persistence details, implementation, tests and runtime acceptance remain incomplete. See [selection record](../decisions/selected-policy-decisions-20261024.md).
+- Status: transition tables adopted by the maintainer on 2026-10-24, subject to existing approved aggregation, crash/concurrency, terminal-state and immutable-history rules. Unlisted transitions are rejected. Read-only snapshot/pair inspection and synthetic tests are implemented (2026-10-25); event evidence, persistence/writer and runtime acceptance remain incomplete. See [selection record](../decisions/selected-policy-decisions-20261024.md).
 - Related decision: OSD-02 / C-26.
 - Approved field contract: `docs/design/manifest-schema-v1-proposal.md`.
 - Related aggregation decision: `docs/decisions/osd-03-status-aggregation-options.md`.
@@ -97,7 +97,7 @@ The maintainer selected option A. These combinations are normative policy decisi
 
 The maintainer adopted the candidate tables subject to the already-approved conditions and rejection of unlisted transitions. Keep the historical individual decisions below within their original scope; this later adoption does not add new enum values, permit historical rewrites, or prove implementation. Remaining work includes lifecycle/traceability alignment, persistence/source contracts, executable transition tests and independent runtime evidence.
 
-No runtime implementation, executable transition tests, or operational evidence is claimed by this proposal.
+The read-only snapshot/pair implementation is described in [transition inspection](manifest-transition-inspection.md). Its synthetic tests do not prove the event prerequisites, persistence or runtime acceptance.
 
 
 ## 6. Approved retry-exhaustion exception cases — 2026-10-21

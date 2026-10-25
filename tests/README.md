@@ -1,5 +1,17 @@
 # テスト計画
 
+`test_power_status_observation.py`はAC観測のmock ABI/不明・失敗と既存使用点への合成接続を検査します。Windowsでは実APIを読取のみで一度照会します。電源の変更・実ログ/Driveアクセス・task登録・実運用受け入れは行いません。
+
+`test_checkpoint_replace_probe.py`はcaller指定先を受けない専用OS-temp probeで、実CreateFileW共有guardとReplaceFileW、使用点検査後の競合反例を確認します。許可名外/root marker変更/hardlinkでもnative変更へ進みません。これは不十分なAPI組合せを検出する負例であり、provider採用・Tier B/C・電源断耐久性の証拠ではありません。
+
+`test_completion_wait_usepoint.py`は保存前/記録後のexact bytes、plan偽装、最新scope/時計/期限/実行条件/ACを純粋検査し、既存の実mutex・staging・mock保存fixtureへ接続します。資格喪失時の確認停止/試行保持と、使用点検査後の競合にもprovider側の比較が必要なことを確認します。runtime provider/一回限りreceipt/in-flight中断の受け入れではありません。
+
+`test_completion_wait_attempt.py`は1試行だけの純粋candidate planと、実Windows owner/mutex・create-only staging・メモリmock compare-and-publishを接続します。保存前/後の失敗、stale/競合、偽ack/読取不一致、確認失敗時の予算保全を合成検証します。実checkpoint置換・電源断・runtime受け入れの証拠ではありません。
+
+`test_completion_wait_checkpoint.py`はclosed schema、exact bytes/時刻表記/配列順、期待scopeと信頼できる現在時計、25回/24時間/1時間間隔、精度の保持と変換拒否、欠落/破損・I/Oなしを合成検証します。既存budget helperへ接続しても、実保存/rollback防止/実確認の証明にはしません。
+
+`test_manifest_transition_inspection.py`は採用済みfile/runペアの行列、初期状態、identity/凍結inventory、verification/hash/time、終端の不変性、入力不変・I/Oなし・固定理由を合成検証します。掲載ペアの結果もrequires_runtime_evidenceであり、実event/Drive/排他/集約/永続更新の受け入れではありません。
+
 `test_drive_request_path.py`と`Test-DriveRequestPath.ps1`は共通L1 fixtureをschema/Python/PSへ適用します。両request path field・Dry Runの両値、予約名/Unicode/末尾改行/禁止文字、型の非変換・入力保持・操作副作用なし・固定maxLengthなしを検査します。実root/指定先/使用点やtransportの受け入れ試験ではありません。
 
 `tests/Test-DriveResponseSemantics.ps1` は合成in-memory request期待値/response/exitだけで、4操作成功、exit2–10の独立対応表、既知codeと誤exit、ordinal相関・case、unknown/missing/null/type・implicit cast拒否、raw JSON由来Int64、入力不変、秘密非echoを検査します。4操作×9codeのretryable正常値と矛盾値、非bool拒否を検証し、process/file/network等の禁止commandが呼ばれないことも確認します。`tests/test_contract_schemas.py`も4操作×9codeで正常値、逆のbool、null/数値/文字列等と欠落を検査します。これはC-03/一部C-05のpure補助とschemaの証拠で、実child出力/timeout/transport、RETRY-02のorchestration、C-01/C-02/IPC全体を完了にしません。
@@ -284,3 +296,5 @@ Run python -m unittest discover -s tests -p test_latest_manifest_selection.py -v
 `test_monthly_schedule_observation.py` adds 12 fixed-clock tests covering JST/UTC month/year boundaries, leap year, staggered role times, exact microsecond boundaries, logged-off/untrusted context, overflow and non-authorizing immutable output. It does not test task registration, missed-run completion or PC-A hourly polling.
 
 `test_completion_wait_budget.py` adds 16 synthetic history/clock tests: full 25-attempt boundary, inclusive deadline, delayed checks without compressed spacing or extended budget, copied state preserving its origin, corrupt history/scope, clock rollback, unconfirmed context and failed attempts. It does not establish actual restart-safe persistence or execute hourly tasks.
+
+`Test-DriveResponseSemantics.ps1`には再試行観測も含めます。4操作×全error×試行1〜4で候補/上限/照合待ちを検査し、1/5/15分・upload/timeoutの非再送・不正応答/番号の拒否を確認します。実sleep・API・再送を行わず、RETRY-02全体の受け入れにはしません。

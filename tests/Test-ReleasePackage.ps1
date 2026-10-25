@@ -46,6 +46,7 @@ try {
     Set-Content (Join-Path $fixture 'contracts/manifest-v1.schema.json') '{}'
     Set-Content (Join-Path $fixture 'contracts/run-input-evidence-v1.schema.json') '{}'
     Set-Content (Join-Path $fixture 'contracts/private-recovery-evidence-v1.schema.json') '{}'
+    Set-Content (Join-Path $fixture 'contracts/completion-wait-checkpoint-v1.schema.json') '{}'
     Set-Content (Join-Path $fixture 'Config/PC-A.example.json') '{"machineId":"PC-A","role":"primary","runtimeRoot":"C:\\Example\\PCA\\Runtime","battleLogLocal":"C:\\Example\\PCA\\Source\\BattleLog","errorLogLocal":"C:\\Example\\PCA\\Source\\ErrorReport","battleLogDrive":"G:\\ExampleDrive\\SharedLogs\\BattleLog","errorLogDrive":"G:\\ExampleDrive\\SharedLogs\\ErrorReport","maintenanceDrive":"G:\\ExampleDrive\\SharedLogs\\_maintenance","battleLogArchive":"C:\\Example\\PCA\\Archive\\BattleLog","errorLogArchive":"C:\\Example\\PCA\\Archive\\ErrorReport","allowArchive":false,"maintenanceLocal":"C:\\Example\\PCA\\Maintenance"}'
     Set-Content (Join-Path $fixture 'Config/PC-B.example.json') '{"machineId":"PC-B","role":"secondary","runtimeRoot":"C:\\Example\\PCB\\Runtime","battleLogLocal":"C:\\Example\\PCB\\Source\\BattleLog","errorLogLocal":"C:\\Example\\PCB\\Source\\ErrorReport","battleLogDrive":"G:\\ExampleDrive\\SharedLogs\\BattleLog","errorLogDrive":"G:\\ExampleDrive\\SharedLogs\\ErrorReport","maintenanceDrive":"G:\\ExampleDrive\\SharedLogs\\_maintenance","maintenanceLocal":"C:\\Example\\PCB\\Maintenance"}'
     Set-Content (Join-Path $fixture 'scripts/README.md') '# Scripts'
@@ -61,6 +62,10 @@ try {
     Set-Content (Join-Path $fixture 'Common/DriveResponseSemantics.ps1') '# Pure Drive response correlation and exit mapping'
     Set-Content (Join-Path $fixture 'Common/DriveRequestPath.ps1') '# Pure request file path grammar'
     Set-Content (Join-Path $fixture 'Common/DriveRequestPath.py') '# Pure request file path grammar'
+    Set-Content (Join-Path $fixture 'Common/ManifestTransitionInspection.py') '# Pure transition snapshot inspection'
+    Set-Content (Join-Path $fixture 'Common/CompletionWaitCheckpoint.py') '# Pure checkpoint reader'
+    Set-Content (Join-Path $fixture 'Common/CompletionWaitAttempt.py') '# Pure attempt plan'
+    Set-Content (Join-Path $fixture 'Common/PowerStatusObservation.py') '# Read-only AC observation'
     Set-Content (Join-Path $fixture 'Common/AggregationArtifactReference.ps1') '# Aggregation artifact reference verification functions'
     Set-Content (Join-Path $fixture 'Common/AggregationReferencedArtifacts.ps1') '# Referenced artifact schema validation entry point'
     Set-Content (Join-Path $fixture 'Common/validate_aggregation_artifacts.py') '# referenced artifact validator'
@@ -140,6 +145,11 @@ try {
         'Common/DriveResponseSemantics.ps1',
         'Common/DriveRequestPath.ps1',
         'Common/DriveRequestPath.py',
+        'Common/ManifestTransitionInspection.py',
+        'Common/CompletionWaitCheckpoint.py',
+        'Common/CompletionWaitAttempt.py',
+        'Common/PowerStatusObservation.py',
+        'contracts/completion-wait-checkpoint-v1.schema.json',
         'Common/AggregationArtifactReference.ps1',
         'Common/AggregationReferencedArtifacts.ps1',
         'Common/validate_aggregation_artifacts.py',
@@ -185,6 +195,10 @@ try {
     }
     Assert-True ('scripts/SyncLogs.ps1' -in $pcBEntries) 'PC-B package must include SyncLogs.ps1.'
     Assert-True ('Common/DriveResponseSemantics.ps1' -in $pcBEntries) 'PC-B package must include the pure response checker.'
+    Assert-True ('Common/ManifestTransitionInspection.py' -in $pcBEntries) 'PC-B package must include pure manifest transition inspection.'
+    Assert-True ('Common/PowerStatusObservation.py' -in $pcBEntries) 'Both roles require read-only AC observation.'
+    Assert-True ('Common/CompletionWaitAttempt.py' -in $pcBEntries) 'PC-B package must include pure non-authorizing attempt planning.'
+    Assert-True ('Common/CompletionWaitCheckpoint.py' -in $pcBEntries -and 'contracts/completion-wait-checkpoint-v1.schema.json' -in $pcBEntries) 'PC-B package must include checkpoint data helpers without archive capability.'
     Assert-True ('Common/DriveRequestPath.ps1' -in $pcBEntries -and 'Common/DriveRequestPath.py' -in $pcBEntries) 'PC-B package must include both pure request path checkers.'
     Assert-True ('scripts/ArchiveLogs.ps1' -notin $pcBEntries) 'PC-B package must exclude ArchiveLogs.ps1.'
 

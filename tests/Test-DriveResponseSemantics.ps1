@@ -184,5 +184,68 @@ $missing = Test-DriveResponseSemantics
 Assert-True 'missing arguments return fixed rejection without prompt' ($missing.Status -ceq 'rejected' -and $missing.ReasonCode -ceq 'expected_request_id_invalid')
 Assert-True 'no operational effect command called including true retryable cases' ($script:EffectCalls -eq 0)
 
-Write-Host "Drive correlation/exit mapping: $script:Passed passed; $script:Failed failed."
+function Invoke-RetryCase {
+    param($Response, $ExitCode, $Attempt, [string] $Operation, [string] $Status,
+        [string] $Reason, $Next = $null, $Delay = $null)
+    $before = ConvertTo-Json -InputObject $Response -Depth 20 -Compress
+    $results = @(Get-DriveRetryObservation -ExpectedRequestId $requestId -ExpectedOperation $Operation `
+        -Response $Response -ExitCode $ExitCode -AttemptNumber $Attempt)
+    $valid = $results.Count -eq 1
+    if ($valid) {
+        $result = $results[0]
+        $valid = $result.Status -ceq $Status -and $result.ReasonCode -ceq $Reason -and
+            $result.NextAttemptNumber -eq $Next -and $result.DelaySeconds -eq $Delay -and
+            $result.MayRetry -is [bool] -and $result.MayRetry -eq $false -and
+            (($result.PSObject.Properties.Name | Sort-Object) -join ',') -ceq
+                'AttemptNumber,DelaySeconds,MayRetry,NextAttemptNumber,ReasonCode,Status' -and
+            (ConvertTo-Json $result -Compress) -notmatch 'synthetic_private_detail|abcdefab|upload_file'
+        if ($Status -cne 'rejected') { $valid = $valid -and $result.AttemptNumber -eq $Attempt }
+    }
+    $valid = $valid -and $before -ceq (ConvertTo-Json -InputObject $Response -Depth 20 -Compress)
+    # Keep passing matrix rows quiet; print concrete failures only.
+    if ($valid) { $script:Passed++ }
+    else { $script:Failed++; Write-Host "FAIL: retry matrix $Operation / $Attempt / $ExitCode / $Reason" }
+}
+
+foreach ($operation in @('list_files', 'get_file_metadata', 'upload_file', 'download_file')) {
+    foreach ($attempt in 1..4) {
+        Invoke-RetryCase (New-SuccessResponse $operation) 0 $attempt $operation 'no_retry' 'retry_response_success_requires_validation'
+        foreach ($pair in $mapping) {
+            $response = New-FailureResponse $pair[1] $pair[2]
+            $response.operation = $operation
+            $next = $null; $delay = $null
+            if ($pair[0] -eq 9) {
+                $status = 'reconciliation_required'; $reason = 'retry_timeout_outcome_unknown'
+            } elseif ($pair[0] -ne 6) {
+                $status = 'no_retry'; $reason = 'retry_error_not_transient'
+            } elseif ($operation -ceq 'upload_file') {
+                $status = 'reconciliation_required'; $reason = 'retry_upload_outcome_unverified'
+            } elseif ($attempt -eq 4) {
+                $status = 'exhausted'; $reason = 'retry_attempt_limit_reached'
+            } else {
+                $status = 'candidate'; $next = $attempt + 1; $delay = @(60, 300, 900)[$attempt - 1]
+                $reason = if ($operation -ceq 'download_file') { 'retry_candidate_requires_fresh_staging' } else { 'retry_candidate_requires_runtime_evidence' }
+            }
+            Invoke-RetryCase $response $pair[0] $attempt $operation $status $reason $next $delay
+            $response.error.retryable = -not $pair[2]
+            Invoke-RetryCase $response $pair[0] $attempt $operation 'rejected' 'retry_response_invalid'
+        }
+    }
+}
+foreach ($invalid in @($null, $true, $false, '1', 1.0, 0, -1, 5, [bigint]::Pow(10, 40))) {
+    Invoke-RetryCase (New-FailureResponse) 6 $invalid 'list_files' 'rejected' 'retry_attempt_invalid'
+}
+foreach ($attempt in @([long]1, [bigint]3)) {
+    $delay = if ($attempt -eq 1) { 60 } else { 900 }
+    Invoke-RetryCase (New-FailureResponse) 6 $attempt 'list_files' 'candidate' 'retry_candidate_requires_runtime_evidence' ($attempt + 1) $delay
+}
+$response = New-FailureResponse
+$response.request_id = 'different'
+Invoke-RetryCase $response 6 1 'list_files' 'rejected' 'retry_response_invalid'
+Invoke-RetryCase $null 9 1 'upload_file' 'rejected' 'retry_response_invalid'
+$missing = Get-DriveRetryObservation
+Assert-True 'missing retry arguments reject without prompt' ($missing.ReasonCode -ceq 'retry_attempt_invalid')
+Assert-True 'retry observation never invokes process/file/network/sleep commands' ($script:EffectCalls -eq 0)
+
+Write-Host "Drive correlation/exit/retry observation: $script:Passed passed; $script:Failed failed."
 if ($script:Failed -gt 0) { exit 1 }

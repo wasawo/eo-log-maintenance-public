@@ -1,5 +1,13 @@
 # Common PowerShell functions
 
+`PowerStatusObservation.py`は[Windows AC電源観測](../docs/design/power-status-observation.md)を読取専用で行います。成功時のACLineStatusだけを使い、不明・API失敗を接続済みにせず、実行/継続の許可やAC切断監視は行いません。
+
+`CompletionWaitAttempt.py`は[確認予算の試行planと使用点検査](../docs/design/completion-wait-budget.md)を扱う純粋helperです。元checkpoint bytesに結び付けて1件だけ追加したcandidateを再読込検査し、保存前/記録後の観測bytes・scope・現在時計/期限・実行条件/ACを再検査します。実保存・確認は行わず、全may_* flagはfalseです。反復検査は一回限りのcommit receiptではなく、接続fixtureの比較更新もメモリmockです。
+
+`CompletionWaitCheckpoint.py`は[確認予算checkpoint](../docs/design/completion-wait-budget.md)のclosed schemaと期待scope・現在UTCを使う純粋readerです。元bytes・時刻文字列・履歴順を保持し、欠落/破損から予算をリセットしません。既存helperへの変換で精度を失う時刻は拒否し、実保存・現在性/rollback防止・試行前永続計上は別ゲートです。
+
+`ManifestTransitionInspection.py`は[遷移表の前後snapshot検査](../docs/design/manifest-transition-inspection.md)を行う純粋helperです。schema/identity/凍結inventory、verificationと時刻整合、終端不変性、未掲載ペアを確認します。掲載ペアの結果も`requires_runtime_evidence`であり、所有権・staging・Drive・OSD-03集約・永続更新の認可にはなりません。
+
 `DriveRequestPath.ps1`の`Test-DriveRequestFilePath`と`DriveRequestPath.py`の`is_drive_request_file_path`はC-01 P1/L1のrequestファイルパス字句だけを検査する純粋bool helperです。drive-rooted形と各componentを独立して検査し、予約stemはASCIIだけで大小比較します。文字列の修復/正規化、固定maxLength、file/root/FS照会は行いません。request schemaも同じgrammarを適用し、指定先/root/使用点の認可と正式adapter接続は別ゲートです。
 
 `DriveResponseSemantics.ps1` の `Test-DriveResponseSemantics` は、実request由来の期待ID/operation、decoded IDictionary response、整数exit codeを明示入力し、ordinal完全一致と契約§6のexit/envelope/error-code対応、固定code別retryable真偽表を検査します。IDをUUID正規化せず、int/long/BigInteger以外のexitはcoerceしません。`DRIVE_TRANSIENT_FAILURE`だけtrue、他8codeはfalseが必須で、非boolと矛盾を拒否します。出力は固定Status/ReasonCodeのみで、`consistent` / `correlation_exit_mapping_consistent` はこれらの整合を意味します。resultの信頼、運用続行、retry許可、cloud検証ではありません。transport/UTF-8/単一JSON/重複key/schema、C-01/C-02、RETRY-02のorchestration、IPC全体・runtime受け入れは残ゲートです。helperはprocess/file/network/auth/retry/sleep/lock/logを呼びません。
@@ -101,3 +109,7 @@ PrivateFileSecurityDescriptor.ps1 normalizes supplied binary file descriptors fo
 MonthlyScheduleObservation.py observes the approved monthly boundary from supplied reliable UTC/session/account claims. It uses day 1 PC-B 20:00 / PC-A 21:00 JST; all results keep may_start_run=false. It never queries the host, reads completion records, creates tasks or starts work. See [observation scope](../docs/design/monthly-schedule-observation.md).
 
 CompletionWaitBudget.py assesses the approved PC-A 24-hour/25-attempt hourly budget and returns immutable updated attempt histories only after revalidation. All advice denies archive/state-change authority. It performs no waits/tasks/Drive/persistence; trusted state binding and durable crash-safe accounting remain pending. See [budget scope](../docs/design/completion-wait-budget.md).
+
+比較更新の[実Win32負例probe・資格調査](../docs/design/checkpoint-compare-provider-qualification.md)はtests専用で、実runtime providerとして配布しません。
+
+同moduleの`Get-DriveRetryObservation`は[再試行観測](../docs/design/drive-retry-observation.md)として、完了した試行1〜4と応答整合から1/5/15分の候補を返します。upload一時失敗/timeoutは照合待ち、不正応答は拒否し、全結果MayRetry=falseです。実counter・sleep・再送・結果照合は実装しません。
