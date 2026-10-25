@@ -10,6 +10,8 @@
 
 `observe_completion_wait_checkpoint_file`は明示既存絶対pathとcaller指定bytes上限でread-only観測します。祖先/reparse・単一link・path/handle signature・初期size+1上限を検査し、schema読取り後もmetadataを確認します。元bytesを保持して全許可false、欠落時作成/更新なし。実root/FS/owner資格やrollback/ABA防止は別gateです。
 
+`CompletionWaitAttempt.py`の`prepare_completion_wait_attempt_from_file`はこの読取から1試行planを構築します。`inspect_completion_wait_attempt_file_usepoint`はplan/資格の純粋事前検査後に毎回fileを再読取し、保存前はexpected/保存後はproposed bytesを再確認します。両方ともread-onlyで、確認/状態変更/Archiveを認可せず、正式CAS/providerの資格は別gateです。
+
 `ManifestTransitionInspection.py`は[遷移表の前後snapshot検査](../docs/design/manifest-transition-inspection.md)を行う純粋helperです。schema/identity/凍結inventory、verificationと時刻整合、終端不変性、未掲載ペアを確認します。掲載ペアの結果も`requires_runtime_evidence`であり、所有権・staging・Drive・OSD-03集約・永続更新の認可にはなりません。
 
 同moduleの`inspect_manifest_history`は初期登録からの明示snapshot tupleを検査し、登録pendingとUpload直前pendingをpath単位で区別します。登録pendingからuploaded/unknownへの飛越しやUpload pendingからのstaging再開を拒否し、retry pendingを別計数します。結果は件数のみ/全許可falseで、真正な履歴・event証拠・実writerの受け入れではありません。

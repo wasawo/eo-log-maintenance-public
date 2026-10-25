@@ -14,6 +14,8 @@
 
 `test_completion_wait_checkpoint_file.py`は自作tempの既存fileに対して指定bytes上限・path/handle/祖先signature・単一link・schema読取り後の再確認を検証します。上限超過時open禁止、stat後増大、途中変更、hardlink/reparse/provider不備・欠落/破損時保全、再読取り・全許可falseを確認します。実root/FS資格・rollback/ABA/CASの証拠ではありません。
 
+`test_completion_wait_file_usepoint.py`は既存fileから試行planへの接続と保存前後の毎回再読取を確認します。exact元/候補bytesの区別、古い成功の非流用、plan/資格/期限のI/O前拒否、欠落/破損時非fallback、合成所有lock境界での変更拒否/owner解放を検証します。fixture内の候補bytes書込みはCAS/providerの資格ではなく、実確認/更新は認可しません。
+
 `test_manifest_transition_inspection.py`は採用済みfile/runペアの行列、初期状態、identity/凍結inventory、verification/hash/time、終端の不変性、入力不変・I/Oなし・固定理由を合成検証します。掲載ペアの結果もrequires_runtime_evidenceであり、実event/Drive/排他/集約/永続更新の受け入れではありません。
 
 `test_manifest_history_inspection.py`は初期登録からのsnapshot履歴を使い、2種のpending・retry pending・path単位追跡・飛越し/逆戻り拒否・終端bytes保全を確認します。空/途中履歴の拒否、入力不変/I/Oなし、全許可falseも検証し、提示履歴の真正性や実event/永続更新を証明しません。

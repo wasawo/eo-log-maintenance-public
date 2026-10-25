@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`ae4191b`、同じ`codex/drive-download-observation`で[checkpoint file観測→試行plan/保存前後使用点の接続](../design/completion-wait-budget.md#既存fileの上限付き読取観測2026-10-26)を追加。明示AC/資格boolを検査して既存fileからexact plan生成、使用点はplan/phase/clock/scope/資格の純粋事前検査後に毎回再読取し、保存前expected/保存後proposed bytesを再確認する。両入口はread-only、全確認/状態変更/Archive許可false。
+- Python 3.11.9（CI 3.12）で新規file使用点8件＋既存純粋使用点10件＋file観測8件の計26件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 保存済み成功/観測をfile代用にせず、欠落/破損/変更を非fallbackで拒否。合成所有lock取得後の変更でもownerを解放して変更bytesを保全。fixture内の候補bytes書込みは正式CAS/provider証拠ではない。実root/ACL/FS/owner/clock/AC/session/account資格、rollback/ABA・永続試行前計上・実確認/task/runtime受け入れは未実証。次は既承認の独立作業を選び、未決保存provider契約を推測しない。
+
+## 直前の実装単位（checkpoint既存file読取観測・ae4191b）
+
 - 基準`093658d`、同じ`codex/drive-download-observation`で[checkpoint既存fileの上限付き読取観測](../design/completion-wait-budget.md#既存fileの上限付き読取観測2026-10-26)を追加。明示絶対path/Windows L1・caller指定bytes上限・祖先/reparse・regular/単一link・path/handle signatureを検査し、初期size+1以内を読んで既存schema/scope/clock readerへ渡す。解析後もsignature/祖先chainを確認。file作成/更新/削除なし、全確認/Archive/状態変更許可false。
 - Python 3.11.9（CI 3.12）で新規file観測8件＋既存transition8件＋checkpoint reader12件の計28件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
 - 既定file名/配置/サイズ制限は採用せず、上限はcaller資源制限。実root/ACL/token/FS/owner/provider資格、rollback/ABA/同時snapshot/後続不変性、正式CAS/試行前永続化・実確認/runtime受け入れは未実証。次はfile観測を既存試行plan/使用点と接続する独立範囲を選び、実更新providerの未決契約を推測しない。

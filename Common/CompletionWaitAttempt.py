@@ -1,11 +1,11 @@
-"""Pure attempt-before-check plan; no publication, retry, wait or live query."""
+"""Attempt plans and explicit checkpoint file reads; no writes or live query."""
 from dataclasses import dataclass, field
 from datetime import timedelta
 import json
 
 from Common.CompletionWaitBudget import CompletionWaitBudgetError, record_completion_check_attempt
 from Common.CompletionWaitCheckpoint import (CompletionWaitCheckpointError, read_completion_wait_checkpoint,
-    inspect_completion_wait_checkpoint_transition)
+    inspect_completion_wait_checkpoint_transition, observe_completion_wait_checkpoint_file)
 
 
 class CompletionWaitAttemptError(ValueError):
@@ -112,3 +112,63 @@ def inspect_completion_wait_attempt_usepoint(plan, observed_bytes, *, phase, ac_
         raise CompletionWaitAttemptError(exc.reason_code) from None
     except Exception:
         raise CompletionWaitAttemptError("attempt_usepoint_input_invalid") from None
+
+
+def _attempt_file_bytes(checkpoint_path, maximum_bytes, context):
+    try:
+        observed = observe_completion_wait_checkpoint_file(checkpoint_path, maximum_bytes=maximum_bytes,
+            **{key: context[key] for key in ("schema", "expected_log_type", "expected_target_period",
+                "expected_run_id", "current_utc", "current_utc_reliable")})
+        return observed.checkpoint.original_bytes
+    except CompletionWaitCheckpointError as exc:
+        raise CompletionWaitAttemptError(exc.reason_code) from None
+
+
+def prepare_completion_wait_attempt_from_file(
+    checkpoint_path, *, maximum_bytes, ac_connected, schema, expected_log_type, expected_target_period,
+    expected_run_id, current_utc, current_utc_reliable, logged_on, same_account_verified,
+    own_sync_complete, waiting_confirmed,
+):
+    """Read an existing checkpoint and build a candidate; never publish/check.
+
+    Supplied prerequisites/root observations do not qualify an operational
+    provider. No file path is stored as authority in the returned byte plan.
+    """
+    if ac_connected is not True:
+        raise CompletionWaitAttemptError("attempt_ac_unconfirmed")
+    if any(value is not True for value in (current_utc_reliable, logged_on, same_account_verified,
+                                          own_sync_complete, waiting_confirmed)):
+        raise CompletionWaitAttemptError("attempt_file_prerequisites_unconfirmed")
+    context = dict(schema=schema, expected_log_type=expected_log_type,
+        expected_target_period=expected_target_period, expected_run_id=expected_run_id,
+        current_utc=current_utc, current_utc_reliable=current_utc_reliable, logged_on=logged_on,
+        same_account_verified=same_account_verified, own_sync_complete=own_sync_complete,
+        waiting_confirmed=waiting_confirmed)
+    raw = _attempt_file_bytes(checkpoint_path, maximum_bytes, context)
+    return prepare_completion_wait_attempt(raw, **context)
+
+
+def inspect_completion_wait_attempt_file_usepoint(
+    plan, checkpoint_path, *, maximum_bytes, phase, ac_connected, schema,
+    expected_log_type, expected_target_period, expected_run_id, current_utc, current_utc_reliable,
+    logged_on, same_account_verified, own_sync_complete, waiting_confirmed,
+):
+    """Preflight the byte plan, freshly read the file and repeat use-point checks.
+
+    Each call opens the explicit file again. No saved file observation, CAS,
+    write lease, unique commit receipt or permission to check is provided.
+    """
+    context = dict(schema=schema, expected_log_type=expected_log_type,
+        expected_target_period=expected_target_period, expected_run_id=expected_run_id,
+        current_utc=current_utc, current_utc_reliable=current_utc_reliable, logged_on=logged_on,
+        same_account_verified=same_account_verified, own_sync_complete=own_sync_complete,
+        waiting_confirmed=waiting_confirmed)
+    # Invalid plans/phases/qualifications must fail before filesystem access.
+    expected = None
+    if type(plan) is CompletionWaitAttemptPlan:
+        expected = plan.expected_bytes if phase == "before_commit" else plan.proposed_bytes
+    inspect_completion_wait_attempt_usepoint(plan, expected, phase=phase,
+        ac_connected=ac_connected, **context)
+    raw = _attempt_file_bytes(checkpoint_path, maximum_bytes, context)
+    return inspect_completion_wait_attempt_usepoint(plan, raw, phase=phase,
+        ac_connected=ac_connected, **context)

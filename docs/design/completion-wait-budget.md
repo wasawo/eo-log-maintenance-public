@@ -37,6 +37,10 @@ helperは新しい予算を自動作成・リセットしない。明示再開�
 
 ### 既存fileの上限付き読取観測（2026-10-26）
 
+接続入口は`CompletionWaitAttempt.prepare_completion_wait_attempt_from_file`と`inspect_completion_wait_attempt_file_usepoint`。前者は明示ACと資格boolがTrueの場合だけ既存fileを指定上限で読み、そのexact bytesから従来の1試行planを構築する。保存や試行消費を行わず、pathを権限としてplanへ埋め込まない。
+
+後者はplan/phase/AC/現在時計・scope/資格条件を既存純粋use-point検査へ通してから、毎回fileを開き直し、得たexact bytesでも同じ検査を繰り返す。before_commitはexpected bytes、after_commitはproposed bytesを要求する。保存済み観測や前回成功をfileの代用にせず、欠落/破損/変更は固定reasonのattempt errorで拒否する。両入口は作成/更新/削除・CAS・実確認を行わず、全確認/Archive/状態変更許可false。反復after_commitも新たな試行/一回限りreceiptにはならず、実保存先の資格や後続不変性は証明しない。[file使用点接続テスト](../../tests/test_completion_wait_file_usepoint.py)は自作tempだけを使う。
+
 `observe_completion_wait_checkpoint_file`は明示された既存絶対file pathと正の整数maximum_bytes（bool不可）を要求する。既定のfile名/配置/サイズ上限は選ばず、指定上限はcallerの資源制限であってschema field/互換方針の追加ではない。Windowsでは既存L1字句も検査し、ADS/UNC等へ暗黙対応しない。欠落を作成/空履歴へ補完しない。
 
 既存metadata providerで祖先chain/reparse・regular/単一linkと初期sizeを検査し、上限超過はopen前に拒否する。pathとopen handleのsignature（volume/file identity・size/mtime・Windows birthtime等・link数）を照合し、読取りを初期size+1 byteに制限する。fstat/byte数を照合して既存schema/scope/clock readerへ渡し、解析後にもpath signature/reparse/祖先chainを再確認する。不備は固定reason例外、file作成/更新/削除は行わない。

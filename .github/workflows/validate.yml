@@ -133,6 +133,7 @@ jobs:
           python -B -m unittest discover -s tests -p "test_completion_wait_checkpoint.py" -v
           python -B -m unittest discover -s tests -p "test_completion_wait_checkpoint_transition.py" -v
           python -B -m unittest discover -s tests -p "test_completion_wait_checkpoint_file.py" -v
+          python -B -m unittest discover -s tests -p "test_completion_wait_file_usepoint.py" -v
           python -B -m unittest discover -s tests -p "test_completion_wait_attempt.py" -v
           python -B -m unittest discover -s tests -p "test_completion_wait_usepoint.py" -v
           python -B -m unittest discover -s tests -p "test_checkpoint_replace_probe.py" -v
