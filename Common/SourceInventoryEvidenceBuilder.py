@@ -108,13 +108,19 @@ def _enumeration_snapshot(directory: Path):
     return entries, (chain, identities)
 
 
-def _hash_stable_file(path: Path) -> tuple[int, str]:
-    """Hash exact bytes and reject observable metadata changes during the read."""
+def _hash_stable_file(path: Path, *, expected_size: int | None = None) -> tuple[int, str]:
+    """Hash exact bytes, optionally requiring frozen size before opening.
+
+    Observable metadata changes fail; the read is bounded to initial size + 1.
+    """
     try:
         _reject_source_reparse(path)
         before = path.lstat()
         if not stat.S_ISREG(before.st_mode) or _is_source_reparse(before):
             raise InventoryBuildError("source_entry_not_regular_file")
+        if expected_size is not None and (type(expected_size) is not int or expected_size < 0
+                                         or before.st_size != expected_size):
+            raise InventoryBuildError("source_mutation_detected")
         identity_before = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
         digest = hashlib.sha256()
         byte_count = 0

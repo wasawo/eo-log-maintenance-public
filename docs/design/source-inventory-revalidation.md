@@ -10,6 +10,12 @@ immutable観測へ元manifest/B2 bytes・対象・sequence・size/hashを保持�
 
 [合成テスト](../../tests/test_initial_staging_copy_observation.py)は両PC/log、空/複数block、source非読取、入力事前拒否、missing/内容差/dir/hardlink、後続変更、provider失敗と保存、旧観測再利用拒否を扱う。実ログ/本番Driveは使わない。
 
+`observe_initial_staging_copies`は明示`((relative_path, sequence), ...)` tupleを一括照合する。plan再構成は1回、指定順のimmutable観測tuple全体か固定reasonの例外を返し、途中結果を返さない。単一APIは1要素batchへ委譲する。全指定をI/O前に検査し、同じsource targetの重複や同一staging候補名（casefoldで保守的に比較）を拒否する。この名前検査は実FSの同名性を証明せず、sequenceの自動割当や別名への修復をしない。
+
+全選択fileのregular/単一link/sizeをhash前に確認し、サイズ不一致ならpayloadを開かない。共有hash helperへ凍結expected_sizeも渡し、事前stat後の増大もopen前に拒否する。open handleのsize/identity照合と初期size+1 byte上限も維持する。全hash後に選択fileのsignatureとroot祖先chainを再照合し、後続file読取り中に検出可能な先行file変化も拒否する。file保存/削除は行わない。
+
+空選択でもplan/root前後検査を省略せず、空tupleはno_work/全inventory完了やUpload許可を意味しない。選択外fileは検査せず、全選択fileの最終確認も逐次観測であり、同時snapshot・現在性の保証・ABA防止ではない。[一括合成試験](../../tests/test_initial_staging_copy_batch.py)で順序/1回再構成/事前拒否/後続不備/跨file変化/増大時open禁止/空選択を確認する。
+
 2026-10-25。[filename/保持範囲](filename-and-period-selection.md)、[runtime gate](runtime-entrypoint-validation-gate.md)のsource/inventory整合を支える読取専用helper：[SourceInventoryRevalidation.py](../../Common/SourceInventoryRevalidation.py)。実uploadやarchiveの認可ではない。
 
 `revalidate_source_inventory`は明示source root、exact凍結B2 bytes、信頼済みstatic schema、独立PC/log/run/root ID/relative scope、明示reference dateと現在UTC/reliableを要求する。JSON/schema/digest/count/scope・元列挙時刻の順序/未来5分を検査する。元のenumeration/validation coverageが不完全なら再列挙せず拒否し、欠落や不一致を新しいB2で補完しない。completed coverage中の既知validation errorsは消さない。

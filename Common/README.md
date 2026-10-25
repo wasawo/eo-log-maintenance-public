@@ -136,6 +136,8 @@ artifact-set classifier/directory verifierはoptionalな`expected_transaction_id
 
 `observe_initial_staging_copy`は独立run contextで初期planを再構成し、明示target/sequenceに対応する既存stagingの祖先chain・regular/単一link・前後identity/size/hashを確認します。source payloadを読まず、全操作許可falseの観測を返します。正式metadata/history、root分離/資格、コピー時に確保したidentityとの対応、後続Uploadの使用点は別gateです。
 
+複数fileは`observe_initial_staging_copies`へ明示allocation tupleを渡します。全指定の事前検査・全sizeのhash前検査・全hash後のsignature/祖先chain照合で、全観測tupleか拒否のどちらかを返します。凍結sizeから変わったfileはopen前に拒否。空選択はno_workではなく、全結果は引き続き非認可です。
+
 source builderは[列挙完了前の再確認](../docs/design/source-enumeration-stability.md)でdirectory/child集合・identity/属性を再走査し、途中変更や不明を検出すると既存targetを保持したままcoverageをincompleteにします。最終bytes再hash・atomic snapshot・後続使用までの保護を証明するものではありません。
 
 `DriveContentComparison.py`は[OSD-01の同一内容比較](../docs/design/drive-content-comparison.md)を内部観測から判定する純粋helperです。完全列挙・信頼済みsource・exact name/size/hashを要求し、cloud SHA未確認ならdownload hashを要します。比較候補は復元・同期成功・archiveの認可ではありません。

@@ -113,6 +113,7 @@ jobs:
           python -B -m unittest discover -s tests -p "test_initial_source_usepoint.py" -v
           python -B -m unittest discover -s tests -p "test_upload_staging_integration.py" -v
           python -B -m unittest discover -s tests -p "test_initial_staging_copy_observation.py" -v
+          python -B -m unittest discover -s tests -p "test_initial_staging_copy_batch.py" -v
           python -B -m unittest discover -s tests -p "test_source_enumeration_stability.py" -v
           python -B -m unittest discover -s tests -p "test_terminal_bundle_integration.py" -v
           python -B -m unittest discover -s tests -p "test_artifact_read_stability.py" -v

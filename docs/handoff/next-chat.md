@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`fc7dc29`、同じ`codex/drive-download-observation`で[既存staging一括照合](../design/source-inventory-revalidation.md#既存staging-copyの独立読取観測)を追加。全allocationのI/O前検査・重複target/候補名拒否・plan再構成1回・全選択fileのhash前size確認と全hash後signature/祖先chain照合を行い、指定順tuple全体か拒否のみを返す。単一APIもbatchへ委譲、全操作許可falseを維持する。
+- 共有hash helperへoptional expected_sizeを追加。凍結sizeと初期statが異なるfileはopen前に拒否し、open handle照合/size+1 byte上限も維持する。Python 3.11.9（CI 3.12）で新規batch8件＋単一8件＋既存hash identity9件＋builder7件の計32件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 空選択はno_workではなく、選択外fileを検査しない。逐次観測であり同時snapshot/ABA/後続不変性は未実証。正式metadata-first/history・割当identity binding・root分離/FS/owner/容量/使用点資格・実Upload/adapter/runtime受け入れは未完。次は既承認の独立作業を選び、正式writerの未決field契約は推測しない。
+
+## 直前の実装単位（既存staging copy読取照合・fc7dc29）
+
 - 基準`4ab120a`、同じ`codex/drive-download-observation`で[凍結planと既存staging copyの読取照合](../design/source-inventory-revalidation.md#既存staging-copyの独立読取観測)を既存SourceInventoryRevalidation moduleへ追加。独立contextでexact planを再構成し、明示target/sequence・basename L1字句を検査。source非読取で既存copyの祖先chain/reparse/regular/単一link・前後entry signature・bounded size/hashを確認する。全Upload/状態変更/cleanup/Archive許可false。
 - Python 3.11.9（CI 3.12）で新規8件＋既存使用点/copy接続16件成功、skipなし。初回はtest側のinit=False field改変方法に1件error、fixtureを修正して新規8件成功。自己点検でbasename L1検査追加後も新規8件成功。CI定義登録、CI自体未実行。配布file集合50件/PS/schemaは不変、無関係な検査を再実行しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
 - 未完：正式metadata-first/history・copy時割当identity binding・root分離/ACL/FS/provider/owner/容量資格・実Upload使用点/adapter/runtime受け入れ。同時snapshot/ABA/後続変化を防止せず、source不在でも照合成立することはUpload認可にならない。次は正式writerの既承認契約と未決field境界を整理してから実装範囲を選ぶ。

@@ -103,8 +103,8 @@ class InitialStagingCopyTests(unittest.TestCase):
     def test_late_mutation_and_ancestor_change_rejected(self):
         _, destination, plan = self.seed()
         real_hash = check._hash_stable_file
-        def changed(path):
-            result = real_hash(path)
+        def changed(path, **options):
+            result = real_hash(path, **options)
             path.write_bytes(b"longer changed content")
             return result
         with patch.object(check, "_hash_stable_file", side_effect=changed):

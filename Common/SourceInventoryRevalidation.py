@@ -187,11 +187,26 @@ def observe_initial_staging_copy(
     expected_target_period, expected_run_id, started_at_utc, current_utc,
     current_utc_reliable, manifest_schema, evidence_schema,
 ):
-    """Read an explicit existing copy against a reconstructed frozen initial plan.
+    """Single-target compatibility API; no cached observation is accepted."""
+    return observe_initial_staging_copies(staging_root, plan, allocations=((relative_path, sequence),),
+        expected_pc_id=expected_pc_id, expected_log_type=expected_log_type,
+        expected_target_period=expected_target_period, expected_run_id=expected_run_id,
+        started_at_utc=started_at_utc, current_utc=current_utc,
+        current_utc_reliable=current_utc_reliable, manifest_schema=manifest_schema,
+        evidence_schema=evidence_schema)[0]
+
+
+def observe_initial_staging_copies(
+    staging_root, plan, *, allocations, expected_pc_id, expected_log_type,
+    expected_target_period, expected_run_id, started_at_utc, current_utc,
+    current_utc_reliable, manifest_schema, evidence_schema,
+):
+    """Observe explicit (relative_path, sequence) tuples, returning all or none.
 
     Never reads source payloads, allocates, changes state or authorizes Upload.
     Root separation/provenance, metadata-first history, capacity, ownership and
-    future payload use remain separate gates. No cached observation is a lease.
+    future payload use remain separate gates. All selection validation precedes
+    I/O. Final metadata checks span the batch, not an atomic snapshot/lease.
     """
     try:
         if (type(plan) is not InitialManifestPlan
@@ -204,35 +219,56 @@ def observe_initial_staging_copy(
             evidence_schema=evidence_schema)
         if restored != plan:
             _reject("staging_copy_plan_invalid")
-        _safe_relative_path(relative_path)
-        if type(sequence) is not int or sequence < 1:
-            _reject("staging_copy_sequence_invalid")
-        targets = [item for item in _parse(plan.proposed_bytes)["files"]
-                   if item["relative_path"] == relative_path]
-        if len(targets) != 1:
-            _reject("staging_copy_target_missing")
-        target = targets[0]
-        filename = relative_path.rsplit("/", 1)[-1]
-        if (not is_drive_request_file_path("C:\\Example\\Names\\" + filename)
-                or _classify_filename(filename, expected_log_type) is None):
-            _reject("staging_copy_filename_invalid")
+        if type(allocations) is not tuple:
+            _reject("staging_copy_allocations_invalid")
+        inventory = {item["relative_path"]: item for item in _parse(plan.proposed_bytes)["files"]}
+        selected, seen_paths, seen_names = [], set(), set()
+        for allocation in allocations:
+            if type(allocation) is not tuple or len(allocation) != 2:
+                _reject("staging_copy_allocations_invalid")
+            relative_path, sequence = allocation
+            _safe_relative_path(relative_path)
+            if type(sequence) is not int or sequence < 1:
+                _reject("staging_copy_sequence_invalid")
+            if relative_path not in inventory:
+                _reject("staging_copy_target_missing")
+            filename = relative_path.rsplit("/", 1)[-1]
+            if (not is_drive_request_file_path("C:\\Example\\Names\\" + filename)
+                    or _classify_filename(filename, expected_log_type) is None):
+                _reject("staging_copy_filename_invalid")
+            name = f"{expected_run_id}_{sequence}_{filename}"
+            # Conservative lexical alias guard; not an FS-equivalence proof.
+            if relative_path in seen_paths or name.casefold() in seen_names:
+                _reject("staging_copy_allocation_duplicate")
+            seen_paths.add(relative_path)
+            seen_names.add(name.casefold())
+            selected.append((relative_path, sequence, name, inventory[relative_path]))
         root = Path(staging_root)
         if not root.is_absolute():
             _reject("staging_copy_root_invalid")
         chain = _source_chain(root)
-        path = root / f"{expected_run_id}_{sequence}_{filename}"
-        before = path.lstat()
-        if not stat.S_ISREG(before.st_mode) or _is_source_reparse(before) or before.st_nlink != 1:
-            _reject("staging_copy_file_invalid")
-        size, digest = _hash_stable_file(path)
-        after = path.lstat()
-        if (_source_entry_signature(before) != _source_entry_signature(after)
-                or _source_chain(root) != chain):
+        snapshots = []
+        for relative_path, sequence, name, target in selected:
+            path = root / name
+            before = path.lstat()
+            if not stat.S_ISREG(before.st_mode) or _is_source_reparse(before) or before.st_nlink != 1:
+                _reject("staging_copy_file_invalid")
+            if before.st_size != target["size_bytes"]:
+                _reject("staging_copy_content_mismatch")
+            snapshots.append((path, _source_entry_signature(before)))
+        results = []
+        for relative_path, sequence, name, target in selected:
+            size, digest = _hash_stable_file(root / name, expected_size=target["size_bytes"])
+            if (size, digest) != (target["size_bytes"], target["sha256"]):
+                _reject("staging_copy_content_mismatch")
+            results.append(InitialStagingCopyObservation(plan.proposed_bytes, plan.evidence_bytes,
+                relative_path, sequence, size, digest))
+        for path, signature in snapshots:
+            if _source_entry_signature(path.lstat()) != signature:
+                _reject("staging_copy_observation_changed")
+        if _source_chain(root) != chain:
             _reject("staging_copy_observation_changed")
-        if (size, digest) != (target["size_bytes"], target["sha256"]):
-            _reject("staging_copy_content_mismatch")
-        return InitialStagingCopyObservation(plan.proposed_bytes, plan.evidence_bytes,
-            relative_path, sequence, size, digest)
+        return tuple(results)
     except SourceRevalidationError:
         raise
     except Exception:
