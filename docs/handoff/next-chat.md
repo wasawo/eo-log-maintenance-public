@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+- 基準`7d9a891`、同じ`codex/manifest-evidence-integration`でcreate-only単一file公開のstaging/readback/cleanupを強化。既存helperはfsync後の再読込をせず、temp名を無条件にunlinkしていたため、handle由来のtemp identityと親chainを保存し、公開前にexact bytes＋identityを再検査する。
+- 公開後もfinal pathが当該temp由来のidentityで内容が一致することを確認する。同一既存fileの比較はpath/handle・前後metadata・親chainに結び付いたexact bytes比較へ変更。root/reparseはresolve前に拒否する。既存file上書きや比較更新能力は追加しない。
+- cleanupは同じ親chain・regular temp identity・exact bytesを再確認できる場合だけ既存のtemp unlinkへ進め、差替え/内容変更/不明なtempは保全する。観測とunlinkの間の敵対的raceまで閉じたとはしない。公開後不明/不一致でもfinalをrollback/削除せず、電源断耐久性を保証しない。
+- staging内容/identity差替え、cleanup直前の同一bytes別file、偽link成功、既存fileのhandle不一致を合成試験に追加。対象単一公開・artifact-set公開・所有lock接続・process crash harness・終端bundleを一括検証する。配布file集合47件/PS/schema契約は不変。Python 3.11.9（CI 3.12）で関連37件を実施。初回stdin起動ではmultiprocessingの8件が子processから起動元を読めず未検証となり、通常の`python -B -m unittest`＋PYTHONPATH=testsで当該7件＋残り1件だけを確認して全成功。最終的に36件成功・既存symlink作成不可の1件skip。既に成功した試験は再実行しない。PS/schema/配布構成不変のためpackage/PS検査は未実行。root自己点検のみで独立レビュー・新CI・実環境受け入れは未実施。root単独、ローカルコミットまでで待機、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：root/ACL/FS・実owner/scopeの資格、敵対的namespace変更の完全防止、C1比較更新・一回限りreceipt、実Drive/Tier B/C/runtime受け入れ。これはcreate-only helperの防御強化で、正式manifest更新providerの採用ではない。次はprovider境界の候補整理か、確定済みの独立作業を選ぶ。
+
+## 直前の実装単位（artifact-set transaction/読戻し・7d9a891）
+
 - 基準`afca3ce`、同じ`codex/manifest-evidence-integration`でartifact-set classifierとdirectory verifierを強化。optionalな独立期待transaction IDを共通APIへ接続し、valid UUIDであっても期待文字列とexact不一致ならcommittedにしない。未指定時は従来のunbound分類を維持し、marker schema/fieldは変更しない。
 - directory verifierはcaller期待hash集合を開始時copyし、root/祖先chain・file path/handle・読取前後metadata/byte長を照合。分類後にdirectoryを再列挙し、全artifact/markerのexact bytesを再読込、さらに再列挙して変化を拒否する。fixture固有だったtransaction照合を既存終端bundleにも接続した。
 - 共通分類の型/別transaction/文字列非正規化、directoryのlate変更/追加・handle不一致・読取中変更・期待map変更を合成試験へ追加。既存reparse/read失敗試験はstream open経路へ障害注入を合わせ、reparse先を読まないことも維持する。

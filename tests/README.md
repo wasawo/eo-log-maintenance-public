@@ -310,3 +310,7 @@ report builder/参照validatorの合成試験は、履歴再導出と通常build
 `test_manifest_report_selection.py`は最新manifestとreportのexact path/bytes binding、検査後再選択、両PC/log種別・旧report流用・改変・新しい未完run・欠落report/時計不明を合成検証します。通常のvalidator/CLI互換を維持し、読取成功をarchive資格へ変換しません。
 
 artifact-setの既存試験へ期待transactionの型/不一致/未指定互換と、directory/file/markerの途中変更・handle不一致・期待hash mapの変更を追加しています。終端bundle接続も共通の期待transaction照合を使い、reparse/read失敗試験の注入先はstream openへ整合します。
+
+単一file公開の試験はstaging readback、内容/identity差替え、cleanup時の別file保全、final identity不一致・既存handle不一致を追加確認します。全変更は専用tempの合成artifactで、実データ削除・回復・比較更新は実装しません。
+
+Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを渡す起動を避け、`python -B -m unittest discover ...` または一時的な`PYTHONPATH=tests`設定下で`python -B -m unittest <module/case> ...`を使います。spawnが起動元を再読込できる形で、対象caseをまとめて指定します。
