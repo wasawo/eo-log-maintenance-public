@@ -1,5 +1,13 @@
 # 凍結B2に対するsource再観測
 
+## 既存stagingとDrive観測の接続
+
+`inspect_initial_staged_drive_contents`は独立run contextと初期plan、明示allocationを使ってstagingを毎回一括再読取し、得たsize/hashと元basenameを既存`compare_planned_drive_contents`へ渡す。source payloadを読み直さず、local copy一致からsource信頼確認を自動付与しない。期待folder・source_trusted・Drive前後完全列挙・不足hash計画・完了hash集合は独立引数で要求し、既存helperで整合を再検査する。
+
+ローカル不備は固定reason例外で停止しDrive比較へ進まない。Drive共通不備は、照合済みcopy tupleを保持しcomparisons空のheld観測を返す。正常な比較はcopy/比較を同じ選択順で保持し、file単位の不一致/曖昧はその比較のheldとして残す。内部比較の厳密型・tuple・件数・全false flagも検査する。専用immutable型はreprへ内容を出さず、Upload/retry/同期成功/状態変更/Archive許可を常にfalseとする。
+
+PC-A/PC-B両方の元名に対する内容観測だけで、PC suffixを暗黙alias化せず、Upload先final名の契約や出所を定義しない。空選択もDrive整合検査を省略しないが、no_work/全件完了ではない。APIの実再取得・query/権限/真正性・現在性/ABA・local copyの後続変更・正式metadata/history・Upload結果/実同期は証明しない。旧観測をplan/receiptとして受け付けない。[接続テスト](../../tests/test_staged_drive_content_observation.py)は合成file/Drive bytesだけを使用する。
+
 ## 既存staging copyの独立読取観測
 
 `observe_initial_staging_copy`は初期planと独立PC/log/period/run/start/clock/schemaでplanを再構成し、exact bytes/全false flagを検査する。明示relative pathに対応する凍結targetと、正の整数sequence（bool不可）を要求し、pending状態から作業対象を推測しない。

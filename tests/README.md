@@ -329,6 +329,8 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 
 `test_initial_staging_copy_batch.py`は明示allocationの一括検査を確認します。全指定のI/O前検査、plan再構成1回、指定順、後続不備で部分tupleを返さないこと、先行fileの後続読取り中変更、凍結sizeから増大したfileのopen禁止、空選択時root検査を検証します。FS snapshot/ABAやUpload許可の証拠ではありません。
 
+`test_staged_drive_content_observation.py`はstaging再読取とDrive前後完全列挙/不足hash計画/完了集合比較の接続を確認します。両PC/log、source非読取、local不備時事前停止、global heldでlocal観測保全、file別不一致、空選択、再読取と旧観測拒否、PC suffix非alias、内部型/件数不備を検証します。実Upload・再試行・同期成功・Archiveを認可しません。
+
 `test_source_enumeration_stability.py`はhash後/空scan後の追加・削除・rename・属性変更・directory差替え・rescan不明をincompleteとして保持し、使用点でcandidateを書かないことを合成検証します。最後の再確認後の変更や敵対的ABAは未実証です。
 
 `test_source_hash_identity.py`はhandle identityの読取前拒否、観測サイズ超過時の早期停止、short read、空/1 MiB境界のexact hashも合成検証する。OS readのtimeoutやruntime受け入れではない。

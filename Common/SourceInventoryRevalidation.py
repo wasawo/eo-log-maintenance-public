@@ -11,7 +11,8 @@ from Common.SourceInventoryEvidenceBuilder import (build_run_input_evidence, _cl
     _source_chain, _hash_stable_file, _source_entry_signature, _is_source_reparse)
 from Common.ManifestTransitionInspection import InitialManifestPlan, prepare_initial_manifest
 from Common.DriveRequestPath import is_drive_request_file_path
-from Common.DriveContentComparison import ComparisonSource, ContentComparison, compare_planned_drive_contents, _valid_source
+from Common.DriveContentComparison import (ComparisonSource, ContentComparison, ContentComparisonBatch,
+    compare_planned_drive_contents, _valid_source)
 
 
 class SourceRevalidationError(ValueError):
@@ -42,6 +43,19 @@ class InitialStagingCopyObservation:
     may_upload: bool = field(default=False, init=False)
     may_change_state: bool = field(default=False, init=False)
     may_cleanup: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+
+
+@dataclass(frozen=True, repr=False)
+class StagedDriveContentObservation:
+    copies: tuple[InitialStagingCopyObservation, ...]
+    comparisons: tuple[ContentComparison, ...]
+    status: str
+    reason_code: str
+    may_upload: bool = field(default=False, init=False)
+    may_retry: bool = field(default=False, init=False)
+    may_report_sync_success: bool = field(default=False, init=False)
+    may_change_state: bool = field(default=False, init=False)
     may_archive: bool = field(default=False, init=False)
 
 
@@ -273,6 +287,50 @@ def observe_initial_staging_copies(
         raise
     except Exception:
         _reject("staging_copy_observation_unavailable")
+
+
+def inspect_initial_staged_drive_contents(
+    staging_root, plan, *, allocations, expected_pc_id, expected_log_type,
+    expected_target_period, expected_run_id, started_at_utc, current_utc,
+    current_utc_reliable, manifest_schema, evidence_schema, source_trusted,
+    drive_before, drive_after, download_plan, downloads, expected_folder_id,
+):
+    """Re-read staging then compare supplied complete Drive observations.
+
+    Exact original basenames only: no PC-suffix alias/origin inference. Trust
+    is supplied independently, never derived from a matching local copy. This
+    neither performs API calls nor proves the remote Upload outcome.
+    """
+    try:
+        copies = observe_initial_staging_copies(staging_root, plan, allocations=allocations,
+            expected_pc_id=expected_pc_id, expected_log_type=expected_log_type,
+            expected_target_period=expected_target_period, expected_run_id=expected_run_id,
+            started_at_utc=started_at_utc, current_utc=current_utc,
+            current_utc_reliable=current_utc_reliable, manifest_schema=manifest_schema,
+            evidence_schema=evidence_schema)
+        sources = tuple(ComparisonSource(copy.relative_path.rsplit("/", 1)[-1],
+            copy.size_bytes, copy.sha256) for copy in copies)
+        compared = compare_planned_drive_contents(sources, drive_before, drive_after, download_plan,
+            source_trusted=source_trusted, expected_folder_id=expected_folder_id, downloads=downloads)
+        if (type(compared) is not ContentComparisonBatch or type(compared.results) is not tuple
+                or any(flag is not False for flag in (compared.may_restore,
+                    compared.may_report_sync_success, compared.may_archive))
+                or any(type(item) is not ContentComparison or any(flag is not False for flag in
+                    (item.may_restore, item.may_report_sync_success, item.may_archive))
+                    for item in compared.results)):
+            _reject("staged_drive_comparison_invalid")
+        if compared.status == "held":
+            if compared.results:
+                _reject("staged_drive_comparison_invalid")
+            return StagedDriveContentObservation(copies, (), "held", compared.reason_code)
+        if compared.status != "compared" or len(compared.results) != len(copies):
+            _reject("staged_drive_comparison_invalid")
+        return StagedDriveContentObservation(copies, compared.results,
+            "requires_runtime_evidence", "staged_drive_observations_compared")
+    except SourceRevalidationError:
+        raise
+    except Exception:
+        _reject("staged_drive_observation_invalid")
 
 
 def revalidate_comparison_source(

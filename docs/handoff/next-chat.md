@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`7205366`、同じ`codex/drive-download-observation`で[毎回のstaging再読取とDrive内容観測比較の接続](../design/source-inventory-revalidation.md#既存stagingとdrive観測の接続)を追加。独立context/初期plan/明示allocationでcopyを再照合してから、元basename/size/hashを独立source信頼・前後完全列挙・不足hash計画/完了集合の厳密比較へ渡す。共通Drive不備はlocal観測保全/比較集合なしheld、file単位不一致は個別held。全Upload/retry/同期成功/状態変更/Archive許可false。
+- Python 3.11.9（CI 3.12）で新規接続8件＋既存staging batch8件＋計画比較7件の計23件成功、skipなし。初回は既存suite名を取り違えImportError、正名で実行して成功。接続内部の型/tuple/件数/全false flag検査強化後、新規接続＋計画比較15件成功。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- PC suffixの暗黙alias/出所推測なし。空選択はno_workではなく、copy一致からsource信頼や実Upload結果を推測しない。正式metadata/history・割当identity/root/FS/owner/容量/使用点資格・実API/Upload/再試行/同期/runtime受け入れは未完。次は既承認の独立作業を選び、未決writer/adapter契約を推測しない。
+
+## 直前の実装単位（既存staging一括照合・7205366）
+
 - 基準`fc7dc29`、同じ`codex/drive-download-observation`で[既存staging一括照合](../design/source-inventory-revalidation.md#既存staging-copyの独立読取観測)を追加。全allocationのI/O前検査・重複target/候補名拒否・plan再構成1回・全選択fileのhash前size確認と全hash後signature/祖先chain照合を行い、指定順tuple全体か拒否のみを返す。単一APIもbatchへ委譲、全操作許可falseを維持する。
 - 共有hash helperへoptional expected_sizeを追加。凍結sizeと初期statが異なるfileはopen前に拒否し、open handle照合/size+1 byte上限も維持する。Python 3.11.9（CI 3.12）で新規batch8件＋単一8件＋既存hash identity9件＋builder7件の計32件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
 - 空選択はno_workではなく、選択外fileを検査しない。逐次観測であり同時snapshot/ABA/後続不変性は未実証。正式metadata-first/history・割当identity binding・root分離/FS/owner/容量/使用点資格・実Upload/adapter/runtime受け入れは未完。次は既承認の独立作業を選び、正式writerの未決field契約は推測しない。

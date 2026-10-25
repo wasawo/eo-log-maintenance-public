@@ -1,5 +1,7 @@
 # Drive同一内容の比較候補（OSD-01）
 
+既存stagingからの読取接続は[stagingとDrive観測の接続](source-inventory-revalidation.md#既存stagingとdrive観測の接続)を参照。凍結planと実stagingを毎回再照合した元basename/size/hashだけを比較元にし、suffixやUpload先への自動aliasは行わない。比較成立も実Upload結果/再試行/同期成功/Archiveの許可ではない。
+
 2026-10-25。[OSD-01承認](../requirements/p0-open-specification-decisions.md#approved-decision-record--osd-01)と[衝突/比較規則](../development/implementation-workflow.md)を支える純粋helper：[DriveContentComparison.py](../../Common/DriveContentComparison.py)。API接続・IPC結果schema・出所認証・復元・同期成功・archiveの実装ではない。
 
 内部のimmutable観測は、sourceのfilename/size/SHA、Drive fileのID/name/size/任意SHAとその信頼確認、完了したdownloadのID/実byte数/SHAから成る。IPCのC-02結果field集合は定めない。callerは比較元が確認済みの信頼できるPC-A source/backup記録であること、期待folderと観測folderの一致、全page列挙完了を独立に確認して渡す。bool等の入力は証明でなくcaller観測で、helperは真正性・鮮度・paginationを認証しない。
