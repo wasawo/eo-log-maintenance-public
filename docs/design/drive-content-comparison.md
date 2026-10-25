@@ -39,3 +39,13 @@ collectorはfile/network APIを直接呼ばず、page提供側のI/O・timeout�
 返すsourceをpage集約/download hashと比較へ渡せるが、全may_*false。PC-Aラベルやhash一致だけで記録の出所・真正性を信頼済みにはしない。source_trustedは独立した必須観測であり、返却objectをcompareのtrust判定へ自動昇格しない。source/rootの実資格・観測後の変化/ABA・cloud観測との同時snapshotは未実証のまま。
 
 [合成接続試験](../../tests/test_comparison_source_revalidation.py)は両log/Unicode/同名別path、PC-B/未信頼/不正B2/context/不完全の事前拒否、source全体の変更と毎回再観測、元bytes保全、source→page→download実bytes hash→比較までを専用tempで確認する。実ログ/Drive・復元/同期成功/archive・候補artifact保存は行わない。
+
+## Download前後の完全列挙観測の照合
+
+`compare_reobserved_drive_content`は比較元、前後2つのDriveListingObservation、独立source信頼確認/期待folder、download hashを受ける。両観測の厳密型・tuple file集合・明示完全列挙・全may_*false・期待folder一致と全file型/ID一意性を再検査し、IDをkeyとした全metadata集合を比較する。page/file順だけの違いは許す。名前/size/SHA/信頼確認状態、追加/削除/置換や対象外fileの変化は保留する。
+
+観測集合が同じ場合だけ既存のexact name/size/hash・download fallback比較を再実行し、不明・0/複数一致は引き続き保留する。SHA未確認から確認済み等へのmetadataの充実も同一観測と見なさず、旧結果を自動補完しない。観測・download・B2を修正しない。
+
+このhelperはAPI再取得を実行せず、引数が実際にdownload前後のfreshな全pageを表すことやquery/権限/出所を認証しない。同じ保存済みobjectを両側へ渡しても現在性や一回限りreceiptの証明にならず、全結果may_*falseである。掲載されたmetadataで観測できない同サイズ内容変更、観測間のABA・paginationの同時snapshot・比較後の変化は未解決のまま。
+
+[前後観測試験](../../tests/test_drive_comparison_reobservation.py)は変化なし/順序差、追加/削除/rename/ID置換/metadata変化、対象外fileの変化、不完全/不正/別folder/重複ID、不明hash・0/複数候補と保存済み観測の非認可を扱う。[PC-A source合成試験](../../tests/test_comparison_source_revalidation.py)もsource再観測→列挙→download bytes/hash→再列挙→比較までを接続する。実Drive/runtime受け入れではない。

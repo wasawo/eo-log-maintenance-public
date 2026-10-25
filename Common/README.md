@@ -143,3 +143,5 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 `DriveContentComparison.py`の`collect_drive_listing`は内部page観測のfolder・成功・token連続性/終端・ID重複を検査し、全pageが揃った場合だけ比較用観測を返します。部分列挙を0件へ変換せず、実API/応答の真正性・resource管理はprovider側の未完gateです。
 
 `SourceInventoryRevalidation.py`の`revalidate_comparison_source`はPC-A凍結B2の指定targetと毎回の実source再観測を比較元へ結び付けます。同名別pathを推測せず、sourceの独立信頼確認を必須とし、返却観測も復元・同期成功・archiveを認可しません。
+
+`DriveContentComparison.py`の`compare_reobserved_drive_content`は前後2つの完全列挙観測を全file ID/metadataで照合し、変化なしの場合だけ既存比較を行います。順序差は許し、古い一意候補で変化を覆い隠しません。実再取得・観測の鮮度/真正性・ABA排除の証明や実行許可にはなりません。

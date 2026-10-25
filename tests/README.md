@@ -336,3 +336,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_drive_listing_observation.py`は内部pageの連続性/終端/重複・失敗を検査し、全page観測からdownload hash・OSD-01比較までを合成接続する。実API paginationの受け入れではない。
 
 `test_comparison_source_revalidation.py`はPC-AのB2/実sourceからpage・download hash・同一内容比較までを合成接続し、変更・不完全・未信頼と同名別pathの境界を検証する。実Drive/出所認証/runtime受け入れではない。
+
+`test_drive_comparison_reobservation.py`はdownload前後の完全列挙観測の集合照合と比較への接続を合成検証する。保存済み観測やmetadata一致を実再取得/現在性・archive許可へ昇格しない。

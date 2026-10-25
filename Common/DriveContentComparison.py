@@ -240,3 +240,43 @@ def compare_drive_content(source, files, *, source_trusted, expected_folder_id,
     if len(matches) != 1:
         return held("comparison_no_match" if not matches else "comparison_multiple_matches")
     return ContentComparison("comparison_candidate", "comparison_unique_content_match", matches[0])
+
+
+def compare_reobserved_drive_content(source, before, after, *, source_trusted,
+                                     expected_folder_id, downloads=()):
+    """Compare only unchanged complete listing observations around a download.
+
+    File order is immaterial; every observed file ID and metadata must agree.
+    This performs no re-query and does not authenticate freshness or prevent ABA.
+    Reused/saved observations and matching results are never execution receipts.
+    """
+    def held(reason):
+        return ContentComparison("held", reason)
+
+    if source_trusted is not True:
+        return held("comparison_source_untrusted")
+    if not _text(expected_folder_id):
+        return held("comparison_folder_unconfirmed")
+    snapshots = []
+    for listing in (before, after):
+        if (type(listing) is not DriveListingObservation or type(listing.files) is not tuple
+                or any(flag is not False for flag in (listing.may_restore,
+                    listing.may_report_sync_success, listing.may_archive))):
+            return held("comparison_listing_invalid")
+        if listing.enumeration_completed is not True:
+            return held("comparison_listing_incomplete")
+        if not _text(listing.folder_id) or listing.folder_id != expected_folder_id:
+            return held("comparison_folder_unconfirmed")
+        files = {}
+        for item in listing.files:
+            if not _valid_drive_file(item):
+                return held("comparison_observations_invalid")
+            if item.file_id in files:
+                return held("comparison_identity_ambiguous")
+            files[item.file_id] = item
+        snapshots.append(files)
+    if snapshots[0] != snapshots[1]:
+        return held("comparison_listing_changed")
+    return compare_drive_content(source, after.files, source_trusted=source_trusted,
+        expected_folder_id=expected_folder_id, observed_folder_id=after.folder_id,
+        enumeration_completed=after.enumeration_completed, downloads=downloads)

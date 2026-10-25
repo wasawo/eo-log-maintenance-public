@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`1ca5cd4`、同じ`codex/drive-download-observation`で[download前後の完全列挙観測照合](../design/drive-content-comparison.md)を追加。両観測の型/flags/完全性/folder/file/ID一意性と全metadata集合を照合し、変化なしの場合だけ既存比較へ進む。並び順差は許すが、追加/削除/rename/ID置換/size/hash/信頼確認状態や対象外fileの変化は保留する。
+- 実APIの再取得や前後関係/現在性は認証せず、保存済み観測やmetadata一致をreceipt/実行許可へ変えない。結果は全may_*false。PC-A source再観測→page→download hash→再page→比較の合成接続も更新する。Python 3.11.9（CI 3.12）で追加前後照合＋既存source接続/page/download hash/比較の計40件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDK/全page/query/成功の真正なbinding・C-02/credential、metadataで見えない内容変化/ABA/同時snapshotと使用点資格、実source/root/FS/owner/clock、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（比較元source再観測・1ca5cd4）
+
 - 基準`b2155d6`、同じ`codex/drive-download-observation`で[比較元のPC-A source再観測接続](../design/drive-content-comparison.md)を追加。exact B2とcanonical relative path・独立scope/clock/reference date・明示source信頼確認を要求する。PC-Aの一意targetを選択し、全sourceを毎回再列挙/hashして一致時だけ比較元と元B2を返す。同名別pathを推測せず、PC-B/未信頼/対象不在・不正/不完全・source変更を拒否する。
 - immutable観測も全may_*false。sourceの真正性をPC-Aラベル/hashから認証せず、既知validation errorsをrun成功へ変えない。合成source→page→download hash→比較まで接続し、元bytes/source保全とcandidate書込み0件を確認する。Python 3.11.9（CI 3.12）で対象43件中、初回42件成功・既存rename試験1件がsandbox temp内アクセス拒否。コード/期待値を変えず、その1件を通常の隔離試験権限で再実行して成功（skipなし）。対象は追加比較元接続＋既存source再観測/page/download hash/比較。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：source/folder/metadata/clock/owner/root/FSの真正性と使用点資格、観測後の変化/ABA・同時snapshot、実SDK/全page/download成功binding、C-02/credential、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。

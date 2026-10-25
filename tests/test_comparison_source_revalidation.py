@@ -8,7 +8,7 @@ from unittest.mock import patch
 from Common import SourceInventoryRevalidation as check
 from Common.DriveContentComparison import (
     DriveFileObservation, DriveListingPage, collect_drive_listing,
-    hash_downloaded_content, compare_drive_content,
+    hash_downloaded_content, compare_drive_content, compare_reobserved_drive_content,
 )
 from Common.RunInputEvidenceIntegrity import compute_evidence_digest
 import test_initial_source_integration as source_fixture
@@ -125,9 +125,10 @@ class ComparisonSourceRevalidationTests(unittest.TestCase):
             expected_folder_id="synthetic-folder")
         downloaded = hash_downloaded_content(remote.file_id, (b"fi", b"rst"),
             expected_size_bytes=5, download_completed=True)
-        result = compare_drive_content(source.source, listing.files, source_trusted=True,
-            expected_folder_id="synthetic-folder", observed_folder_id=listing.folder_id,
-            enumeration_completed=listing.enumeration_completed, downloads=(downloaded,))
+        after = collect_drive_listing((DriveListingPage("synthetic-folder", None, None, (remote,), True),),
+            expected_folder_id="synthetic-folder")
+        result = compare_reobserved_drive_content(source.source, listing, after, source_trusted=True,
+            expected_folder_id="synthetic-folder", downloads=(downloaded,))
         self.assertEqual("comparison_candidate", result.status)
         self.assertFalse(result.may_restore or result.may_report_sync_success or result.may_archive)
         self.assertEqual(raw, source.evidence_bytes)
