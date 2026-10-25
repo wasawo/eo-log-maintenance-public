@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from copy import deepcopy
 import subprocess
 import sys
 from pathlib import Path
@@ -12,6 +13,9 @@ import unittest
 from Common.RunInputEvidenceIntegrity import compute_evidence_digest, compute_inventory_digest
 from Common.validate_aggregation_artifacts import validate_referenced_artifacts
 from test_run_input_evidence_integrity import legacy_float_digest
+from test_aggregation_report_builder import fixture, encode, SCHEMAS, NOW
+from test_terminal_manifest_plan import prior_for
+from Common.ManifestTransitionInspection import prepare_terminal_manifest_transition
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,7 +32,7 @@ def manifest() -> dict:
         "log_type": "BattleLog",
         "target_period": "2026-09",
         "status": "success",
-        "outcome": None,
+        "outcome": "no_work",
         "started_at_utc": "2026-10-21T00:00:00Z",
         "finished_at_utc": "2026-10-21T00:00:01Z",
         "files": [],
@@ -127,6 +131,70 @@ class ReferencedArtifactValidationTests(unittest.TestCase):
 
     def validate(self) -> dict:
         return validate_referenced_artifacts(self.root, self.report_path, CONTRACTS)
+
+    def install_terminal_plan(self, outcomes, **changes):
+        after, supplied = fixture(outcomes, **changes)
+        paths = dict(manifest_path="_maintenance/manifests/PC-A/manifest.json",
+                     evidence_path="_maintenance/run-input-evidence/PC-A/evidence.json")
+        plan = prepare_terminal_manifest_transition(encode(prior_for(after)), encode(after), encode(supplied),
+                   current_utc=NOW, current_utc_reliable=True, **paths, **SCHEMAS)
+        (self.root / paths["manifest_path"]).write_bytes(plan.proposed_bytes)
+        (self.root / paths["evidence_path"]).write_bytes(plan.evidence_bytes)
+        self.report_path.write_bytes(plan.report_bytes)
+        return plan
+
+    def test_terminal_plan_readback_accepts_derived_semantics_for_mixed_and_empty_runs(self):
+        for outcomes, options in (((), {}), (((9, "verified"),), {}),
+                (((8, "verified"), (9, "unknown")), {}), (((9, "failed"),), {}),
+                (((9, "verified"),), {"enumeration": "failed"})):
+            with self.subTest(outcomes=outcomes, options=options):
+                plan = self.install_terminal_plan(outcomes, **options)
+                before = {p: p.read_bytes() for p in self.root.rglob("*.json")}
+                self.assertEqual("verified", self.validate()["status"])
+                self.assertEqual(before, {p: p.read_bytes() for p in self.root.rglob("*.json")})
+                self.assertEqual(plan.report_bytes, self.report_path.read_bytes())
+
+    def test_valid_refs_do_not_allow_forged_aggregation_period_or_error_data(self):
+        from test_aggregation_report_builder import error
+        plan = self.install_terminal_plan(((8, "verified"), (9, "unknown")), errors=[error()])
+        original = json.loads(plan.report_bytes)
+        corruptions = []
+        changed = deepcopy(original)
+        changed["run_aggregation"].update(status="success", unknown_count=0, run_scope_error_count=0)
+        corruptions.append(changed)
+        changed = deepcopy(original); changed["periods"][0]["eligible_count"] += 1; corruptions.append(changed)
+        changed = deepcopy(original); changed["periods"][1]["completion"] = "complete"; corruptions.append(changed)
+        changed = deepcopy(original); changed["run_scope_errors"] = []; corruptions.append(changed)
+        changed = deepcopy(original); changed["run_scope_errors"][0]["message"] = "synthetic_forgery"; corruptions.append(changed)
+        changed = deepcopy(original); changed["periods"].reverse(); corruptions.append(changed)
+        for changed in corruptions:
+            with self.subTest(report=changed):
+                self.write_report(changed)
+                result = self.validate()
+                self.assertEqual("rejected", result["status"])
+                self.assertEqual("report_derivation_mismatch", result["reason_code"])
+                self.assertNotIn("synthetic_forgery", json.dumps(result))
+
+    def test_report_whitespace_key_order_allowed_but_float_count_not_coerced(self):
+        plan = self.install_terminal_plan(((9, "verified"),))
+        value = json.loads(plan.report_bytes)
+        self.report_path.write_text(json.dumps(value, indent=4, sort_keys=False), encoding="utf-8")
+        self.assertEqual("verified", self.validate()["status"])
+        value["run_aggregation"]["verified_count"] = 1.0
+        self.write_report(value)
+        self.assertEqual("report_derivation_mismatch", self.validate()["reason_code"])
+
+    def test_cli_rejects_forged_semantics_from_an_unrelated_working_directory(self):
+        self.install_terminal_plan(((9, "verified"), (9, "unknown")))
+        value = json.loads(self.report_path.read_bytes())
+        value["run_aggregation"]["unknown_count"] += 1
+        self.write_report(value)
+        result = subprocess.run([sys.executable, "-B", str(ROOT / "Common/validate_aggregation_artifacts.py"),
+            "--root", str(self.root), "--report", str(self.report_path), "--contracts", str(CONTRACTS)],
+            cwd=self.temp.name, capture_output=True, text=True, check=False)
+        self.assertEqual(2, result.returncode)
+        self.assertEqual("report_derivation_mismatch", json.loads(result.stdout)["reason_code"])
+        self.assertEqual("", result.stderr)
 
     def test_valid_referenced_bytes_and_identity_are_accepted(self) -> None:
         result = self.validate()
@@ -250,6 +318,7 @@ class ReferencedArtifactValidationTests(unittest.TestCase):
 
     def test_manifest_frozen_target_set_must_match_b2_inventory(self) -> None:
         changed = manifest()
+        changed["outcome"] = None  # Nonempty inventory must not claim no_work.
         changed["files"] = [{
             "relative_path": "2026/09/a.txt",
             "filename": "a.txt",

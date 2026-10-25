@@ -15,6 +15,13 @@ from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+if __package__ in (None, ""):
+    # Direct CLI execution must resolve the same packaged Common modules,
+    # independently of the caller's working directory.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from Common.AggregationReportBuilder import AggregationBuildError, derive_aggregation_report
+
 try:
     from .RunInputEvidenceIntegrity import (
         EvidenceIntegrityError,
@@ -131,6 +138,7 @@ def validate_referenced_artifacts(
         identity = {key: report[key] for key in ("run_id", "pc_id", "log_type")}
         checked: dict[str, dict[str, str]] = {}
         loaded_artifacts: dict[str, dict[str, Any]] = {}
+        artifact_bytes: dict[str, bytes] = {}
         for name, schema_name, version_field in (
             ("manifest_ref", "manifest-v1.schema.json", "schema_version"),
             ("evidence_ref", "run-input-evidence-v1.schema.json", "evidence_schema_version"),
@@ -155,6 +163,7 @@ def validate_referenced_artifacts(
                 "schema": schema_name,
             }
             loaded_artifacts[name] = artifact
+            artifact_bytes[name] = raw
 
         evidence = loaded_artifacts["evidence_ref"]
         manifest = loaded_artifacts["manifest_ref"]
@@ -174,6 +183,21 @@ def validate_referenced_artifacts(
             or report_inventory["inventory_sha256"] != evidence["enumeration"]["inventory_sha256"]
         ):
             raise ArtifactValidationError("report_evidence_inventory_mismatch")
+        report_schema = json.loads((contracts / "aggregation-report-v1.schema.json").read_text(encoding="utf-8"))
+        try:
+            derived = derive_aggregation_report(
+                artifact_bytes["manifest_ref"], artifact_bytes["evidence_ref"],
+                manifest_path=report["manifest_ref"]["path"], evidence_path=report["evidence_ref"]["path"],
+                manifest_schema=manifest_schema, evidence_schema=evidence_schema, report_schema=report_schema,
+            )
+        except AggregationBuildError:
+            raise ArtifactValidationError("report_derivation_invalid") from None
+        # Compare the entire derived structure while allowing JSON whitespace
+        # and key order. Preserve numeric types, G1 spelling and array order.
+        normalized = (json.dumps(report, ensure_ascii=False, sort_keys=True,
+                                 separators=(",", ":"), allow_nan=False) + "\n").encode("utf-8")
+        if normalized != derived:
+            raise ArtifactValidationError("report_derivation_mismatch")
         return {"status": "verified", "reason_code": "all_references_verified", "artifacts": checked}
     except ArtifactValidationError as exc:
         return {"status": "rejected", "reason_code": str(exc), "artifacts": {}}

@@ -24,3 +24,5 @@ run終端はexact immutable B2等による既存report builderのOSD-03集約検
 missing priorを新規runへ置き換えず、running提案から終端reportも作らない。終端runの同一bytesは決定的に再生成できるが、再保存/再実行の許可にしない。参照pathは字句検査だけで、読取元rootや実保存先の資格は確認しない。B2が本当に固定・真正・最新であることは外部gateで、異なる呼出し間のB2差替えや同じbytesへのrollbackをこのplanだけで検出できるとはしない。
 
 [接続試験](../../tests/test_terminal_manifest_plan.py)はT01〜T12相当の両log種別、PC-B、正しい集約でも不正遷移/凍結inventory変更、掲載ペアでも偽成功/未終端file、B2改変・関連errorとno_work、終端不変・欠落prior・時計/schema/path不正、exact非canonical bytes・決定性・I/Oなしを確認する。C1/C2の実比較更新、実upload/Drive内容、履歴event証拠、真正な使用点readback、marker-lastの実publication、Tier B/Cとruntime受け入れは引き続き未完。
+
+終端planのreportを専用合成領域へ置いた後、参照validatorが元manifest/B2のexact hashだけでなく、全reportの[決定的意味論再導出](aggregation-report-v1-proposal.md#deterministic-semantic-readback-2026-10-25)も比較する接続試験を追加した。これは読取検証で、実manifest更新やC1/C2 publicationの資格試験ではない。

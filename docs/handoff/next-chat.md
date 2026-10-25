@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+- 基準`eb3f6c5`、同じ`codex/manifest-evidence-integration`で終端planのreportと参照validatorを接続した。従来はhash/identity/B2/G1/inventory照合までで、reportの集約status・期間件数・run-scope error等の再導出比較が欠けていたため、既存の決定的builderを共有して全文意味論を検査する。
+- `derive_aggregation_report`は明示的に現在時計を観測しない履歴再導出API。内部schema/B2/終端/時系列/G1条件は維持し、通常`build_aggregation_report`と終端planの現在時計/未来許容検査は省略しない。report自身の時刻をtrusted nowに代用せず、旧reportの意味論検査から現在の資格を作らない。
+- 参照validatorは読取済みexact bytesから再導出し、JSON whitespace/key順だけを許して全field/array順/整数表現を比較する。偽status/件数/completion/error/順序やfloat整数表現を拒否。direct CLIも同じCommon moduleを実行位置に依存せずロードする。既存empty成功fixtureのmanifest outcomeを承認済みno_workへ修正した。
+- 追加/既存のreport builder・参照validator・終端planだけを対象検証する。配布file集合は47件で不変、PS/schemaコード変更なし。Python 3.11.9（CI 3.12）で関連48件を一括実行し47件成功。既存no_work fixture修正に伴う非空inventoryの1件はschemaで先に拒否されたため、当該試験のoutcomeをNoneへ整合し、その1件だけ再実行して成功。成功済み47件は再実行せず、関連48件を確認済み。配布構成/PS/schema不変のためpackage/PS/schema単独検査は再実行しない。root自己点検のみ、独立レビュー・新CI・実運用受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：trusted root/ACL/使用点read、意味論検査中の変更対策、C1/C2比較更新・marker-last実統合・receipt、現在時計/鮮度・実Drive/両PC証拠・runtime受け入れ。再導出成功は保存・archive認可ではない。次は隔離artifact setとの接続またはproviderの未決信頼境界/障害回復条件の候補整理。
+
+## 直前の実装単位（終端plan・eb3f6c5）
+
 - 最新mainは`42221e36886773b7efbb4e3d58658890690f55b6`。[PR #41](https://github.com/wasawo/eo-log-maintenance-public/pull/41)はマージ済み、mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40159576258) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40159576256)も成功確認済み。利用者の再開指示を受け、新branch`codex/manifest-evidence-integration`を最新取得mainから作成した。
 - 既存moduleに`prepare_terminal_manifest_transition`を追加。exact prior/proposed manifestの掲載遷移・凍結inventory・終端不変を検査した後、B2 digest/scope/target一致とOSD-03集約/G1 report生成を既存builderへ接続する。immutable planは元/提案/B2/report bytesを保持し、全may_*はfalse。欠落prior・不正遷移・未終端file・偽成功を修正せず拒否する。
 - reportは提案bytesの派生物で、保存済み/commitの証拠ではない。B2の真正性・固定性・最新性、実event履歴、root/ACL/所有権・C1/C2比較更新・一回限りreadback・実Drive内容は未実装gateのまま。PC-Bも検査できるがarchive権限は与えない。

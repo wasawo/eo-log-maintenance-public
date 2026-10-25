@@ -117,7 +117,29 @@ def build_aggregation_report(
         _reject("aggregation_input_invalid")
 
 
-def _build(manifest_bytes, evidence_bytes, **context):
+def derive_aggregation_report(
+    manifest_bytes, evidence_bytes, *, manifest_path, evidence_path,
+    manifest_schema, evidence_schema, report_schema,
+):
+    """Re-derive historical semantics without asserting a current trusted clock.
+
+    Input/schema/inventory/terminal/ordering/G1 rules remain enforced. The
+    absence of a future/freshness observation is deliberate: this function
+    cannot qualify a current run, publish or authorize archive.
+    """
+    try:
+        return _build(
+            manifest_bytes, evidence_bytes, check_current_clock=False,
+            manifest_path=manifest_path, evidence_path=evidence_path,
+            manifest_schema=manifest_schema, evidence_schema=evidence_schema, report_schema=report_schema,
+        )
+    except AggregationBuildError:
+        raise
+    except Exception:
+        _reject("aggregation_input_invalid")
+
+
+def _build(manifest_bytes, evidence_bytes, *, check_current_clock=True, **context):
     validators = [_validator(context[name]) for name in
                   ("manifest_schema", "evidence_schema", "report_schema")]
     manifest, evidence = _parse(manifest_bytes), _parse(evidence_bytes)
@@ -135,22 +157,24 @@ def _build(manifest_bytes, evidence_bytes, **context):
     if manifest["status"] == "running":
         _reject("manifest_not_terminal")
 
-    now, tolerance = context["current_utc"], context["future_tolerance"]
-    if (context["current_utc_reliable"] is not True or not isinstance(now, datetime)
-            or now.tzinfo is None or now.utcoffset() != timedelta(0)):
-        _reject("current_utc_unavailable")
-    if (not isinstance(tolerance, timedelta)
-            or not timedelta(0) <= tolerance <= timedelta(minutes=5)):
-        _reject("future_tolerance_invalid")
-    limit = _clock_key(now + tolerance)
+    limit = None
+    if check_current_clock:
+        now, tolerance = context["current_utc"], context["future_tolerance"]
+        if (context["current_utc_reliable"] is not True or not isinstance(now, datetime)
+                or now.tzinfo is None or now.utcoffset() != timedelta(0)):
+            _reject("current_utc_unavailable")
+        if (not isinstance(tolerance, timedelta)
+                or not timedelta(0) <= tolerance <= timedelta(minutes=5)):
+            _reject("future_tolerance_invalid")
+        limit = _clock_key(now + tolerance)
     generated_at_utc = derive_report_generated_at_utc(manifest, evidence)
-    if context["generated_at_utc"] is not None and context["generated_at_utc"] != generated_at_utc:
+    if context.get("generated_at_utc") is not None and context["generated_at_utc"] != generated_at_utc:
         _reject("generated_timestamp_mismatch")
     generated = _utc_key(generated_at_utc)
 
     def timestamp(value):
         key = _utc_key(value)
-        if key > limit:
+        if limit is not None and key > limit:
             _reject("timestamp_in_future")
         return key
 

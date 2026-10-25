@@ -115,3 +115,5 @@ CompletionWaitBudget.py assesses the approved PC-A 24-hour/25-attempt hourly bud
 同moduleの`Get-DriveRetryObservation`は[再試行観測](../docs/design/drive-retry-observation.md)として、完了した試行1〜4と応答整合から1/5/15分の候補を返します。upload一時失敗/timeoutは照合待ち、不正応答は拒否し、全結果MayRetry=falseです。実counter・sleep・再送・結果照合は実装しません。
 
 `ManifestTransitionInspection.py`の`prepare_terminal_manifest_transition`は[終端plan](../docs/design/manifest-transition-inspection.md)として遷移検査とB2/OSD-03/G1 report生成を接続し、exact元/提案/証拠/report bytesを保持します。提案reportを実保存の証拠にせず、全may_*はfalseです。
+
+`derive_aggregation_report`は現在時計を要求しない履歴reportの純粋な再導出です。参照validatorは読取済みexact manifest/B2から再導出し、reportの全field・件数・period/error順序を比較します。JSON whitespace/key順は許容し、偽集約や整数fieldのfloat表現を拒否します。通常builderの明示時計/未来時刻検査は維持し、履歴再導出から現在の適格性を推定しません。

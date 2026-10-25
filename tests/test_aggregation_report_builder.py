@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from jsonschema import Draft202012Validator, FormatChecker
 
-from Common.AggregationReportBuilder import AggregationBuildError, build_aggregation_report
+from Common.AggregationReportBuilder import AggregationBuildError, build_aggregation_report, derive_aggregation_report
 from Common.RunInputEvidenceIntegrity import compute_evidence_digest
 from Common.SourceInventoryEvidenceBuilder import build_run_input_evidence
 from Common.validate_aggregation_artifacts import validate_referenced_artifacts
@@ -79,6 +79,29 @@ def build(m, e, **changes):
 
 
 class AggregationReportBuilderTests(unittest.TestCase):
+    def test_historical_derivation_matches_builder_without_claiming_current_clock(self):
+        for outcomes, options in (((), {}), (((9, "verified"), (9, "unknown")), {}),
+                                   (((9, "verified"),), {"errors": [error()]})):
+            m, e = fixture(outcomes, **options)
+            raw_m, raw_e = encode(m), encode(e)
+            with patch("builtins.open", side_effect=AssertionError("unexpected_io")), \
+                 patch("socket.socket", side_effect=AssertionError("unexpected_network")):
+                derived = derive_aggregation_report(raw_m, raw_e, manifest_path="manifests/synthetic.json",
+                    evidence_path="evidence/synthetic.json", **SCHEMAS)
+            self.assertEqual(build(m, e), derived)
+            with self.assertRaisesRegex(AggregationBuildError, "timestamp_in_future"):
+                build(m, e, current_utc=NOW - timedelta(days=1))
+
+    def test_historical_derivation_still_rejects_bad_status_digest_and_time_order(self):
+        for corruption in ("status", "digest", "time"):
+            m, e = fixture(((9, "unknown"),))
+            if corruption == "status": m["status"] = "success"
+            if corruption == "digest": e["integrity"]["digest"] = "0" * 64
+            if corruption == "time": m["finished_at_utc"] = "2026-10-20T00:00:00Z"
+            with self.subTest(corruption=corruption), self.assertRaises(AggregationBuildError):
+                derive_aggregation_report(encode(m), encode(e), manifest_path="manifests/synthetic.json",
+                    evidence_path="evidence/synthetic.json", **SCHEMAS)
+
     def report(self, m, e, **options):
         raw = build(m, e, **options)
         result = json.loads(raw)
