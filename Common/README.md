@@ -129,3 +129,5 @@ artifact-set classifier/directory verifierはoptionalな`expected_transaction_id
 `ManifestTransitionInspection.py`の`prepare_initial_manifest`は独立run contextとexact B2から初期running/pending候補を構築し、schema・digest・scope/inventory・時系列を照合します。空/不完全/失敗B2を成功/no_workへ変えず、元bytesを保持します。全may_*はfalseで、run ID・時計・保存先不在を補完/認証しません。
 
 初期plan生成でも既存filename分類を使い、内部整合するB2のeligible targetであっても文法外/実在しない日付は拒否します。source builderからの[隔離接続試験](../tests/test_initial_source_integration.py)は候補保存までを検証し、source使用点や実run/clockの資格は別gateに残します。
+
+`SourceInventoryRevalidation.py`は[凍結B2とsourceの再観測](../docs/design/source-inventory-revalidation.md)を比較する読取専用helperです。独立scope/reference dateと完全な元coverageを要求し、再列挙/hashで観測が変わったら拒否します。元B2を更新せず、対象外fileの内容や後続使用点までの不変性を認証しません。全may_*はfalseです。

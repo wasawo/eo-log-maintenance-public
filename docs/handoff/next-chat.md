@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+- 基準`ac29ec1`、同じ`codex/initial-manifest-plan`で[凍結source再観測](../design/source-inventory-revalidation.md)を追加。独立source/scope/reference date/現在UTCとexact B2を検査し、元coverageがcompleteの場合だけ既存builderで再列挙/hashしてtarget集合と分類観測を比較する。元/再観測の不完全・追加/削除/rename/内容/分類変更を保留する。
+- 結果は元B2 bytes/target数のimmutable observationで全may_*はfalse。再生成B2や内部のhost終了時刻を保存/証拠化せず、旧B2を補完/更新しない。既知validation errorを消さず、non-target fileの内容/identityは比較範囲外と明示した。root IDは独立期待ラベルで、物理root認可や時計/ownerの真正性を認証しない。
+- 両PC/log、変更行列、不完全/読取失敗、事前scope/clock/date/schema拒否、元bytes不変と比較限界を合成検証する。Common helper1件を追加し、両roleレビュー配布のfile集合は48件。CIとpackage fixtureへ登録した。
+- 対象再観測/source builder/初期接続と両role package・変更PS構文/Error解析を一括確認する。Python 3.11.9（CI 3.12）で追加再観測＋既存source/初期接続の計25件成功（skipなし）。PS 7.6.7で両role package回帰と変更PS構文/PSScriptAnalyzer Error検査成功。変更のないreport/terminal等は再実行しない。root自己点検のみ、独立レビュー・新CI・実環境受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：再観測後の使用点同一性、atomic snapshot/ABA排除、実root/ACL/token/clock/run/ownerの資格、C1/C2 writerとDrive/runtime受け入れ。次はこの観測と初期候補の使用点検査/隔離接続、またはprovider未決境界の候補整理。
+
+## 直前の実装単位（source→初期候補接続・ac29ec1）
+
 - 基準`efc6733`、同じ`codex/initial-manifest-plan`でsource列挙/hash→B2→初期plan→隔離候補公開/読戻しを接続した。新規tests専用fixtureは自作tempのsource/candidateを分離し、固定合成clock/reference dateと明示run contextで既存source builderを呼ぶ。実運用path/clock資格やsource使用点の認可を実装したとはしない。
 - 初期plan producerは既存の承認filename文法/実在日付helperも使い、B2内部整合が取れていてもunclassifiableなeligible targetを拒否する。対象period/保持範囲の選択は既存source builder/独立contextに留め、新しい年/月filterを推測しない。
 - 両PC/log・Unicode階層の実bytes/hash、空/対象外/invalid分類、hash不明のincomplete保全、source変更後も旧plan不変/別runで再列挙、実mutex/create-only/marker-last候補保存、既存競合、同じ固定観測の決定性を合成検証する。候補artifact-setのcommittedを実run開始/manifest更新/Upload認可へ昇格しない。

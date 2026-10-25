@@ -141,3 +141,5 @@ docs/
 - [2026-10-24のPR #27〜33前後セッション記録](handoff/archive/pr27-pr33-session-history-20261024.md)
 
 - [Drive再試行のPS側観測](design/drive-retry-observation.md)
+
+- [凍結B2に対するsource再観測](design/source-inventory-revalidation.md)

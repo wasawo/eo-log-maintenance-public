@@ -92,6 +92,7 @@ jobs:
           python -B -m unittest discover -s tests -p "test_terminal_manifest_plan.py" -v
           python -B -m unittest discover -s tests -p "test_initial_manifest_plan.py" -v
           python -B -m unittest discover -s tests -p "test_initial_source_integration.py" -v
+          python -B -m unittest discover -s tests -p "test_source_inventory_revalidation.py" -v
           python -B -m unittest discover -s tests -p "test_terminal_bundle_integration.py" -v
           python -B -m unittest discover -s tests -p "test_artifact_read_stability.py" -v
           python -B -m unittest discover -s tests -p "test_manifest_report_selection.py" -v
