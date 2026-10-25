@@ -145,3 +145,5 @@ docs/
 - [凍結B2に対するsource再観測](design/source-inventory-revalidation.md)
 
 - [Source列挙の完了前再確認](design/source-enumeration-stability.md)
+
+- [Drive同一内容の比較候補](design/drive-content-comparison.md) — OSD-01の純粋観測比較とdownload hash fallback。

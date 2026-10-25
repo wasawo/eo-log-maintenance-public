@@ -328,3 +328,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_source_hash_identity.py`はhandle identityの読取前拒否、観測サイズ超過時の早期停止、short read、空/1 MiB境界のexact hashも合成検証する。OS readのtimeoutやruntime受け入れではない。
 
 `test_terminal_plan_usepoint.py`は終端planの独立prior/B2/contextからの再導出と、所有mutex内の候補公開前停止を合成検証する。C1比較更新やDrive/runtimeの受け入れではない。
+
+`test_drive_content_comparison.py`はOSD-01の0/1/複数候補、完全列挙・scope・source信頼の必須性、metadata/download SHA照合と不明時保留を合成検証する。API接続や復元・archive認可は含まない。

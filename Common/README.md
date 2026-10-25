@@ -135,3 +135,5 @@ artifact-set classifier/directory verifierはoptionalな`expected_transaction_id
 同moduleの`revalidate_initial_manifest_source`は、独立run contextで初期planを再構成し、AC/plan/flagsの不整合をsource I/O前に拒否してから毎回sourceを再観測します。全may_*はfalseで、旧観測をreceiptとして再利用する経路は設けません。使用点後の変化や実provider資格は別gateです。
 
 source builderは[列挙完了前の再確認](../docs/design/source-enumeration-stability.md)でdirectory/child集合・identity/属性を再走査し、途中変更や不明を検出すると既存targetを保持したままcoverageをincompleteにします。最終bytes再hash・atomic snapshot・後続使用までの保護を証明するものではありません。
+
+`DriveContentComparison.py`は[OSD-01の同一内容比較](../docs/design/drive-content-comparison.md)を内部観測から判定する純粋helperです。完全列挙・信頼済みsource・exact name/size/hashを要求し、cloud SHA未確認ならdownload hashを要します。比較候補は復元・同期成功・archiveの認可ではありません。

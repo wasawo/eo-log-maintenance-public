@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`6e40614`、同じ`codex/initial-manifest-plan`で[OSD-01同一内容比較](../design/drive-content-comparison.md)を実装。source信頼・folder scope・完全列挙を要求し、exact name/size/hashの一意候補のみ返す。cloud SHA欠落/未確認はIDへ結び付いた完了download hashを要求し、0/複数/不明/重複ID/矛盾は保留する。結果は全may_*falseで、IPC C-02結果fieldを定めず、出所・復元・同期成功・archiveを認可しない。
+- 追加helperを両roleレビューpackageへ登録しfile集合は49件。Python 3.11.9（CI 3.12）で追加比較試験9件成功（skipなし）。PS 7.6.7で両role package回帰・変更PS構文/PSScriptAnalyzer Error検査成功。文書相対リンク欠落0・差分検査成功。既存source/manifest/report/schemaは変更がなく再実行しない。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：source/folder/metadataの真正性・最新性、実全page取得/download検証、C-02詳細とSDK/credential資格、同期runtime・両PC証拠/Drive/archive gate。C1/C2 writerや実root/FS/owner/clock受け入れも未完。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（終端plan使用点・6e40614）
+
 - 基準`f774aaa`、同じ`codex/initial-manifest-plan`で[終端plan使用点再導出](../design/manifest-transition-inspection.md)を追加。独立prior/B2 exact bytes・PC/log/period/run・AC・現在時計/schema/参照pathを要求し、既存遷移/report生成を毎回実行してplan全体とexact一致を検査する。型/flag/snapshot/AC/scope/reportの不一致を拒否し、返すplanも全may_*false。
 - 合成試験は両PC/logのempty/成功/混在、改変行列、実mutex/owner内の公開前再検査と不一致時の候補書込み0件・prior保全・owner解放を確認する。fixtureのcallbackはtests専用で、正式writer/provider契約へ採用しない。Python 3.11.9（CI 3.12）で追加使用点＋既存終端plan/遷移/候補bundle/初期planの計42件成功（skipなし）。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・runtime受け入れは未実施。配布file集合48件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：入力prior/B2/ACの出所・最新性、実root/owner/clock/FSの資格、検査後の変化・敵対的ABA、C1比較更新・Drive/runtime受け入れ。次は確定済みの独立作業かprovider未決境界の候補整理。
