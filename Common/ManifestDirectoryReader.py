@@ -43,7 +43,9 @@ def _reparse(info):
 
 
 def _signature(info):
-    return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+    # Windows 3.12 stat/fstat ctime can differ; compare explicit birthtime.
+    stamp = getattr(info, "st_birthtime_ns", info.st_ctime_ns) if os.name == "nt" else info.st_ctime_ns
+    return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, stamp
 
 
 def _chain(directory):

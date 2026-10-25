@@ -28,7 +28,9 @@ def _identity(info):
 
 
 def _signature(info):
-    return _identity(info), info.st_size, info.st_mtime_ns, info.st_ctime_ns, info.st_nlink
+    # Windows 3.12 stat/fstat ctime can differ; compare explicit birthtime.
+    stamp = getattr(info, "st_birthtime_ns", info.st_ctime_ns) if os.name == "nt" else info.st_ctime_ns
+    return _identity(info), info.st_size, info.st_mtime_ns, stamp, info.st_nlink
 
 
 def _chain(parent):

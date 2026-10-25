@@ -45,3 +45,5 @@ missing priorを新規runへ置き換えず、running提案から終端reportも
 create-only単一file公開helperは、fsync/close後にstagingのexact bytesとhandle由来identity/親chainを再読込確認し、link公開後も同じidentity/内容を検査する。既存同一fileの判定もpath/handle前後のmetadataとexact bytesへ結び付ける。cleanupは所有tempのidentity・bytes・親chainを再確認できる場合だけ行い、不明/差替え/変更tempは保全する。公開後のfinal不一致は成功扱いせず、finalのrollback/削除もしない。
 
 これらは合成fixtureでの検出防御であり、観測後の敵対的namespace差替えやcheck/unlink raceを完全に排除するものではない。書込み/flush失敗で再確認不能なtempが残り得る。実root/ACL/FSの資格と所有権に基づく回復は別gateで、create-only helperをC1の条件付きmanifest更新providerへ昇格しない。
+
+PR #42のCIでWindows Python 3.12のstat/fstat ctimeの意味差が比較に混入したため、Windowsでは明示birthtime_nsを使い、未対応版は従来ctimeへfallbackする。POSIXのctime比較と、identity/size/mtime/bytesの検査は維持する。根拠は[CPython path statの互換処理](https://github.com/python/cpython/blob/3.12/Modules/posixmodule.c)と[handle情報の構築](https://github.com/python/cpython/blob/3.12/Python/fileutils.c)。時刻属性は観測metadataで、真正な現在時刻やprovider資格にはしない。

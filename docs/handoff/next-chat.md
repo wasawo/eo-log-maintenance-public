@@ -13,6 +13,9 @@
 - 各単位のPython 3.11.9での対象検証結果・skip・再実行理由は下記に保持。CIはPython 3.12/PS 7.6.7で最新PR HEADのValidateとPackage Validation両成功を確認する。root自己点検のみで独立レビュー未実施。実Drive/実root・ACL・FS/Tier B/C、atomic snapshot/敵対的ABA、C1比較更新/receipt/runtime受け入れは未完のまま。
 - 今回の承認はこの累積PR作成・CI成功後マージまで。マージ後は次実装へ進まず指示待ち。次変更は最新mainから新branchを切り、マージ済みbranchへ追記しない。
 
+- [PR #42](https://github.com/wasawo/eo-log-maintenance-public/pull/42)作成済み。初回HEAD`efdda2f`はPackage Validation成功・Validate失敗。Windows Python 3.12でstat/fstatのctimeが異なる意味になる比較を含んでいたため、4moduleで明示birthtime_ns（未対応版は従来ctime）を使うよう整合した。POSIXのctime比較、identity/size/mtime/bytes検査は維持。CPython 3.12一次実装を確認し、模擬回帰を追加した。
+- ローカルPython 3.11.9で修正影響の62件中60件成功・既存symlink不可2件skip。新HEADの両CI成功を確認するまでマージしない。初回失敗は[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40162859743)の記録として保持する。
+
 ## 直前の実装単位（単一公開readback/cleanup・a206e4e）
 
 - 基準`7d9a891`、同じ`codex/manifest-evidence-integration`でcreate-only単一file公開のstaging/readback/cleanupを強化。既存helperはfsync後の再読込をせず、temp名を無条件にunlinkしていたため、handle由来のtemp identityと親chainを保存し、公開前にexact bytes＋identityを再検査する。

@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import patch
 
 import Common.validate_aggregation_artifacts as validator
+from Common import AtomicArtifactPublication, ArtifactSetDirectoryVerification, ManifestDirectoryReader
 import test_aggregation_referenced_artifacts as referenced_fixture
 
 
@@ -20,6 +21,19 @@ def stat_copy(info, **changes):
 
 
 class ArtifactReadStabilityTests(unittest.TestCase):
+    def test_windows_birthtime_is_compared_instead_of_incompatible_ctime(self):
+        values = dict(st_dev=1, st_ino=2, st_size=3, st_mtime_ns=4, st_nlink=1, st_birthtime_ns=5)
+        path_info = SimpleNamespace(**values, st_ctime_ns=5)
+        handle_info = SimpleNamespace(**values, st_ctime_ns=999)
+        for module in (validator, AtomicArtifactPublication, ArtifactSetDirectoryVerification, ManifestDirectoryReader):
+            with self.subTest(module=module.__name__), patch.object(module.os, "name", "nt"):
+                self.assertEqual(module._signature(path_info), module._signature(handle_info))
+                for field in ("st_ino", "st_size", "st_mtime_ns", "st_birthtime_ns"):
+                    changed = SimpleNamespace(**{**values, field: 1000}, st_ctime_ns=999)
+                    self.assertNotEqual(module._signature(path_info), module._signature(changed))
+            with patch.object(module.os, "name", "posix"):
+                self.assertNotEqual(module._signature(path_info), module._signature(handle_info))
+
     write_report = referenced_fixture.ReferencedArtifactValidationTests.write_report
 
     def setUp(self):
