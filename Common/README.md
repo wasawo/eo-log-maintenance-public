@@ -157,3 +157,5 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 `LogFunctions.ps1`の`Get-EoStagingCapacityObservation`はupload用の既承認容量式をBigIntegerで計算します。信頼未確認/不足を保留し、全結果MayCreateStaging/MayUpload=falseです。実空き容量の取得・予約・download容量方針は含みません。
 
 `Get-EoStagingCapacityFromSizes`はcallerが明示選択した残りtargetのsize配列を全件検査し、BigInteger合計を容量観測へ渡します。残り対象やmanifest状態を推測せず、不正memberから部分合計を返しません。
+
+`ManifestTransitionInspection.py`の`inspect_staging_target_sizes`はrunning manifest/B2のexact整合とscope/coverage/clockを検査し、明示path群のsize集合・合計だけを返します。pending等から対象を選ばず、元bytesを保持し、作成/Upload/Archiveの許可やPS transportを提供しません。

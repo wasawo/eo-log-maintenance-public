@@ -352,3 +352,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `Test-StagingCapacity.ps1`はupload stagingの整数容量式、10%切上げ・0/巨大値・1 byte不足・型/信頼不正・容量変化を合成検証する。実volumeの容量取得や作成/Upload許可は検証しない。
 
 `Test-StagingCapacity.ps1`は明示size配列の全件検査/合計、型付き配列/空/巨大合計・合算後の切上げ・部分合計禁止も確認する。残り対象選択やinventory真正性は外部gateに残す。
+
+`test_staging_size_observation.py`は凍結manifest/B2から明示size集合を取り出す純粋検査を確認する。file状態から残り対象を推測せず、巨大整数・空選択・不完全/改変/別scopeの境界を扱う。

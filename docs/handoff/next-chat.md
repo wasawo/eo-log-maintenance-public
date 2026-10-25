@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`e5b8428`、同じ`codex/drive-download-observation`で[凍結manifest/B2からの明示size射影](../design/staging-file-lifecycle.md)を追加。独立PC/log/period/run・schema/digest/inventory/coverage/clock整合を検査し、明示canonical path群のsize tuple/整数合計を元exact bytesへ結び付ける。空選択も全体検査を省略せず、既知errorsを消さない。
+- pendingはstaging前/Upload直前の両方なので、file状態から残りtargetやcopy可否を推測しない。runningは生存/fresh runの証拠ではなく、全may_create_staging/may_upload/may_archive=false。内部Python観測でPS transport/保存/遷移は未実装。Python 3.11.9（CI 3.12）で追加size射影＋既存initial plan/遷移の計25件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実source/容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：履歴に基づく実target選択・source/容量/root/ACL/FS/clock/owner資格、PS transportと開始/各file直前の取得・copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（明示size配列の合計・e5b8428）
+
 - 基準`c52d359`、同じ`codex/drive-download-observation`で[明示target size集合の容量合計](../design/staging-file-lifecycle.md)を追加。1次元配列の非負Int32/Int64/BigIntegerを全件検査してBigInteger合計を導出し、既存容量観測へ接続する。不正memberで部分合計を返さず、空配列も固定reserve計算を省略しない。
 - 残りtarget/manifest状態の選択やinventory出所は外部gateに残し、入力を変更せず、全MayCreateStaging/MayUpload=false。EOLM-STG-009を純粋計算/合計のみpartialとして対象行だけ更新する。PS 7.6.7で容量観測/配列合計の計67件成功（既存43件を含む）。変更PS構文/PSScriptAnalyzer Error検査成功。前単位で成功した変更のないLogFunctions既存49件は重複実行しない。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：実target選択/凍結inventoryと容量/root/ACL/FS/clock/owner資格、開始/各file直前の取得・容量変化時copy失敗、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。

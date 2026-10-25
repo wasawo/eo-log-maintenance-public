@@ -275,3 +275,72 @@ def revalidate_terminal_manifest_plan(
         raise
     except Exception:
         _reject("terminal_usepoint_context_invalid")
+
+
+@dataclass(frozen=True, repr=False)
+class StagingSizeObservation:
+    manifest_bytes: bytes
+    evidence_bytes: bytes
+    relative_paths: tuple[str, ...]
+    target_sizes: tuple[int, ...]
+    remaining_target_bytes: int
+    may_create_staging: bool = field(default=False, init=False)
+    may_upload: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+
+
+def inspect_staging_target_sizes(
+    manifest_bytes, evidence_bytes, *, relative_paths, expected_pc_id, expected_log_type,
+    expected_target_period, expected_run_id, current_utc, current_utc_reliable,
+    manifest_schema, evidence_schema,
+):
+    """Project explicit targets from a complete running manifest/B2 pair.
+
+    Never infer remaining work from pending/ready or other file states. Event
+    history, freshness, actual source/root/free-space and writer gates remain
+    external. Empty selection is an observation, not no_work or permission.
+    """
+    try:
+        if (current_utc_reliable is not True or not isinstance(current_utc, datetime)
+                or current_utc.tzinfo is None or current_utc.utcoffset() != timedelta(0)):
+            _reject("staging_size_clock_untrusted")
+        if (type(manifest_bytes) is not bytes or type(evidence_bytes) is not bytes
+                or type(relative_paths) is not tuple):
+            _reject("staging_size_input_invalid")
+        seen = set()
+        for path in relative_paths:
+            if type(path) is not str:
+                _reject("staging_size_input_invalid")
+            _safe_relative_path(path)
+            if path in seen:
+                _reject("staging_size_duplicate_target")
+            seen.add(path)
+        manifest, files = _snapshot(manifest_bytes, _validator(manifest_schema))
+        if ((manifest["pc_id"], manifest["log_type"], manifest["target_period"], manifest["run_id"]) !=
+                (expected_pc_id, expected_log_type, expected_target_period, expected_run_id)):
+            _reject("staging_size_scope_mismatch")
+        if manifest["status"] != "running":
+            _reject("staging_size_run_not_running")
+        evidence = _parse(evidence_bytes)
+        _validate(_validator(evidence_schema), evidence)
+        validate_evidence_invariants(evidence, evidence_schema)
+        validate_evidence_matches_manifest(evidence, manifest, manifest_schema)
+        if evidence["enumeration"]["status"] != "completed" or evidence["validation"]["status"] != "completed":
+            _reject("staging_size_coverage_incomplete")
+        start = _utc_key(manifest["started_at_utc"])
+        enum_start, finish = (_utc_key(evidence["enumeration"][key]) for key in ("started_at_utc", "finished_at_utc"))
+        if not start <= enum_start <= finish or finish > _clock_key(current_utc+timedelta(minutes=5)):
+            _reject("staging_size_time_invalid")
+        sizes = []
+        for path in relative_paths:
+            if path not in files:
+                _reject("staging_size_target_missing")
+            file = files[path]
+            if _classify_filename(file["filename"], expected_log_type) is None:
+                _reject("staging_size_filename_invalid")
+            sizes.append(file["size_bytes"])
+        return StagingSizeObservation(manifest_bytes, evidence_bytes, relative_paths, tuple(sizes), sum(sizes))
+    except ManifestTransitionError:
+        raise
+    except Exception:
+        _reject("staging_size_input_invalid")
