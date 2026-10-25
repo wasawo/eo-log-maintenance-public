@@ -69,3 +69,13 @@ ContentComparisonBatchの`status=compared`は共通入力の検査と比較処�
 空source tupleでも共通観測/downloadを検査し、空結果をno_workへ変えない。source tupleをdedupせず、同じ比較値を持つ別local pathの対応はcallerに残す。複数sourceが同じcloud IDを比較候補とすることから出所や共有・復元を認可しない。batch objectはIPC result field集合の採用でもなく、永続状態やreceipt/cacheにしない。
 
 [Drive batch試験](../../tests/test_drive_comparison_batch.py)は候補/不明/不在の混在と順序、file検査回数がsource数に乗算されないこと、共通不備の全体保留、download fallback、空選択、重複sourceの保全、単一APIの既存境界を確認する。[source batch接続](../../tests/test_comparison_source_batch.py)も1回のsource再観測→共通page/download→一括前後比較へ接続する。実API・観測真正性・同時snapshot/ABA・runtime受け入れは未実装gateのまま。
+
+## 不足hash観測のdownload対象計画
+
+`plan_content_downloads`は明示source tuple、完全列挙観測と独立source信頼/期待folderから、不足しているdownload hash観測だけを計画する。共通の厳密な型/完全性/ID一意性検査後、同名・同sizeのうちcloud SHAが欠落/信頼未確認のfileを選ぶ。同名候補のsize不明は計画全体を保留し、部分requirementを返さない。既知の一致が1件あっても、不明な同名同size候補を省略しない。
+
+DownloadRequirementはfile IDと期待sizeを保持する内部データで、IPCのrequest/result field集合ではない。複数sourceで共有するfile IDは1件にまとめ、ID文字列順に並べてpage/source順の違いによらない計画にする。信頼確認済みSHAがあるfile・名前違い・既知size違いはdownload対象にしない。SHA不一致や0候補からupload/restore/retryへ進む判断は行わない。
+
+必要観測があればstatus=requires_download_observations、不要ならcomparison_inputs_available、共通不備はheldとする。全結果のmay_download/may_restore/may_report_sync_success/may_archiveはfalse。空sourceやrequirement0件をno_work/同期成功へ変換せず、既存比較で結果を判定する。計画は完了download hash・現在のfile存在/内容・実行権限の代わりにならず、同じ保存済み計画から送信を認可しない。
+
+[計画試験](../../tests/test_content_download_plan.py)はSHAの信頼/欠落、不要downloadの除外、不明metadataの保留、共有IDの一意化/安定順序、空sourceと全may_*false、計画→合成download bytes/hash→再列挙→一括比較を扱う。[source batch接続](../../tests/test_comparison_source_batch.py)も実source再観測からrequirement計画を経由する。実SDK/認証・取得時のID/完了/size binding・使用点資格は未実装gateのまま。

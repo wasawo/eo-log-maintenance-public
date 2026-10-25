@@ -149,3 +149,5 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 `revalidate_comparison_sources`は複数の明示targetを1回の全source再観測へまとめ、比較元を指定順で返します。単一target APIも委譲して互換性を維持し、空選択・選択外変更・不完全coverageでも再検査を省略しません。
 
 `compare_reobserved_drive_contents`は複数sourceの共通列挙/downloadを一括検査し、名前別indexから指定順に各比較結果を返します。共通不備は部分結果なしのheld、file固有不明は各結果のheldとし、batchのcomparedを同期成功へ変えません。
+
+`plan_content_downloads`は完全列挙中の同名同size・cloud SHA欠落/未確認候補をIDごとにまとめ、不足hash観測の計画を返します。may_downloadもfalseで、計画や対象0件はdownload実行・同期成功・upload再送の認可になりません。

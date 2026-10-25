@@ -342,3 +342,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_comparison_source_batch.py`は複数targetを1回の全source再観測へまとめる処理と、共通page/download観測からの比較を合成検証する。空選択をno_workへ変換せず、呼出し間のcacheや実行許可を設けない。
 
 `test_drive_comparison_batch.py`は共通Drive観測の一括検査・混在結果/順序・空入力・非認可と、source数に乗算されないfile検査を確認する。単一比較の既存境界も維持する。
+
+`test_content_download_plan.py`は不足hash候補の計画・共有IDの一意化/安定順序・不明時保留と、合成download/一括比較への接続を確認する。計画をdownload権限や完了観測へ変換しない。

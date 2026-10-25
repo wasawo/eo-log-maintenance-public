@@ -281,23 +281,26 @@ def compare_drive_content(source, files, *, source_trusted, expected_folder_id,
         return held(str(exc))
 
 
-def _unchanged_listings(before, after, expected_folder_id):
+def _listing_snapshot(listing, expected_folder_id):
     if not _text(expected_folder_id):
         raise _ComparisonInputError("comparison_folder_unconfirmed")
-    snapshots = []
-    for listing in (before, after):
-        if (type(listing) is not DriveListingObservation or type(listing.files) is not tuple
-                or any(flag is not False for flag in (listing.may_restore,
-                    listing.may_report_sync_success, listing.may_archive))):
-            raise _ComparisonInputError("comparison_listing_invalid")
-        if listing.enumeration_completed is not True:
-            raise _ComparisonInputError("comparison_listing_incomplete")
-        if not _text(listing.folder_id) or listing.folder_id != expected_folder_id:
-            raise _ComparisonInputError("comparison_folder_unconfirmed")
-        snapshots.append(_index_files(listing.files))
-    if snapshots[0] != snapshots[1]:
+    if (type(listing) is not DriveListingObservation or type(listing.files) is not tuple
+            or any(flag is not False for flag in (listing.may_restore,
+                listing.may_report_sync_success, listing.may_archive))):
+        raise _ComparisonInputError("comparison_listing_invalid")
+    if listing.enumeration_completed is not True:
+        raise _ComparisonInputError("comparison_listing_incomplete")
+    if not _text(listing.folder_id) or listing.folder_id != expected_folder_id:
+        raise _ComparisonInputError("comparison_folder_unconfirmed")
+    return _index_files(listing.files)
+
+
+def _unchanged_listings(before, after, expected_folder_id):
+    old = _listing_snapshot(before, expected_folder_id)
+    new = _listing_snapshot(after, expected_folder_id)
+    if old != new:
         raise _ComparisonInputError("comparison_listing_changed")
-    return snapshots[1]
+    return new
 
 
 def compare_reobserved_drive_contents(sources, before, after, *, source_trusted,
@@ -335,3 +338,53 @@ def compare_reobserved_drive_content(source, before, after, *, source_trusted,
     if result.status == "held":
         return ContentComparison("held", result.reason_code)
     return result.results[0]
+
+
+@dataclass(frozen=True, repr=False)
+class DownloadRequirement:
+    file_id: str
+    expected_size_bytes: int
+
+
+@dataclass(frozen=True, repr=False)
+class ContentDownloadPlan:
+    status: str
+    reason_code: str
+    requirements: tuple[DownloadRequirement, ...] = ()
+    may_download: bool = field(default=False, init=False)
+    may_restore: bool = field(default=False, init=False)
+    may_report_sync_success: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+
+
+def plan_content_downloads(sources, listing, *, source_trusted, expected_folder_id):
+    """Describe missing hash observations; never initiate or authorize download.
+
+    Plan from explicit sources and complete listing only. Requirements are
+    unique by file ID, sorted deterministically, and are not IPC requests.
+    No requirement does not mean no_work, absence, sync success or retry rights.
+    """
+    def held(reason):
+        return ContentDownloadPlan("held", reason)
+
+    if source_trusted is not True:
+        return held("comparison_source_untrusted")
+    if type(sources) is not tuple:
+        return held("comparison_sources_invalid")
+    if any(not _valid_source(source) for source in sources):
+        return held("comparison_source_invalid")
+    try:
+        by_name = _group_files(_listing_snapshot(listing, expected_folder_id))
+        needed = {}
+        for source in sources:
+            for item in by_name.get(source.filename, ()):
+                if item.size_bytes is None:
+                    return held("comparison_metadata_unavailable")
+                if item.size_bytes == source.size_bytes and (item.sha256 is None or not item.sha256_trusted):
+                    needed[item.file_id] = DownloadRequirement(item.file_id, item.size_bytes)
+        if needed:
+            return ContentDownloadPlan("requires_download_observations", "comparison_hash_observations_missing",
+                                       tuple(needed[key] for key in sorted(needed)))
+        return ContentDownloadPlan("comparison_inputs_available", "comparison_no_download_required")
+    except _ComparisonInputError as exc:
+        return held(str(exc))

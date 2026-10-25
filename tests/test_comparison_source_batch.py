@@ -8,7 +8,7 @@ from Common import SourceInventoryRevalidation as check
 from Common.RunInputEvidenceIntegrity import compute_evidence_digest
 from Common.DriveContentComparison import (
     DriveFileObservation, DriveListingPage, collect_drive_listing,
-    hash_downloaded_content, compare_reobserved_drive_contents,
+    hash_downloaded_content, compare_reobserved_drive_contents, plan_content_downloads,
 )
 import test_initial_source_integration as fixture
 from test_aggregation_report_builder import SCHEMAS, NOW
@@ -103,8 +103,12 @@ class ComparisonSourceBatchTests(unittest.TestCase):
             item.source.size_bytes, None) for i, item in enumerate(sources))
         before = collect_drive_listing((DriveListingPage("synthetic-folder", None, None, files, True),),
             expected_folder_id="synthetic-folder")
-        downloads = tuple(hash_downloaded_content(file.file_id, (payload,),
-            expected_size_bytes=len(payload), download_completed=True) for file, payload in zip(files, data))
+        planned = plan_content_downloads(tuple(item.source for item in sources), before,
+            source_trusted=True, expected_folder_id="synthetic-folder")
+        self.assertFalse(planned.may_download)
+        payloads = {file.file_id: payload for file, payload in zip(files, data)}
+        downloads = tuple(hash_downloaded_content(item.file_id, (payloads[item.file_id],),
+            expected_size_bytes=item.expected_size_bytes, download_completed=True) for item in planned.requirements)
         after = collect_drive_listing((DriveListingPage("synthetic-folder", None, None, files[::-1], True),),
             expected_folder_id="synthetic-folder")
         batch = compare_reobserved_drive_contents(tuple(item.source for item in sources), before, after,
