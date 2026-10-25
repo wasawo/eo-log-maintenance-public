@@ -160,4 +160,4 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 
 `ManifestTransitionInspection.py`の`inspect_staging_target_sizes`はrunning manifest/B2のexact整合とscope/coverage/clockを検査し、明示path群のsize集合・合計だけを返します。pending等から対象を選ばず、元bytesを保持し、作成/Upload/Archiveの許可やPS transportを提供しません。
 
-`MachineConfigurationRootInspection.ps1`の`Get-EoStagingFreeSpaceObservation`は既存directoryのcaller利用可能bytesをWindows APIから観測します。前後canonical観測を比較し、出力はBigInteger・FreeSpaceReliable=false・作成/Upload不可です。実root/FS/token資格や容量予約を証明しません。
+`MachineConfigurationRootInspection.ps1`の`Get-EoStagingFreeSpaceObservation`は既存directoryのcaller利用可能bytesをWindows APIから観測します。前後canonical/volume serial/file index観測を比較し、出力はBigInteger・FreeSpaceReliable=false・作成/Upload不可です。実root/FS/token資格や容量予約を証明しません。

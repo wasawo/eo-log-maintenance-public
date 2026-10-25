@@ -358,3 +358,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_staging_capacity_bridge.py` / `staging_capacity_bridge.ps1`は合成manifest/B2のsize射影→stdin JSON→PS 7.6.7容量観測→stdout整数を接続する。実行版を確認し、ローカルでは必要に応じEOLM_TEST_PWSHで固定版を指定する。tests専用で正式IPCや実容量取得ではない。
 
 `Test-StagingFreeSpace.ps1`は自作OS-tempでWindows空きbytes観測、UInt64精度・不明/reparse/変更の保留と未資格の容量gate停止を検査する。実root/容量/FS受け入れやDry Run A資格ではない。
+
+`Test-StagingFreeSpace.ps1`は同じcanonical名でもvolume serial/file indexの差や、隔離directoryの同名差替えを拒否することも確認する。identityの一意性/再利用/FS資格や観測間ABAの解決は主張しない。

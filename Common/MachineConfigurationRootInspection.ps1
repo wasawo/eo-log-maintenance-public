@@ -11,6 +11,16 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
 namespace EoLogMaintenance {
+    public sealed class DirectoryObservation {
+        public readonly string CanonicalPath;
+        public readonly uint VolumeSerial, IndexHigh, IndexLow;
+        public DirectoryObservation(string canonicalPath, uint volumeSerial, uint indexHigh, uint indexLow) {
+            CanonicalPath = canonicalPath;
+            VolumeSerial = volumeSerial;
+            IndexHigh = indexHigh;
+            IndexLow = indexLow;
+        }
+    }
     public static class DirectoryMetadata {
         [StructLayout(LayoutKind.Sequential)]
         private struct Information {
@@ -40,6 +50,9 @@ namespace EoLogMaintenance {
             return available;
         }
         public static string CanonicalDirectory(string path) {
+            return ObserveDirectory(path).CanonicalPath;
+        }
+        public static DirectoryObservation ObserveDirectory(string path) {
             // Metadata only, OPEN_EXISTING, BACKUP_SEMANTICS | OPEN_REPARSE_POINT.
             // No write access, creation, content read or directory enumeration.
             using (var handle = CreateFileW(path, 0, 7, IntPtr.Zero, 3,
@@ -56,7 +69,8 @@ namespace EoLogMaintenance {
                 uint length = GetFinalPathNameByHandleW(handle, buffer, (uint)buffer.Capacity, 1);
                 if (length == 0 || length >= buffer.Capacity)
                     throw new InvalidOperationException("root_metadata_unavailable");
-                return buffer.ToString();
+                return new DirectoryObservation(buffer.ToString(), information.VolumeSerial,
+                                                information.IndexHigh, information.IndexLow);
             }
         }
     }
@@ -94,6 +108,18 @@ function Get-EoDirectoryAvailableBytes {
     return [EoLogMaintenance.DirectoryMetadata]::AvailableBytes($LiteralPath)
 }
 
+function Get-EoExistingDirectoryObservation {
+    param([Parameter(Mandatory)][string]$LiteralPath)
+    $full = [IO.Path]::GetFullPath($LiteralPath)
+    Assert-EoDirectoryComponents -LiteralPath $full
+    $observation = [EoLogMaintenance.DirectoryMetadata]::ObserveDirectory($full)
+    Assert-EoDirectoryComponents -LiteralPath $full
+    if (-not $observation.CanonicalPath.StartsWith('\\?\Volume{', [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'configuration_root_inspection_failed'
+    }
+    return $observation
+}
+
 function Get-EoStagingFreeSpaceObservation {
     <# Metadata observation only: no creation, reservation or root qualification. #>
     [CmdletBinding()]
@@ -107,10 +133,14 @@ function Get-EoStagingFreeSpaceObservation {
             $LiteralPath.Substring(2) -match '[<>:"|?*/\x00-\x1f]') { throw 'invalid' }
         $full = [IO.Path]::GetFullPath($LiteralPath)
         Initialize-EoDirectoryMetadataType
-        $before = Get-EoExistingDirectoryCanonicalPath -LiteralPath $full
+        $before = Get-EoExistingDirectoryObservation -LiteralPath $full
         $observed = Get-EoDirectoryAvailableBytes -LiteralPath $full
-        $after = Get-EoExistingDirectoryCanonicalPath -LiteralPath $full
-        if ($observed -isnot [ulong] -or -not $before.Equals($after, [StringComparison]::OrdinalIgnoreCase)) {
+        $after = Get-EoExistingDirectoryObservation -LiteralPath $full
+        if ($observed -isnot [ulong] -or $before -isnot [EoLogMaintenance.DirectoryObservation] -or
+            $after -isnot [EoLogMaintenance.DirectoryObservation] -or
+            -not $before.CanonicalPath.Equals($after.CanonicalPath, [StringComparison]::OrdinalIgnoreCase) -or
+            $before.VolumeSerial -ne $after.VolumeSerial -or $before.IndexHigh -ne $after.IndexHigh -or
+            $before.IndexLow -ne $after.IndexLow) {
             throw 'invalid'
         }
         $available = [bigint]$observed

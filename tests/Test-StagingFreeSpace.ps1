@@ -28,7 +28,7 @@ $marker = Join-Path $root 'sentinel.txt'
 [IO.File]::WriteAllText($marker, 'synthetic-preserve')
 $junction = Join-Path $root 'alias'
 $originalQuery = (Get-Item Function:Get-EoDirectoryAvailableBytes).ScriptBlock
-$originalCanonical = (Get-Item Function:Get-EoExistingDirectoryCanonicalPath).ScriptBlock
+$originalObservation = (Get-Item Function:Get-EoExistingDirectoryObservation).ScriptBlock
 try {
     $result = Get-EoStagingFreeSpaceObservation $root
     Assert-Observation $result $true
@@ -53,13 +53,57 @@ try {
     Assert-Observation (Get-EoStagingFreeSpaceObservation $root) $false
     Set-Item Function:Get-EoDirectoryAvailableBytes -Value $originalQuery
     $script:canonicalCalls = 0
-    Set-Item Function:Get-EoExistingDirectoryCanonicalPath -Value {
+    Set-Item Function:Get-EoExistingDirectoryObservation -Value {
         param($LiteralPath)
         $script:canonicalCalls++
-        return 'synthetic-canonical-' + $script:canonicalCalls
+        return [EoLogMaintenance.DirectoryObservation]::new(('synthetic-canonical-' + $script:canonicalCalls), 1, 2, 3)
     }
     Assert-Observation (Get-EoStagingFreeSpaceObservation $root) $false
-    Set-Item Function:Get-EoExistingDirectoryCanonicalPath -Value $originalCanonical
+    Set-Item Function:Get-EoExistingDirectoryObservation -Value $originalObservation
+    foreach ($field in @('VolumeSerial', 'IndexHigh', 'IndexLow')) {
+        $script:identityCalls = 0
+        $script:identityField = $field
+        Set-Item Function:Get-EoExistingDirectoryObservation -Value {
+            param($LiteralPath)
+            $script:identityCalls++
+            $volume = [uint32]1; $high = [uint32]2; $low = [uint32]3
+            if ($script:identityCalls -eq 2) {
+                switch ($script:identityField) {
+                    'VolumeSerial' { $volume++ }
+                    'IndexHigh' { $high++ }
+                    'IndexLow' { $low++ }
+                }
+            }
+            return [EoLogMaintenance.DirectoryObservation]::new('same-canonical', $volume, $high, $low)
+        }
+        Assert-Observation (Get-EoStagingFreeSpaceObservation $root) $false
+    }
+    Set-Item Function:Get-EoExistingDirectoryObservation -Value $originalObservation
+    # Actual same-name directory replacement within this owned synthetic root.
+    $script:swapSource = [IO.Path]::GetFullPath((Join-Path $root 'swap'))
+    $script:swapBackup = [IO.Path]::GetFullPath((Join-Path $root 'swap-preserved'))
+    $script:swapOwner = [IO.Path]::GetFullPath($root)
+    [IO.Directory]::CreateDirectory($script:swapSource) | Out-Null
+    [IO.File]::WriteAllText((Join-Path $script:swapSource 'original.txt'), 'preserved')
+    Set-Item Function:Get-EoDirectoryAvailableBytes -Value {
+        param($LiteralPath)
+        # Verify both absolute move targets before moving a directory.
+        $prefix = $script:swapOwner + [IO.Path]::DirectorySeparatorChar
+        if ($LiteralPath -cne $script:swapSource -or
+            -not $script:swapSource.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) -or
+            -not $script:swapBackup.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) -or
+            ([IO.File]::GetAttributes($LiteralPath) -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'fixture_move_target_invalid'
+        }
+        [IO.Directory]::Move($script:swapSource, $script:swapBackup)
+        [IO.Directory]::CreateDirectory($script:swapSource) | Out-Null
+        return [ulong]1000000000
+    }
+    Assert-Observation (Get-EoStagingFreeSpaceObservation $script:swapSource) $false
+    if ([IO.File]::ReadAllText((Join-Path $script:swapBackup 'original.txt')) -cne 'preserved' -or
+        [IO.File]::Exists((Join-Path $script:swapSource 'original.txt'))) { throw 'Replacement test lost original bytes.' }
+    $checks++
+    Set-Item Function:Get-EoDirectoryAvailableBytes -Value $originalQuery
     $target = Join-Path $root 'target'
     [IO.Directory]::CreateDirectory($target) | Out-Null
     & $env:ComSpec /d /c mklink /J $junction $target 2>&1 | Out-Null
@@ -72,7 +116,7 @@ try {
 }
 finally {
     Set-Item Function:Get-EoDirectoryAvailableBytes -Value $originalQuery
-    Set-Item Function:Get-EoExistingDirectoryCanonicalPath -Value $originalCanonical
+    Set-Item Function:Get-EoExistingDirectoryObservation -Value $originalObservation
     $resolved = [IO.Path]::GetFullPath($root)
     if ([IO.Path]::GetDirectoryName($resolved).TrimEnd([IO.Path]::DirectorySeparatorChar) -cne $parent -or
         -not [IO.Path]::GetFileName($resolved).StartsWith('eo-free-space-') -or

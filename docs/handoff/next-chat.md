@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`b48ac0e`、同じ`codex/drive-download-observation`で[空きbytes query前後のdirectory identity照合](../design/staging-file-lifecycle.md)を追加。同じnative handleからcanonical path/volume serial/file index high・lowを観測し、前後の検出可能な差を拒否する。既存canonical文字列APIは委譲して維持し、内部identityを公開結果やログへ出さない。
+- 同名directoryの実差替えと、同じcanonical名で各identity fieldが変わる合成試験を追加する。FSごとのID制約/再利用/ReFS 64-bit非一意性・query中のpin/ABAは未解決で、FreeSpaceReliable/作成/Upload許可はfalseのまま。PS 7.6.7で空きbytes/identity21件＋既存root検査142件成功（junction/short-name skipなし）。変更PS構文/PSScriptAnalyzer Error検査成功。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実運用root/容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実root/provider/FS/token/clock/ownerと容量資格・使用点、正式PS transport/対象履歴/copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（Windows空きbytes観測・b48ac0e）
+
 - 基準`c6add52`、同じ`codex/drive-download-observation`で[Windows caller利用可能bytesのmetadata観測](../design/staging-file-lifecycle.md)を既存root inspectorへ追加。既存drive-rooted directory/reparse排除・前後canonical観測一致を要求し、GetDiskFreeSpaceExWのcaller available UInt64をBigIntegerで返す。失敗/変更時は固定reason/null bytesで保留し、path/volume/raw例外を返さない。
 - 成功もFreeSpaceReliable=false、MayCreateStaging/MayUpload=falseで、実root/token/ACL/FSの資格・現在性/同時snapshot/ABA・予約を証明しない。Add-Type初期化を含むDry Run A/runtime資格は未実証。自作OS-tempだけでnative読取・mock最大値/障害/変更と既存root回帰を検証する。PS 7.6.7で追加空きbytes16件＋既存root検査142件成功（junction/short-name skipなし）。変更PS構文/PSScriptAnalyzer Error検査成功。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実運用root/容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：実root/FS/token/clock/ownerと容量の資格・使用点、正式PS transport/対象履歴/copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
