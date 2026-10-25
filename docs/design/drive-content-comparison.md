@@ -89,3 +89,13 @@ DownloadRequirementはfile IDと期待sizeを保持する内部データで、IP
 requirement0件でも再導出/列挙/空download集合の整合を検査し、空入力をno_workへ変えない。planの一致は不足hash対象の一致だけで、元source contextの出所や真正性を証明しない。plan/観測の反復からreceiptやdownload/restore/retry権限を作らず、結果の全may_*false。実取得のID/bytes/完了・現在性、実source使用点はproviderの未実装gateに残る。
 
 [計画接続試験](../../tests/test_planned_drive_comparison.py)は全件完了、1件欠落/余分/重複/未知ID/size不一致、計画field/型/flag改変、現在contextと列挙変化、download不要/空選択、誤hashの保留と非認可を扱う。[source batch接続](../../tests/test_comparison_source_batch.py)も実source再観測→page→計画→合成bytes/hash→再page→計画完了集合検査→比較までを検査する。実API/runtime受け入れは未実施。
+
+## Download新規stagingの隔離接続（tests専用）
+
+[fixture](../../tests/download_staging_fixture.py)はcallerのroot/保存先/API clientを受けず、自分で作る所有marker付きOS-tempだけを使う。実Windows mutex/owner内で試行ごとに新しいdirectoryを確保し、固定合成名をxb/create-newで開く。既存fileへ上書きせず、部分fileが残った次試行も別の新規fileを使う。配置・filename・APIは正式download runtime契約へ採用しない。
+
+合成chunkを書き、期待size超過/不正chunk/途中例外では観測を返さず部分fileを保全する。正常消費後はflush/fsync/closeし、directory/regular-file・1 link・path/handleのidentity/size/mtime等を検査して、実fileのchunk読戻しを既存hash_downloaded_contentへ接続する。未完了/短いfile・読戻し前の検出可能な変更は拒否する。所有mutexは失敗時も解放し、cleanupは自作rootのidentity/markerを再確認したテスト終了時だけ行う。元ログ/Drive fileや実設定の削除/回復コードを追加しない。
+
+[合成試験](../../tests/test_download_staging_integration.py)は空/通常/1 MiB超の実file、計画→staging→実bytes/hash→再列挙→比較、途中失敗後の別stagingと旧bytes保全、create-new競合、short/overlong/未完了、不正root/requirementと変更file保全を確認する。OS-tempの書込みは通常モードのテストであり、Dry Run Aのdownload bytes禁止を緩和しない。
+
+これはmock chunkのnative保存/読戻し接続で、実SDK/認証/C-02 result、PS retry予算/時間待機、download成功/ID binding、正式staging/root/ACL/FSと容量確認、原子的同時snapshot/敵対的ABA、process crash/電源断耐久性、Tier B/Cやruntime受け入れは未実装・未実証である。fsync成功だけで耐久性や正式writer資格を与えない。

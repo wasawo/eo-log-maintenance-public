@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`0659bc3`、同じ`codex/drive-download-observation`で[download新規stagingの隔離接続](../design/drive-content-comparison.md)をtests専用に追加。自作OS-temp/所有marker/実mutex内で試行ごとに別directoryとcreate-new fileを使い、flush/close後の実fileをhash観測へ接続する。計画→実staging→読戻しhash→再page→計画完了集合検査/比較までを合成接続する。
+- 途中失敗/short/overlong/未完了/不正chunk/root/requirementと読戻し前変更を拒否し、旧部分file/競合fileを保全する。次試行は新file、失敗時もowner解放。cleanupは自作rootのidentity/marker確認後だけ。正式root/filename/API/容量方針は採用せず、Dry Run Aを緩和しない。Python 3.11.9（CI 3.12）で追加staging接続＋既存計画完了集合/hashの計21件成功（skipなし、通常の隔離試験権限で実行）。配布file集合49件/PS/schema/runtime codeは不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDK/ID・bytes・完了/queryの真正binding・C-02/credential、PS retry予算/時間/新staging資格、正式root/ACL/容量/FS/owner/clock、敵対的ABA/同時snapshot・process crash/電源断耐久性、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（計画/完了集合検査・0659bc3）
+
 - 基準`8f13fd0`、同じ`codex/drive-download-observation`で[計画と完了download集合の整合接続](../design/drive-content-comparison.md)を追加。plan/requirementの厳密型/全false flagを確認し、現source/列挙から毎回再導出して一致を要求する。前後列挙不変、計画IDと完了観測IDの全件一致・実size一致の場合だけ各sourceの比較へ進む。
 - 改変/不足/余分/重複/未知ID/size不一致/共通不備は部分結果なしで全体保留。誤hashは各結果で保留し、既存のfileごと不足観測を保留するAPIは維持。source batch→page→計画→合成bytes/hash→再page→完了集合検査→比較を接続し、計画/観測再利用・空集合を権限/成功/no_workへ変えない。Python 3.11.9（CI 3.12）で追加計画接続＋既存download計画/Drive batch/source batchの計28件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：実SDK/ID・bytes・完了/queryの真正binding・C-02/credential、source/観測の現在性・同時snapshot/ABAと使用点資格、実root/FS/owner/clock、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
