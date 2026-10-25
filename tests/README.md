@@ -360,3 +360,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `Test-StagingFreeSpace.ps1`は自作OS-tempでWindows空きbytes観測、UInt64精度・不明/reparse/変更の保留と未資格の容量gate停止を検査する。実root/容量/FS受け入れやDry Run A資格ではない。
 
 `Test-StagingFreeSpace.ps1`は同じcanonical名でもvolume serial/file indexの差や、隔離directoryの同名差替えを拒否することも確認する。identityの一意性/再利用/FS資格や観測間ABAの解決は主張しない。
+
+空きbytes試験はnative FileIdInfoと各UInt64部分の最大値付近の差、pre/postの未取得を追加確認する。64-bit-only fallbackを許さず、実運用FS全般の対応やID再利用/ABA排除とは区別する。

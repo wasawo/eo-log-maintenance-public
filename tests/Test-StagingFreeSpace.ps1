@@ -56,7 +56,7 @@ try {
     Set-Item Function:Get-EoExistingDirectoryObservation -Value {
         param($LiteralPath)
         $script:canonicalCalls++
-        return [EoLogMaintenance.DirectoryObservation]::new(('synthetic-canonical-' + $script:canonicalCalls), 1, 2, 3)
+        return [EoLogMaintenance.DirectoryObservation]::new(('synthetic-canonical-' + $script:canonicalCalls), 1, 2, 3, 4, 5, 6)
     }
     Assert-Observation (Get-EoStagingFreeSpaceObservation $root) $false
     Set-Item Function:Get-EoExistingDirectoryObservation -Value $originalObservation
@@ -74,11 +74,62 @@ try {
                     'IndexLow' { $low++ }
                 }
             }
-            return [EoLogMaintenance.DirectoryObservation]::new('same-canonical', $volume, $high, $low)
+            return [EoLogMaintenance.DirectoryObservation]::new('same-canonical', $volume, $high, $low, 4, 5, 6)
         }
         Assert-Observation (Get-EoStagingFreeSpaceObservation $root) $false
     }
     Set-Item Function:Get-EoExistingDirectoryObservation -Value $originalObservation
+    # Preserve all UInt64 bits of volume ID and both halves of FILE_ID_128.
+    foreach ($field in @('VolumeId', 'IdPart0', 'IdPart1')) {
+        $script:extendedCalls = 0
+        $script:extendedField = $field
+        Set-Item Function:Get-EoExistingDirectoryObservation -Value {
+            param($LiteralPath)
+            $script:extendedCalls++
+            $volume = [ulong]::MaxValue; $part0 = [ulong]::MaxValue; $part1 = [ulong]::MaxValue
+            $changed = [ulong]::Parse('18446744073709551614')
+            if ($script:extendedCalls -eq 2) {
+                switch ($script:extendedField) {
+                    'VolumeId' { $volume = $changed }
+                    'IdPart0' { $part0 = $changed }
+                    'IdPart1' { $part1 = $changed }
+                }
+            }
+            return [EoLogMaintenance.DirectoryObservation]::new('same-canonical', 1, 2, 3, $volume, $part0, $part1)
+        }
+        Assert-Observation (Get-EoStagingFreeSpaceObservation $root) $false
+    }
+    $script:queryCalls = 0
+    Set-Item Function:Get-EoDirectoryAvailableBytes -Value { param($LiteralPath) $script:queryCalls++; return [ulong]0 }
+    Set-Item Function:Get-EoExistingDirectoryObservation -Value {
+        param($LiteralPath)
+        return [EoLogMaintenance.DirectoryObservation]::new('same-canonical', 1, 2, 3)
+    }
+    Assert-Observation (Get-EoStagingFreeSpaceObservation $root) $false
+    if ($script:queryCalls -ne 0) { throw 'Missing extended identity reached free-space query.' }
+    $checks++
+    $script:extendedCalls = 0
+    Set-Item Function:Get-EoExistingDirectoryObservation -Value {
+        param($LiteralPath)
+        $script:extendedCalls++
+        if ($script:extendedCalls -eq 1) {
+            return [EoLogMaintenance.DirectoryObservation]::new('same-canonical', 1, 2, 3, 4, 5, 6)
+        }
+        return [EoLogMaintenance.DirectoryObservation]::new('same-canonical', 1, 2, 3)
+    }
+    Assert-Observation (Get-EoStagingFreeSpaceObservation $root) $false
+    if ($script:queryCalls -ne 1) { throw 'Unexpected query count in post-observation rejection.' }
+    $checks++
+    Set-Item Function:Get-EoExistingDirectoryObservation -Value { param($LiteralPath) throw 'synthetic-identity-unavailable' }
+    Assert-Observation (Get-EoStagingFreeSpaceObservation $root) $false
+    Set-Item Function:Get-EoExistingDirectoryObservation -Value $originalObservation
+    Set-Item Function:Get-EoDirectoryAvailableBytes -Value $originalQuery
+    $native = Get-EoExistingDirectoryObservation -LiteralPath $root
+    if (-not $native.HasExtendedIdentity -or $native.VolumeId -isnot [ulong] -or
+        $native.IdPart0 -isnot [ulong] -or $native.IdPart1 -isnot [ulong]) {
+        throw 'Native extended identity missing or truncated.'
+    }
+    $checks++
     # Actual same-name directory replacement within this owned synthetic root.
     $script:swapSource = [IO.Path]::GetFullPath((Join-Path $root 'swap'))
     $script:swapBackup = [IO.Path]::GetFullPath((Join-Path $root 'swap-preserved'))

@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`cf1cdd4`、同じ`codex/drive-download-observation`で[空きbytes観測のFileIdInfo必須化](../design/staging-file-lifecycle.md)を追加。同一handleで64-bit volume serial/128-bit file IDも取得し、全bitを保持して前後照合する。pre/post未取得・legacy-onlyは保留し、64-bit照合へfallbackしない。pre未取得は空きbytes query前に停止する。
+- 既存canonical文字列/legacy観測APIの互換性は維持。内部形式でありconfig/owner-v2形式を決めず、公開結果へidentityを出さない。native取得・UInt64最大値付近の各field差・pre/post未取得を追加検証する。FSごとの対応・ID再利用/ABA・query中pin/実root資格は未実証で、信頼/許可flagはfalseのまま。PS 7.6.7で空きbytes/extended identity30件＋既存root検査142件成功（junction/short-name skipなし）。変更PS構文/PSScriptAnalyzer Error検査成功。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実運用root/FS/provider/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実FS/provider/token/root/clock/ownerと容量資格・使用点、正式PS transport/対象履歴/copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（directory identity照合・cf1cdd4）
+
 - 基準`b48ac0e`、同じ`codex/drive-download-observation`で[空きbytes query前後のdirectory identity照合](../design/staging-file-lifecycle.md)を追加。同じnative handleからcanonical path/volume serial/file index high・lowを観測し、前後の検出可能な差を拒否する。既存canonical文字列APIは委譲して維持し、内部identityを公開結果やログへ出さない。
 - 同名directoryの実差替えと、同じcanonical名で各identity fieldが変わる合成試験を追加する。FSごとのID制約/再利用/ReFS 64-bit非一意性・query中のpin/ABAは未解決で、FreeSpaceReliable/作成/Upload許可はfalseのまま。PS 7.6.7で空きbytes/identity21件＋既存root検査142件成功（junction/short-name skipなし）。変更PS構文/PSScriptAnalyzer Error検査成功。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実運用root/容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：実root/provider/FS/token/clock/ownerと容量資格・使用点、正式PS transport/対象履歴/copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。

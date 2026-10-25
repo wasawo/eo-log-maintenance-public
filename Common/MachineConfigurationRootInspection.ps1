@@ -14,11 +14,21 @@ namespace EoLogMaintenance {
     public sealed class DirectoryObservation {
         public readonly string CanonicalPath;
         public readonly uint VolumeSerial, IndexHigh, IndexLow;
+        public readonly bool HasExtendedIdentity;
+        public readonly ulong VolumeId, IdPart0, IdPart1;
         public DirectoryObservation(string canonicalPath, uint volumeSerial, uint indexHigh, uint indexLow) {
             CanonicalPath = canonicalPath;
             VolumeSerial = volumeSerial;
             IndexHigh = indexHigh;
             IndexLow = indexLow;
+        }
+        public DirectoryObservation(string canonicalPath, uint volumeSerial, uint indexHigh, uint indexLow,
+                                    ulong volumeId, ulong idPart0, ulong idPart1)
+            : this(canonicalPath, volumeSerial, indexHigh, indexLow) {
+            HasExtendedIdentity = true;
+            VolumeId = volumeId;
+            IdPart0 = idPart0;
+            IdPart1 = idPart1;
         }
     }
     public static class DirectoryMetadata {
@@ -30,6 +40,11 @@ namespace EoLogMaintenance {
             public System.Runtime.InteropServices.ComTypes.FILETIME Write;
             public uint VolumeSerial, SizeHigh, SizeLow, Links, IndexHigh, IndexLow;
         }
+        [StructLayout(LayoutKind.Sequential)]
+        private struct FileIdentity {
+            // FILE_ID_INFO: UInt64 volume serial followed by 16 opaque ID bytes.
+            public ulong VolumeId, Part0, Part1;
+        }
         [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
         private static extern SafeFileHandle CreateFileW(
             string name, uint access, uint share, IntPtr security,
@@ -37,6 +52,9 @@ namespace EoLogMaintenance {
         [DllImport("kernel32.dll", SetLastError=true)]
         private static extern bool GetFileInformationByHandle(
             SafeFileHandle handle, out Information information);
+        [DllImport("kernel32.dll", SetLastError=true)]
+        private static extern bool GetFileInformationByHandleEx(
+            SafeFileHandle handle, int informationClass, out FileIdentity identity, uint size);
         [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
         private static extern uint GetFinalPathNameByHandleW(
             SafeFileHandle handle, StringBuilder path, uint length, uint flags);
@@ -53,6 +71,12 @@ namespace EoLogMaintenance {
             return ObserveDirectory(path).CanonicalPath;
         }
         public static DirectoryObservation ObserveDirectory(string path) {
+            return ReadDirectory(path, false);
+        }
+        public static DirectoryObservation ObserveDirectoryIdentity(string path) {
+            return ReadDirectory(path, true);
+        }
+        private static DirectoryObservation ReadDirectory(string path, bool requireExtendedIdentity) {
             // Metadata only, OPEN_EXISTING, BACKUP_SEMANTICS | OPEN_REPARSE_POINT.
             // No write access, creation, content read or directory enumeration.
             using (var handle = CreateFileW(path, 0, 7, IntPtr.Zero, 3,
@@ -69,6 +93,15 @@ namespace EoLogMaintenance {
                 uint length = GetFinalPathNameByHandleW(handle, buffer, (uint)buffer.Capacity, 1);
                 if (length == 0 || length >= buffer.Capacity)
                     throw new InvalidOperationException("root_metadata_unavailable");
+                if (requireExtendedIdentity) {
+                    FileIdentity identity;
+                    // FileIdInfo = 0x12; no fallback to 64-bit identity on failure.
+                    if (!GetFileInformationByHandleEx(handle, 0x12, out identity,
+                                                     (uint)Marshal.SizeOf(typeof(FileIdentity))))
+                        throw new InvalidOperationException("root_identity_unavailable");
+                    return new DirectoryObservation(buffer.ToString(), information.VolumeSerial,
+                        information.IndexHigh, information.IndexLow, identity.VolumeId, identity.Part0, identity.Part1);
+                }
                 return new DirectoryObservation(buffer.ToString(), information.VolumeSerial,
                                                 information.IndexHigh, information.IndexLow);
             }
@@ -112,7 +145,7 @@ function Get-EoExistingDirectoryObservation {
     param([Parameter(Mandatory)][string]$LiteralPath)
     $full = [IO.Path]::GetFullPath($LiteralPath)
     Assert-EoDirectoryComponents -LiteralPath $full
-    $observation = [EoLogMaintenance.DirectoryMetadata]::ObserveDirectory($full)
+    $observation = [EoLogMaintenance.DirectoryMetadata]::ObserveDirectoryIdentity($full)
     Assert-EoDirectoryComponents -LiteralPath $full
     if (-not $observation.CanonicalPath.StartsWith('\\?\Volume{', [StringComparison]::OrdinalIgnoreCase)) {
         throw 'configuration_root_inspection_failed'
@@ -134,13 +167,18 @@ function Get-EoStagingFreeSpaceObservation {
         $full = [IO.Path]::GetFullPath($LiteralPath)
         Initialize-EoDirectoryMetadataType
         $before = Get-EoExistingDirectoryObservation -LiteralPath $full
+        if ($before -isnot [EoLogMaintenance.DirectoryObservation] -or -not $before.HasExtendedIdentity) {
+            throw 'invalid'
+        }
         $observed = Get-EoDirectoryAvailableBytes -LiteralPath $full
         $after = Get-EoExistingDirectoryObservation -LiteralPath $full
         if ($observed -isnot [ulong] -or $before -isnot [EoLogMaintenance.DirectoryObservation] -or
             $after -isnot [EoLogMaintenance.DirectoryObservation] -or
+            -not $after.HasExtendedIdentity -or
             -not $before.CanonicalPath.Equals($after.CanonicalPath, [StringComparison]::OrdinalIgnoreCase) -or
             $before.VolumeSerial -ne $after.VolumeSerial -or $before.IndexHigh -ne $after.IndexHigh -or
-            $before.IndexLow -ne $after.IndexLow) {
+            $before.IndexLow -ne $after.IndexLow -or $before.VolumeId -ne $after.VolumeId -or
+            $before.IdPart0 -ne $after.IdPart0 -or $before.IdPart1 -ne $after.IdPart1) {
             throw 'invalid'
         }
         $available = [bigint]$observed
