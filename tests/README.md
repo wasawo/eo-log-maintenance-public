@@ -326,3 +326,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_source_enumeration_stability.py`はhash後/空scan後の追加・削除・rename・属性変更・directory差替え・rescan不明をincompleteとして保持し、使用点でcandidateを書かないことを合成検証します。最後の再確認後の変更や敵対的ABAは未実証です。
 
 `test_source_hash_identity.py`はhandle identityの読取前拒否、観測サイズ超過時の早期停止、short read、空/1 MiB境界のexact hashも合成検証する。OS readのtimeoutやruntime受け入れではない。
+
+`test_terminal_plan_usepoint.py`は終端planの独立prior/B2/contextからの再導出と、所有mutex内の候補公開前停止を合成検証する。C1比較更新やDrive/runtimeの受け入れではない。

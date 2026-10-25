@@ -65,3 +65,13 @@ manifest v1 fieldだけを出力し、finished/outcome/Drive IDはnull、verific
 初期producerでも既存filename分類を使い、B2でeligibleとされたtargetが文法外/実在しない日付なら拒否する。B2 digest/countが整合することだけでsource分類を省略しない。期間の絞込みや保持年/月の方針を変更せず、report builderと同じ承認文法を再利用する。
 
 試験は両PC/log、Unicode階層、empty/ineligible/invalid・hash不明、source変更後の旧plan保持と別runの新hash、PC-B候補保存/競合、決定性を扱う。初期候補はrunning/pendingのままで、markerのcommittedや計上0件を成功/no_work/Upload許可に変えない。sourceが変わっても旧planは自動で無効化/書換えされないため、実行前の再検証・root/所有権・fresh run bindingは未実装gateのままである。
+
+## 終端planの使用点再導出
+
+`revalidate_terminal_manifest_plan`は厳密なTerminalManifestPlan型、全false flag、明示AC trueと、独立入力の直前manifest exact bytes・凍結B2 exact bytes・PC/log/period/runを要求する。保存済みplanのexpected/B2が独立観測と違う場合は拒否する。bytes型を厳格に扱い、bytearray等をsnapshotとして取り込まない。
+
+呼出しごとに現在UTC/reliable・static schema・参照pathを使って既存の遷移/B2/report生成を再実行し、scopeとplan全体をexact比較する。report改変・書式変更・参照path差替え・時計不明・不正遷移を、過去のplan成功で省略しない。一致時は再生成したimmutable planを返すが、全may_*はfalseのまま。
+
+このhelperはI/Oを行わず、引数の直前manifest/B2/AC自体の出所・最新性・真正性を保証しない。実保存先からの安定read・期待scope/provider・owner/root/FS資格、検査後の変更とC1比較更新は外部gateである。同一結果をreceiptや実行許可へ昇格しない。
+
+[合成使用点試験](../../tests/test_terminal_plan_usepoint.py)は両PC/logのempty/成功/混在、snapshot/flag/AC/scope/report/context改変を検査する。既存の候補bundle fixtureにtests専用の公開前callbackを設け、実mutex/owner内で直前bytesを読み、検査一致時の候補公開・不一致時の書込み0件・prior保全とowner解放を確認する。これはimmutable候補への隔離接続であり、現在manifestの置換やruntime受け入れではない。

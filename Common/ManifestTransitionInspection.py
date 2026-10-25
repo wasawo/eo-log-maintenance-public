@@ -234,3 +234,44 @@ def prepare_terminal_manifest_transition(
         raise ManifestTransitionError(exc.reason_code) from None
     except Exception:
         _reject("terminal_transition_input_invalid")
+
+
+def revalidate_terminal_manifest_plan(
+    plan, *, expected_previous_bytes, expected_evidence_bytes, expected_pc_id,
+    expected_log_type, expected_target_period, expected_run_id, ac_connected,
+    manifest_path, evidence_path, current_utc, current_utc_reliable,
+    manifest_schema, evidence_schema, report_schema,
+):
+    """Re-derive a terminal candidate from independent use-point observations.
+
+    Supplied previous/B2 bytes and AC are observations, not trusted OS reads or
+    receipts. This pure check performs no I/O and grants no publication rights.
+    Every call rebuilds the report; a saved plan is never a completed check.
+    """
+    if (type(plan) is not TerminalManifestPlan or any(flag is not False for flag in
+            (plan.may_publish, plan.may_archive, plan.may_change_state))):
+        _reject("terminal_usepoint_plan_invalid")
+    if ac_connected is not True:
+        _reject("terminal_usepoint_ac_unconfirmed")
+    if (type(expected_previous_bytes) is not bytes or type(expected_evidence_bytes) is not bytes
+            or type(plan.expected_bytes) is not bytes or type(plan.proposed_bytes) is not bytes
+            or type(plan.evidence_bytes) is not bytes or type(plan.report_bytes) is not bytes):
+        _reject("terminal_usepoint_snapshot_invalid")
+    if (plan.expected_bytes != expected_previous_bytes or plan.evidence_bytes != expected_evidence_bytes):
+        _reject("terminal_usepoint_snapshot_changed")
+    try:
+        restored = prepare_terminal_manifest_transition(expected_previous_bytes, plan.proposed_bytes,
+            expected_evidence_bytes, manifest_path=manifest_path, evidence_path=evidence_path,
+            current_utc=current_utc, current_utc_reliable=current_utc_reliable,
+            manifest_schema=manifest_schema, evidence_schema=evidence_schema, report_schema=report_schema)
+        value = _parse(restored.proposed_bytes)
+        if ((value["pc_id"], value["log_type"], value["target_period"], value["run_id"]) !=
+                (expected_pc_id, expected_log_type, expected_target_period, expected_run_id)):
+            _reject("terminal_usepoint_scope_mismatch")
+        if restored != plan:
+            _reject("terminal_usepoint_plan_changed")
+        return restored
+    except ManifestTransitionError:
+        raise
+    except Exception:
+        _reject("terminal_usepoint_context_invalid")

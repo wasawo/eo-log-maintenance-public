@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`f774aaa`、同じ`codex/initial-manifest-plan`で[終端plan使用点再導出](../design/manifest-transition-inspection.md)を追加。独立prior/B2 exact bytes・PC/log/period/run・AC・現在時計/schema/参照pathを要求し、既存遷移/report生成を毎回実行してplan全体とexact一致を検査する。型/flag/snapshot/AC/scope/reportの不一致を拒否し、返すplanも全may_*false。
+- 合成試験は両PC/logのempty/成功/混在、改変行列、実mutex/owner内の公開前再検査と不一致時の候補書込み0件・prior保全・owner解放を確認する。fixtureのcallbackはtests専用で、正式writer/provider契約へ採用しない。Python 3.11.9（CI 3.12）で追加使用点＋既存終端plan/遷移/候補bundle/初期planの計42件成功（skipなし）。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・runtime受け入れは未実施。配布file集合48件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：入力prior/B2/ACの出所・最新性、実root/owner/clock/FSの資格、検査後の変化・敵対的ABA、C1比較更新・Drive/runtime受け入れ。次は確定済みの独立作業かprovider未決境界の候補整理。
+
+## 直前の実装単位（hash早期照合・サイズ超過停止・f774aaa）
+
 - 基準`307dd67`、同じ`codex/initial-manifest-plan`で[source hashの早期照合・サイズ超過停止](../design/source-enumeration-stability.md)を追加。開いたhandleのidentityが直前path観測と違えばbyte読取前に拒否し、読取上限を観測サイズ＋1 byteへ制限する。連続追記のEOFを追い続けず、short readも拒否する。既存理由code/不完全coverage/観測済みデータの保持を維持する。
 - 合成試験で別handleのread未呼出し・context解放、EOFのない模擬streamの停止、short read、空/1 MiB境界のexact hashを追加。Python 3.11.9（CI 3.12）で追加hash試験＋既存source列挙/再観測/使用点/初期接続の計56件成功（skipなし）。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・runtime受け入れは未実施。配布file集合48件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：OS read自体のblock/timeout、hash後から使用までの変化、atomic snapshot/敵対的ABA、実root/ACL/FS/clock/owner/provider資格、C1/C2 writer・Drive/runtime受け入れ。次は確定済みの独立作業かprovider未決境界の候補整理。
