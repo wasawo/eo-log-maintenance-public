@@ -138,6 +138,68 @@ def inspect_manifest_transition(previous_bytes, proposed_bytes, *, manifest_sche
         _reject("manifest_transition_input_invalid")
 
 
+@dataclass(frozen=True)
+class ManifestHistoryObservation:
+    snapshot_count: int
+    file_transition_count: int
+    upload_pending_transition_count: int
+    retry_pending_transition_count: int
+    registered_pending_file_count: int
+    upload_pending_file_count: int
+    aggregation_required: bool
+    status: str = field(default="requires_runtime_evidence", init=False)
+    may_publish: bool = field(default=False, init=False)
+    may_upload: bool = field(default=False, init=False)
+    may_retry: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+
+
+def inspect_manifest_history(snapshots, *, manifest_schema):
+    """Check a supplied history from initial registration, without I/O.
+
+    A syntactically complete trace does not authenticate event evidence,
+    missing snapshots, ownership, metadata-first persistence or API outcomes.
+    Never infer history from one arbitrary running/terminal snapshot.
+    """
+    try:
+        if type(snapshots) is not tuple or not snapshots or any(type(raw) is not bytes for raw in snapshots):
+            _reject("manifest_history_input_invalid")
+        validator = _validator(manifest_schema)
+        inspect_manifest_transition(None, snapshots[0], manifest_schema=manifest_schema)
+        last, old_files = _snapshot(snapshots[0], validator)
+        pending_upload = set()
+        changed = upload_entries = retry_entries = 0
+        for previous, proposed in zip(snapshots, snapshots[1:]):
+            pair = inspect_manifest_transition(previous, proposed, manifest_schema=manifest_schema)
+            last, new_files = _snapshot(proposed, validator)
+            changed += pair.get("file_transition_count", 0)
+            for path, old in old_files.items():
+                before, after = old["status"], new_files[path]["status"]
+                if before == after:
+                    continue
+                if before == "pending":
+                    if after in ("uploaded", "unknown") and path not in pending_upload:
+                        _reject("planning_pending_used_as_upload")
+                    if after == "staging" and path in pending_upload:
+                        _reject("upload_pending_restarted_staging")
+                    pending_upload.discard(path)
+                if after == "pending":
+                    pending_upload.add(path)
+                    if before == "ready":
+                        upload_entries += 1
+                    else:  # The adopted pair table permits only unknown here.
+                        retry_entries += 1
+            old_files = new_files
+        registered = sum(item["status"] == "pending" and path not in pending_upload
+                         for path, item in old_files.items())
+        return ManifestHistoryObservation(len(snapshots), changed, upload_entries, retry_entries,
+            registered, len(pending_upload), last["status"] != "running")
+    except ManifestTransitionError:
+        raise
+    except Exception:
+        _reject("manifest_history_input_invalid")
+
+
 @dataclass(frozen=True, repr=False)
 class TerminalManifestPlan:
     expected_bytes: bytes

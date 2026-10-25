@@ -15,6 +15,16 @@
 
 run終端はexact immutable B2等による既存report builderのOSD-03集約検査が必要で、本helperは集約を認証しない。C3のcrash-left runningは保全し、回復後も新runを作る。掲載ペアを根拠に中断履歴を書き換えず、retry枯渇/timeout/不完全一覧だけでfailedや再送へ進めない。writer・証拠provider・永続化・runtime受け入れは未実装。[合成試験](../../tests/test_manifest_transition_inspection.py)はsnapshot/pair検査に限る。
 
+## 初期登録からの連続履歴検査
+
+`inspect_manifest_history(snapshots, manifest_schema=...)`は空でないexact bytes tupleを要求し、初回を新規running/pendingとして既存検査へ渡す。各隣接ペアも既存schema/identity/凍結inventory/時刻/verification/掲載ペア/終端不変性の検査を通す。途中snapshotから過去のstaging履歴を補完しない。
+
+fileのrelative pathごとにpending段階を追跡する。初期登録のpendingからuploaded/unknownへ飛ぶ履歴を拒否し、ready→pendingでUpload直前pending、unknown→pendingで再試行pendingを記録する。Upload pendingからpending→stagingへ戻る履歴も拒否する。登録pending→failedはsource不備等の処理前失敗を記述できるが、実failureの証拠は別途必要。順序を変えたfile配列や変化しないsnapshotでも段階を混同せず、終端runの同一bytes再掲載は遷移数を増やさない。
+
+結果はimmutableな件数とaggregation_required、status=requires_runtime_evidenceおよび全may_publish/may_upload/may_retry/may_archive=false。Upload直前への遷移数とunknownからのretry遷移数は分離し、最後の登録pending件数とUpload pending件数も区別する。run終端でもOSD-03/B2集約検査を代替しない。空inventory/登録pendingだけの履歴をno_workへ変えない。
+
+このAPIは履歴形式やevent field/schemaを新設せず、保存・I/Oを行わない。提示された全snapshotの真正性/完全性・省略/捏造の不在・metadata-first保存順序・copy内容・API応答・unknown retry前の不在照合/予算/待機・所有権/時計/FS/使用点は証明しない。crash-left runningの自動修復や履歴の書換えは行わない。[合成履歴検査](../../tests/test_manifest_history_inspection.py)はこの純粋な段階検査に限る。
+
 ## 終端planとB2／report生成の接続
 
 同moduleの`prepare_terminal_manifest_transition`は、既存のexact prior/proposed manifest bytesと固定B2 bytes、参照先の安全な相対path、信頼済みstatic schema、現在UTCとreliableを要求する。先に上記遷移検査を実行し、続けて既存report builderでB2のdigest・scope・凍結inventory一致、終端fileの検証結果、OSD-03集約status/outcome、G1時刻と未来時刻条件を検査する。どちらかが不成立ならplanを返さず、入力statusや証拠を修正しない。

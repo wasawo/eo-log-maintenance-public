@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`8721021`、同じ`codex/drive-download-observation`で[初期登録からのmanifest連続履歴検査](../design/manifest-transition-inspection.md#初期登録からの連続履歴検査)を追加。exact snapshot tupleを既存pair/schema/identity/凍結inventory/時刻/verification/終端検査へ通し、path単位で登録pendingとUpload直前pendingを区別する。登録pending→uploaded/unknownとUpload pending→stagingを拒否、unknown→pendingのretry遷移を別計数。全公開/Upload/retry/Archive許可false。
+- Python 3.11.9（CI 3.12）で新規history10件＋既存pair11件の計21件成功、skipなし。初回はtest fixtureへschema外outcomeを設定した1件error、修正後history10件成功。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 入力履歴の真正性/完全性・metadata-first/event証拠・実copy/Drive/API・retry不在照合/予算/待機・所有権/clock/FS/使用点・実writer/永続化/runtime受け入れは未実証。終端もOSD-03/B2集約の代替にならず、crash-left runningを修復しない。次は既承認の独立作業を選び、未決writer/event契約を推測しない。
+
+## 直前の実装単位（staging/Drive内容観測接続・8721021）
+
 - 基準`7205366`、同じ`codex/drive-download-observation`で[毎回のstaging再読取とDrive内容観測比較の接続](../design/source-inventory-revalidation.md#既存stagingとdrive観測の接続)を追加。独立context/初期plan/明示allocationでcopyを再照合してから、元basename/size/hashを独立source信頼・前後完全列挙・不足hash計画/完了集合の厳密比較へ渡す。共通Drive不備はlocal観測保全/比較集合なしheld、file単位不一致は個別held。全Upload/retry/同期成功/状態変更/Archive許可false。
 - Python 3.11.9（CI 3.12）で新規接続8件＋既存staging batch8件＋計画比較7件の計23件成功、skipなし。初回は既存suite名を取り違えImportError、正名で実行して成功。接続内部の型/tuple/件数/全false flag検査強化後、新規接続＋計画比較15件成功。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
 - PC suffixの暗黙alias/出所推測なし。空選択はno_workではなく、copy一致からsource信頼や実Upload結果を推測しない。正式metadata/history・割当identity/root/FS/owner/容量/使用点資格・実API/Upload/再試行/同期/runtime受け入れは未完。次は既承認の独立作業を選び、未決writer/adapter契約を推測しない。
