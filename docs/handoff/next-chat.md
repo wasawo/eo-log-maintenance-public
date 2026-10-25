@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`d178815`、同じ`codex/drive-download-observation`で[tests専用upload staging copy接続](../design/staging-file-lifecycle.md)を追加。凍結plan/B2/source再検査を合成所有lock下のcreate-new copy・fsync/close・identity/単一link/size/hash読戻し・source最終照合に接続する。既存名の上書きなし、次sequenceは明示指定のみ。部分file/変更fileを保全し、失敗時もownerを解放する。
+- 両PC/log、空/複数block、source変化、衝突、部分disk-full注入、short write、copy後改変/元sourceへのhardlink置換を検証。Python 3.11.9（CI 3.12）で新規7件＋既存使用点9件の計16件成功、skipなし。CI定義へ新規suite登録、CI自体は未実行。配布50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミットで区切り、push/PRなし。
+- tests-onlyであり正式copy/metadata-first writer/ready状態/Upload/cleanupを提供しない。全Upload/状態変更許可false。実容量枯渇、電源断、同時snapshot/ABA、root/FS/provider資格・runtime受け入れは未実証。次は既承認の独立作業を選ぶ。正式writer/providerの未決境界は推測せず残す。
+
+## 直前の実装単位（残存staging直下観測・d178815）
+
 - 基準`6e33967`、同じ`codex/drive-download-observation`で[残存staging直下entry観測](../design/staging-residual-observation.md)を追加。既存絶対rootを内容非読取・非再帰で列挙し、file/dir/otherの件数と警告要否を返す。reparse/不明/重複/前後変化はheldとして、初回確定件数を保持する。0観測を不完全なまま完全検査へ変えない。
 - 全作成/Upload/cleanup/Archive許可false。metadata解析/field集合・旧run所有権・時刻based cleanup・運用status変更を採用しない。直下列挙成立は完全startup gateやroot/FS/provider資格ではない。追加moduleを両roleレビューpackageへ登録しfile集合は50件。Python 3.11.9（CI 3.12）で新規8件成功（skipなし）。PS 7.6.7で両role package回帰・変更package試験PS構文/PSScriptAnalyzer Error検査成功。変更のないsource/Drive/容量/native root/schema検査は繰り返さない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実staging/root/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：正式残存metadata/旧run検査・startup warning/失敗/Upload停止の強制とroot/FS/owner/provider資格、実source/容量/copy、実SDK/C-02/credential・C1/C2 writer・Drive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。

@@ -4,6 +4,10 @@
 
 This document defines the immutable staging-copy lifecycle used before uploading ElectronicObserver log files to Google Drive.
 
+Implementation evidence: `tests/test_upload_staging_integration.py` connects a frozen initial plan/B2 and source use-point revalidation to an actual create-new copy in its own synthetic OS-temp root, under a synthetic owned mutex. Explicit sequence numbers preserve the approved basename pattern; an occupied name is retained and only an explicitly requested next sequence is attempted. Reads are bounded by frozen size plus one byte. Flush/fsync/close is followed by regular-file, allocated identity, single-link, size and SHA-256 checks, plus a final source hash comparison. The fixture retains partial/conflicting/changed files and releases ownership on failure; it does not retry automatically.
+
+Both PC/log combinations, empty/multiblock content, changed source, collision, injected partial disk-full, short write, post-close modification and source hardlink replacement are covered. This is tests-only copy evidence: no production copy function, metadata-first writer, ready-state publication, Upload adapter or cleanup is implemented. The returned candidate observation always denies Upload/state changes. No real disk exhaustion, crash/power-loss durability, root/FS qualification, atomic snapshot or protection against later replacement is established. The lifecycle requirements below remain binding for the eventual runtime.
+
 The same lifecycle applies to both PC-A and PC-B and to both `BattleLog` and `ErrorReport` uploads. Only the PC identifier and local paths differ.
 
 This is a specification for the initial implementation. It defines staging creation, verification, upload gating, metadata updates, and normal-flow cleanup. Automatic recovery of leftovers from an interrupted run is deferred. The initial implementation must not delete local source logs or Google Drive source files.
