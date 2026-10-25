@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`79e2f29`、同じ`codex/drive-download-observation`で[PC-A比較元の複数target一括再観測](../design/drive-content-comparison.md)を追加。明示path tupleの型/字句/重複/target存在/filenameを全件I/O前に検査し、1回の全source再列挙/hashから指定順の比較元tupleを返す。単一target APIは1要素batchへ委譲して互換性を維持する。
+- 選択外を含むinventory変化/不完全で全体を拒否する。空選択も全再観測し、空結果をno_work/成功へ変えない。元B2 bytesを参照し、cache・暗黙の選択/期間補完・権限昇格なし。合成の複数source→共通page/download→前後比較まで接続する。Python 3.11.9（CI 3.12）で追加batch＋既存単一source接続/Drive前後照合の計21件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDK/全page/query/成功binding・C-02/credential、source/metadataで見えない変化/ABA/同時snapshotと使用点資格、実root/FS/owner/clock、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（Drive前後照合・79e2f29）
+
 - 基準`1ca5cd4`、同じ`codex/drive-download-observation`で[download前後の完全列挙観測照合](../design/drive-content-comparison.md)を追加。両観測の型/flags/完全性/folder/file/ID一意性と全metadata集合を照合し、変化なしの場合だけ既存比較へ進む。並び順差は許すが、追加/削除/rename/ID置換/size/hash/信頼確認状態や対象外fileの変化は保留する。
 - 実APIの再取得や前後関係/現在性は認証せず、保存済み観測やmetadata一致をreceipt/実行許可へ変えない。結果は全may_*false。PC-A source再観測→page→download hash→再page→比較の合成接続も更新する。Python 3.11.9（CI 3.12）で追加前後照合＋既存source接続/page/download hash/比較の計40件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：実SDK/全page/query/成功の真正なbinding・C-02/credential、metadataで見えない内容変化/ABA/同時snapshotと使用点資格、実source/root/FS/owner/clock、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。

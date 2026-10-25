@@ -131,35 +131,59 @@ def revalidate_comparison_source(
     expected_run_id, expected_root_id, expected_relative_scope, reference_date,
     current_utc, current_utc_reliable,
 ):
-    """Bind one PC-A comparison target to frozen B2 and a fresh full re-scan.
+    """Single-target compatibility API; a new full re-scan is still required."""
+    return revalidate_comparison_sources(source_root, evidence_bytes, relative_paths=(relative_path,),
+        source_trusted=source_trusted, schema=schema, expected_log_type=expected_log_type,
+        expected_run_id=expected_run_id, expected_root_id=expected_root_id,
+        expected_relative_scope=expected_relative_scope, reference_date=reference_date,
+        current_utc=current_utc, current_utc_reliable=current_utc_reliable)[0]
 
-    Source trust is independently supplied, never inferred from a digest or
-    PC-A label. No observation grants restore/sync/archive or proves later use.
+
+def revalidate_comparison_sources(
+    source_root, evidence_bytes, *, relative_paths, source_trusted, schema, expected_log_type,
+    expected_run_id, expected_root_id, expected_relative_scope, reference_date,
+    current_utc, current_utc_reliable,
+):
+    """Bind explicit PC-A targets after one fresh full inventory re-scan.
+
+    Validate every requested path before I/O; return the whole immutable tuple
+    or nothing. Empty selection still revalidates coverage, never means no_work.
+    Trust, later use and every operational permission remain external gates.
     """
     if source_trusted is not True:
         _reject("comparison_source_untrusted")
     try:
-        if type(evidence_bytes) is not bytes or type(relative_path) is not str:
+        if type(evidence_bytes) is not bytes or type(relative_paths) is not tuple:
             _reject("comparison_source_input_invalid")
-        _safe_relative_path(relative_path)
+        seen = set()
+        for path in relative_paths:
+            if type(path) is not str:
+                _reject("comparison_source_input_invalid")
+            _safe_relative_path(path)
+            if path in seen:
+                _reject("comparison_source_target_duplicate")
+            seen.add(path)
         value = _parse(evidence_bytes)
         _validate(_validator(schema), value)
         validate_evidence_invariants(value, schema)
         if value["pc_id"] != "PC-A":
             _reject("comparison_source_pc_invalid")
-        selected = [item for item in value["inventory"]["targets"] if item["relative_path"] == relative_path]
-        if len(selected) != 1:
-            _reject("comparison_source_target_missing")
-        target = selected[0]
-        if _classify_filename(target["filename"], expected_log_type) is None:
-            _reject("comparison_source_filename_invalid")
+        inventory = {item["relative_path"]: item for item in value["inventory"]["targets"]}
+        selected = []
+        for path in relative_paths:
+            if path not in inventory:
+                _reject("comparison_source_target_missing")
+            target = inventory[path]
+            if _classify_filename(target["filename"], expected_log_type) is None:
+                _reject("comparison_source_filename_invalid")
+            selected.append(target)
         observed = revalidate_source_inventory(source_root, evidence_bytes, schema=schema,
             expected_pc_id="PC-A", expected_log_type=expected_log_type, expected_run_id=expected_run_id,
             expected_root_id=expected_root_id, expected_relative_scope=expected_relative_scope,
             reference_date=reference_date, current_utc=current_utc, current_utc_reliable=current_utc_reliable)
-        return RevalidatedComparisonSource(
+        return tuple(RevalidatedComparisonSource(
             ComparisonSource(target["filename"], target["size_bytes"], target["expected_sha256"]),
-            observed.evidence_bytes, relative_path)
+            observed.evidence_bytes, target["relative_path"]) for target in selected)
     except SourceRevalidationError:
         raise
     except Exception:

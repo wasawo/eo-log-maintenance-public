@@ -49,3 +49,13 @@ collectorはfile/network APIを直接呼ばず、page提供側のI/O・timeout�
 このhelperはAPI再取得を実行せず、引数が実際にdownload前後のfreshな全pageを表すことやquery/権限/出所を認証しない。同じ保存済みobjectを両側へ渡しても現在性や一回限りreceiptの証明にならず、全結果may_*falseである。掲載されたmetadataで観測できない同サイズ内容変更、観測間のABA・paginationの同時snapshot・比較後の変化は未解決のまま。
 
 [前後観測試験](../../tests/test_drive_comparison_reobservation.py)は変化なし/順序差、追加/削除/rename/ID置換/metadata変化、対象外fileの変化、不完全/不正/別folder/重複ID、不明hash・0/複数候補と保存済み観測の非認可を扱う。[PC-A source合成試験](../../tests/test_comparison_source_revalidation.py)もsource再観測→列挙→download bytes/hash→再列挙→比較までを接続する。実Drive/runtime受け入れではない。
+
+## 複数比較元の一括再観測
+
+`revalidate_comparison_sources`は明示したrelative_pathsのtupleを受け、全pathの型/canonical字句/重複なし/B2 target存在/filename文法をI/O前に検査する。その後、既存の全source再列挙/hashを1回だけ実行し、全観測が一致した場合だけRevalidatedComparisonSourceのtupleを指定順で返す。元B2 bytesは各結果から同じimmutable bytesを参照し、内容をコピー/更新しない。
+
+1 targetごとに全sourceを再hashする呼出しをまとめられるが、batchを次回の検査済みcacheにはしない。単一file用`revalidate_comparison_source`も1要素batchへ委譲し、従来の入力/結果とfreshな全再観測を維持する。選択外fileも含めたinventory変化・不完全coverageで全体を拒否し、途中までの比較元を返さない。
+
+空tupleは明示的な0件選択であり、全source再観測を省略せず、不完全な元B2や変更sourceを通さない。返却の空tupleをno_work/同期成功へ昇格しない。選択・順序・scope/PC-A/source信頼確認はcallerの独立入力で、未指定のfileや期間を自動補完しない。
+
+[合成batch試験](../../tests/test_comparison_source_batch.py)はUnicode複数target、指定順と1回の再hash呼出し、全path事前検査、選択外を含む変更/空選択/空inventory/不完全/信頼とPC-A境界、複数sourceから共通のpage/download/前後比較までを確認する。batchも同時atomic snapshotや真正な使用点資格、Drive/runtime受け入れの証明ではなく、各結果の全may_*はfalseである。

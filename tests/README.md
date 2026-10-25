@@ -338,3 +338,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_comparison_source_revalidation.py`はPC-AのB2/実sourceからpage・download hash・同一内容比較までを合成接続し、変更・不完全・未信頼と同名別pathの境界を検証する。実Drive/出所認証/runtime受け入れではない。
 
 `test_drive_comparison_reobservation.py`はdownload前後の完全列挙観測の集合照合と比較への接続を合成検証する。保存済み観測やmetadata一致を実再取得/現在性・archive許可へ昇格しない。
+
+`test_comparison_source_batch.py`は複数targetを1回の全source再観測へまとめる処理と、共通page/download観測からの比較を合成検証する。空選択をno_workへ変換せず、呼出し間のcacheや実行許可を設けない。

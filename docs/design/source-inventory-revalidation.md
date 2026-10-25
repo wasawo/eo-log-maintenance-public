@@ -24,3 +24,5 @@ B2には元sourceのOS file IDやreference dateそのものを保存していな
 source builderには[列挙完了前のdirectory/属性再確認](source-enumeration-stability.md)も加えた。再観測中の変更を検出した場合もincompleteとして拒否する。non-target内容の変化が別々の安定した再観測の間に起こり、分類観測が変わらなければ従来の比較限界は残る。
 
 `revalidate_comparison_source`は[OSD-01比較元のPC-A source接続](drive-content-comparison.md)として、指定relative pathのB2 targetと毎回の全source再観測を結び付ける。source信頼確認は独立必須で、PC-Aラベル/一致hashから自動認証しない。全may_*falseで、既知validation errorsや不完全判定を成功へ変えない。
+
+複数targetは`revalidate_comparison_sources`へ明示path tupleを渡し、全path検査後に1回の全source再観測から指定順に比較元を返せる。空選択もcoverage再確認を省略せず、no_workとはしない。単一target APIは1要素batchへ委譲し、呼出し間のcacheを設けない。

@@ -145,3 +145,5 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 `SourceInventoryRevalidation.py`の`revalidate_comparison_source`はPC-A凍結B2の指定targetと毎回の実source再観測を比較元へ結び付けます。同名別pathを推測せず、sourceの独立信頼確認を必須とし、返却観測も復元・同期成功・archiveを認可しません。
 
 `DriveContentComparison.py`の`compare_reobserved_drive_content`は前後2つの完全列挙観測を全file ID/metadataで照合し、変化なしの場合だけ既存比較を行います。順序差は許し、古い一意候補で変化を覆い隠しません。実再取得・観測の鮮度/真正性・ABA排除の証明や実行許可にはなりません。
+
+`revalidate_comparison_sources`は複数の明示targetを1回の全source再観測へまとめ、比較元を指定順で返します。単一target APIも委譲して互換性を維持し、空選択・選択外変更・不完全coverageでも再検査を省略しません。
