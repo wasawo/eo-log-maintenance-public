@@ -153,3 +153,5 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 `plan_content_downloads`は完全列挙中の同名同size・cloud SHA欠落/未確認候補をIDごとにまとめ、不足hash観測の計画を返します。may_downloadもfalseで、計画や対象0件はdownload実行・同期成功・upload再送の認可になりません。
 
 `compare_planned_drive_contents`は計画の再導出と、完了download ID集合・期待sizeの全件一致を要求して一括比較へ接続します。不足/余分/改変で部分結果を返さず、計画やhash一致を実行権限にしません。
+
+`LogFunctions.ps1`の`Get-EoStagingCapacityObservation`はupload用の既承認容量式をBigIntegerで計算します。信頼未確認/不足を保留し、全結果MayCreateStaging/MayUpload=falseです。実空き容量の取得・予約・download容量方針は含みません。

@@ -38,6 +38,50 @@ function Assert-SupportedPowerShellVersion {
 # Fail closed before defining or invoking any log-processing function.
 Assert-SupportedPowerShellVersion
 
+function Get-EoStagingCapacityObservation {
+    <# Pure approved upload-staging reserve arithmetic, never a write permit. #>
+    [CmdletBinding()]
+    param(
+        [AllowNull()] [object] $RemainingTargetBytes,
+        [AllowNull()] [object] $AvailableFreeBytes,
+        [AllowNull()] [object] $FreeSpaceReliable
+    )
+
+    $rejected = {
+        param([string] $Reason)
+        [pscustomobject]@{
+            Status = 'rejected'; ReasonCode = $Reason; RequiredFreeBytes = $null
+            MayCreateStaging = $false; MayUpload = $false
+        }
+    }
+    if (($RemainingTargetBytes -isnot [int] -and $RemainingTargetBytes -isnot [long] -and
+            $RemainingTargetBytes -isnot [bigint]) -or $RemainingTargetBytes -lt 0) {
+        return (& $rejected 'staging_remaining_bytes_invalid')
+    }
+    if (($AvailableFreeBytes -isnot [int] -and $AvailableFreeBytes -isnot [long] -and
+            $AvailableFreeBytes -isnot [bigint]) -or $AvailableFreeBytes -lt 0) {
+        return (& $rejected 'staging_available_bytes_invalid')
+    }
+    $remaining = [bigint]$RemainingTargetBytes
+    $reserve = [bigint]::Divide(($remaining + [bigint]9), [bigint]10)
+    $required = $remaining + $reserve + [bigint]100000000
+    $status = 'held'
+    $reason = 'staging_capacity_unconfirmed'
+    if ($FreeSpaceReliable -is [bool] -and $FreeSpaceReliable) {
+        if ([bigint]$AvailableFreeBytes -ge $required) {
+            $status = 'requires_runtime_evidence'
+            $reason = 'staging_capacity_observed_sufficient'
+        }
+        else {
+            $reason = 'staging_capacity_insufficient'
+        }
+    }
+    return [pscustomobject]@{
+        Status = $status; ReasonCode = $reason; RequiredFreeBytes = $required
+        MayCreateStaging = $false; MayUpload = $false
+    }
+}
+
 function Get-LogFileDate {
     [CmdletBinding()]
     param(

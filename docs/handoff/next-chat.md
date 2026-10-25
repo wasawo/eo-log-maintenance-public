@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`f579da4`、同じ`codex/drive-download-observation`で[upload staging容量式の純粋観測](../design/staging-file-lifecycle.md)を既存PS helperへ追加。非負Int32/Int64/BigIntegerのremaining/freeと明示reliableから、残りbytes＋ceil(10%)＋100,000,000 bytesを整数のみで算出する。型不正は拒否、不明/不足は保留。0残量も固定reserveを省略しない。
+- 結果はMayCreateStaging/MayUpload=falseで、実空き容量を取得/予約せず、downloadの容量方針へ転用しない。開始時/各file直前のfreshなprovider観測・容量変化時の保存失敗対応は正式runtime gateに残す。PS 7.6.7で追加容量観測43件＋既存LogFunctions 49件成功。変更PS構文/PSScriptAnalyzer Error検査成功。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実容量/root/ACL/FS/clock/owner資格とupload copy接続、実SDK/C-02/credential・全page/download成功binding、同時snapshot/ABA/電源断、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（download staging隔離接続・f579da4）
+
 - 基準`0659bc3`、同じ`codex/drive-download-observation`で[download新規stagingの隔離接続](../design/drive-content-comparison.md)をtests専用に追加。自作OS-temp/所有marker/実mutex内で試行ごとに別directoryとcreate-new fileを使い、flush/close後の実fileをhash観測へ接続する。計画→実staging→読戻しhash→再page→計画完了集合検査/比較までを合成接続する。
 - 途中失敗/short/overlong/未完了/不正chunk/root/requirementと読戻し前変更を拒否し、旧部分file/競合fileを保全する。次試行は新file、失敗時もowner解放。cleanupは自作rootのidentity/marker確認後だけ。正式root/filename/API/容量方針は採用せず、Dry Run Aを緩和しない。Python 3.11.9（CI 3.12）で追加staging接続＋既存計画完了集合/hashの計21件成功（skipなし、通常の隔離試験権限で実行）。配布file集合49件/PS/schema/runtime codeは不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：実SDK/ID・bytes・完了/queryの真正binding・C-02/credential、PS retry予算/時間/新staging資格、正式root/ACL/容量/FS/owner/clock、敵対的ABA/同時snapshot・process crash/電源断耐久性、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。

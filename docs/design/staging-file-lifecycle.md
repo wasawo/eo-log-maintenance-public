@@ -302,3 +302,13 @@ The maintainer explicitly approved **R1-B, R2-A, R3-B, R4-A, R5-A, R6-A, R7-A**.
 9. R7-A local publication succeeds independently of Drive replication; replication failure preserves local report; cross-PC use is blocked until identity and content verification succeeds.
 10. UTC timestamp format/future tolerance, historical age, zero-work versus failed enumeration versus only-invalid filenames, known-period completion with unrelated run-scope errors, and all approved OSD-03 aggregation cases.
 11. Synthetic fixtures and temporary directories only. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion. Evidence status: **not run / not yet evidenced**.
+
+## Pure upload-staging capacity observation (2026-10-25)
+
+`Get-EoStagingCapacityObservation` in [LogFunctions.ps1](../../Common/LogFunctions.ps1) implements section 5 arithmetic from supplied remaining-target bytes, available-free bytes and an explicit reliable observation flag. The two byte values accept nonnegative PowerShell Int32, Int64 or BigInteger only; null, bool, float/decimal, strings and negative values are rejected without conversion. The required value is BigInteger: `remaining + ceil(remaining / 10) + 100000000`, using integer division, never floating-point arithmetic. The fixed reserve is decimal bytes and also applies when remaining is zero; zero input is not a no-work decision.
+
+Invalid numeric inputs return `rejected` with a fixed reason and null RequiredFreeBytes. Valid numbers with unconfirmed free space return `held`; confirmed insufficient space also returns `held`. A sufficient supplied observation returns `requires_runtime_evidence`. Every output has MayCreateStaging=false and MayUpload=false. The helper reads no volume metadata, creates no file, performs no reservation/wait/cleanup and never authenticates root, space, clock or provider.
+
+The eventual uploader still needs an independently qualified initial observation and a fresh per-file observation, plus safe handling if capacity changes after a check. Reusing an earlier result is not a capacity reservation or write authorization. This implements the approved upload-staging formula only; it does not adopt a capacity policy for API downloads or qualify the download test fixture.
+
+[Tests](../../tests/Test-StagingCapacity.ps1) cover ceil boundaries, exact threshold and one-byte deficit, zero, numbers beyond Int64/IEEE-754 precision, type/reliability rejection, changing supplied capacity and non-authorizing flags. Formal staging/copy/runtime integration, real filesystem free-space observations and capacity-change failure acceptance remain pending.

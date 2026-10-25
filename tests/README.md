@@ -348,3 +348,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_planned_drive_comparison.py`は計画と完了download集合の全件整合、改変/欠落/余分/サイズ不一致と、比較結果の保留・非認可を合成検証する。
 
 `download_staging_fixture.py` / `test_download_staging_integration.py`は自作OS-tempの新規stagingと実読戻しhash、部分file保全・別試行・競合/変更拒否を実mutex内で合成検証する。配布対象外のtests専用で、正式download writerやDry Run許可ではない。
+
+`Test-StagingCapacity.ps1`はupload stagingの整数容量式、10%切上げ・0/巨大値・1 byte不足・型/信頼不正・容量変化を合成検証する。実volumeの容量取得や作成/Upload許可は検証しない。
