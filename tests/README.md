@@ -354,3 +354,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `Test-StagingCapacity.ps1`は明示size配列の全件検査/合計、型付き配列/空/巨大合計・合算後の切上げ・部分合計禁止も確認する。残り対象選択やinventory真正性は外部gateに残す。
 
 `test_staging_size_observation.py`は凍結manifest/B2から明示size集合を取り出す純粋検査を確認する。file状態から残り対象を推測せず、巨大整数・空選択・不完全/改変/別scopeの境界を扱う。
+
+`test_staging_capacity_bridge.py` / `staging_capacity_bridge.ps1`は合成manifest/B2のsize射影→stdin JSON→PS 7.6.7容量観測→stdout整数を接続する。実行版を確認し、ローカルでは必要に応じEOLM_TEST_PWSHで固定版を指定する。tests専用で正式IPCや実容量取得ではない。

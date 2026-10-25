@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`078cabc`、同じ`codex/drive-download-observation`で[Python size射影→PS容量の隔離bridge](../design/staging-file-lifecycle.md)をtests専用に追加。合成exact manifest/B2からsizeを導出し、数値/信頼値だけをstdin JSONで固定driverへ渡す。PS 7.6.7の実版と、stdoutの合計/必要量が整数を保つことを検査する。
+- 両PC/log・閾値/1 byte不足・巨大整数・空集合/固定reserve・不明空き容量・不正memberを検査する。入力のcode評価・実path/設定/容量照会/保存/通信はなし。stdin shapeを正式IPC/C-02採用へ昇格せず、全MayCreateStaging/MayUpload=false。Python 3.11.9（CI 3.12）＋PS 7.6.7で追加bridge試験4件・合成入力16ケース成功（skipなし）。変更tests PS構文/PSScriptAnalyzer Error検査成功。配布file集合49件/runtime code/schemaは不変で、既存のsize射影/PS容量67件・package/schema検査は重複実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：正式PS transport/encoding/重複key/security資格、履歴に基づく実target選択とsource/容量/root/FS/clock/owner資格、copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（manifest/B2のsize射影・078cabc）
+
 - 基準`e5b8428`、同じ`codex/drive-download-observation`で[凍結manifest/B2からの明示size射影](../design/staging-file-lifecycle.md)を追加。独立PC/log/period/run・schema/digest/inventory/coverage/clock整合を検査し、明示canonical path群のsize tuple/整数合計を元exact bytesへ結び付ける。空選択も全体検査を省略せず、既知errorsを消さない。
 - pendingはstaging前/Upload直前の両方なので、file状態から残りtargetやcopy可否を推測しない。runningは生存/fresh runの証拠ではなく、全may_create_staging/may_upload/may_archive=false。内部Python観測でPS transport/保存/遷移は未実装。Python 3.11.9（CI 3.12）で追加size射影＋既存initial plan/遷移の計25件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実source/容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：履歴に基づく実target選択・source/容量/root/ACL/FS/clock/owner資格、PS transportと開始/各file直前の取得・copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
