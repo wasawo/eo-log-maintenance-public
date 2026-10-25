@@ -35,6 +35,14 @@ helperは新しい予算を自動作成・リセットしない。明示再開�
 
 ## Checkpoint schemaと純粋reader（2026-10-25）
 
+### 既存fileの上限付き読取観測（2026-10-26）
+
+`observe_completion_wait_checkpoint_file`は明示された既存絶対file pathと正の整数maximum_bytes（bool不可）を要求する。既定のfile名/配置/サイズ上限は選ばず、指定上限はcallerの資源制限であってschema field/互換方針の追加ではない。Windowsでは既存L1字句も検査し、ADS/UNC等へ暗黙対応しない。欠落を作成/空履歴へ補完しない。
+
+既存metadata providerで祖先chain/reparse・regular/単一linkと初期sizeを検査し、上限超過はopen前に拒否する。pathとopen handleのsignature（volume/file identity・size/mtime・Windows birthtime等・link数）を照合し、読取りを初期size+1 byteに制限する。fstat/byte数を照合して既存schema/scope/clock readerへ渡し、解析後にもpath signature/reparse/祖先chainを再確認する。不備は固定reason例外、file作成/更新/削除は行わない。
+
+結果はexact bytesを持つcheckpointを内包するimmutable・非表示reprの観測で、status=requires_runtime_evidence、全確認/Archive/状態変更許可false。毎回fileを開き直し、前回の観測をpath/receiptとして受け付けない。root/ACL/token/owner/FS/providerの資格、rollback/ABA防止、同時snapshot/後続変化、正式CAS/試行前永続化・実確認は未実証。[合成試験](../../tests/test_completion_wait_checkpoint_file.py)は自作tempだけを使い、境界bytes・上限事前拒否・欠落/dir/hardlink・解析不備/途中変更・provider失敗と保全を確認する。
+
 ### 更新前後の追記検査（2026-10-26）
 
 `inspect_completion_wait_checkpoint_transition`は独立scope/現在UTC/static schemaで前後exact bytesをreaderへ通す。元記録の不在/不正を補完せず、exact bytes再掲載だけをunchanged/added_check_count=0とする。それ以外は元started_at_utc文字列と既存check_times_utc全件の文字列/順序を保持し、1件だけ追記する更新を要求する。短縮、過去試行の置換、複数追記、開始時刻の再表記、追記なしの書式変更を拒否する。scope/version・間隔/24時間/25回/時計逆行のreader検査も維持する。

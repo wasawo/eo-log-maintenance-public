@@ -1,10 +1,15 @@
-"""Pure checkpoint reader: original bytes/strings, exact time comparison, no I/O."""
+"""Checkpoint byte validation and explicit existing-file observations; no writes."""
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import re
+import os
+from pathlib import Path
+import stat
 
 from Common.AggregationReportBuilder import _parse, _validate, _validator
 from Common.CompletionWaitBudget import CompletionWaitState, _identity, _utc
+from Common.ArtifactSetDirectoryVerification import _signature, _chain, _is_link_or_reparse
+from Common.DriveRequestPath import is_drive_request_file_path
 
 
 class CompletionWaitCheckpointError(ValueError):
@@ -117,6 +122,67 @@ def inspect_completion_wait_checkpoint_transition(
         raise
     except Exception:
         _reject("checkpoint_transition_input_invalid")
+
+
+@dataclass(frozen=True, repr=False)
+class CompletionWaitCheckpointFileObservation:
+    checkpoint: CompletionWaitCheckpoint
+    status: str = field(default="requires_runtime_evidence", init=False)
+    may_check: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+    may_change_state: bool = field(default=False, init=False)
+
+
+def observe_completion_wait_checkpoint_file(
+    checkpoint_path, *, maximum_bytes, schema, expected_log_type, expected_target_period,
+    expected_run_id, current_utc, current_utc_reliable,
+):
+    """Bounded read of one explicit existing file, never a qualified receipt.
+
+    No default byte limit or filename/layout policy is selected. The caller's
+    limit is a resource bound, not a change to the checkpoint schema contract.
+    """
+    try:
+        if type(maximum_bytes) is not int or maximum_bytes < 1:
+            _reject("checkpoint_file_limit_invalid")
+        path = Path(checkpoint_path)
+        if not path.is_absolute() or (os.name == "nt" and not is_drive_request_file_path(str(path))):
+            _reject("checkpoint_file_path_invalid")
+        chain = _chain(path.parent)
+        before = path.lstat()
+        if _is_link_or_reparse(path) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            _reject("checkpoint_file_not_regular")
+        if before.st_size > maximum_bytes:
+            _reject("checkpoint_file_limit_exceeded")
+        expected = _signature(before)
+        blocks, count = [], 0
+        with path.open("rb") as stream:
+            opened = os.fstat(stream.fileno())
+            if not stat.S_ISREG(opened.st_mode) or _signature(opened) != expected:
+                _reject("checkpoint_file_changed")
+            while True:
+                block = stream.read(min(65536, before.st_size-count+1))
+                if not block:
+                    break
+                count += len(block)
+                if count > before.st_size:
+                    _reject("checkpoint_file_changed")
+                blocks.append(block)
+            finished = os.fstat(stream.fileno())
+        if _signature(finished) != expected or count != before.st_size:
+            _reject("checkpoint_file_changed")
+        record = read_completion_wait_checkpoint(b"".join(blocks), schema=schema,
+            expected_log_type=expected_log_type, expected_target_period=expected_target_period,
+            expected_run_id=expected_run_id, current_utc=current_utc,
+            current_utc_reliable=current_utc_reliable)
+        if (_is_link_or_reparse(path) or _signature(path.lstat()) != expected
+                or _chain(path.parent) != chain):
+            _reject("checkpoint_file_changed")
+        return CompletionWaitCheckpointFileObservation(record)
+    except CompletionWaitCheckpointError:
+        raise
+    except Exception:
+        _reject("checkpoint_file_observation_unavailable")
 
 
 def read_completion_wait_checkpoint(raw_bytes, *, schema, expected_log_type, expected_target_period,

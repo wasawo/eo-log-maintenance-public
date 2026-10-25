@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`093658d`、同じ`codex/drive-download-observation`で[checkpoint既存fileの上限付き読取観測](../design/completion-wait-budget.md#既存fileの上限付き読取観測2026-10-26)を追加。明示絶対path/Windows L1・caller指定bytes上限・祖先/reparse・regular/単一link・path/handle signatureを検査し、初期size+1以内を読んで既存schema/scope/clock readerへ渡す。解析後もsignature/祖先chainを確認。file作成/更新/削除なし、全確認/Archive/状態変更許可false。
+- Python 3.11.9（CI 3.12）で新規file観測8件＋既存transition8件＋checkpoint reader12件の計28件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 既定file名/配置/サイズ制限は採用せず、上限はcaller資源制限。実root/ACL/token/FS/owner/provider資格、rollback/ABA/同時snapshot/後続不変性、正式CAS/試行前永続化・実確認/runtime受け入れは未実証。次はfile観測を既存試行plan/使用点と接続する独立範囲を選び、実更新providerの未決契約を推測しない。
+
+## 直前の実装単位（checkpoint前後追記検査・093658d）
+
 - 基準`3f2dea3`、同じ`codex/drive-download-observation`で[PC-A checkpoint前後の1試行追記検査](../design/completion-wait-budget.md#更新前後の追記検査2026-10-26)を追加。両recordを独立scope/clock/schemaで検査し、元start/既存確認履歴の文字列/順序を保全した1件追記かexact再掲載だけを許す。短縮/置換/一括追記/元時刻の再表記を拒否。既存試行planのcandidate読戻しへ接続、全確認/状態変更/Archive許可false。
 - Python 3.11.9（CI 3.12）で新規transition8件＋既存checkpoint/attempt25件の計33件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
 - 25回目/24時間/間隔と高精度時刻の既存制限を維持。exact再掲載を新試行receiptにしない。元recordの真正性/現在性・保存喪失/rollback/ABA防止・原子的compare-and-publish/試行前永続化・OS/clock/root/FS/owner/資格・実確認/runtime受け入れは未実証。次は既承認の独立作業を選び、未決provider契約を推測しない。
