@@ -324,3 +324,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_initial_source_usepoint.py`は初期planの再構成とAC/source再観測を接続し、改変・scope不一致・AC不明の事前拒否と、合成所有lock内でのcandidate保存/書込み前停止を検証します。観測からruntime権限を付与しません。
 
 `test_source_enumeration_stability.py`はhash後/空scan後の追加・削除・rename・属性変更・directory差替え・rescan不明をincompleteとして保持し、使用点でcandidateを書かないことを合成検証します。最後の再確認後の変更や敵対的ABAは未実証です。
+
+`test_source_hash_identity.py`はhandle identityの読取前拒否、観測サイズ超過時の早期停止、short read、空/1 MiB境界のexact hashも合成検証する。OS readのtimeoutやruntime受け入れではない。

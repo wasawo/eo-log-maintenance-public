@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from Common import SourceInventoryEvidenceBuilder as builder
 from Common.SourceInventoryEvidenceBuilder import InventoryBuildError
@@ -57,6 +57,65 @@ class SourceHashIdentityTests(unittest.TestCase):
             self.assertEqual(alternate.read_bytes(), b"replaced")
 
 
+
+    def test_mismatched_open_handle_is_rejected_before_reading_bytes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "source.txt"
+            alternate = Path(temp) / "alternate.txt"
+            source.write_bytes(b"original")
+            alternate.write_bytes(b"replaced")
+            with alternate.open("rb") as backing:
+                stream = MagicMock()
+                stream.__enter__.return_value = stream
+                stream.fileno.return_value = backing.fileno()
+                with patch.object(Path, "open", return_value=stream):
+                    with self.assertRaisesRegex(InventoryBuildError, "source_mutation_detected"):
+                        builder._hash_stable_file(source)
+                stream.read.assert_not_called()
+                stream.__exit__.assert_called_once()
+
+    def test_growth_stops_at_observed_size_plus_one_without_waiting_for_eof(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "source.txt"
+            source.write_bytes(b"original")
+            with source.open("rb") as backing:
+                stream = MagicMock()
+                stream.__enter__.return_value = stream
+                stream.fileno.return_value = backing.fileno()
+                # Simulate a source that never reaches EOF. Repeated reads
+                # would grow forever; the first excess byte must stop it.
+                stream.read.side_effect = lambda count: b"x" * count
+                with patch.object(Path, "open", return_value=stream):
+                    with self.assertRaisesRegex(InventoryBuildError, "source_mutation_detected"):
+                        builder._hash_stable_file(source)
+                stream.read.assert_called_once_with(9)
+                stream.__exit__.assert_called_once()
+            self.assertEqual(b"original", source.read_bytes())
+
+    def test_short_read_cannot_produce_a_successful_hash(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "source.txt"
+            source.write_bytes(b"original")
+            with source.open("rb") as backing:
+                stream = MagicMock()
+                stream.__enter__.return_value = stream
+                stream.fileno.return_value = backing.fileno()
+                stream.read.side_effect = [b"short", b""]
+                with patch.object(Path, "open", return_value=stream):
+                    with self.assertRaisesRegex(InventoryBuildError, "source_mutation_detected"):
+                        builder._hash_stable_file(source)
+                self.assertEqual([9, 4], [call.args[0] for call in stream.read.call_args_list])
+                stream.__exit__.assert_called_once()
+
+    def test_empty_and_chunk_boundary_files_keep_exact_bytes_hash(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "source.txt"
+            for size in (0, 1024 * 1024 - 1, 1024 * 1024, 1024 * 1024 + 1):
+                with self.subTest(size=size):
+                    data = b"x" * size
+                    source.write_bytes(data)
+                    self.assertEqual((size, hashlib.sha256(data).hexdigest()),
+                                     builder._hash_stable_file(source))
 
     def test_opened_handle_stat_failure_is_sanitized(self):
         with tempfile.TemporaryDirectory() as temp:

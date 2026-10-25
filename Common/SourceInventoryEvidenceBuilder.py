@@ -113,19 +113,27 @@ def _hash_stable_file(path: Path) -> tuple[int, str]:
     try:
         _reject_source_reparse(path)
         before = path.lstat()
-        if not path.is_file() or path.is_symlink():
+        if not stat.S_ISREG(before.st_mode) or _is_source_reparse(before):
             raise InventoryBuildError("source_entry_not_regular_file")
+        identity_before = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
         digest = hashlib.sha256()
         byte_count = 0
         with path.open("rb") as stream:
             opened = os.fstat(stream.fileno())
             if not stat.S_ISREG(opened.st_mode):
                 raise InventoryBuildError("source_entry_not_regular_file")
+            identity_opened = (opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns)
+            if identity_opened != identity_before:
+                raise InventoryBuildError("source_mutation_detected")
             while True:
-                block = stream.read(1024 * 1024)
+                # One extra byte distinguishes EOF from growth; never chase a
+                # continuously appended source beyond its observed size.
+                block = stream.read(min(1024 * 1024, before.st_size - byte_count + 1))
                 if not block:
                     break
                 byte_count += len(block)
+                if byte_count > before.st_size:
+                    raise InventoryBuildError("source_mutation_detected")
                 digest.update(block)
             finished = os.fstat(stream.fileno())
         _reject_source_reparse(path)
@@ -134,9 +142,7 @@ def _hash_stable_file(path: Path) -> tuple[int, str]:
         raise
     except OSError as exc:
         raise InventoryBuildError("source_file_unavailable") from exc
-    identity_before = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
     identity_after = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
-    identity_opened = (opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns)
     identity_finished = (finished.st_dev, finished.st_ino, finished.st_size, finished.st_mtime_ns)
     if not (identity_before == identity_opened == identity_finished == identity_after) or byte_count != finished.st_size:
         raise InventoryBuildError("source_mutation_detected")
