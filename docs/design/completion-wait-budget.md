@@ -37,6 +37,10 @@ helperは新しい予算を自動作成・リセットしない。明示再開�
 
 ### 既存fileの上限付き読取観測（2026-10-26）
 
+予算の観測入口は`assess_completion_wait_checkpoint_file`。明示AC/既存絶対path/bytes上限と独立scope/clockから毎回fileを読み、保持したcheckpointを精度を落とさず既存budget helperへ渡す。結果は元checkpointと`check_due / wait / hold`助言を持つ専用immutable型で、全確認/待機/Archive/状態変更許可false。check_due=trueでも試行plan生成/消費・確認を自動実行せず、waitの次候補UTCもsleep/task予約ではない。
+
+期限後/25回/次の間隔が入らない場合やsession/account/自同期/待機条件不成立は既存budgetのholdを保つ。AC未確認、file欠落/破損/不明、scope/clock不備、変換精度非対応は固定reason例外で拒否し、空履歴や通常waitへ変換しない。月次scheduleから対象periodや元開始時刻を推測しない。前回のdueをreceiptにせず、fileの更新/新規予算生成を行わない。[file予算接続試験](../../tests/test_completion_wait_file_assessment.py)は自作tempで境界と非消費を確認する。provider資格/rollback/ABA/永続試行前計上・実確認は引き続き別gate。
+
 実Win32置換とのtests専用接続では、再読取りによる競合拒否と、競合を無条件上書きした後/同一bytes別identity置換後の検査限界を確認している。[provider負例の詳細](checkpoint-compare-provider-qualification.md#file使用点との実置換接続2026-10-26)。これを正式CAS/providerの採用や確認実行許可にしない。
 
 接続入口は`CompletionWaitAttempt.prepare_completion_wait_attempt_from_file`と`inspect_completion_wait_attempt_file_usepoint`。前者は明示ACと資格boolがTrueの場合だけ既存fileを指定上限で読み、そのexact bytesから従来の1試行planを構築する。保存や試行消費を行わず、pathを権限としてplanへ埋め込まない。

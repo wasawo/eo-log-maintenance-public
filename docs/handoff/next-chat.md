@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`859e966`、同じ`codex/drive-download-observation`で[既存checkpoint file→確認待ち予算観測](../design/completion-wait-budget.md#既存fileの上限付き読取観測2026-10-26)を追加。独立scope/clock/AC/指定上限で毎回fileを読み、元checkpointと既存budgetのcheck_due/wait/hold助言をimmutable型へ保持する。全確認/待機/Archive/状態変更許可false、plan作成/試行消費・file更新・sleep/task予約を行わない。
+- Python 3.11.9（CI 3.12）で新規file予算8件＋既存budget16件＋file観測8件の計32件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 24時間/25回/間隔/残余window不足や資格不足は既存holdを保持。AC不明・欠落/破損・scope/clock/精度不備は拒否し、空履歴/通常waitへ変換しない。前回dueを流用しない。root/owner/clock/AC/session/account/provider資格、rollback/ABA・正式CAS/永続試行前計上・実確認/毎時task/runtime受け入れは未完。次は既承認の独立作業を選び、未決保存provider契約を推測しない。
+
+## 直前の実装単位（file使用点/実Win32負例接続・859e966）
+
 - 基準`f9116d5`、同じ`codex/drive-download-observation`で[file plan/使用点と実Win32置換probeの隔離接続](../design/checkpoint-compare-provider-qualification.md#file使用点との実置換接続2026-10-26)を追加。自作/所有検査済みtemp内の固定名だけで共有guard中の置換失敗/保全と解除後読戻し、competitor置換後のfresh before_commit拒否を確認する。製品provider/更新APIは追加しない。
 - 負例として、競合を古いcandidateで無条件上書きした後のafter_commit bytes一致と、同一bytes別fileへの置換で実identityが変わった後のbefore_commit一致を確認。全確認/状態変更/Archive許可falseを維持し、bytes一致を途中writer不在/identity lease/receipt/rollback/ABA防止と解釈しない。
 - Python 3.11.9（CI 3.12）で新規native接続4件＋既存probe5件＋file使用点8件の計17件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schema/製品codeは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。

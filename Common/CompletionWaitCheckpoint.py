@@ -7,7 +7,8 @@ from pathlib import Path
 import stat
 
 from Common.AggregationReportBuilder import _parse, _validate, _validator
-from Common.CompletionWaitBudget import CompletionWaitState, _identity, _utc
+from Common.CompletionWaitBudget import (CompletionWaitState, CompletionWaitDecision,
+    assess_completion_wait_budget, _identity, _utc)
 from Common.ArtifactSetDirectoryVerification import _signature, _chain, _is_link_or_reparse
 from Common.DriveRequestPath import is_drive_request_file_path
 
@@ -183,6 +184,40 @@ def observe_completion_wait_checkpoint_file(
         raise
     except Exception:
         _reject("checkpoint_file_observation_unavailable")
+
+
+@dataclass(frozen=True, repr=False)
+class CompletionWaitFileAssessment:
+    checkpoint: CompletionWaitCheckpoint
+    budget: CompletionWaitDecision
+    status: str = field(default="requires_runtime_evidence", init=False)
+    may_check: bool = field(default=False, init=False)
+    may_wait: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+    may_change_state: bool = field(default=False, init=False)
+
+
+def assess_completion_wait_checkpoint_file(
+    checkpoint_path, *, maximum_bytes, ac_connected, schema, expected_log_type,
+    expected_target_period, expected_run_id, current_utc, current_utc_reliable,
+    logged_on, same_account_verified, own_sync_complete, waiting_confirmed,
+):
+    """Fresh read -> budget advice, without allocation, persistence or execution.
+
+    check_due is an observation only. Missing/unreadable records are rejected,
+    never converted to an empty budget or a normal waiting condition.
+    """
+    if ac_connected is not True:
+        _reject("checkpoint_file_ac_unconfirmed")
+    observation = observe_completion_wait_checkpoint_file(checkpoint_path, maximum_bytes=maximum_bytes,
+        schema=schema, expected_log_type=expected_log_type, expected_target_period=expected_target_period,
+        expected_run_id=expected_run_id, current_utc=current_utc, current_utc_reliable=current_utc_reliable)
+    budget = assess_completion_wait_budget(observation.checkpoint.as_budget_state(),
+        expected_log_type=expected_log_type, expected_target_period=expected_target_period,
+        expected_run_id=expected_run_id, current_utc=current_utc, current_utc_reliable=current_utc_reliable,
+        logged_on=logged_on, same_account_verified=same_account_verified,
+        own_sync_complete=own_sync_complete, waiting_confirmed=waiting_confirmed)
+    return CompletionWaitFileAssessment(observation.checkpoint, budget)
 
 
 def read_completion_wait_checkpoint(raw_bytes, *, schema, expected_log_type, expected_target_period,
