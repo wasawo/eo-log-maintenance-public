@@ -30,6 +30,15 @@ namespace EoLogMaintenance {
         [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
         private static extern uint GetFinalPathNameByHandleW(
             SafeFileHandle handle, StringBuilder path, uint length, uint flags);
+        [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+        private static extern bool GetDiskFreeSpaceExW(
+            string path, out ulong availableToCaller, out ulong total, out ulong totalFree);
+        public static ulong AvailableBytes(string path) {
+            ulong available, total, totalFree;
+            if (!GetDiskFreeSpaceExW(path, out available, out total, out totalFree))
+                throw new InvalidOperationException("staging_free_space_unavailable");
+            return available;
+        }
         public static string CanonicalDirectory(string path) {
             // Metadata only, OPEN_EXISTING, BACKUP_SEMANTICS | OPEN_REPARSE_POINT.
             // No write access, creation, content read or directory enumeration.
@@ -78,6 +87,44 @@ function Get-EoExistingDirectoryCanonicalPath {
         throw 'configuration_root_inspection_failed'
     }
     return $canonical.TrimEnd([char]'\')
+}
+
+function Get-EoDirectoryAvailableBytes {
+    param([Parameter(Mandatory)][string]$LiteralPath)
+    return [EoLogMaintenance.DirectoryMetadata]::AvailableBytes($LiteralPath)
+}
+
+function Get-EoStagingFreeSpaceObservation {
+    <# Metadata observation only: no creation, reservation or root qualification. #>
+    [CmdletBinding()]
+    param([AllowNull()][object]$LiteralPath)
+    $available = $null
+    $reason = 'staging_free_space_unavailable'
+    $status = 'held'
+    try {
+        if (-not [OperatingSystem]::IsWindows()) { throw 'unsupported' }
+        if ($LiteralPath -isnot [string] -or $LiteralPath -notmatch '^[A-Za-z]:\\' -or
+            $LiteralPath.Substring(2) -match '[<>:"|?*/\x00-\x1f]') { throw 'invalid' }
+        $full = [IO.Path]::GetFullPath($LiteralPath)
+        Initialize-EoDirectoryMetadataType
+        $before = Get-EoExistingDirectoryCanonicalPath -LiteralPath $full
+        $observed = Get-EoDirectoryAvailableBytes -LiteralPath $full
+        $after = Get-EoExistingDirectoryCanonicalPath -LiteralPath $full
+        if ($observed -isnot [ulong] -or -not $before.Equals($after, [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'invalid'
+        }
+        $available = [bigint]$observed
+        $status = 'requires_runtime_evidence'
+        $reason = 'staging_free_space_metadata_observed'
+    }
+    catch {
+        # Never return the supplied path, canonical volume name or raw exception.
+        $available = $null
+    }
+    return [pscustomobject]@{
+        Status = $status; ReasonCode = $reason; AvailableFreeBytes = $available
+        FreeSpaceReliable = $false; MayCreateStaging = $false; MayUpload = $false
+    }
 }
 
 function Test-EoMachineConfigurationRoots {

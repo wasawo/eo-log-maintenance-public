@@ -356,3 +356,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_staging_size_observation.py`は凍結manifest/B2から明示size集合を取り出す純粋検査を確認する。file状態から残り対象を推測せず、巨大整数・空選択・不完全/改変/別scopeの境界を扱う。
 
 `test_staging_capacity_bridge.py` / `staging_capacity_bridge.ps1`は合成manifest/B2のsize射影→stdin JSON→PS 7.6.7容量観測→stdout整数を接続する。実行版を確認し、ローカルでは必要に応じEOLM_TEST_PWSHで固定版を指定する。tests専用で正式IPCや実容量取得ではない。
+
+`Test-StagingFreeSpace.ps1`は自作OS-tempでWindows空きbytes観測、UInt64精度・不明/reparse/変更の保留と未資格の容量gate停止を検査する。実root/容量/FS受け入れやDry Run A資格ではない。

@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`c6add52`、同じ`codex/drive-download-observation`で[Windows caller利用可能bytesのmetadata観測](../design/staging-file-lifecycle.md)を既存root inspectorへ追加。既存drive-rooted directory/reparse排除・前後canonical観測一致を要求し、GetDiskFreeSpaceExWのcaller available UInt64をBigIntegerで返す。失敗/変更時は固定reason/null bytesで保留し、path/volume/raw例外を返さない。
+- 成功もFreeSpaceReliable=false、MayCreateStaging/MayUpload=falseで、実root/token/ACL/FSの資格・現在性/同時snapshot/ABA・予約を証明しない。Add-Type初期化を含むDry Run A/runtime資格は未実証。自作OS-tempだけでnative読取・mock最大値/障害/変更と既存root回帰を検証する。PS 7.6.7で追加空きbytes16件＋既存root検査142件成功（junction/short-name skipなし）。変更PS構文/PSScriptAnalyzer Error検査成功。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実運用root/容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実root/FS/token/clock/ownerと容量の資格・使用点、正式PS transport/対象履歴/copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（容量stdin bridge・c6add52）
+
 - 基準`078cabc`、同じ`codex/drive-download-observation`で[Python size射影→PS容量の隔離bridge](../design/staging-file-lifecycle.md)をtests専用に追加。合成exact manifest/B2からsizeを導出し、数値/信頼値だけをstdin JSONで固定driverへ渡す。PS 7.6.7の実版と、stdoutの合計/必要量が整数を保つことを検査する。
 - 両PC/log・閾値/1 byte不足・巨大整数・空集合/固定reserve・不明空き容量・不正memberを検査する。入力のcode評価・実path/設定/容量照会/保存/通信はなし。stdin shapeを正式IPC/C-02採用へ昇格せず、全MayCreateStaging/MayUpload=false。Python 3.11.9（CI 3.12）＋PS 7.6.7で追加bridge試験4件・合成入力16ケース成功（skipなし）。変更tests PS構文/PSScriptAnalyzer Error検査成功。配布file集合49件/runtime code/schemaは不変で、既存のsize射影/PS容量67件・package/schema検査は重複実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実容量/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：正式PS transport/encoding/重複key/security資格、履歴に基づく実target選択とsource/容量/root/FS/clock/owner資格、copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
