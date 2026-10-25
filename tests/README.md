@@ -325,6 +325,8 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 
 `test_upload_staging_integration.py`は同じsource再検査を自作temp内のcreate-new copyと接続します。両PC/log・空/複数block・source変化・名前衝突・部分disk-full注入・short write・copy後改変/hardlink置換を検査し、失敗fileを保持してlockを解放します。明示sequence以外の自動retryはなく、metadata-first writer/ready状態/実Upload・cleanupは未実装、結果のUpload/状態変更許可はfalseです。実容量枯渇・電源断・root/FS資格の証拠ではありません。
 
+`test_initial_staging_copy_observation.py`は製品helperによる既存stagingと凍結plan/B2の読取照合を検証します。sourceを読まず、両PC/log・入力/内容不備・hardlink/観測中変更・provider失敗で拒否/保全し、全操作許可falseを維持します。正式metadata/ready状態・Upload adapterの受け入れではありません。
+
 `test_source_enumeration_stability.py`はhash後/空scan後の追加・削除・rename・属性変更・directory差替え・rescan不明をincompleteとして保持し、使用点でcandidateを書かないことを合成検証します。最後の再確認後の変更や敵対的ABAは未実証です。
 
 `test_source_hash_identity.py`はhandle identityの読取前拒否、観測サイズ超過時の早期停止、short read、空/1 MiB境界のexact hashも合成検証する。OS readのtimeoutやruntime受け入れではない。

@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`4ab120a`、同じ`codex/drive-download-observation`で[凍結planと既存staging copyの読取照合](../design/source-inventory-revalidation.md#既存staging-copyの独立読取観測)を既存SourceInventoryRevalidation moduleへ追加。独立contextでexact planを再構成し、明示target/sequence・basename L1字句を検査。source非読取で既存copyの祖先chain/reparse/regular/単一link・前後entry signature・bounded size/hashを確認する。全Upload/状態変更/cleanup/Archive許可false。
+- Python 3.11.9（CI 3.12）で新規8件＋既存使用点/copy接続16件成功、skipなし。初回はtest側のinit=False field改変方法に1件error、fixtureを修正して新規8件成功。自己点検でbasename L1検査追加後も新規8件成功。CI定義登録、CI自体未実行。配布file集合50件/PS/schemaは不変、無関係な検査を再実行しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 未完：正式metadata-first/history・copy時割当identity binding・root分離/ACL/FS/provider/owner/容量資格・実Upload使用点/adapter/runtime受け入れ。同時snapshot/ABA/後続変化を防止せず、source不在でも照合成立することはUpload認可にならない。次は正式writerの既承認契約と未決field境界を整理してから実装範囲を選ぶ。
+
+## 直前の実装単位（tests専用upload staging copy接続・4ab120a）
+
 - 基準`d178815`、同じ`codex/drive-download-observation`で[tests専用upload staging copy接続](../design/staging-file-lifecycle.md)を追加。凍結plan/B2/source再検査を合成所有lock下のcreate-new copy・fsync/close・identity/単一link/size/hash読戻し・source最終照合に接続する。既存名の上書きなし、次sequenceは明示指定のみ。部分file/変更fileを保全し、失敗時もownerを解放する。
 - 両PC/log、空/複数block、source変化、衝突、部分disk-full注入、short write、copy後改変/元sourceへのhardlink置換を検証。Python 3.11.9（CI 3.12）で新規7件＋既存使用点9件の計16件成功、skipなし。CI定義へ新規suite登録、CI自体は未実行。配布50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミットで区切り、push/PRなし。
 - tests-onlyであり正式copy/metadata-first writer/ready状態/Upload/cleanupを提供しない。全Upload/状態変更許可false。実容量枯渇、電源断、同時snapshot/ABA、root/FS/provider資格・runtime受け入れは未実証。次は既承認の独立作業を選ぶ。正式writer/providerの未決境界は推測せず残す。

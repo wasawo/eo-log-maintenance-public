@@ -1,12 +1,16 @@
 """Read-only re-observation against exact frozen B2; never upload authority."""
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
+from pathlib import Path
+import stat
 
 from Common.AggregationReportBuilder import _parse, _validate, _validator
 from Common.LatestManifestSelection import _utc_key, _clock_key
 from Common.RunInputEvidenceIntegrity import validate_evidence_invariants, _safe_relative_path
-from Common.SourceInventoryEvidenceBuilder import build_run_input_evidence, _classify_filename
+from Common.SourceInventoryEvidenceBuilder import (build_run_input_evidence, _classify_filename,
+    _source_chain, _hash_stable_file, _source_entry_signature, _is_source_reparse)
 from Common.ManifestTransitionInspection import InitialManifestPlan, prepare_initial_manifest
+from Common.DriveRequestPath import is_drive_request_file_path
 from Common.DriveContentComparison import ComparisonSource, ContentComparison, compare_planned_drive_contents, _valid_source
 
 
@@ -24,6 +28,21 @@ class SourceInventoryObservation:
     may_upload: bool = field(default=False, init=False)
     may_archive: bool = field(default=False, init=False)
     may_change_state: bool = field(default=False, init=False)
+
+
+@dataclass(frozen=True, repr=False)
+class InitialStagingCopyObservation:
+    manifest_bytes: bytes
+    evidence_bytes: bytes
+    relative_path: str
+    sequence: int
+    size_bytes: int
+    sha256: str
+    status: str = field(default="requires_runtime_evidence", init=False)
+    may_upload: bool = field(default=False, init=False)
+    may_change_state: bool = field(default=False, init=False)
+    may_cleanup: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
 
 
 @dataclass(frozen=True, repr=False)
@@ -161,6 +180,63 @@ def revalidate_initial_manifest_source(
         expected_pc_id=expected_pc_id, expected_log_type=expected_log_type, expected_run_id=expected_run_id,
         expected_root_id=expected_root_id, expected_relative_scope=expected_relative_scope,
         reference_date=reference_date, current_utc=current_utc, current_utc_reliable=current_utc_reliable)
+
+
+def observe_initial_staging_copy(
+    staging_root, plan, *, relative_path, sequence, expected_pc_id, expected_log_type,
+    expected_target_period, expected_run_id, started_at_utc, current_utc,
+    current_utc_reliable, manifest_schema, evidence_schema,
+):
+    """Read an explicit existing copy against a reconstructed frozen initial plan.
+
+    Never reads source payloads, allocates, changes state or authorizes Upload.
+    Root separation/provenance, metadata-first history, capacity, ownership and
+    future payload use remain separate gates. No cached observation is a lease.
+    """
+    try:
+        if (type(plan) is not InitialManifestPlan
+                or any(flag is not False for flag in (plan.may_publish, plan.may_upload, plan.may_archive))):
+            _reject("staging_copy_plan_invalid")
+        restored = prepare_initial_manifest(plan.evidence_bytes, expected_pc_id=expected_pc_id,
+            expected_log_type=expected_log_type, expected_target_period=expected_target_period,
+            expected_run_id=expected_run_id, started_at_utc=started_at_utc, current_utc=current_utc,
+            current_utc_reliable=current_utc_reliable, manifest_schema=manifest_schema,
+            evidence_schema=evidence_schema)
+        if restored != plan:
+            _reject("staging_copy_plan_invalid")
+        _safe_relative_path(relative_path)
+        if type(sequence) is not int or sequence < 1:
+            _reject("staging_copy_sequence_invalid")
+        targets = [item for item in _parse(plan.proposed_bytes)["files"]
+                   if item["relative_path"] == relative_path]
+        if len(targets) != 1:
+            _reject("staging_copy_target_missing")
+        target = targets[0]
+        filename = relative_path.rsplit("/", 1)[-1]
+        if (not is_drive_request_file_path("C:\\Example\\Names\\" + filename)
+                or _classify_filename(filename, expected_log_type) is None):
+            _reject("staging_copy_filename_invalid")
+        root = Path(staging_root)
+        if not root.is_absolute():
+            _reject("staging_copy_root_invalid")
+        chain = _source_chain(root)
+        path = root / f"{expected_run_id}_{sequence}_{filename}"
+        before = path.lstat()
+        if not stat.S_ISREG(before.st_mode) or _is_source_reparse(before) or before.st_nlink != 1:
+            _reject("staging_copy_file_invalid")
+        size, digest = _hash_stable_file(path)
+        after = path.lstat()
+        if (_source_entry_signature(before) != _source_entry_signature(after)
+                or _source_chain(root) != chain):
+            _reject("staging_copy_observation_changed")
+        if (size, digest) != (target["size_bytes"], target["sha256"]):
+            _reject("staging_copy_content_mismatch")
+        return InitialStagingCopyObservation(plan.proposed_bytes, plan.evidence_bytes,
+            relative_path, sequence, size, digest)
+    except SourceRevalidationError:
+        raise
+    except Exception:
+        _reject("staging_copy_observation_unavailable")
 
 
 def revalidate_comparison_source(
