@@ -137,6 +137,7 @@ jobs:
           python -B -m unittest discover -s tests -p "test_completion_wait_attempt.py" -v
           python -B -m unittest discover -s tests -p "test_completion_wait_usepoint.py" -v
           python -B -m unittest discover -s tests -p "test_checkpoint_replace_probe.py" -v
+          python -B -m unittest discover -s tests -p "test_checkpoint_file_replace_integration.py" -v
           python -B -m unittest discover -s tests -p "test_power_status_observation.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_recovery.py" -v
           python -m unittest discover -s tests -p "test_artifact_set_publication.py" -v

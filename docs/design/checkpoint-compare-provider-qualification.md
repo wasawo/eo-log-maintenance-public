@@ -21,7 +21,18 @@ ReplaceFileWの1175/1176/1177等には、元/置換fileの名前や存在が異�
 2. 実mutex/ownerの内側で現行使用点検査を行った後、mutexプロトコルを使わない操作を意図的に挿入し、実ReplaceFileWで競合candidateを公開する。続く古いcandidateの無条件置換が競合内容を上書きできる反例を確認する。使用点検査結果は元々non-authorizingであり、これは意図的に危険な順序を実行する負例fixtureである。
 3. root markerの変更、許可名外、hardlink aliasで、native変更へ進めないことも検査する。
 
-このprobeは共有制約と無条件置換の限界を調べるもので、実providerを実装/採用するものではない。mockを実checkpoint更新へ昇格させず、metadata-onlyなroot検査やmutex保持だけを全writerの排除と読み替えない。testsは配布対象外で、runtimeのfile集合は46件のまま。
+このprobeは共有制約と無条件置換の限界を調べるもので、実providerを実装/採用するものではない。mockを実checkpoint更新へ昇格させず、metadata-onlyなroot検査やmutex保持だけを全writerの排除と読み替えない。testsは配布対象外。このprobe追加時点の非配布レビュー集合は46件で、現在の集合は[配布棚卸し](../status/first-release-readiness-20261024.md)を参照する。
+
+## File使用点との実置換接続（2026-10-26）
+
+[追加fixture](../../tests/test_checkpoint_file_replace_integration.py)は既存probeの自作/所有検査済みtempと固定3名だけを使い、[上限付きfile読取→plan/使用点](completion-wait-budget.md#既存fileの上限付き読取観測2026-10-26)を実Win32置換へ接続する。通常providerやcaller指定先を追加しない。
+
+- 既存fileから生成したplanを共有guard内で置換しようとすると、この隔離試験では失敗し元/候補bytesが残る。after_commit検査も拒否する。guard解放後の置換・file再読取りは成立するが、全確認/状態変更/Archive許可falseのまま。
+- 一度before_commit検査した後にnative competitorへ置換し、再度before_commitを実行すると変更を拒否し、競合checkpointと未使用candidateを保全する。ownerは解放される。
+- 負例として、検査後にcompetitorへ置換し、意図的に古いcandidateで無条件上書きすると、その後のafter_commit bytes検査は成立し得る。この試験は「読戻し一致だけで途中writer不在を証明できる」という解釈を否定するもので、危険な順序を製品実装へ採用しない。
+- 同一元bytesを持つ別fileへnative置換し、前後の実metadataでidentity変更を確認したケースでも、別々のbefore_commit呼出しは同じ非認可結果を返す。呼出し内のmetadata安定検査は、呼出し間のidentity lease/rollback/ABA防止ではない。
+
+以上はこの隔離fixtureで観測した反例であり、全FS/API失敗形や対象volumeの資格を証明しない。正式CAS、trusted writer排除、exact predecessor/更新/readbackのbinding、一回限りreceipt、再起動/電源断は未完。新しいmetadata field、API選択、実更新許可を採用せず、レビューpackage file集合50件も不変。
 
 ## 次に必要な設計・資格
 

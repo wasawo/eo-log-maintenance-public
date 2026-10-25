@@ -37,6 +37,8 @@ helperは新しい予算を自動作成・リセットしない。明示再開�
 
 ### 既存fileの上限付き読取観測（2026-10-26）
 
+実Win32置換とのtests専用接続では、再読取りによる競合拒否と、競合を無条件上書きした後/同一bytes別identity置換後の検査限界を確認している。[provider負例の詳細](checkpoint-compare-provider-qualification.md#file使用点との実置換接続2026-10-26)。これを正式CAS/providerの採用や確認実行許可にしない。
+
 接続入口は`CompletionWaitAttempt.prepare_completion_wait_attempt_from_file`と`inspect_completion_wait_attempt_file_usepoint`。前者は明示ACと資格boolがTrueの場合だけ既存fileを指定上限で読み、そのexact bytesから従来の1試行planを構築する。保存や試行消費を行わず、pathを権限としてplanへ埋め込まない。
 
 後者はplan/phase/AC/現在時計・scope/資格条件を既存純粋use-point検査へ通してから、毎回fileを開き直し、得たexact bytesでも同じ検査を繰り返す。before_commitはexpected bytes、after_commitはproposed bytesを要求する。保存済み観測や前回成功をfileの代用にせず、欠落/破損/変更は固定reasonのattempt errorで拒否する。両入口は作成/更新/削除・CAS・実確認を行わず、全確認/Archive/状態変更許可false。反復after_commitも新たな試行/一回限りreceiptにはならず、実保存先の資格や後続不変性は証明しない。[file使用点接続テスト](../../tests/test_completion_wait_file_usepoint.py)は自作tempだけを使う。
