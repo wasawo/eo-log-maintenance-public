@@ -56,3 +56,12 @@ PR #42のCIでWindows Python 3.12のstat/fstat ctimeの意味差が比較に混�
 manifest v1 fieldだけを出力し、finished/outcome/Drive IDはnull、verificationはnot_checked/not_performed・時刻/hashはnullとする。B2のtargets順とfilename/path/size/hashを保持し、元evidence bytesをimmutable planへ結び付ける。空集合やfailed/incomplete/errorをrunningのまま保ち、no_work/successを生成しない。将来の終端statusは別途B2/report集約で判定する。対象periodやsourceの選択をこのfactoryで推測しない。
 
 `InitialManifestPlan`のmay_publish/may_upload/may_archiveはfalse。新規候補を作れたことは保存先の不在、新runの真正性、実fresh inventory、現在の資格や初回公開/実行の許可ではない。UUIDを自動生成せず、旧run/欠落checkpointの再利用や回復にも接続しない。[合成試験](../../tests/test_initial_manifest_plan.py)は両PC/log種別・不完全B2・改変/時間境界等と、掲載された中間ペアを経た終端reportまでの純粋接続を確認する。実writer/Drive/FS/Tier B/C/runtime受け入れは未完である。
+
+
+## Source builderから初期候補までの隔離接続
+
+[合成source接続試験](../../tests/test_initial_source_integration.py)は、自作OS-tempのsourceを既存builderで実列挙/hashし、B2の検査/serialize、初期plan生成、別candidate directoryへの実mutex/create-only/marker-last保存とtransaction付き読戻しまで接続する。source/candidateは分離し、元source bytesを保持する。固定clock/reference dateとfixtureのrun IDは合成観測で、実clock/providerの資格ではない。fixtureのAPI/配置は正式runtime契約ではない。
+
+初期producerでも既存filename分類を使い、B2でeligibleとされたtargetが文法外/実在しない日付なら拒否する。B2 digest/countが整合することだけでsource分類を省略しない。期間の絞込みや保持年/月の方針を変更せず、report builderと同じ承認文法を再利用する。
+
+試験は両PC/log、Unicode階層、empty/ineligible/invalid・hash不明、source変更後の旧plan保持と別runの新hash、PC-B候補保存/競合、決定性を扱う。初期候補はrunning/pendingのままで、markerのcommittedや計上0件を成功/no_work/Upload許可に変えない。sourceが変わっても旧planは自動で無効化/書換えされないため、実行前の再検証・root/所有権・fresh run bindingは未実装gateのままである。

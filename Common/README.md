@@ -127,3 +127,5 @@ artifact-set classifier/directory verifierはoptionalな`expected_transaction_id
 `AtomicArtifactPublication.py`は公開前stagingと公開後finalのexact bytes/identity/親chainを検査し、同一既存fileもhandleと前後metadataに結び付けます。cleanupは同じ所有tempを再確認できる場合だけ行い、不明・差替え・内容変更tempは保全します。敵対的raceの完全排除、電源断耐久性、正式manifest比較更新の資格は与えません。
 
 `ManifestTransitionInspection.py`の`prepare_initial_manifest`は独立run contextとexact B2から初期running/pending候補を構築し、schema・digest・scope/inventory・時系列を照合します。空/不完全/失敗B2を成功/no_workへ変えず、元bytesを保持します。全may_*はfalseで、run ID・時計・保存先不在を補完/認証しません。
+
+初期plan生成でも既存filename分類を使い、内部整合するB2のeligible targetであっても文法外/実在しない日付は拒否します。source builderからの[隔離接続試験](../tests/test_initial_source_integration.py)は候補保存までを検証し、source使用点や実run/clockの資格は別gateに残します。

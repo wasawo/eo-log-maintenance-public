@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+- 基準`efc6733`、同じ`codex/initial-manifest-plan`でsource列挙/hash→B2→初期plan→隔離候補公開/読戻しを接続した。新規tests専用fixtureは自作tempのsource/candidateを分離し、固定合成clock/reference dateと明示run contextで既存source builderを呼ぶ。実運用path/clock資格やsource使用点の認可を実装したとはしない。
+- 初期plan producerは既存の承認filename文法/実在日付helperも使い、B2内部整合が取れていてもunclassifiableなeligible targetを拒否する。対象period/保持範囲の選択は既存source builder/独立contextに留め、新しい年/月filterを推測しない。
+- 両PC/log・Unicode階層の実bytes/hash、空/対象外/invalid分類、hash不明のincomplete保全、source変更後も旧plan不変/別runで再列挙、実mutex/create-only/marker-last候補保存、既存競合、同じ固定観測の決定性を合成検証する。候補artifact-setのcommittedを実run開始/manifest更新/Upload認可へ昇格しない。
+- 追加接続・既存initial plan/source builderを一括検証する。配布file集合47件/PS/schema契約は不変。Python 3.11.9（CI 3.12）で追加source接続＋既存initial/source builderの計23件成功（skipなし）。両PC/log・分類状態などは試験内subcase。変更のないterminal/report/readback・package/PS/schema検査は再実行しない。root自己点検のみで独立レビュー・新CI・実運用受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：source列挙後から使用点までの同一性、fresh run/clock/token/root/ownerの真正性、C1/C2の初回publication/比較更新runtime統合、Drive/受け入れ。次はそれらの境界の候補整理、または確定済みの独立実装を選ぶ。
+
+## 直前の実装単位（B2初期plan・efc6733）
+
 - 最新mainは`1036b304aaac13d60dfae5d5e8ed51a3354edf1d`。[PR #42](https://github.com/wasawo/eo-log-maintenance-public/pull/42)はマージ済み、mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40163423575) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40163423523)も成功確認済み。再開指示を受け、最新取得mainから新branch`codex/initial-manifest-plan`を作成した。
 - 既存遷移moduleへ`prepare_initial_manifest`を追加。独立したPC/log/target period/run ID/開始UTCと信頼できる現在UTC、exact B2 bytes、static schemaから、running・全pending・未検証metadataの初期候補を構築する。B2 digest/count/scope/inventoryを既存validatorで照合し、開始→列挙開始→列挙完了の順序と現在+5分上限を検査する。
 - immutable planはproposed/evidence bytesを保持し、may_publish/may_upload/may_archiveはfalse。空/failed/incomplete/error B2を成功/no_workへ昇格せず、識別子/時刻/欠落入力を補完しない。B2の出所・実際のfresh inventory・保存先不在・実clock/owner/FS資格を認証しない。

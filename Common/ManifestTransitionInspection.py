@@ -14,6 +14,7 @@ from Common.AggregationReportBuilder import (
     AggregationBuildError, build_aggregation_report, _parse, _validator, _validate,
 )
 from Common.LatestManifestSelection import _utc_key, _clock_key
+from Common.SourceInventoryEvidenceBuilder import _classify_filename
 from Common.RunInputEvidenceIntegrity import (
     EvidenceIntegrityError, validate_evidence_invariants, validate_evidence_matches_manifest,
     _safe_relative_path, _SHA256_RE,
@@ -175,6 +176,9 @@ def prepare_initial_manifest(
         supplied = _parse(evidence_bytes)
         _validate(_validator(evidence_schema), supplied)
         validate_evidence_invariants(supplied, evidence_schema)
+        if any(_classify_filename(item["filename"], expected_log_type) is None
+               for item in supplied["inventory"]["targets"]):
+            _reject("initial_inventory_filename_unclassifiable")
         proposed = dict(schema_version=1, pc_id=expected_pc_id, log_type=expected_log_type,
             target_period=expected_target_period, run_id=expected_run_id, status="running", outcome=None,
             started_at_utc=started_at_utc, finished_at_utc=None, files=[

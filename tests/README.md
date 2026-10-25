@@ -316,3 +316,5 @@ artifact-setの既存試験へ期待transactionの型/不一致/未指定互換�
 Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを渡す起動を避け、`python -B -m unittest discover ...` または一時的な`PYTHONPATH=tests`設定下で`python -B -m unittest <module/case> ...`を使います。spawnが起動元を再読込できる形で、対象caseをまとめて指定します。
 
 `test_initial_manifest_plan.py`はB2→running/pendingの純粋構築を、両PC/log、改変/scope/時計境界、空/失敗/不完全、Unicode/元bytes、掲載ペアを経る終端report接続で検証します。実run生成/保存/Drive操作は実行しません。
+
+`test_initial_source_integration.py`は専用tempの実source列挙/hashからB2・初期plan・別candidateへの実mutex/create-only/marker-last公開/読戻しを接続します。両PC/log・分類/失敗・source変更/競合を扱います。固定clockとfixture IDは合成観測で、runtime資格やUpload認可ではありません。
