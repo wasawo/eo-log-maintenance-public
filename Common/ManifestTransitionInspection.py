@@ -168,6 +168,7 @@ def inspect_manifest_history(snapshots, *, manifest_schema):
         inspect_manifest_transition(None, snapshots[0], manifest_schema=manifest_schema)
         last, old_files = _snapshot(snapshots[0], validator)
         pending_upload = set()
+        upload_attempts = {path: 0 for path in old_files}
         changed = upload_entries = retry_entries = 0
         for previous, proposed in zip(snapshots, snapshots[1:]):
             pair = inspect_manifest_transition(previous, proposed, manifest_schema=manifest_schema)
@@ -184,6 +185,11 @@ def inspect_manifest_history(snapshots, *, manifest_schema):
                         _reject("upload_pending_restarted_staging")
                     pending_upload.discard(path)
                 if after == "pending":
+                    # Count the supplied trace's upload-attempt boundaries;
+                    # repeated snapshots never consume or reset the budget.
+                    upload_attempts[path] += 1
+                    if upload_attempts[path] > 4:
+                        _reject("manifest_history_upload_attempt_limit_exceeded")
                     pending_upload.add(path)
                     if before == "ready":
                         upload_entries += 1

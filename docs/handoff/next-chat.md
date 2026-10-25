@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`8afa7c4`、同じ`codex/drive-download-observation`で[提示manifest履歴のfile別Upload上限](../design/manifest-transition-inspection.md#提示履歴のupload試行上限)を追加。ready→pendingを初回、unknown→pendingを再試行境界として最大4回を検査し、5回目を拒否。登録pending/同一snapshot/配列順で消費・リセットせず、別file予算を合算しない。4回後のunknownをfailedへ変えず、超過履歴は終端report生成前に停止する。
+- Python 3.11.9（CI 3.12）で新規予算8件＋既存履歴10件＋終端履歴9件の計27件成功、skipなし。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
+- 提示履歴の境界検査であり、実API試行の漏れない記録/実送信・永続counter・60/300/900秒待機・unknown retry前の完全不在照合やPS orchestratorを実装/認証しない。全公開/Upload/retry/Archive許可false。metadata-first/event/provider/root/FS/使用点・writer/runtime受け入れは未完。次は既承認の独立作業を選び、未決仕様を推測しない。
+
+## 直前の実装単位（終端履歴使用点/候補bundle接続・8afa7c4）
+
 - 基準`70d4cb9`、同じ`codex/drive-download-observation`で[終端履歴planの使用点再導出＋候補bundle隔離接続](../design/manifest-transition-inspection.md#初期planからの全履歴binding)を追加。独立初期plan/履歴/B2/現在running bytes/AC/contextと厳密型/flagsを確認し、全履歴/reportを毎回再構成してplan全体とexact照合する。自作tempの合成所有lock内で現在runningを読み、別candidate保存/semantic読戻しを両PC相当で接続。元runningは更新せず、全公開/Upload/retry/Archive/状態変更許可false。
 - Python 3.11.9（CI 3.12）で新規使用点/隔離接続9件＋既存全履歴9件の計18種類成功、skipなし。初回27件にはimportによる既存9件の重複実行を含み、module aliasへ整理。nested plan/historyの厳密型/flag検査強化後、新規9件のみ再実行して成功。CI suite登録、CI自体未実行。配布file集合50件/PS/schemaは不変で重複検査しない。文書相対リンク/差分を確認。root自己点検のみ、独立レビューなし。ローカルコミット後は指示待ち、push/PRなし。
 - lock取得後の現在running変更/AC喪失では候補fileを書かず、変更bytesを保全してowner解放。独立引数のprovider真正性/履歴完全性・metadata-first/event証拠・実copy/Drive/API・owner/root/clock/FS/容量/使用点・実writer/永続化/runtime受け入れは未実証。次は既承認の独立作業を選び、未決provider/event契約を推測しない。

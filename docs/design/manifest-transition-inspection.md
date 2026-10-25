@@ -27,6 +27,12 @@ fileのrelative pathごとにpending段階を追跡する。初期登録のpendi
 
 ## 終端planとB2／report生成の接続
 
+### 提示履歴のUpload試行上限
+
+`inspect_manifest_history`は[最大4回の既承認契約](powershell-python-contract.md#7-再試行と冪等性)に従い、fileごとにready→pendingを初回、unknown→pendingを再試行の境界として数える。5回目のUpload pendingは固定reason `manifest_history_upload_attempt_limit_exceeded`で拒否する。登録pending、同じsnapshotの再掲載、file配列の並べ替えは予算を消費/リセットしない。別fileの予算を合算せず、stagingへの逆戻りでのリセットも既存段階検査が拒否する。
+
+上限到達だけではfailed/successへ変えず、4回後のunknownもそのまま保持する。全履歴binding/使用点再導出も同じ検査を経由し、上限超過の終端reportは生成しない。掲載snapshotが実API試行を漏れなく示す証拠にはならず、開始前pendingが実送信/完了したかは判定しない。実counter/永続予算・信頼できる60/300/900秒待機・unknownからの完全な不在照合・retryable判定・PS orchestratorは未実装。全may_*falseで、本文の「予算の証明はしない」は実運用の予算を指す。[合成上限試験](../../tests/test_manifest_history_retry_budget.py)は提示履歴の境界だけを確認する。
+
 ### 初期planからの全履歴binding
 
 使用点では`revalidate_terminal_manifest_history`へ初期plan・独立expected snapshot tuple/B2/現在running bytes・明示AC・context/schemaを渡す。wrapper/内包plan/historyの厳密型、bytes/件数の型、全false flagを検査し、ACが明示Trueでなければ再導出前に拒否する。履歴/元B2/現在running bytesの不一致も事前拒否する。全履歴/B2/reportを毎回再導出し、元plan全体とexact一致する場合だけ新しい非認可planを返す。旧report、件数改変、boolを整数に代用した件数、scope/path/clock変化で成功を流用しない。

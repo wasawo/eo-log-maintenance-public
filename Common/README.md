@@ -10,6 +10,8 @@
 
 同moduleの`inspect_manifest_history`は初期登録からの明示snapshot tupleを検査し、登録pendingとUpload直前pendingをpath単位で区別します。登録pendingからuploaded/unknownへの飛越しやUpload pendingからのstaging再開を拒否し、retry pendingを別計数します。結果は件数のみ/全許可falseで、真正な履歴・event証拠・実writerの受け入れではありません。
 
+履歴中のUpload pending境界にはfile別の最大4回上限を適用します。5回目は拒否し、重複snapshot/配列順で予算を消費/リセットしません。上限到達だけでunknownをfailedへ変えず、実API回数/待機/不在照合は認証しません。
+
 `prepare_terminal_manifest_history`は独立contextで初期planを再構成し、exact先頭から終端までの連続履歴とB2/OSD-03/G1 report生成を接続します。終端の繰返しでも本来のrunning priorを保持し、途中省略や集約不備を拒否します。結果は専用非認可planで、event/永続化や実copy/Driveの証明ではありません。
 
 `revalidate_terminal_manifest_history`は独立履歴/B2/現在running bytes/AC/contextを要求し、型/flagsとexact対応を確認して全plan/reportを毎回再導出します。結果は引き続き非認可で、実provider/現在性/write leaseではありません。tests専用の所有lock→別candidate保存/読戻し接続でも元runningを更新しません。

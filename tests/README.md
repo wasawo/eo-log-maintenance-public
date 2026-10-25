@@ -14,6 +14,8 @@
 
 `test_manifest_history_inspection.py`は初期登録からのsnapshot履歴を使い、2種のpending・retry pending・path単位追跡・飛越し/逆戻り拒否・終端bytes保全を確認します。空/途中履歴の拒否、入力不変/I/Oなし、全許可falseも検証し、提示履歴の真正性や実event/永続更新を証明しません。
 
+`test_manifest_history_retry_budget.py`は提示履歴のfile別Upload pending最大4回、5回目拒否、file独立予算、重複/並べ替えによる消費/リセット防止を確認します。4回後のunknown保持と、超過履歴の終端report生成前停止を検証し、実API回数/待機/不在照合やretry許可の証拠にはしません。
+
 `test_terminal_manifest_history.py`は独立context/元B2で初期planを再構成し、exact連続履歴から終端report候補までを接続します。両PC/log、exact先頭、終端繰返し時のrunning prior保持、履歴省略/集約不備/未完の拒否、未解決/error保持、全許可falseを検証します。履歴真正性や永続更新の証拠ではありません。
 
 `test_terminal_history_usepoint.py`は独立履歴/B2/現在running bytes/ACからの毎回再導出、scope/path/clock/report/件数/型/flagの変更拒否を確認します。自作tempの合成所有lock内で再検査→別candidateのmarker-last保存→hash/semantic読戻しを両PC相当で接続し、元running保全・AC喪失/現在bytes変更時の書込み前停止とowner解放を検証します。正式writerやruntime受け入れではありません。
