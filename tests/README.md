@@ -364,3 +364,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 空きbytes試験はnative FileIdInfoと各UInt64部分の最大値付近の差、pre/postの未取得を追加確認する。64-bit-only fallbackを許さず、実運用FS全般の対応やID再利用/ABA排除とは区別する。
 
 空きbytes試験はleafのID/bytesを維持した親directoryの実差替えと、空/長さ変化/parent-only変化のchain拒否を追加確認する。実移動はすべて自作temp配下の絶対pathを検査してから行う。
+
+`test_pc_suffixed_name.py`は承認済みPC suffixの純粋命名、元文字列保持・文法/UTF-8境界・非認可を確認する。Drive側候補名はsource文法/出所証拠や衝突解消の許可ではない。

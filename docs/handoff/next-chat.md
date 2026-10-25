@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`930e672`、同じ`codex/drive-download-observation`で[PC suffixの純粋命名観測](../design/drive-content-comparison.md)を追加。承認済みsource filename文法/実在日付と既存L1字句を検査し、元basenameを保持してextension直前へ_PCA/_PCBを付ける。Unicode/case/spacingや既存suffix文字列から出所を推測/修復しない。
+- 元名/候補名/指定PC/logをimmutableに保持し、rename/Upload/上書き/Archive許可は全false。候補名でB2/source文法を変更せず、OSD-01 name比較も別名化しない。既存fileの出所/内容差/競合の確認と衝突解消は別gate。Python 3.11.9（CI 3.12）で追加命名＋既存直接比較/L1字句の計18件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/FS/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：原名/final名の正式adapter結果/記録・衝突解消orchestratorと現在内容/出所確認、実SDK/C-02/credential、root/FS/token/clock/owner・容量/使用点資格、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（祖先chain照合・930e672）
+
 - 基準`031ecfb`、同じ`codex/drive-download-observation`で[空きbytes観測の祖先chain照合](../design/staging-file-lifecycle.md)を追加。leaf→drive rootのcanonical/extended identityを前後収集し、空/未取得/legacy・長さ変化・各位置の差を拒否する。内部path/IDを公開結果へ出さず、FreeSpaceReliable/作成/Upload許可はfalseのまま。
 - leafのID/bytesを維持したまま親を同名差替えする隔離試験と、合成chain不備を追加する。移動の全絶対pathは自作temp配下を検査する。連続metadata観測であり、同時snapshot・query中pin・ID再利用/ABA・実root/FS資格は未実証。既存canonical API/native layoutは不変。PS 7.6.7で空きbytes/祖先chain35件成功（junction skipなし）。変更PS構文/PSScriptAnalyzer Error検査成功。native layout/既存canonical APIが不変のため前単位で成功したroot142件は重複実行しない。配布file集合49件/schema/Python codeは不変のためpackage/schema/Python検査も再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実運用root/FS/provider/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：実root/FS/provider/token/clock/ownerと容量資格・使用点、正式PS transport/対象履歴/copy失敗対応、実SDK/C-02/credential・C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。

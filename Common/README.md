@@ -165,3 +165,5 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 空きbytes観測の内部directory identityはFileIdInfoの64-bit volume serial＋128-bit file IDも要求します。未取得/前後不一致は保留し、legacy 64-bit照合へfallbackしません。既存canonical文字列APIは互換を維持し、FS資格や権限は付与しません。
 
 空きbytes観測はleafからdrive rootまでの祖先chainも前後照合します。leafのIDが同じでも親の差替え・chain欠落/長さ変化を保留し、内部path/IDを公開結果へ出しません。同時snapshot/ABA排除やroot資格は証明しません。
+
+`observe_pc_suffixed_name`は元source basenameを保持してDrive候補名の_PCA/_PCBを拡張子前へ付けます。出所や衝突を判定せず、rename/Upload/上書き/Archive許可はfalse。候補名でB2を変更したりOSD-01のname照合を別名化したりしません。

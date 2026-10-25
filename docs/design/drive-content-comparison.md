@@ -99,3 +99,13 @@ requirement0件でも再導出/列挙/空download集合の整合を検査し、�
 [合成試験](../../tests/test_download_staging_integration.py)は空/通常/1 MiB超の実file、計画→staging→実bytes/hash→再列挙→比較、途中失敗後の別stagingと旧bytes保全、create-new競合、short/overlong/未完了、不正root/requirementと変更file保全を確認する。OS-tempの書込みは通常モードのテストであり、Dry Run Aのdownload bytes禁止を緩和しない。
 
 これはmock chunkのnative保存/読戻し接続で、実SDK/認証/C-02 result、PS retry予算/時間待機、download成功/ID binding、正式staging/root/ACL/FSと容量確認、原子的同時snapshot/敵対的ABA、process crash/電源断耐久性、Tier B/Cやruntime受け入れは未実装・未実証である。fsync成功だけで耐久性や正式writer資格を与えない。
+
+## 衝突時PC suffixの命名観測
+
+`observe_pc_suffixed_name`は[承認済み衝突命名規則](../development/implementation-workflow.md#24-collision-and-duplicate-handling)に基づき、独立指定のPC-A/PC-Bとlog種別、元source basenameから、拡張子直前へ_PCA/_PCBを付けたDrive側の候補名を返す。入力には既存source filename文法/実在日付と、dummy rootでの既存C-01/L1字句検査を使う。basenameのpath separatorや不正UTF-8は拒否し、実root/FSを読まない。
+
+immutable観測は元名・候補名・指定PC/logを保持し、Unicode正規化/case変換/trimや元名のsuffix除去をしない。既にsuffix文字列があるBattleLog名も元sourceの文字列として保持し、その末尾extension直前へ要求suffixを付ける。suffix文字列を出所確認に使わず、同じ元名への反復は同じ候補を返す。未知PC/logや不正文法は固定reasonで拒否し、元名を例外/reprへ出さない。
+
+これは命名だけの観測で、same-name内容差・既存未標識fileの出所・suffix先の競合を検証した結果ではない。既存rename・Upload・上書き・Archiveの全may_*はfalse。出所不明は依然保留で、同名/同hashのOSD-01比較をsuffix別名へ拡張しない。候補名をB2/source relative pathや原本のfilenameへ書き戻さない。ErrorReportのsuffix付きDrive名も新しいsource filename文法として採用しない。FS/APIの実利用資格/長さ制限は使用点gateに残る。
+
+[命名試験](../../tests/test_pc_suffixed_name.py)は両PC/log、Unicode/結合文字/spacing/複数dot、suffix文字列の原文保持、日付/拡張子/PC/log/禁止文字/path/UTF-8拒否、I/Oなし・非認可を確認する。衝突解消orchestrator、原名/final名の正式adapter結果/記録、既存fileのrename/publication/現在内容と出所の検証は未実装のまま。

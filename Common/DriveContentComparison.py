@@ -1,7 +1,9 @@
-"""Pure OSD-01 comparison observations; no API, provenance proof or authority."""
+"""Pure content/naming observations; no API, provenance proof or authority."""
 from dataclasses import dataclass, field
 import hashlib
 import re
+from Common.DriveRequestPath import is_drive_request_file_path
+from Common.SourceInventoryEvidenceBuilder import _classify_filename
 
 
 @dataclass(frozen=True, repr=False)
@@ -9,6 +11,48 @@ class ComparisonSource:
     filename: str
     size_bytes: int
     sha256: str
+
+
+@dataclass(frozen=True, repr=False)
+class PcSuffixedNameObservation:
+    original_filename: str
+    proposed_filename: str
+    pc_id: str
+    log_type: str
+    may_rename: bool = field(default=False, init=False)
+    may_upload: bool = field(default=False, init=False)
+    may_overwrite: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+
+
+class DriveNameObservationError(ValueError):
+    def __init__(self, reason_code):
+        self.reason_code = reason_code
+        super().__init__(reason_code)
+
+
+def observe_pc_suffixed_name(filename, *, pc_id, log_type):
+    """Project the approved suffix from an original source basename only.
+
+    No collision/origin discovery, alias matching or rename/upload is performed.
+    A suffix in the source text is not inferred provenance and is not stripped.
+    """
+    if type(pc_id) is not str or pc_id not in ("PC-A", "PC-B"):
+        raise DriveNameObservationError("naming_pc_invalid")
+    if type(log_type) is not str or log_type not in ("BattleLog", "ErrorReport"):
+        raise DriveNameObservationError("naming_log_type_invalid")
+    if type(filename) is not str or "/" in filename or "\\" in filename:
+        raise DriveNameObservationError("naming_filename_invalid")
+    try:
+        filename.encode("utf-8", errors="strict")
+    except UnicodeError:
+        raise DriveNameObservationError("naming_filename_invalid") from None
+    # Dummy root is lexical only; passing L1 performs no filesystem access.
+    if (not is_drive_request_file_path("C:\\Example\\Names\\"+filename)
+            or _classify_filename(filename, log_type) is None):
+        raise DriveNameObservationError("naming_filename_invalid")
+    suffix = "_PCA" if pc_id == "PC-A" else "_PCB"
+    return PcSuffixedNameObservation(filename, filename[:-4]+suffix+filename[-4:], pc_id, log_type)
 
 
 @dataclass(frozen=True, repr=False)
