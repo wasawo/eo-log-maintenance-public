@@ -84,7 +84,7 @@ class CandidateBundleFixture:
         result = dict(status="held", may_update_manifest=False, may_archive=False)
         with acquire_owned_lock(self.scope, self.root / "synthetic-owner.json", timeout_seconds=0):
             self._guard()
-            observed = verify_published_artifact_set(self.bundle, self.hashes)
+            observed = verify_published_artifact_set(self.bundle, self.hashes, expected_transaction_id=self.transaction)
             if not observed.may_report_committed:
                 return result
             marker_before = (self.bundle / "commit-marker.json").read_bytes()
@@ -93,7 +93,7 @@ class CandidateBundleFixture:
             if any((self.bundle / name).read_bytes() != data for name, data in self.payloads.items()):
                 return result
             semantic = validate_referenced_artifacts(self.bundle, self.bundle / "report.json", ROOT / "contracts")
-            after = verify_published_artifact_set(self.bundle, self.hashes)
+            after = verify_published_artifact_set(self.bundle, self.hashes, expected_transaction_id=self.transaction)
             self._guard()
             if (semantic["status"] == "verified" and after.may_report_committed
                     and (self.bundle / "commit-marker.json").read_bytes() == marker_before):

@@ -57,12 +57,18 @@ def classify_artifact_set(
     published_sha256: Mapping[str, str],
     staged_sha256: Mapping[str, str],
     commit_marker: Any = None,
+    expected_transaction_id: str | None = None,
 ) -> ArtifactSetDecision:
     """Classify a synthetic artifact set without performing recovery side effects.
 
     The caller must supply SHA-256 values computed from observed bytes, not
     metadata or a filename. Unknown/extra published artifacts fail closed.
+    Optional expected_transaction_id is an independent exact string binding;
+    omitting it does not prove which attempt owns a valid marker.
     """
+    if expected_transaction_id is not None and (
+            type(expected_transaction_id) is not str or not _TX_ID.fullmatch(expected_transaction_id)):
+        return _blocked("expected_transaction_id_invalid")
     if not _valid_artifact_map(expected_sha256):
         return _blocked("expected_artifact_set_invalid")
     if not isinstance(published_sha256, Mapping):
@@ -98,6 +104,8 @@ def classify_artifact_set(
         transaction_id = commit_marker.get("transaction_id")
         if not isinstance(transaction_id, str) or not _TX_ID.fullmatch(transaction_id):
             return _blocked("commit_marker_transaction_id_invalid")
+        if expected_transaction_id is not None and transaction_id != expected_transaction_id:
+            return _blocked("commit_marker_transaction_id_mismatch")
         marker_hashes = commit_marker.get("artifact_sha256")
         if not _valid_artifact_map(marker_hashes) or dict(marker_hashes) != expected:
             return _blocked("commit_marker_artifact_set_mismatch")

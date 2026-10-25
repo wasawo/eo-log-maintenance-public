@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import stat
 from typing import Mapping
@@ -38,18 +39,73 @@ def _is_link_or_reparse(path: Path) -> bool:
     )
 
 
+def _signature(info):
+    return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns, info.st_nlink
+
+
+def _chain(root):
+    identities = []
+    for path in (root, *root.parents):
+        info = path.lstat()
+        if _is_link_or_reparse(path) or not stat.S_ISDIR(info.st_mode):
+            raise ArtifactSetDirectoryVerificationError("directory_unavailable")
+        identities.append((info.st_dev, info.st_ino))
+    return tuple(identities)
+
+
+def _scan(root, allowed, chain):
+    if _chain(root) != chain:
+        raise ArtifactSetDirectoryVerificationError("directory_changed")
+    result = {}
+    for entry in root.iterdir():
+        if entry.name not in allowed:
+            raise ArtifactSetDirectoryVerificationError("unexpected_directory_entry")
+        info = entry.lstat()
+        if _is_link_or_reparse(entry) or not stat.S_ISREG(info.st_mode):
+            raise ArtifactSetDirectoryVerificationError("non_regular_artifact")
+        result[entry.name] = _signature(info)
+    return result
+
+
+def _read_stable(path, expected, root, chain):
+    if _chain(root) != chain:
+        raise ArtifactSetDirectoryVerificationError("directory_changed")
+    before = path.lstat()
+    if _is_link_or_reparse(path) or not stat.S_ISREG(before.st_mode) or _signature(before) != expected:
+        raise ArtifactSetDirectoryVerificationError("artifact_changed")
+    try:
+        with path.open("rb") as stream:
+            opened = os.fstat(stream.fileno())
+            if not stat.S_ISREG(opened.st_mode) or _signature(opened) != expected:
+                raise ArtifactSetDirectoryVerificationError("artifact_changed")
+            content = stream.read()
+            finished = os.fstat(stream.fileno())
+    except OSError as exc:
+        raise ArtifactSetDirectoryVerificationError("artifact_read_failed") from exc
+    after = path.lstat()
+    if (_is_link_or_reparse(path) or not stat.S_ISREG(after.st_mode)
+            or _signature(after) != expected or _signature(finished) != expected
+            or len(content) != before.st_size or _chain(root) != chain):
+        raise ArtifactSetDirectoryVerificationError("artifact_changed")
+    return content
+
+
 def verify_published_artifact_set(
     directory: str | Path,
     expected_sha256: Mapping[str, str],
     *,
     commit_marker_name: str = "commit-marker.json",
+    expected_transaction_id: str | None = None,
 ) -> ArtifactSetDecision:
     """Inspect one directory and classify only bytes actually observed on disk.
 
     The directory is expected to contain exactly the expected artifact files and
     optionally the marker. Symlinks, subdirectories, temporary/unexpected files,
     malformed marker JSON, and unreadable files fail closed. No filesystem state
-    is changed.
+    is changed. Path/handle, directory and exact bytes are rechecked before
+    returning; these observations do not prove an atomic snapshot or block ABA.
+    Optional expected_transaction_id binds the marker to a supplied identity,
+    not to a qualified owner or one-use receipt.
     """
     if (
         not isinstance(commit_marker_name, str)
@@ -66,26 +122,23 @@ def verify_published_artifact_set(
     try:
         if root.is_symlink() or not root.is_dir():
             raise ArtifactSetDirectoryVerificationError("directory_unavailable")
-        if any(_is_link_or_reparse(component) for component in (root, *root.parents)):
-            raise ArtifactSetDirectoryVerificationError("directory_unavailable")
+        chain = _chain(root)
         if not isinstance(expected_sha256, Mapping):
             raise ArtifactSetDirectoryVerificationError("expected_artifact_set_invalid")
-        expected_names = set(expected_sha256)
+        expected = dict(expected_sha256)
+        expected_names = set(expected)
         if not expected_names or commit_marker_name in expected_names:
             raise ArtifactSetDirectoryVerificationError("expected_artifact_set_invalid")
 
         published: dict[str, str] = {}
         marker: object = None
         allowed_names = expected_names | {commit_marker_name}
-        for entry in root.iterdir():
-            if entry.name not in allowed_names:
-                raise ArtifactSetDirectoryVerificationError("unexpected_directory_entry")
-            if _is_link_or_reparse(entry) or not entry.is_file():
-                raise ArtifactSetDirectoryVerificationError("non_regular_artifact")
-            try:
-                content = entry.read_bytes()
-            except OSError as exc:
-                raise ArtifactSetDirectoryVerificationError("artifact_read_failed") from exc
+        initial = _scan(root, allowed_names, chain)
+        contents = {}
+        for name, signature in initial.items():
+            entry = root / name
+            content = _read_stable(entry, signature, root, chain)
+            contents[name] = content
 
             if entry.name == commit_marker_name:
                 try:
@@ -98,12 +151,21 @@ def verify_published_artifact_set(
             else:
                 published[entry.name] = hashlib.sha256(content).hexdigest()
 
-        return classify_artifact_set(
-            expected_sha256=expected_sha256,
+        decision = classify_artifact_set(
+            expected_sha256=expected,
             published_sha256=published,
             staged_sha256={},
             commit_marker=marker,
+            expected_transaction_id=expected_transaction_id,
         )
+        if _scan(root, allowed_names, chain) != initial:
+            raise ArtifactSetDirectoryVerificationError("directory_changed")
+        for name, content in contents.items():
+            if _read_stable(root / name, initial[name], root, chain) != content:
+                raise ArtifactSetDirectoryVerificationError("artifact_changed")
+        if _scan(root, allowed_names, chain) != initial:
+            raise ArtifactSetDirectoryVerificationError("directory_changed")
+        return decision
     except ArtifactSetDirectoryVerificationError:
         raise
     except OSError as exc:

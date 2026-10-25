@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+- 基準`afca3ce`、同じ`codex/manifest-evidence-integration`でartifact-set classifierとdirectory verifierを強化。optionalな独立期待transaction IDを共通APIへ接続し、valid UUIDであっても期待文字列とexact不一致ならcommittedにしない。未指定時は従来のunbound分類を維持し、marker schema/fieldは変更しない。
+- directory verifierはcaller期待hash集合を開始時copyし、root/祖先chain・file path/handle・読取前後metadata/byte長を照合。分類後にdirectoryを再列挙し、全artifact/markerのexact bytesを再読込、さらに再列挙して変化を拒否する。fixture固有だったtransaction照合を既存終端bundleにも接続した。
+- 共通分類の型/別transaction/文字列非正規化、directoryのlate変更/追加・handle不一致・読取中変更・期待map変更を合成試験へ追加。既存reparse/read失敗試験はstream open経路へ障害注入を合わせ、reparse先を読まないことも維持する。
+- 対象はclassifier/directory/reparse/終端bundleの関連試験を一括。配布file集合47件/PS/schema契約は不変。Python 3.11.9（CI 3.12）で関連38件中37件成功・1件skip。skipは既存symlink作成が端末で利用できないcaseで、実Windows junction/reparse・read失敗試験は成功。変更のないlatest/report/builder・package/PS/schema検査は再実行しない。root自己点検のみ、独立レビュー・新CI・実環境受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。期待transactionもcaller由来観測で、実owner/run binding・一回限りreceiptを認証しない。unboundなcommittedを特定試行の認可にせず、同時atomic snapshot/敵対的ABA・実root/ACL/FS/C1比較更新・実Drive・Tier B/C/runtime受け入れは未完。次はprovider未決境界の候補整理か、確定済みの独立作業を選ぶ。
+
+## 直前の実装単位（最新manifest/report binding・afca3ce）
+
 - 基準`db2e774`、同じ`codex/manifest-evidence-integration`で最新manifest選択とreport意味論を接続。既存directory readerへ`read_latest_manifest_with_report`を追加し、C4で選んだexact bytesと規定basename/pathを参照validatorの独立期待値へ渡す。report位置は明示入力で、自動推定/生成しない。
 - 参照validatorのoptional期待bytes/pathは両方セットのみ許可し、未知型・片方欠落・別path・読取bytes不一致を拒否。従来の期待値なしAPI/CLIは互換保持。report検査後に最新候補を再列挙/選択し、別候補への変化や新しい未完runを保留する。古い成功/reportへfallbackしない。
 - 両PC/log種別、別runの旧report、別pathの同一bytes、選択後bytes＋report hash改変、検証後の新success/running、偽成功、終端failure観測/非終端拒否、期待値不正・時計不明/欠落reportを合成試験に追加。全I/Oは専用tempで実ログ/Driveなし。

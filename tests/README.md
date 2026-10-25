@@ -308,3 +308,5 @@ report builder/参照validatorの合成試験は、履歴再導出と通常build
 `test_artifact_read_stability.py`は参照validatorのhandle/path/親chain/read集合の変更検出、reparse属性と専用temp内のWindows junction、静的schema外部取得禁止を検査します。実FSの包括的資格や敵対的ABAの排除を実証しません。
 
 `test_manifest_report_selection.py`は最新manifestとreportのexact path/bytes binding、検査後再選択、両PC/log種別・旧report流用・改変・新しい未完run・欠落report/時計不明を合成検証します。通常のvalidator/CLI互換を維持し、読取成功をarchive資格へ変換しません。
+
+artifact-setの既存試験へ期待transactionの型/不一致/未指定互換と、directory/file/markerの途中変更・handle不一致・期待hash mapの変更を追加しています。終端bundle接続も共通の期待transaction照合を使い、reparse/read失敗試験の注入先はstream openへ整合します。

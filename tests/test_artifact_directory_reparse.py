@@ -62,7 +62,8 @@ class ArtifactDirectoryReparseTests(unittest.TestCase):
     def test_junction_root_rejected_before_any_artifact_read(self):
         alias = self.make_junction("alias", self.artifacts)
         original = self.snapshot()
-        with patch.object(Path, "read_bytes", side_effect=AssertionError("untrusted_read")):
+        with patch.object(Path, "read_bytes", side_effect=AssertionError("untrusted_read")), \
+             patch.object(Path, "open", side_effect=AssertionError("untrusted_read")):
             with self.assertRaisesRegex(
                 ArtifactSetDirectoryVerificationError, "directory_unavailable",
             ):
@@ -72,7 +73,8 @@ class ArtifactDirectoryReparseTests(unittest.TestCase):
     def test_junction_ancestor_rejected_before_any_artifact_read(self):
         alias = self.make_junction("alias", self.real)
         original = self.snapshot()
-        with patch.object(Path, "read_bytes", side_effect=AssertionError("untrusted_read")):
+        with patch.object(Path, "read_bytes", side_effect=AssertionError("untrusted_read")), \
+             patch.object(Path, "open", side_effect=AssertionError("untrusted_read")):
             with self.assertRaisesRegex(
                 ArtifactSetDirectoryVerificationError, "directory_unavailable",
             ):
@@ -99,7 +101,7 @@ class ArtifactDirectoryReadFailureTests(unittest.TestCase):
         try:
             publish_artifact_set_marker_last(str(root), PAYLOADS, transaction_id=TRANSACTION_ID)
             before = {p.name: p.read_bytes() for p in root.iterdir()}
-            with patch.object(Path, "read_bytes", side_effect=PermissionError("private-value")):
+            with patch.object(Path, "open", side_effect=PermissionError("private-value")):
                 with self.assertRaisesRegex(
                     ArtifactSetDirectoryVerificationError, "^artifact_read_failed$",
                 ):
