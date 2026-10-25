@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+- 基準`a72d6fd`、同じ`codex/initial-manifest-plan`で[source列挙の完了前再確認](../design/source-enumeration-stability.md)を追加。directory/ancestor identityとchild名・属性の初期snapshotを保持し、hash/分類完了後に全directoryを再列挙する。追加/削除/rename/属性変化/差替え/読取不明はcoverage incompleteへ落とす。
+- 観測済みtarget/hash/errorを保持し、空集合やno_workへリセットしない。snapshot時にreparse/属性不明があれば不完全とし、その先へ走査しない。scandirを明示closeし、root metadataとchainの初期対応も検査する。最後の再確認は再hashではなくnamespace/metadata観測で、ABAや同時snapshotの資格ではない。
+- 合成試験は後続追加/削除/rename/既読file変更、directory追加/差替え、空scan後追加、rescan失敗、non-targetの列挙中変更、使用点再観測の不成立によるcandidate書込み0件を追加。既存junction試験の期待値を「再走査回数」から「source外を走査しない」境界へ整合した。
+- Python 3.11.9（CI 3.12）で追加列挙安定性＋既存builder/reparse/再観測/使用点/初期接続の計47件成功（skipなし）。配布file集合48件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実環境受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：最終観測から使用までの変化、原子的snapshot・敵対的ABA/属性復元、実root/ACL/FS/owner/clockの資格、C1/C2 writer・Drive/runtime受け入れ。次はprovider未決境界の候補整理か、確定済みの独立作業を選ぶ。
+
+## 直前の実装単位（初期source使用点・a72d6fd）
+
 - 基準`673052d`、同じ`codex/initial-manifest-plan`で`revalidate_initial_manifest_source`を接続。厳密なInitialManifestPlan型/全false flag・明示AC trueを検査し、独立PC/log/period/run/開始時刻・現在時計/schemaから初期planを再構成してexact一致を要求してから、sourceを新しく再観測する。
 - planの書式だけの変更/別state/別B2やscope変更、AC未確認・不正flagはsource I/O前に拒否する。保存済みSourceInventoryObservationやtrue値をreceiptとして受け付けず、呼出しごとに再列挙/hashする。返す結果は全may_*falseの観測で、実root/AC/token/clock/owner資格を認証しない。
 - 合成の実mutex/owner内で使用点検査を候補公開の前へ接続し、一致時の候補保存・source変更/AC切断時のcandidate書込み0件・owner解放/元plan保全を確認する。callback/配置はtests専用で、正式runtime契約やC1/C2 providerの採用ではない。

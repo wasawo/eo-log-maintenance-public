@@ -77,6 +77,37 @@ def _reject_source_reparse(path: Path) -> None:
             raise InventoryBuildError("source_reparse_component")
 
 
+def _source_chain(directory: Path):
+    result = []
+    for component in (directory, *directory.parents):
+        info = component.lstat()
+        if _is_source_reparse(info) or not stat.S_ISDIR(info.st_mode):
+            raise InventoryBuildError("source_directory_changed")
+        result.append((info.st_dev, info.st_ino))
+    return tuple(result)
+
+
+def _source_entry_signature(info):
+    # Same-path observations only: no stat/fstat ctime comparison here.
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns,
+            getattr(info, "st_file_attributes", 0), info.st_nlink)
+
+
+def _enumeration_snapshot(directory: Path):
+    chain = _source_chain(directory)
+    with os.scandir(directory) as scan:
+        entries = sorted(scan, key=lambda item: item.name.encode("utf-8", errors="strict"))
+    identities = {}
+    for entry in entries:
+        info = Path(entry.path).lstat()
+        if _is_source_reparse(info):
+            raise InventoryBuildError("source_reparse_component")
+        identities[entry.name] = _source_entry_signature(info)
+    if _source_chain(directory) != chain:
+        raise InventoryBuildError("source_directory_changed")
+    return entries, (chain, identities)
+
+
 def _hash_stable_file(path: Path) -> tuple[int, str]:
     """Hash exact bytes and reject observable metadata changes during the read."""
     try:
@@ -148,6 +179,9 @@ def build_run_input_evidence(
         root_stat = root.lstat()
         if not stat.S_ISDIR(root_stat.st_mode):
             raise InventoryBuildError("source_root_invalid")
+        root_chain = _source_chain(root)
+        if root_chain[0] != (root_stat.st_dev, root_stat.st_ino):
+            raise InventoryBuildError("source_root_changed")
     except InventoryBuildError as exc:
         raise InventoryBuildError("source_root_invalid") from exc
     except OSError as exc:
@@ -164,12 +198,13 @@ def build_run_input_evidence(
     validation_errors: list[dict[str, str]] = []
     targets: list[dict[str, Any]] = []
     pending = [root]
+    snapshots = {}
 
     while pending:
         directory = pending.pop()
         try:
-            _reject_source_reparse(directory)
-            entries = sorted(os.scandir(directory), key=lambda item: item.name.encode("utf-8", errors="strict"))
+            entries, snapshot = _enumeration_snapshot(directory)
+            snapshots[directory] = snapshot
         except (OSError, UnicodeError, InventoryBuildError):
             enumeration_errors += 1
             continue
@@ -220,6 +255,20 @@ def build_run_input_evidence(
     for index, error in enumerate(validation_errors, start=1):
         error["error_id"] = f"VAL-{index:06d}"
 
+    # Keep already-observed targets/errors, but never certify complete coverage
+    # after detectable additions, removals, replacements or metadata changes.
+    try:
+        if _source_chain(root) != root_chain:
+            enumeration_errors += 1
+    except (OSError, UnicodeError, InventoryBuildError):
+        enumeration_errors += 1
+    for directory, initial in snapshots.items():
+        try:
+            _, final = _enumeration_snapshot(directory)
+            if final != initial:
+                enumeration_errors += 1
+        except (OSError, UnicodeError, InventoryBuildError):
+            enumeration_errors += 1
     finished = datetime.now(timezone.utc)
     evidence: dict[str, Any] = {
         "evidence_schema_version": 1,

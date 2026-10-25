@@ -143,3 +143,5 @@ docs/
 - [Drive再試行のPS側観測](design/drive-retry-observation.md)
 
 - [凍結B2に対するsource再観測](design/source-inventory-revalidation.md)
+
+- [Source列挙の完了前再確認](design/source-enumeration-stability.md)

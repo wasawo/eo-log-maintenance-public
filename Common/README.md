@@ -133,3 +133,5 @@ artifact-set classifier/directory verifierはoptionalな`expected_transaction_id
 `SourceInventoryRevalidation.py`は[凍結B2とsourceの再観測](../docs/design/source-inventory-revalidation.md)を比較する読取専用helperです。独立scope/reference dateと完全な元coverageを要求し、再列挙/hashで観測が変わったら拒否します。元B2を更新せず、対象外fileの内容や後続使用点までの不変性を認証しません。全may_*はfalseです。
 
 同moduleの`revalidate_initial_manifest_source`は、独立run contextで初期planを再構成し、AC/plan/flagsの不整合をsource I/O前に拒否してから毎回sourceを再観測します。全may_*はfalseで、旧観測をreceiptとして再利用する経路は設けません。使用点後の変化や実provider資格は別gateです。
+
+source builderは[列挙完了前の再確認](../docs/design/source-enumeration-stability.md)でdirectory/child集合・identity/属性を再走査し、途中変更や不明を検出すると既存targetを保持したままcoverageをincompleteにします。最終bytes再hash・atomic snapshot・後続使用までの保護を証明するものではありません。

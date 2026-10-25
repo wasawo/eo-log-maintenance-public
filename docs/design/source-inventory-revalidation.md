@@ -20,3 +20,5 @@ B2には元sourceのOS file IDやreference dateそのものを保存していな
 その後、毎回`revalidate_source_inventory`で新しくsourceを再列挙/hashする。過去の観測objectやcallerの「検査済み」boolから再確認を省略する経路はない。返す観測は全may_*falseで、同じ結果の反復も一回限りreceiptや実行許可にはならない。AC値はcallerの観測で、OS取得の真正性・継続接続・in-flight停止は別gateである。
 
 [合成使用点試験](../../tests/test_initial_source_usepoint.py)はplan/B2/flag/context改変とAC不明をsource I/O前に拒否し、実fixture mutex/ownerの保持中に検査→候補公開へ接続する。一致時は候補を保存できるがruntime認可ではなく、source変更/AC切断ではcandidateを書かずownerを解放する。検査後の変更・敵対的ABA・scope/実ownerの資格を排除した証拠ではない。現在時計を取るprovider、実runの鮮度、実root/ACL/FS/C1比較更新とupload/runtime受け入れは未実装のまま。
+
+source builderには[列挙完了前のdirectory/属性再確認](source-enumeration-stability.md)も加えた。再観測中の変更を検出した場合もincompleteとして拒否する。non-target内容の変化が別々の安定した再観測の間に起こり、分類観測が変わらなければ従来の比較限界は残る。
