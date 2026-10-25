@@ -332,3 +332,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_drive_content_comparison.py`はOSD-01の0/1/複数候補、完全列挙・scope・source信頼の必須性、metadata/download SHA照合と不明時保留を合成検証する。API接続や復元・archive認可は含まない。
 
 `test_download_hash_observation.py`は合成streamのexact bytes/hash、サイズ上限/不足/途中失敗・未完了・不正chunkと、OSD-01比較へのfallback接続を検証する。実SDK/Driveやdownload成功の真正性は検証しない。
+
+`test_drive_listing_observation.py`は内部pageの連続性/終端/重複・失敗を検査し、全page観測からdownload hash・OSD-01比較までを合成接続する。実API paginationの受け入れではない。

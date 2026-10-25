@@ -19,3 +19,13 @@
 全iteratorを正常に消費し、実sizeが期待と一致した場合だけ既存DownloadHashObservationを返す。既存比較へそのまま渡し、異なる内容のhashを一致へ変えない。chunk境界や空fileでもexact bytesのdigestを使う。返却後もID/stream/完了状態の真正なbinding、実SDKの成功判定・最新metadataとの照合はcaller/providerの未実装gateである。
 
 streamの所有権はcallerに残る。helperは再読取・retry・close・temp保存をせず、途中停止時のstream/resource解放をcallerが行う。OS/network readのblock/timeout、任意に巨大なchunkの生成、敵対的bytes変更後の復元を解決するものではない。IPCのresult形やdownload SDK方式は採用しない。[合成stream試験](../../tests/test_download_hash_observation.py)はchunk分割/1 MiB境界/空file、超過時停止、short read、完了後例外、型不正と比較fallbackの接続を扱う。
+
+## 全pageの内部観測集約
+
+`collect_drive_listing`は期待folderとDriveListingPageのiterableを受け、全pageを検査した場合だけimmutable DriveListingObservationを返す。最初のrequested_tokenはnull、後続は直前のnext_tokenとexact一致し、各pageのfolder一致とrequest_succeededの明示Trueを要求する。next_tokenは非空のopaque文字列かnullで、正規化せず、既出tokenへの循環を拒否する。内部page fieldはIPC C-02のwire結果集合を定めない。
+
+next_token=nullの終端pageがちょうど1件あり、その後にpageも例外もない場合だけenumeration_completed=trueになる。0 page・終端欠落・途中失敗を空の完全列挙へ変換しない。空の中間pageは後続tokenがあるなら許し、空の終端page1件は完全な0件観測として区別する。全pageのfileは既存比較と同じ型/size/hash規則で検査し、page内/間のID重複を不明扱いで拒否する。観測順を保ち、自動dedup・不足page補完・再試行を行わない。
+
+返す観測のfile集合/folder/完全列挙値とdownload hash観測を既存比較へ渡せるが、may_restore/may_report_sync_success/may_archiveはfalse。callerは実API応答・対象folder/query/アクセス範囲・token/成功状態を信頼できるproviderでbindingする必要がある。内部pageの整合だけで実クラウド全件・鮮度・出所を証明しない。単純なdataclass生成や保存済み観測も資格証拠ではない。
+
+collectorはfile/network APIを直接呼ばず、page提供側のI/O・timeout・件数/時間予算・resource解放はcaller/providerに残る。途中例外は固定reasonへ置換し、token/IDやraw例外を診断へ出さない。部分観測は返さず、callerの元pageを変更/closeしない。[合成page試験](../../tests/test_drive_listing_observation.py)は空/複数/空中間page、token切断/循環、folder/成功不明、ID重複、終端後page/例外、実bytes hash fallbackと複数内容一致の保留までを接続する。

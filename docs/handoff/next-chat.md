@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`148fe6f`、同じ`codex/drive-download-observation`で[内部pageの完全列挙観測集約](../design/drive-content-comparison.md)を追加。各pageのfolder/成功・requested/next tokenの連続性・循環なし・一意終端とID重複なしを検査し、全iteratorの正常終了後だけfile集合を返す。0 page/終端欠落/途中例外/余分なpage/不明fileを完全な0件へ変換しない。
+- page/結果は内部immutable観測で、IPC C-02結果schemaを定めず、実API応答の出所/成功/全件を認証しない。結果も全may_*false。既存file検査を共通化し、合成page→download実bytes hash→比較の接続と複数内容一致時保留を追加する。Python 3.11.9（CI 3.12）で追加page集約＋既存download hash/比較の計26件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDKとquery/folder/token/成功の真正なbinding、pagination/timeout/件数予算/resource管理、C-02詳細/credential、実source/metadata/clock/owner/root/FS、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（download stream観測・148fe6f）
+
 - main`ccd4ffaf2d785828a700afe8a294f35ef308df43`は[PR #43](https://github.com/wasawo/eo-log-maintenance-public/pull/43)マージ済み。mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40174574117) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40174574154)とも成功確認済み。再開指示を受け、最新取得mainから新branch`codex/drive-download-observation`を作成した。
 - 既存比較moduleへ[download chunkの実bytes/hash観測](../design/drive-content-comparison.md)を追加。独立期待sizeと明示完了・file IDを要求し、非空exact bytes chunkをstream処理して既存DownloadHashObservationへ結び付ける。size超過時は残りを読まず停止し、不足/途中例外/不正chunkで観測を返さない。raw例外は固定reasonへ置き換える。
 - bytes蓄積・自動retry/close・temp保存は行わない。stream所有権/解放とfile ID・完了の真正なbindingはcaller/providerに残る。合成chunk/hashからOSD-01比較fallbackまで接続する。Python 3.11.9（CI 3.12）で追加stream観測＋既存比較の計17件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。

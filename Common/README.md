@@ -139,3 +139,5 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 `DriveContentComparison.py`は[OSD-01の同一内容比較](../docs/design/drive-content-comparison.md)を内部観測から判定する純粋helperです。完全列挙・信頼済みsource・exact name/size/hashを要求し、cloud SHA未確認ならdownload hashを要します。比較候補は復元・同期成功・archiveの認可ではありません。
 
 `DriveContentComparison.py`の`hash_downloaded_content`は完了済みdownloadのchunk列から実byte数/SHAを計算し、既存比較観測へ渡します。途中失敗・size超過/不足・完了不明では返さず、stream所有権・解放と実Drive ID/成功の資格はcaller/provider側に残ります。
+
+`DriveContentComparison.py`の`collect_drive_listing`は内部page観測のfolder・成功・token連続性/終端・ID重複を検査し、全pageが揃った場合だけ比較用観測を返します。部分列挙を0件へ変換せず、実API/応答の真正性・resource管理はprovider側の未完gateです。

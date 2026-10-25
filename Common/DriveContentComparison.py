@@ -21,6 +21,87 @@ class DriveFileObservation:
 
 
 @dataclass(frozen=True, repr=False)
+class DriveListingPage:
+    folder_id: str
+    requested_token: str | None
+    next_token: str | None
+    files: tuple[DriveFileObservation, ...]
+    request_succeeded: bool
+
+
+@dataclass(frozen=True, repr=False)
+class DriveListingObservation:
+    folder_id: str
+    files: tuple[DriveFileObservation, ...]
+    enumeration_completed: bool = field(default=True, init=False)
+    may_restore: bool = field(default=False, init=False)
+    may_report_sync_success: bool = field(default=False, init=False)
+    may_archive: bool = field(default=False, init=False)
+
+
+class DriveListingObservationError(ValueError):
+    def __init__(self, reason_code):
+        self.reason_code = reason_code
+        super().__init__(reason_code)
+
+
+def collect_drive_listing(pages, *, expected_folder_id):
+    """Validate supplied page continuity; no API calls or trust qualification.
+
+    Return no observation on partial/failed/ambiguous pages. Exhaustion alone
+    is not completion: exactly one terminal page is required, with no trailer.
+    Caller owns transport, timeouts, resource cleanup and authentic page binding.
+    """
+    if not _text(expected_folder_id):
+        raise DriveListingObservationError("listing_folder_invalid")
+    try:
+        iterator = iter(pages)
+    except Exception:
+        raise DriveListingObservationError("listing_read_failed") from None
+    expected_token = None
+    seen_tokens = set()
+    file_ids = set()
+    files = []
+    terminal = False
+    while True:
+        try:
+            page = next(iterator)
+        except StopIteration:
+            break
+        except Exception:
+            raise DriveListingObservationError("listing_read_failed") from None
+        if terminal:
+            raise DriveListingObservationError("listing_after_terminal")
+        if type(page) is not DriveListingPage or type(page.files) is not tuple:
+            raise DriveListingObservationError("listing_page_invalid")
+        if not _text(page.folder_id) or page.folder_id != expected_folder_id:
+            raise DriveListingObservationError("listing_folder_mismatch")
+        if page.request_succeeded is not True:
+            raise DriveListingObservationError("listing_request_unconfirmed")
+        if ((page.requested_token is not None and not _text(page.requested_token))
+                or (page.next_token is not None and not _text(page.next_token))):
+            raise DriveListingObservationError("listing_token_invalid")
+        if page.requested_token != expected_token:
+            raise DriveListingObservationError("listing_token_discontinuous")
+        if page.next_token is not None:
+            if page.next_token in seen_tokens:
+                raise DriveListingObservationError("listing_token_cycle")
+            seen_tokens.add(page.next_token)
+        for item in page.files:
+            if not _valid_drive_file(item):
+                raise DriveListingObservationError("listing_file_invalid")
+            if item.file_id in file_ids:
+                raise DriveListingObservationError("listing_identity_ambiguous")
+            file_ids.add(item.file_id)
+            files.append(item)
+        expected_token = page.next_token
+        terminal = expected_token is None
+    if not terminal:
+        raise DriveListingObservationError("listing_terminal_missing")
+    return DriveListingObservation(expected_folder_id, tuple(files))
+
+
+@dataclass(frozen=True, repr=False)
 class DownloadHashObservation:
     file_id: str
     size_bytes: int
@@ -92,6 +173,13 @@ def _hash(value):
     return type(value) is str and re.fullmatch(r"[0-9a-f]{64}", value) is not None
 
 
+def _valid_drive_file(item):
+    return (type(item) is DriveFileObservation and _text(item.file_id)
+            and _text(item.filename) and (item.size_bytes is None or _size(item.size_bytes))
+            and (item.sha256 is None or _hash(item.sha256))
+            and type(item.sha256_trusted) is bool)
+
+
 def compare_drive_content(source, files, *, source_trusted, expected_folder_id,
                           observed_folder_id, enumeration_completed, downloads=()):
     """Find exactly one name/size/SHA-256 match in supplied complete observations.
@@ -118,10 +206,7 @@ def compare_drive_content(source, files, *, source_trusted, expected_folder_id,
         return held("comparison_observations_invalid")
     by_id = {}
     for item in files:
-        if (type(item) is not DriveFileObservation or not _text(item.file_id)
-                or not _text(item.filename) or (item.size_bytes is not None and not _size(item.size_bytes))
-                or (item.sha256 is not None and not _hash(item.sha256))
-                or type(item.sha256_trusted) is not bool):
+        if not _valid_drive_file(item):
             return held("comparison_observations_invalid")
         if item.file_id in by_id:
             return held("comparison_identity_ambiguous")
