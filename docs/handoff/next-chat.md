@@ -8,6 +8,12 @@
 
 ## 最新基準と今回の作業
 
+- 基準`8f13fd0`、同じ`codex/drive-download-observation`で[計画と完了download集合の整合接続](../design/drive-content-comparison.md)を追加。plan/requirementの厳密型/全false flagを確認し、現source/列挙から毎回再導出して一致を要求する。前後列挙不変、計画IDと完了観測IDの全件一致・実size一致の場合だけ各sourceの比較へ進む。
+- 改変/不足/余分/重複/未知ID/size不一致/共通不備は部分結果なしで全体保留。誤hashは各結果で保留し、既存のfileごと不足観測を保留するAPIは維持。source batch→page→計画→合成bytes/hash→再page→完了集合検査→比較を接続し、計画/観測再利用・空集合を権限/成功/no_workへ変えない。Python 3.11.9（CI 3.12）で追加計画接続＋既存download計画/Drive batch/source batchの計28件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 未完：実SDK/ID・bytes・完了/queryの真正binding・C-02/credential、source/観測の現在性・同時snapshot/ABAと使用点資格、実root/FS/owner/clock、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
+
+## 直前の実装単位（不足hash対象計画・8f13fd0）
+
 - 基準`ca81da1`、同じ`codex/drive-download-observation`で[不足download hash観測の対象計画](../design/drive-content-comparison.md)を追加。完全列挙・明示source信頼/folderに対し、同名同sizeのSHA欠落/未確認fileをIDごとにまとめて安定順序で返す。信頼済みSHA・名前/既知size違いは除外し、同名size不明や共通不備は部分計画なしで保留する。
 - statusは必要観測あり/比較入力あり/heldを区別し、may_downloadを含む全may_*false。対象0件・計画再利用から成功/no_work/実行/再送を認可しない。source batch→page→計画→合成download hash→再page→一括比較を接続する。Python 3.11.9（CI 3.12）で追加download計画＋既存Drive batch/前後照合/直接比較/source batchの計37件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：実SDK/取得時ID・完了・size/queryの真正binding・C-02/credential、観測の現在性/同時snapshot/ABAと使用点資格、実source/root/FS/owner/clock、C1/C2 writerとDrive/runtime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。

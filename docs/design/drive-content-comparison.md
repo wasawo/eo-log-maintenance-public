@@ -79,3 +79,13 @@ DownloadRequirementはfile IDと期待sizeを保持する内部データで、IP
 必要観測があればstatus=requires_download_observations、不要ならcomparison_inputs_available、共通不備はheldとする。全結果のmay_download/may_restore/may_report_sync_success/may_archiveはfalse。空sourceやrequirement0件をno_work/同期成功へ変換せず、既存比較で結果を判定する。計画は完了download hash・現在のfile存在/内容・実行権限の代わりにならず、同じ保存済み計画から送信を認可しない。
 
 [計画試験](../../tests/test_content_download_plan.py)はSHAの信頼/欠落、不要downloadの除外、不明metadataの保留、共有IDの一意化/安定順序、空sourceと全may_*false、計画→合成download bytes/hash→再列挙→一括比較を扱う。[source batch接続](../../tests/test_comparison_source_batch.py)も実source再観測からrequirement計画を経由する。実SDK/認証・取得時のID/完了/size binding・使用点資格は未実装gateのまま。
+
+## 計画と完了download集合の整合検査
+
+`compare_planned_drive_contents`は既存の不足hash計画、source tuple、前後列挙と完了download hashを受ける。plan/requirementsの厳密型・size・全may_*falseを検査し、現入力から計画を毎回再導出してexact一致を要求する。そのうえで前後列挙不変とdownloadのID/型/一意性を検査し、計画したID集合と実観測集合が同一、全実sizeが期待sizeと一致する場合だけ各sourceを比較する。
+
+不足・余分・重複・未知ID・size不一致・改変計画・共通不備はbatch全体held、部分結果なしとする。これは計画されたdownload完了を全件必要とする厳密な接続APIであり、既存`compare_reobserved_drive_contents`のfileごとの不足hash保留は維持する。SHA不一致は完了観測があっても各比較のheldで、同期成功へ変えない。
+
+requirement0件でも再導出/列挙/空download集合の整合を検査し、空入力をno_workへ変えない。planの一致は不足hash対象の一致だけで、元source contextの出所や真正性を証明しない。plan/観測の反復からreceiptやdownload/restore/retry権限を作らず、結果の全may_*false。実取得のID/bytes/完了・現在性、実source使用点はproviderの未実装gateに残る。
+
+[計画接続試験](../../tests/test_planned_drive_comparison.py)は全件完了、1件欠落/余分/重複/未知ID/size不一致、計画field/型/flag改変、現在contextと列挙変化、download不要/空選択、誤hashの保留と非認可を扱う。[source batch接続](../../tests/test_comparison_source_batch.py)も実source再観測→page→計画→合成bytes/hash→再page→計画完了集合検査→比較までを検査する。実API/runtime受け入れは未実施。

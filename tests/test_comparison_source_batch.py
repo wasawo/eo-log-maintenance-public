@@ -8,7 +8,7 @@ from Common import SourceInventoryRevalidation as check
 from Common.RunInputEvidenceIntegrity import compute_evidence_digest
 from Common.DriveContentComparison import (
     DriveFileObservation, DriveListingPage, collect_drive_listing,
-    hash_downloaded_content, compare_reobserved_drive_contents, plan_content_downloads,
+    hash_downloaded_content, compare_planned_drive_contents, plan_content_downloads,
 )
 import test_initial_source_integration as fixture
 from test_aggregation_report_builder import SCHEMAS, NOW
@@ -111,7 +111,7 @@ class ComparisonSourceBatchTests(unittest.TestCase):
             expected_size_bytes=item.expected_size_bytes, download_completed=True) for item in planned.requirements)
         after = collect_drive_listing((DriveListingPage("synthetic-folder", None, None, files[::-1], True),),
             expected_folder_id="synthetic-folder")
-        batch = compare_reobserved_drive_contents(tuple(item.source for item in sources), before, after,
+        batch = compare_planned_drive_contents(tuple(item.source for item in sources), before, after, planned,
             source_trusted=True, expected_folder_id="synthetic-folder", downloads=downloads)
         self.assertEqual("compared", batch.status)
         self.assertFalse(batch.may_restore or batch.may_report_sync_success or batch.may_archive)

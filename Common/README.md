@@ -151,3 +151,5 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 `compare_reobserved_drive_contents`は複数sourceの共通列挙/downloadを一括検査し、名前別indexから指定順に各比較結果を返します。共通不備は部分結果なしのheld、file固有不明は各結果のheldとし、batchのcomparedを同期成功へ変えません。
 
 `plan_content_downloads`は完全列挙中の同名同size・cloud SHA欠落/未確認候補をIDごとにまとめ、不足hash観測の計画を返します。may_downloadもfalseで、計画や対象0件はdownload実行・同期成功・upload再送の認可になりません。
+
+`compare_planned_drive_contents`は計画の再導出と、完了download ID集合・期待sizeの全件一致を要求して一括比較へ接続します。不足/余分/改変で部分結果を返さず、計画やhash一致を実行権限にしません。

@@ -388,3 +388,40 @@ def plan_content_downloads(sources, listing, *, source_trusted, expected_folder_
         return ContentDownloadPlan("comparison_inputs_available", "comparison_no_download_required")
     except _ComparisonInputError as exc:
         return held(str(exc))
+
+
+def compare_planned_drive_contents(sources, before, after, plan, *, source_trusted,
+                                   expected_folder_id, downloads):
+    """Re-derive the plan and require its exact completed download set.
+
+    This stricter batch API returns no partial comparison on missing/extra
+    download observations. Plans and hashes still grant no execution authority.
+    """
+    def held(reason):
+        return ContentComparisonBatch("held", reason)
+
+    if (type(plan) is not ContentDownloadPlan or any(flag is not False for flag in
+            (plan.may_download, plan.may_restore, plan.may_report_sync_success, plan.may_archive))
+            or not _text(plan.status) or not _text(plan.reason_code) or type(plan.requirements) is not tuple
+            or any(type(item) is not DownloadRequirement or not _text(item.file_id)
+                   or not _size(item.expected_size_bytes) for item in plan.requirements)):
+        return held("comparison_download_plan_invalid")
+    restored = plan_content_downloads(sources, before, source_trusted=source_trusted,
+                                      expected_folder_id=expected_folder_id)
+    if restored.status == "held":
+        return held(restored.reason_code)
+    if restored != plan:
+        return held("comparison_download_plan_changed")
+    try:
+        by_id = _unchanged_listings(before, after, expected_folder_id)
+        downloaded = _index_downloads(downloads, by_id)
+        expected = {item.file_id: item.expected_size_bytes for item in restored.requirements}
+        if expected.keys() != downloaded.keys():
+            return held("comparison_download_set_mismatch")
+        if any(downloaded[key].size_bytes != size for key, size in expected.items()):
+            return held("comparison_download_size_mismatch")
+        by_name = _group_files(by_id)
+        return ContentComparisonBatch("compared", "comparison_planned_observations_consistent",
+            tuple(_compare_source(source, by_name, downloaded) for source in sources))
+    except _ComparisonInputError as exc:
+        return held(str(exc))
