@@ -314,3 +314,5 @@ artifact-setの既存試験へ期待transactionの型/不一致/未指定互換�
 単一file公開の試験はstaging readback、内容/identity差替え、cleanup時の別file保全、final identity不一致・既存handle不一致を追加確認します。全変更は専用tempの合成artifactで、実データ削除・回復・比較更新は実装しません。
 
 Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを渡す起動を避け、`python -B -m unittest discover ...` または一時的な`PYTHONPATH=tests`設定下で`python -B -m unittest <module/case> ...`を使います。spawnが起動元を再読込できる形で、対象caseをまとめて指定します。
+
+`test_initial_manifest_plan.py`はB2→running/pendingの純粋構築を、両PC/log、改変/scope/時計境界、空/失敗/不完全、Unicode/元bytes、掲載ペアを経る終端report接続で検証します。実run生成/保存/Drive操作は実行しません。

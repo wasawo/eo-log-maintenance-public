@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+- 最新mainは`1036b304aaac13d60dfae5d5e8ed51a3354edf1d`。[PR #42](https://github.com/wasawo/eo-log-maintenance-public/pull/42)はマージ済み、mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40163423575) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40163423523)も成功確認済み。再開指示を受け、最新取得mainから新branch`codex/initial-manifest-plan`を作成した。
+- 既存遷移moduleへ`prepare_initial_manifest`を追加。独立したPC/log/target period/run ID/開始UTCと信頼できる現在UTC、exact B2 bytes、static schemaから、running・全pending・未検証metadataの初期候補を構築する。B2 digest/count/scope/inventoryを既存validatorで照合し、開始→列挙開始→列挙完了の順序と現在+5分上限を検査する。
+- immutable planはproposed/evidence bytesを保持し、may_publish/may_upload/may_archiveはfalse。空/failed/incomplete/error B2を成功/no_workへ昇格せず、識別子/時刻/欠落入力を補完しない。B2の出所・実際のfresh inventory・保存先不在・実clock/owner/FS資格を認証しない。
+- 両PC/log、欠落/改変/scope不一致、Unicode/開始表記/元bytes、時間境界、I/Oなしと、初期→掲載中間ペア→終端reportの合成接続を追加。関連initial/snapshot/terminal planだけを一括検証する。配布file集合47件/PS/schema契約は不変。Python 3.11.9（CI 3.12）で追加initial plan＋既存snapshot/terminal planの計28件成功（skipなし）。両PC/logとB2状態・時刻境界は試験内subcaseとして扱う。変更のないsource builder/report/保存・package/PS/schema検査は再実行しない。root自己点検のみ、独立レビュー・新CI・runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
+- 文書相対リンク欠落0・差分検査成功。未完：実source選択/列挙の使用点資格、fresh runと真正scopeのbinding、C1/C2の初回create-only/比較更新writer、現在Drive確認、正式runtime/受け入れ。次は初期planと既存source builder/隔離保存の接続、またはprovider未決境界の候補整理。
+
+## 前PRの準備記録（PR #42へ統合済み）
+
 - 2026-10-25、利用者が「ここまでの実装をまとめてPR作成してマージして」と明示承認。最新main`42221e3`（PR #41）に対し、`codex/manifest-evidence-integration`の実装7コミット`eb3f6c5`〜`a206e4e`と本記録を1PRへまとめる。この時点はpush/PR/新CI/マージ前。
 - 範囲：終端遷移/B2/report plan接続、全report意味論再導出、隔離候補bundleの実公開/読戻し、参照file/schemaの安定読取観測、最新manifest/report path・bytes binding、artifact-set transactionと再観測、単一公開staging/final/所有temp cleanupの防御。配布file集合は47件で不変、PS/保存schemaの契約は変えない。
 - 各単位のPython 3.11.9での対象検証結果・skip・再実行理由は下記に保持。CIはPython 3.12/PS 7.6.7で最新PR HEADのValidateとPackage Validation両成功を確認する。root自己点検のみで独立レビュー未実施。実Drive/実root・ACL・FS/Tier B/C、atomic snapshot/敵対的ABA、C1比較更新/receipt/runtime受け入れは未完のまま。

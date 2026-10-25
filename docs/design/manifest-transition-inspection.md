@@ -47,3 +47,12 @@ create-only単一file公開helperは、fsync/close後にstagingのexact bytesと
 これらは合成fixtureでの検出防御であり、観測後の敵対的namespace差替えやcheck/unlink raceを完全に排除するものではない。書込み/flush失敗で再確認不能なtempが残り得る。実root/ACL/FSの資格と所有権に基づく回復は別gateで、create-only helperをC1の条件付きmanifest更新providerへ昇格しない。
 
 PR #42のCIでWindows Python 3.12のstat/fstat ctimeの意味差が比較に混入したため、Windowsでは明示birthtime_nsを使い、未対応版は従来ctimeへfallbackする。POSIXのctime比較と、identity/size/mtime/bytesの検査は維持する。根拠は[CPython path statの互換処理](https://github.com/python/cpython/blob/3.12/Modules/posixmodule.c)と[handle情報の構築](https://github.com/python/cpython/blob/3.12/Python/fileutils.c)。時刻属性は観測metadataで、真正な現在時刻やprovider資格にはしない。
+
+
+## B2から初期running manifestを構築
+
+`prepare_initial_manifest`は独立入力のPC/log/target period/run ID/開始UTCと、信頼できる現在UTC、exact B2 bytes、static schemaを要求する。B2のschema/digest/count/target集合を検査し、既承認の初期状態（run=running、file=pending）を構築して既存遷移検査/manifest-to-B2 validatorへ再投入する。開始UTCは元文字列表記を保持し、`started_at <= enumeration.started_at <= enumeration.finished_at <= current_utc + 5分`を要求する。不明・欠落・不正時刻や不整合を実時計/別保存物から補わない。
+
+manifest v1 fieldだけを出力し、finished/outcome/Drive IDはnull、verificationはnot_checked/not_performed・時刻/hashはnullとする。B2のtargets順とfilename/path/size/hashを保持し、元evidence bytesをimmutable planへ結び付ける。空集合やfailed/incomplete/errorをrunningのまま保ち、no_work/successを生成しない。将来の終端statusは別途B2/report集約で判定する。対象periodやsourceの選択をこのfactoryで推測しない。
+
+`InitialManifestPlan`のmay_publish/may_upload/may_archiveはfalse。新規候補を作れたことは保存先の不在、新runの真正性、実fresh inventory、現在の資格や初回公開/実行の許可ではない。UUIDを自動生成せず、旧run/欠落checkpointの再利用や回復にも接続しない。[合成試験](../../tests/test_initial_manifest_plan.py)は両PC/log種別・不完全B2・改変/時間境界等と、掲載された中間ペアを経た終端reportまでの純粋接続を確認する。実writer/Drive/FS/Tier B/C/runtime受け入れは未完である。

@@ -125,3 +125,5 @@ CompletionWaitBudget.py assesses the approved PC-A 24-hour/25-attempt hourly bud
 artifact-set classifier/directory verifierはoptionalな`expected_transaction_id`をexact比較し、期待hash集合のcopyとpath/handle・全file/marker・directoryの再観測を行います。未指定時の従来分類は保持します。期待値の真正性やreceiptの一回性、atomic snapshot・ABA排除を保証せず、実操作の認可にはしません。
 
 `AtomicArtifactPublication.py`は公開前stagingと公開後finalのexact bytes/identity/親chainを検査し、同一既存fileもhandleと前後metadataに結び付けます。cleanupは同じ所有tempを再確認できる場合だけ行い、不明・差替え・内容変更tempは保全します。敵対的raceの完全排除、電源断耐久性、正式manifest比較更新の資格は与えません。
+
+`ManifestTransitionInspection.py`の`prepare_initial_manifest`は独立run contextとexact B2から初期running/pending候補を構築し、schema・digest・scope/inventory・時系列を照合します。空/不完全/失敗B2を成功/no_workへ変えず、元bytesを保持します。全may_*はfalseで、run ID・時計・保存先不在を補完/認証しません。
