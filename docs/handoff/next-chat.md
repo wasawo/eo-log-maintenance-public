@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+- 2026-10-25、利用者が「ここまでの実装をまとめてPR作成してマージして」と明示承認。最新main`42221e3`（PR #41）に対し、`codex/manifest-evidence-integration`の実装7コミット`eb3f6c5`〜`a206e4e`と本記録を1PRへまとめる。この時点はpush/PR/新CI/マージ前。
+- 範囲：終端遷移/B2/report plan接続、全report意味論再導出、隔離候補bundleの実公開/読戻し、参照file/schemaの安定読取観測、最新manifest/report path・bytes binding、artifact-set transactionと再観測、単一公開staging/final/所有temp cleanupの防御。配布file集合は47件で不変、PS/保存schemaの契約は変えない。
+- 各単位のPython 3.11.9での対象検証結果・skip・再実行理由は下記に保持。CIはPython 3.12/PS 7.6.7で最新PR HEADのValidateとPackage Validation両成功を確認する。root自己点検のみで独立レビュー未実施。実Drive/実root・ACL・FS/Tier B/C、atomic snapshot/敵対的ABA、C1比較更新/receipt/runtime受け入れは未完のまま。
+- 今回の承認はこの累積PR作成・CI成功後マージまで。マージ後は次実装へ進まず指示待ち。次変更は最新mainから新branchを切り、マージ済みbranchへ追記しない。
+
+## 直前の実装単位（単一公開readback/cleanup・a206e4e）
+
 - 基準`7d9a891`、同じ`codex/manifest-evidence-integration`でcreate-only単一file公開のstaging/readback/cleanupを強化。既存helperはfsync後の再読込をせず、temp名を無条件にunlinkしていたため、handle由来のtemp identityと親chainを保存し、公開前にexact bytes＋identityを再検査する。
 - 公開後もfinal pathが当該temp由来のidentityで内容が一致することを確認する。同一既存fileの比較はpath/handle・前後metadata・親chainに結び付いたexact bytes比較へ変更。root/reparseはresolve前に拒否する。既存file上書きや比較更新能力は追加しない。
 - cleanupは同じ親chain・regular temp identity・exact bytesを再確認できる場合だけ既存のtemp unlinkへ進め、差替え/内容変更/不明なtempは保全する。観測とunlinkの間の敵対的raceまで閉じたとはしない。公開後不明/不一致でもfinalをrollback/削除せず、電源断耐久性を保証しない。
