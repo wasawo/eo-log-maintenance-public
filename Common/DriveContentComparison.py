@@ -466,18 +466,32 @@ def plan_content_downloads(sources, listing, *, source_trusted, expected_folder_
         return held("comparison_source_invalid")
     try:
         by_name = _group_files(_listing_snapshot(listing, expected_folder_id))
-        needed = {}
+        requested_sizes = {}
         for source in sources:
-            for item in by_name.get(source.filename, ()):
-                if item.size_bytes is None:
-                    return held("comparison_metadata_unavailable")
-                if item.size_bytes == source.size_bytes and (item.sha256 is None or not item.sha256_trusted):
-                    needed[item.file_id] = item.size_bytes
-        if maximum_downloads is not None and len(needed) > maximum_downloads:
+            requested_sizes.setdefault(source.filename, set()).add(source.size_bytes)
+
+        def missing_hash_files():
+            # Listing IDs are already unique. Visit each named bucket once,
+            # even when many sources share its name, size or differing hashes.
+            for name, sizes in requested_sizes.items():
+                for item in by_name.get(name, ()):
+                    if item.size_bytes is None:
+                        raise _ComparisonInputError("comparison_metadata_unavailable")
+                    if item.size_bytes in sizes and (item.sha256 is None or not item.sha256_trusted):
+                        yield item
+
+        count, total_bytes = 0, 0
+        for item in missing_hash_files():
+            count += 1
+            total_bytes += item.size_bytes
+        # Preserve metadata-before-count-before-bytes failure precedence and
+        # build no requirement dictionary until the entire budget is known.
+        if maximum_downloads is not None and count > maximum_downloads:
             return held("comparison_download_count_limit_exceeded")
-        if maximum_total_download_bytes is not None and sum(needed.values()) > maximum_total_download_bytes:
+        if maximum_total_download_bytes is not None and total_bytes > maximum_total_download_bytes:
             return held("comparison_download_bytes_limit_exceeded")
-        if needed:
+        if count:
+            needed = {item.file_id: item.size_bytes for item in missing_hash_files()}
             return ContentDownloadPlan("requires_download_observations", "comparison_hash_observations_missing",
                                        tuple(DownloadRequirement(key, needed[key]) for key in sorted(needed)))
         return ContentDownloadPlan("comparison_inputs_available", "comparison_no_download_required")

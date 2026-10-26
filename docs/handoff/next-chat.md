@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+### download計画の同名候補走査と予算事前検査（2026-10-27）
+
+- 利用者の次実装指示を受け、cleanな`29448da`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [重複source計画の仕様](../design/drive-content-comparison.md#repeated-source-planning-and-budget-preflight-2026-10-27)に従い、`plan_content_downloads`でsourceの名前別size集合を構築し、Drive同名候補の反復走査をsource数倍から各bucket最大2回へ変更。初回に一意な件数/総bytesだけを集計し、予算内で初めて必要ID/size辞書とソート済みrequirementを構築する。metadata不明→件数超過→bytes超過の優先順位、異なるsize/未信頼hash/0 bytes、候補ID一意化と元の順序非依存・非認可を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_content_download_plan test_planned_drive_comparison test_drive_content_comparison test_drive_listing_observation test_download_hash_observation test_drive_comparison_reobservation test_drive_comparison_batch test_comparison_source_revalidation test_comparison_source_batch test_initial_inventory_observation test_initial_inventory_summary test_staged_drive_content_observation test_download_staging_integration`の132件全成功・skipなし。既存CI登録suiteに新規4件を追加し、400 source/40候補の訪問数を実測counterで確認、複数size/信頼SHA/空file・境界と後続metadata不明の優先順位を検証した。変更2文書の相対リンク118件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- EOLM-SYN-007/008・OSD-01の候補計画/保留境界を維持する改善であり、要件全体やP0閉鎖ではない。固定本番値・schema/C-02/SDK契約・配布集合は不変。全列挙index/source条件集合や全memory/時間は制限せず、provider真正性・現在性/ABA・正式runtime/実Drive・電源断/Tier B/C受け入れは未実装・未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。以後も同branchで承認済みhelperと未決runtime契約の境界を照合して次単位を選び、PR作成/mergeは別途指示された範囲で行う。
+
 ### source再観測・比較入口への資源予算伝播（2026-10-27）
 
 - 利用者の次実装指示を受け、cleanな`9a7d68c`・同branch `codex/source-inventory-budgets`から継続。main基準は直前にGitHub/local/origin一致確認済みの`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回はGitHub状態を再取得せず、branch切替・push/PRなし。
