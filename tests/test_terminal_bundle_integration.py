@@ -112,6 +112,22 @@ class CandidateBundleFixture:
 
 @unittest.skipUnless(os.name == "nt", "real Windows mutex/publication required")
 class TerminalBundleIntegrationTests(unittest.TestCase):
+    def test_duplicate_bundle_enumeration_preserves_bytes_and_releases_owner(self):
+        real_iterdir = Path.iterdir
+        for pc_id in ("PC-A", "PC-B"):
+            value = self.make((), pc_id)
+            value.publish()
+            before = {p: p.read_bytes() for p in value.bundle.iterdir()}
+            def repeated(directory):
+                entries = list(real_iterdir(directory))
+                return iter(entries+entries if directory == value.bundle else entries)
+            with patch.object(Path, "iterdir", repeated):
+                with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^directory_changed$"):
+                    value.readback()
+            self.assertFalse((value.root/"synthetic-owner.json").exists())
+            self.assertEqual(before, {p: p.read_bytes() for p in value.bundle.iterdir()})
+            self.assertEqual(value.plan.expected_bytes, value.prior.read_bytes())
+
     def test_invalid_marker_json_preserves_bundle_and_releases_owner_for_both_roles(self):
         for pc_id in ("PC-A", "PC-B"):
             for content in (b"null", b'{"schema_version":NaN}'):

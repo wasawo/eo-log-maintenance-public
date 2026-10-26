@@ -15,9 +15,19 @@ from Common.LatestManifestSelection import LatestManifestSelectionError
 from crash_publication_harness import create_disposable_root, disposable_parent
 import test_latest_manifest_selection as core_tests
 import test_artifact_directory_reparse as reparse_tests
+from test_source_enumeration_stability import duplicate_scan_on_call
 
 
 class ManifestDirectoryReaderTests(unittest.TestCase):
+    def test_duplicate_initial_or_final_enumeration_blocks_without_deduplication(self):
+        candidate = self.put()
+        for repeat_call in (1, 2):
+            with self.subTest(repeat_call=repeat_call), patch.object(reader.os, "scandir",
+                    side_effect=duplicate_scan_on_call(self.directory, repeat_call)):
+                with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^manifest_directory_changed$"):
+                    self.read(maximum_entries=2)
+            self.assertEqual(candidate.content, (self.directory/candidate.filename).read_bytes())
+
     candidate = core_tests.LatestManifestSelectionTests.candidate
     make_junction = reparse_tests.ArtifactDirectoryReparseTests.make_junction
 

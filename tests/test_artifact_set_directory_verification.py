@@ -19,6 +19,25 @@ from Common.ArtifactSetDirectoryVerification import (
 
 
 class ArtifactSetDirectoryVerificationTests(unittest.TestCase):
+    def test_duplicate_entry_on_any_scan_cannot_be_reported_committed(self):
+        self.write_complete_set()
+        before = {p: p.read_bytes() for p in self.root.iterdir()}
+        real_iterdir = Path.iterdir
+        for repeat_call in (1, 2, 3):
+            calls = []
+            def repeated(directory):
+                entries = list(real_iterdir(directory))
+                if directory == self.root:
+                    calls.append(directory)
+                    if len(calls) == repeat_call:
+                        entries += entries
+                return iter(entries)
+            with self.subTest(repeat_call=repeat_call), patch.object(Path, "iterdir", repeated):
+                with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^directory_changed$"):
+                    verify_published_artifact_set(self.root, self.expected)
+            self.assertEqual(repeat_call, len(calls))
+            self.assertEqual(before, {p: p.read_bytes() for p in self.root.iterdir()})
+
     def test_present_marker_with_nonobject_json_never_becomes_missing_marker(self):
         self.write_complete_set()
         path = self.root/"commit-marker.json"

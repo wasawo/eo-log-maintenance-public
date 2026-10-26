@@ -72,6 +72,8 @@ def _scan(directory, chain, maximum_entries=None):
         names.sort()
     observations = {}
     for name in names:
+        if name in observations:
+            _reject("manifest_directory_changed")
         info = (directory / name).lstat()
         if _reparse(info) or not stat.S_ISREG(info.st_mode):
             _reject("manifest_entry_untrusted")

@@ -66,6 +66,8 @@ def _scan(root, allowed, chain):
     for entry in root.iterdir():
         if entry.name not in allowed:
             raise ArtifactSetDirectoryVerificationError("unexpected_directory_entry")
+        if entry.name in result:
+            raise ArtifactSetDirectoryVerificationError("directory_changed")
         info = entry.lstat()
         if _is_link_or_reparse(entry) or not stat.S_ISREG(info.st_mode):
             raise ArtifactSetDirectoryVerificationError("non_regular_artifact")

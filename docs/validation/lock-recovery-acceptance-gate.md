@@ -144,6 +144,12 @@ Previously, the publisher's generic UUID parse accepted nil IDs, unsupported ver
 - This slice does not establish multi-file atomicity, durable directory entries, crash recovery, network/Windows filesystem semantics, Drive consistency, or official entrypoint safety. Cross-process crash/concurrency tests remain required before integration.
 
 
+### Duplicate artifact directory entries (2026-10-26)
+
+Artifact-set directory scans reject exact repeated entry names with existing fixed `directory_changed` before replacing a stored signature. The initial scan and both later rescans use this rule, so a duplicate artifact or marker observation cannot collapse into a committed classification. No casefolding, normalization, deduplication or new alias policy is added. Existing allowlist/reparse/type/hash/marker/byte-limit checks remain required.
+
+Synthetic tests repeat entries on each of the three scans and require original-byte preservation. Both-role candidate integration injects duplicates and verifies that rejection leaves bundle/prior bytes intact and releases the owned lock. This does not certify native provider completeness, prevent ABA, or qualify runtime/Drive operations.
+
 ### Classifier validates the copied mappings (2026-10-26)
 
 The pure artifact-set classifier copies expected/published/staged mappings before validating or comparing their contents. It also copies the marker object and its hash mapping before validating those structures. Each copy failure returns the existing input-specific blocked reason (expected/published/staged set invalid, marker invalid, or marker artifact-set mismatch); custom exception details do not escape. Expected and marker hash snapshots must remain nonempty and pass the existing name/hash grammar.

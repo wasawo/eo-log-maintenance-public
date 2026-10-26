@@ -1,5 +1,11 @@
 # Latest manifest selection core
 
+## Duplicate entries in directory observations (2026-10-26)
+
+Each manifest directory scan rejects an exact repeated basename with `manifest_directory_changed` before replacing an existing observation. Initial and final scans follow the same rule: duplicate entries cannot be silently deduplicated into a valid candidate set, an older-success fallback or an unchanged snapshot. Caller entry/byte limits and all existing basename/content checks remain in force; resource-limit rejection can precede duplicate validation. No case normalization or filesystem alias policy is introduced.
+
+The synthetic directory suite repeats actual temp-directory entries through a scandir adapter on either scan and requires rejection with original bytes preserved. These are injected enumeration observations, not proof of a qualified provider or atomic namespace snapshot/ABA protection.
+
 - Basis: approved C4-A in osd-02-crash-concurrency-options.md; EOLM-MAN-002 in requirements-traceability.md; staging-file-lifecycle.md section 8.
 - Scope: supplied candidate observations only. No runtime enumeration, source/Drive access, manifest rewrite, lock disposition or operation authorization.
 

@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### manifest/成果物集合readerのexact同名重複拒否（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`dc00404`、クリーンな同branch `codex/manifest-entry-bounds`で[manifest scan](../design/latest-manifest-selection.md#duplicate-entries-in-directory-observations-2026-10-26)と[成果物集合scan](../validation/lock-recovery-acceptance-gate.md#duplicate-artifact-directory-entries-2026-10-26)の重複拒否を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 両readerのscanでexact同名をsignature辞書へ上書きする前に既存directory-changed固定理由で拒否。manifestの前後2scan、集合の初回/再分類後/再読取後の3scanすべてに適用する。dedupやcasefold/新しいalias方針は採用せず、既存件数/bytes上限・文法/内容/marker/非fallback検査は維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_manifest_directory_reader test_manifest_reader_bounds test_manifest_report_selection test_manifest_recovery_integration test_artifact_set_directory_verification test_artifact_directory_reparse test_terminal_bundle_integration test_owned_publication_integration`の計102件中101成功・既存symlink作成不可1skip。新規3件を既存CI登録済みsuiteへ追加。自作tempのentryをscandir/iterdir adapterで重複供給し、全scan段階の拒否/bytes保全、両PC相当のbundle/prior保全・owner解放を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 検出可能な曖昧列挙を拒否するもので、native列挙真正性/同時snapshot/ABA・root/FS/provider資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### 共通directory snapshotのexact同名重複拒否（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`08d2d1a`、クリーンな同branch `codex/manifest-entry-bounds`で[列挙snapshotの重複拒否](../design/source-inventory-revalidation.md#duplicate-names-in-shared-enumeration-snapshots-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
