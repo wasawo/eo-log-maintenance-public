@@ -2,6 +2,8 @@
 
 ## Internal comparison output validation (2026-10-26)
 
+file別比較の検査は`_valid_content_comparison`として分離し、batch検査と初期inventoryの件数要約が同じstatus/reason/ID/非認可flag条件を再利用する。要約は保存済み観測を検査するだけで、local/Driveの再観測にはならない。
+
 staging/Drive比較入口と初期inventory入口は、内部`ContentComparisonBatch`を共通pure検査へ通す。batchと各比較のexact型、resultsのtuple型、既存status/非空reason、batch/各比較の全may_*がexact Falseであることを要求する。batch heldはresults空、comparison_candidateは非空/NULなしのexact string ID、file別heldはcandidate IDなしとする。comparedの件数・local選択順bindingは引き続き各入口で検査する。
 
 不整合はstaging入口で`staged_drive_comparison_invalid`、初期inventory入口で`initial_inventory_result_invalid`の固定例外とし、部分観測へ取り込まない。初期inventoryでheld結果を無条件に空へ落としたり、不正な内包flags/IDを後続summaryまで持ち越したりしない。正常な候補/held混在・空選択・全体heldは従来どおり。新しい状態/実行権限は採用しない。

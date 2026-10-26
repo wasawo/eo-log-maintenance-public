@@ -251,6 +251,16 @@ class ContentComparisonBatch:
     may_archive: bool = field(default=False, init=False)
 
 
+def _valid_content_comparison(item):
+    if (type(item) is not ContentComparison or not _text(item.status) or not _text(item.reason_code)
+            or any(flag is not False for flag in
+                   (item.may_restore, item.may_report_sync_success, item.may_archive))):
+        return False
+    if item.status == "comparison_candidate":
+        return _text(item.candidate_file_id)
+    return item.status == "held" and item.candidate_file_id is None
+
+
 def _valid_comparison_batch(batch):
     if (type(batch) is not ContentComparisonBatch or type(batch.results) is not tuple
             or not _text(batch.status) or batch.status not in ("held", "compared")
@@ -260,18 +270,7 @@ def _valid_comparison_batch(batch):
         return False
     if batch.status == "held" and batch.results:
         return False
-    for item in batch.results:
-        if (type(item) is not ContentComparison or not _text(item.status)
-                or not _text(item.reason_code)
-                or any(flag is not False for flag in
-                       (item.may_restore, item.may_report_sync_success, item.may_archive))):
-            return False
-        if item.status == "comparison_candidate":
-            if not _text(item.candidate_file_id):
-                return False
-        elif item.status != "held" or item.candidate_file_id is not None:
-            return False
-    return True
+    return all(_valid_content_comparison(item) for item in batch.results)
 
 
 class _ComparisonInputError(ValueError):

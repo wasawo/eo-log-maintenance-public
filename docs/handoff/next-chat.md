@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### 初期inventory要約の比較検査を観測入口と統一（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`aafe8ff`、クリーンな同branch `codex/manifest-entry-bounds`で[件数要約](../design/initial-inventory-observation.md#件数のみの内部要約)の比較検査を共通化。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- file別のpure比較validatorを分離してbatch検査とsummaryで再利用し、要約独自のstatus/ID/flag検査の重複を解消。global/file別reasonは非空/NULなしexact stringを要求。不正値は既存固定summary-invalidで拒否。有効なprivate reasonの文言を出力・件数へ反映せず、既存B2/選択/対象/順序検査・全false flagsと歴史要約の非再観測境界を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_initial_inventory_summary test_initial_inventory_observation test_staged_drive_content_observation test_drive_comparison_batch test_planned_drive_comparison test_content_download_plan test_comparison_source_batch`の計67件全成功・skipなし。新規3件を既存CI登録済みsuiteへ追加し、global/file reason形状/内包全flag拒否、pure非I/O、有効private reasonの非転記/件数不変を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- reason enumや運用状態を新設せず、構造検査を超える文言真正性/現在性・provider/ID出所・root/FS/owner/ABA・runtime受け入れやUpload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### local観測入口の内部比較結果検査を共通化（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`4f9984b`、クリーンな同branch `codex/manifest-entry-bounds`で[内部比較出力の共通検査](../design/source-inventory-revalidation.md#internal-comparison-output-validation-2026-10-26)を実装。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

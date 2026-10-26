@@ -12,7 +12,8 @@ from Common.SourceInventoryEvidenceBuilder import (build_run_input_evidence, _cl
 from Common.ManifestTransitionInspection import InitialManifestPlan, prepare_initial_manifest
 from Common.DriveRequestPath import is_drive_request_file_path
 from Common.DriveContentComparison import (ComparisonSource, ContentComparison, ContentComparisonBatch,
-    compare_planned_drive_contents, _valid_source, _valid_download_plan_limits, _valid_comparison_batch)
+    compare_planned_drive_contents, _valid_source, _valid_download_plan_limits, _valid_comparison_batch,
+    _valid_content_comparison, _text)
 
 
 class SourceRevalidationError(ValueError):
@@ -447,6 +448,7 @@ def summarize_initial_inventory(observation, *, schema):
                 or type(observation.selected_paths) is not tuple or type(observation.files) is not tuple
                 or type(observation.status) is not str
                 or observation.status not in ("held", "requires_runtime_evidence")
+                or not _text(observation.reason_code)
                 or any(flag is not False for flag in (observation.may_restore,
                     observation.may_report_sync_success, observation.may_archive,
                     observation.may_publish_operational_manifest))):
@@ -480,19 +482,12 @@ def summarize_initial_inventory(observation, *, schema):
             if item.source != ComparisonSource(target["filename"], target["size_bytes"], target["expected_sha256"]):
                 _reject("initial_inventory_summary_invalid")
             result = item.comparison
-            if (type(result) is not ContentComparison or type(result.status) is not str
-                    or any(flag is not False for flag in
-                           (result.may_restore, result.may_report_sync_success, result.may_archive))):
+            if not _valid_content_comparison(result):
                 _reject("initial_inventory_summary_invalid")
             if result.status == "comparison_candidate":
-                if (type(result.candidate_file_id) is not str or not result.candidate_file_id
-                        or "\x00" in result.candidate_file_id):
-                    _reject("initial_inventory_summary_invalid")
                 candidates += 1
-            elif result.status == "held" and result.candidate_file_id is None:
-                held += 1
             else:
-                _reject("initial_inventory_summary_invalid")
+                held += 1
         assessed = len(observation.files)
         return InitialInventorySummary(observation.status, len(targets), len(selected), assessed,
             candidates, held, len(selected)-assessed, value["validation"]["invalid_relevant_count"])

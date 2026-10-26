@@ -20,6 +20,8 @@ caller指定のdownload plan件数/合計bytes予算は[local入口への接続]
 
 ## 件数のみの内部要約
 
+2026-10-26：file別比較の検査を観測入口と同じ共通pure validatorへ統一した。既存status/candidate ID/全may_*exact Falseに加え、global/file別reasonも非空・NULなしのexact stringを要求する。不正なreason型/空文字/内包flagは固定`initial_inventory_summary_invalid`で拒否し、件数へ変換しない。有効なprivate reasonの文言は検証・転記せず、件数と出力へ影響させない。新しいreason enumや運用状態を採用しない。
+
 `summarize_initial_inventory`は専用観測型と元B2のschema/digest/inventory、PC-A/完全coverage、明示選択/比較の件数・順序・対象対応と全false flagを検査し、固定kind・観測status・整数件数だけを返す。件数はinventory target全体、明示選択、比較済み、同一内容候補、file別held、未比較、元B2のvalidation errorを分離する。共通不備のheldは未比較であり、file別失敗や完全な0件へ変換しない。選択0件とinventory全体0件も区別する。
 
 結果にpath/filename、file/root/run ID、hash、B2 bytesやreason文字列を含めない。raw/global/file別reasonは転記せず、例外は固定summary-invalid codeとする。対象と比較件数が不一致、対応sourceがB2と違う、未知の比較statusや許可flag改変などは要約を返さない。reason文言の正当性やcloud/sourceの真正性を件数検査で証明するものではない。
