@@ -40,6 +40,22 @@ def _cross_process_publish(destination, report_payload, barrier, result_queue):
 
 
 class ArtifactSetPublicationTests(unittest.TestCase):
+    def test_valid_basename_grammar_roundtrips_through_marker_and_directory_verification(self):
+        payloads = {"報告 e\u0301.json": b"synthetic first", "many.parts.json": b"synthetic second",
+                    "internal space.json": b"synthetic third"}
+        marker_name = "完了 marker.json"
+        before = dict(payloads)
+        result = publish_artifact_set_marker_last(str(self.root), payloads,
+            transaction_id=self.transaction_id, commit_marker_name=marker_name)
+        self.assertEqual(set(payloads) | {marker_name}, set(result))
+        expected = {name: hashlib.sha256(data).hexdigest() for name, data in payloads.items()}
+        decision = verify_published_artifact_set(self.root, expected,
+            expected_transaction_id=self.transaction_id, commit_marker_name=marker_name)
+        self.assertTrue(decision.may_report_committed)
+        self.assertEqual(before, payloads)
+        self.assertEqual(set(payloads) | {marker_name}, {p.name for p in self.root.iterdir()})
+        for name, content in payloads.items(): self.assertEqual(content, (self.root / name).read_bytes())
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -200,7 +216,8 @@ class ArtifactSetPublicationTests(unittest.TestCase):
         self.assertEqual(self.payloads["report.json"][:2], temporary[0].read_bytes())
 
     def test_invalid_late_artifact_basename_rejects_entire_set_before_publish(self):
-        for name in ("z-invalid.", "z-invalid ", "z-invalid. "):
+        for name in ("z-invalid.", "z-invalid ", "z-invalid. ", "", ".", "..", ".hidden",
+                     "nested/file", "nested\\file", "bad\x00name", None, 1):
             payloads = {"a-valid.json": b"synthetic first", name: b"synthetic last"}
             with self.subTest(name=name), patch.object(atomic, "publish_bytes_no_overwrite") as publish:
                 with self.assertRaisesRegex(ArtifactSetPublicationError, "^artifact_name_invalid$"):
@@ -209,7 +226,8 @@ class ArtifactSetPublicationTests(unittest.TestCase):
             self.assertEqual([], list(self.root.iterdir()))
 
     def test_invalid_marker_basename_rejects_before_any_artifact_publish(self):
-        for name in ("marker.json.", "marker.json ", "marker.json. "):
+        for name in ("marker.json.", "marker.json ", "marker.json. ", "", ".", "..", ".hidden",
+                     "nested/file", "nested\\file", "bad\x00name", None, 1):
             with self.subTest(name=name), patch.object(atomic, "publish_bytes_no_overwrite") as publish:
                 with self.assertRaisesRegex(ArtifactSetPublicationError, "^commit_marker_name_invalid$"):
                     publish_artifact_set_marker_last(str(self.root), self.payloads,

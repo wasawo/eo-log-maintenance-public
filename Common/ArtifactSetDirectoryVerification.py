@@ -12,7 +12,7 @@ from pathlib import Path
 import stat
 from typing import Mapping
 
-from Common.ArtifactSetRecovery import ArtifactSetDecision, classify_artifact_set
+from Common.ArtifactSetRecovery import ArtifactSetDecision, classify_artifact_set, is_artifact_basename
 
 
 class ArtifactSetDirectoryVerificationError(RuntimeError):
@@ -129,15 +129,7 @@ def verify_published_artifact_set(
     if any(value is not None and (type(value) is not int or value < 1)
            for value in (maximum_artifact_bytes, maximum_total_bytes)):
         raise ArtifactSetDirectoryVerificationError("artifact_read_limit_invalid")
-    if (
-        not isinstance(commit_marker_name, str)
-        or not commit_marker_name
-        or commit_marker_name.startswith(".")
-        or commit_marker_name in {".", ".."}
-        or "/" in commit_marker_name
-        or "\\" in commit_marker_name
-        or "\x00" in commit_marker_name
-    ):
+    if not is_artifact_basename(commit_marker_name):
         raise ArtifactSetDirectoryVerificationError("commit_marker_name_invalid")
 
     if not isinstance(expected_sha256, Mapping):

@@ -19,6 +19,21 @@ from Common.ArtifactSetDirectoryVerification import (
 
 
 class ArtifactSetDirectoryVerificationTests(unittest.TestCase):
+    def test_invalid_artifact_or_marker_names_reject_before_directory_io(self):
+        self.write_complete_set()
+        before = {p: p.read_bytes() for p in self.root.iterdir()}
+        for name in ("", ".", "..", ".hidden", "nested/file", "nested\\file", "bad\x00name",
+                     "artifact.", "artifact ", "artifact. ", None, 1):
+            with self.subTest(name=name), patch.object(Path, "lstat") as metadata, \
+                    patch.object(verification, "_scan") as scan, \
+                    patch.object(verification, "_read_stable") as read:
+                with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^commit_marker_name_invalid$"):
+                    verify_published_artifact_set(self.root, self.expected, commit_marker_name=name)
+                result = verify_published_artifact_set(self.root, {name: "a" * 64})
+                self.assertEqual(("blocked", "expected_artifact_set_invalid"), (result.state, result.reason_code))
+                for operation in (metadata, scan, read): operation.assert_not_called()
+            self.assertEqual(before, {p: p.read_bytes() for p in self.root.iterdir()})
+
     def test_duplicate_entry_on_any_scan_cannot_be_reported_committed(self):
         self.write_complete_set()
         before = {p: p.read_bytes() for p in self.root.iterdir()}

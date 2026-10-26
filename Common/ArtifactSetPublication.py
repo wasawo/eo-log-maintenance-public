@@ -12,7 +12,7 @@ import os
 from typing import Mapping
 
 from Common import AtomicArtifactPublication as atomic
-from Common.ArtifactSetRecovery import is_artifact_transaction_id
+from Common.ArtifactSetRecovery import is_artifact_transaction_id, is_artifact_basename
 
 
 class ArtifactSetPublicationError(RuntimeError):
@@ -37,23 +37,13 @@ def _validate_payloads(artifacts: Mapping[str, bytes], marker_name: str) -> dict
         raise ArtifactSetPublicationError("artifact_set_empty_or_invalid") from None
     if not copied:
         raise ArtifactSetPublicationError("artifact_set_empty_or_invalid")
-    if not isinstance(marker_name, str) or not marker_name or marker_name.startswith("."):
-        raise ArtifactSetPublicationError("commit_marker_name_invalid")
-    if (marker_name in {".", ".."} or "/" in marker_name or "\\" in marker_name
-            or "\x00" in marker_name or marker_name.endswith((" ", "."))):
+    if not is_artifact_basename(marker_name):
         raise ArtifactSetPublicationError("commit_marker_name_invalid")
 
     for name, payload in copied.items():
         if (
-            not isinstance(name, str)
-            or not name
-            or name.startswith(".")
-            or name in {".", ".."}
-            or "/" in name
-            or "\\" in name
-            or "\x00" in name
+            not is_artifact_basename(name)
             or name == marker_name
-            or name.endswith((" ", "."))
         ):
             raise ArtifactSetPublicationError("artifact_name_invalid")
         if not isinstance(payload, bytes):

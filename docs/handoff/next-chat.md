@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+### marker-last公開・分類・読取のbasename条件整合（2026-10-27）
+
+- 利用者の次実装指示を受け、cleanな`5eacf41`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [共通basename条件](../../Common/README.md#shared-marker-last-basename-validation-2026-10-27)を既存publisherから`ArtifactSetRecovery.is_artifact_basename`へ抽出。空/非文字列・先頭dot・slash/backslash/NUL・末尾ASCII空白/dotをproducerとconsumerで共通拒否する。classifierのexpected/published/staged/marker hash集合とdirectory verifierの期待集合/marker名に接続し、従来consumerが末尾空白/dotを受理した不整合を修正。不正名は既存reasonで公開/走査/読取前に拒否する。有効名のUnicode/内部空白/dotは原形保持し、単一file temp方針やWindows予約名等の新規規則は採用しない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、初回`python -B -m unittest test_artifact_set_recovery test_artifact_set_publication test_artifact_set_directory_verification test_atomic_artifact_publication test_owned_publication_integration test_initial_source_integration test_initial_source_usepoint test_manifest_terminal_publication test_crash_publication test_internal_publication_crash`を実行。実在8suiteの125件は123成功・symlink作成不可2skipだったが、`test_manifest_terminal_publication` / `test_crash_publication`はrootの名前誤指定でimport error。正しい`python -B -m unittest test_terminal_bundle_integration test_crash_publication_harness`を追加実行し17件全成功。最終実行対象は重複なし142件中140成功・既存2skipで、未解決失敗なし。新規4件と既存2件の不正名matrix拡張は既存CI登録suiteへ追加した。変更2文書の相対リンク122件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- 既存marker-last拒否境界の整合で、P0-010や正式runtime受け入れの閉鎖ではない。schema/C-02/SDK/配布集合・公開/復旧実行認可は不変。完全なWindows名/長さ検査・root/FS/provider真正性・現在性/ABA・正式runtime/Drive・電源断/Tier B/C受け入れは未実装・未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで既承認の独立範囲を調査し、未決runtime契約を推測せず次単位を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
 ### 一括Drive比較の呼出し内再利用と一致ID保有量削減（2026-10-27）
 
 - 利用者の次実装指示を受け、cleanな`d0907f6`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。

@@ -197,3 +197,11 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 `summarize_initial_inventory`は専用観測とB2/対象対応を検査し、候補/保留/未比較・既知error等の件数だけを返します。path/ID/hash/bytes/reasonを転記せず、歴史要約を現在性や同期成功・復元/Archive許可にしません。
 
 `StagingResidualObservation.py`は[残存staging直下entry](../docs/design/staging-residual-observation.md)を内容非読取・非再帰で件数観測します。不明/変化は保留して初回件数を保持し、metadata検査やcleanup/Upload/Archiveを許可しません。
+
+## Shared marker-last basename validation (2026-10-27)
+
+`ArtifactSetRecovery.is_artifact_basename`は既存marker-last publisherの名前条件を共通化します。空/非文字列、先頭dot、slash/backslash/NUL、末尾ASCII空白/dotを拒否し、Unicode・内部空白/dotを変更せず判定します。trim・casefold・Unicode正規化や自動修正は行いません。これは既存の限定したleaf文法であり、全Windows予約名/禁止文字/長さや実FS資格の検査を追加するものではありません。
+
+publisherは全payload名/marker名を単一file公開前に同じ関数で検査し、既存の`artifact_name_invalid` / `commit_marker_name_invalid`を返します。pure classifierはexpected/published/staged/marker hash集合にも同条件を適用し、不正名は各集合の既存invalid/mismatch reasonでblockedとします。directory verifierはmarker名と期待集合を同条件でpreflightし、directory走査・payload読取前に拒否します。末尾空白/dotがpublisherで拒否されるのにconsumerで受理される不整合を解消し、既存成果物を変更しません。
+
+[公開試験](../tests/test_artifact_set_publication.py)・[分類試験](../tests/test_artifact_set_recovery.py)・[directory試験](../tests/test_artifact_set_directory_verification.py)で不正名の全件事前拒否、非I/O・保全、Unicode/内部空白の公開→marker→検証と文字列の原形保持を確認します。単一file primitiveのtemp名方針や公開/復旧認可を変更せず、同時snapshot/ABA・FS/provider真正性・正式runtime/Drive・電源断/Tier B/C受け入れやP0閉鎖は証明しません。
