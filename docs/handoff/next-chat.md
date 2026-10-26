@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### local観測入口の内部比較結果検査を共通化（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`4f9984b`、クリーンな同branch `codex/manifest-entry-bounds`で[内部比較出力の共通検査](../design/source-inventory-revalidation.md#internal-comparison-output-validation-2026-10-26)を実装。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- staging/Drive比較と初期inventory入口で共通pure validatorを使用。batch/比較exact型、results tuple、既存status/非空reason、全may_*exact False、held/results空、candidate ID有無/型を検査し、不整合は入口別の既存固定result-invalid理由で例外にする。初期inventoryの件数だけの検査から、不正batch/内包flagsやheldなのに結果ありを受け入れない境界へ強化。既存の選択件数・順序binding/全非認可・正常候補/held混在/空選択は維持。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_drive_comparison_batch test_staged_drive_content_observation test_initial_inventory_observation test_initial_inventory_summary test_planned_drive_comparison test_content_download_plan test_comparison_source_batch test_initial_staging_copy_batch`の計72件全成功・skipなし。新規3件を既存CI登録済みsuiteへ追加。共通34不正variantのpure検査と両入口での固定拒否/local bytes保全を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 構造整合の検査であり新状態・provider真正性/現在性・ID出所・root/FS/owner/ABA・runtime受け入れやUpload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### download plan予算をlocal観測入口へ接続（2026-10-26）
 
 - 前単位の検証/文書更新中に利用者の追加継続指示を受けたため、前単位を`129e752`へコミット後、クリーンな同branch `codex/manifest-entry-bounds`で[local観測入口への予算接続](../design/source-inventory-revalidation.md#download-plan-output-budgets-at-local-entrypoints-2026-10-26)を実装。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

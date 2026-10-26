@@ -1,5 +1,13 @@
 # 凍結B2に対するsource再観測
 
+## Internal comparison output validation (2026-10-26)
+
+staging/Drive比較入口と初期inventory入口は、内部`ContentComparisonBatch`を共通pure検査へ通す。batchと各比較のexact型、resultsのtuple型、既存status/非空reason、batch/各比較の全may_*がexact Falseであることを要求する。batch heldはresults空、comparison_candidateは非空/NULなしのexact string ID、file別heldはcandidate IDなしとする。comparedの件数・local選択順bindingは引き続き各入口で検査する。
+
+不整合はstaging入口で`staged_drive_comparison_invalid`、初期inventory入口で`initial_inventory_result_invalid`の固定例外とし、部分観測へ取り込まない。初期inventoryでheld結果を無条件に空へ落としたり、不正な内包flags/IDを後続summaryまで持ち越したりしない。正常な候補/held混在・空選択・全体heldは従来どおり。新しい状態/実行権限は採用しない。
+
+[batch試験](../../tests/test_drive_comparison_batch.py)の共通34不正variantを[staging](../../tests/test_staged_drive_content_observation.py)・[初期inventory](../../tests/test_initial_inventory_observation.py)へ注入し、固定拒否とlocal bytes保全を確認する。構造の整合はproviderの真正性/現在性、候補IDの出所、atomic snapshot/ABAやruntime受け入れを証明しない。
+
 ## Download-plan output budgets at local entrypoints (2026-10-26)
 
 `inspect_initial_staged_drive_contents`と`inspect_initial_inventory`はoptional `maximum_downloads` / `maximum_total_download_bytes`を受け、既存の[download plan出力予算](drive-content-comparison.md#caller-selected-download-plan-output-budgets-2026-10-26)をcompleted-set比較へ渡す。両入口とplanは共通のpure型検査を使い、不正値はlocal再読取前に固定`comparison_download_limit_invalid`のSourceRevalidationErrorで停止する。Noneではcaller上限なし、固定本番値を採用しない。

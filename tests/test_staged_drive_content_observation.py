@@ -9,9 +9,20 @@ from Common.DriveContentComparison import (ComparisonSource, ContentComparisonBa
     DriveFileObservation, DriveListingPage, collect_drive_listing,
     hash_downloaded_content, plan_content_downloads)
 import test_initial_source_integration as fixture
+from test_drive_comparison_batch import invalid_comparison_batches
 
 
 class StagedDriveContentTests(unittest.TestCase):
+    def test_invalid_internal_comparison_states_ids_and_flags_preserve_staging(self):
+        self.seed()
+        valid = self.observe()
+        before = {p: p.read_bytes() for p in self.destinations}
+        for index, batch in enumerate(invalid_comparison_batches(valid.comparisons)):
+            with self.subTest(index=index), patch.object(check, "compare_planned_drive_contents", return_value=batch):
+                with self.assertRaisesRegex(check.SourceRevalidationError, "^staged_drive_comparison_invalid$"):
+                    self.observe()
+            self.assertEqual(before, {p: p.read_bytes() for p in self.destinations})
+
     def test_download_output_budgets_preserve_exact_staging_comparisons(self):
         for pc in ("PC-A", "PC-B"):
             self.seed(pc=pc)

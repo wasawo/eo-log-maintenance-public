@@ -13,9 +13,21 @@ from Common.DriveContentComparison import (
 from Common.ManifestTransitionInspection import InitialManifestPlan, TerminalManifestPlan
 import test_initial_source_integration as fixture
 from test_aggregation_report_builder import SCHEMAS, NOW
+from test_drive_comparison_batch import invalid_comparison_batches
 
 
 class InitialInventoryObservationTests(unittest.TestCase):
+    def test_invalid_internal_comparison_outputs_never_become_inventory_observations(self):
+        raw, paths, drive = self.seed()
+        valid = self.observe(raw, paths, drive)
+        before = {p: p.read_bytes() for p in self.source.iterdir()}
+        for index, batch in enumerate(invalid_comparison_batches(tuple(item.comparison for item in valid.files))):
+            with self.subTest(index=index), patch.object(check, "compare_planned_drive_contents", return_value=batch):
+                with self.assertRaisesRegex(check.SourceRevalidationError, "^initial_inventory_result_invalid$"):
+                    self.observe(raw, paths, drive)
+            self.assertEqual(before, {p: p.read_bytes() for p in self.source.iterdir()})
+        self.assertEqual([], list(self.candidate.iterdir()))
+
     def test_download_output_budgets_preserve_initial_inventory_observations(self):
         raw, paths, drive = self.seed()
         expected = self.observe(raw, paths, drive)

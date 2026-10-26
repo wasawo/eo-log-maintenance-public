@@ -13,6 +13,30 @@ FILE = check.DriveFileObservation("synthetic-file", SOURCE.filename, 9, SHA, Tru
 FOLDER = "synthetic-folder"
 
 
+def invalid_comparison_batches(results):
+    base = check.ContentComparisonBatch("compared", "synthetic", results)
+    yield None
+    yield {}
+    yield replace(base, results=list(results))
+    yield replace(base, status="success")
+    yield replace(base, reason_code="")
+    yield replace(base, reason_code=1)
+    yield replace(base, status="held")
+    yield replace(base, results=(object(),)*len(results))
+    for flag in ("may_restore", "may_report_sync_success", "may_archive"):
+        for value in (True, 0, None):
+            batch = replace(base)
+            object.__setattr__(batch, flag, value)
+            yield batch
+            item = replace(results[0])
+            object.__setattr__(item, flag, value)
+            yield replace(base, results=(item, *results[1:]))
+    for changes in (dict(status="success"), dict(reason_code=""), dict(reason_code=1),
+            dict(candidate_file_id=None), dict(candidate_file_id=""), dict(candidate_file_id=1),
+            dict(candidate_file_id="bad\x00id"), dict(status="held")):
+        yield replace(base, results=(replace(results[0], **changes), *results[1:]))
+
+
 def listing(files=(FILE,)):
     return check.collect_drive_listing((check.DriveListingPage(FOLDER, None, None, files, True),),
                                        expected_folder_id=FOLDER)
@@ -26,6 +50,16 @@ def compare(sources, before=None, after=None, **changes):
 
 
 class DriveComparisonBatchTests(unittest.TestCase):
+    def test_internal_batch_validator_rejects_malformed_outputs_and_retains_valid_states(self):
+        candidate = check.ContentComparison("comparison_candidate", "synthetic", FILE.file_id)
+        held = check.ContentComparison("held", "synthetic")
+        for batch in invalid_comparison_batches((candidate, candidate)):
+            self.assertFalse(check._valid_comparison_batch(batch))
+        for batch in (check.ContentComparisonBatch("compared", "synthetic", (candidate, held)),
+                check.ContentComparisonBatch("compared", "synthetic"),
+                check.ContentComparisonBatch("held", "synthetic")):
+            self.assertTrue(check._valid_comparison_batch(batch))
+
     def assert_global_hold(self, result, reason):
         self.assertEqual(("held", reason, ()), (result.status, result.reason_code, result.results))
         self.assertFalse(result.may_restore or result.may_report_sync_success or result.may_archive)

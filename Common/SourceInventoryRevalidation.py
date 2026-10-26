@@ -12,7 +12,7 @@ from Common.SourceInventoryEvidenceBuilder import (build_run_input_evidence, _cl
 from Common.ManifestTransitionInspection import InitialManifestPlan, prepare_initial_manifest
 from Common.DriveRequestPath import is_drive_request_file_path
 from Common.DriveContentComparison import (ComparisonSource, ContentComparison, ContentComparisonBatch,
-    compare_planned_drive_contents, _valid_source, _valid_download_plan_limits)
+    compare_planned_drive_contents, _valid_source, _valid_download_plan_limits, _valid_comparison_batch)
 
 
 class SourceRevalidationError(ValueError):
@@ -316,16 +316,9 @@ def inspect_initial_staged_drive_contents(
         compared = compare_planned_drive_contents(sources, drive_before, drive_after, download_plan,
             source_trusted=source_trusted, expected_folder_id=expected_folder_id, downloads=downloads,
             maximum_downloads=maximum_downloads, maximum_total_download_bytes=maximum_total_download_bytes)
-        if (type(compared) is not ContentComparisonBatch or type(compared.results) is not tuple
-                or any(flag is not False for flag in (compared.may_restore,
-                    compared.may_report_sync_success, compared.may_archive))
-                or any(type(item) is not ContentComparison or any(flag is not False for flag in
-                    (item.may_restore, item.may_report_sync_success, item.may_archive))
-                    for item in compared.results)):
+        if not _valid_comparison_batch(compared):
             _reject("staged_drive_comparison_invalid")
         if compared.status == "held":
-            if compared.results:
-                _reject("staged_drive_comparison_invalid")
             return StagedDriveContentObservation(copies, (), "held", compared.reason_code)
         if compared.status != "compared" or len(compared.results) != len(copies):
             _reject("staged_drive_comparison_invalid")
@@ -426,6 +419,8 @@ def inspect_initial_inventory(
             drive_before, drive_after, download_plan, source_trusted=source_trusted,
             expected_folder_id=expected_folder_id, downloads=downloads,
             maximum_downloads=maximum_downloads, maximum_total_download_bytes=maximum_total_download_bytes)
+        if not _valid_comparison_batch(compared):
+            _reject("initial_inventory_result_invalid")
         if compared.status == "held":
             return InitialInventoryObservation(evidence_bytes, relative_paths, (), "held", compared.reason_code)
         if compared.status != "compared" or len(compared.results) != len(sources):
