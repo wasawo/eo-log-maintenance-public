@@ -54,6 +54,10 @@ def _same_bytes(path: Path, expected: bytes) -> bool:
         before = path.lstat()
         if not _regular(before):
             raise ArtifactPublicationError("destination_not_regular_file")
+        if before.st_size != len(expected):
+            # A known size conflict needs no payload read and cannot grant
+            # idempotence. Expected bytes also bound every later read.
+            return False
         signature = _signature(before)
         with path.open("rb") as stream:
             opened = os.fstat(stream.fileno())
@@ -61,11 +65,13 @@ def _same_bytes(path: Path, expected: bytes) -> bool:
                 raise ArtifactPublicationError("artifact_changed_during_read")
             offset, matches = 0, True
             while True:
-                block = stream.read(1024 * 1024)
+                block = stream.read(min(1024 * 1024, len(expected)-offset+1))
                 if not block:
                     break
                 matches = matches and block == expected[offset:offset + len(block)]
                 offset += len(block)
+                if offset > len(expected):
+                    raise ArtifactPublicationError("artifact_changed_during_read")
             finished = os.fstat(stream.fileno())
         after = path.lstat()
         if (not _regular(after) or _signature(after) != signature or _signature(finished) != signature

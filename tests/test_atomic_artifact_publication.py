@@ -17,6 +17,78 @@ from Common.AtomicArtifactPublication import (
 
 
 class AtomicArtifactPublicationTests(unittest.TestCase):
+    def test_initial_size_conflict_rejects_without_payload_open_or_creation(self):
+        destination = self.root/"manifest.json"
+        expected = b"synthetic"
+        for payload in (b"", b"x", expected+b"x"*131072):
+            destination.write_bytes(payload)
+            with self.subTest(size=len(payload)), patch.object(Path, "open") as opened, \
+                    patch.object(atomic.tempfile, "mkstemp") as created:
+                with self.assertRaisesRegex(ArtifactPublicationError, "^destination_conflict$"):
+                    publish_bytes_no_overwrite(destination, expected)
+                opened.assert_not_called()
+                created.assert_not_called()
+            self.assertEqual(payload, destination.read_bytes())
+            self.assertEqual([destination], list(self.root.iterdir()))
+
+    def test_empty_and_multichunk_identical_existing_files_remain_idempotent(self):
+        destination = self.root/"manifest.json"
+        for payload in (b"", b"x"*(1024*1024+7)):
+            destination.write_bytes(payload)
+            with self.subTest(size=len(payload)), patch.object(atomic.tempfile, "mkstemp") as created:
+                self.assertEqual("already_exists_identical", publish_bytes_no_overwrite(destination, payload))
+                created.assert_not_called()
+            self.assertEqual(payload, destination.read_bytes())
+
+    def test_growth_during_comparison_stops_at_expected_size_plus_one(self):
+        destination = self.root/"manifest.json"
+        payload = b"x"*(1024*1024+7)
+        destination.write_bytes(payload)
+        real_open = Path.open
+        requests, consumed, closed = [], [], []
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args):
+                self.stream.close()
+                closed.append(True)
+            def fileno(self): return self.stream.fileno()
+            def read(self, size):
+                requests.append(size)
+                block = self.stream.read(size)
+                consumed.append(len(block))
+                if len(requests) == 1:
+                    with real_open(destination, "ab") as writer: writer.write(b"y"*131072)
+                return block
+        def opened(path, *args, **kwargs): return Stream(real_open(path, *args, **kwargs))
+        with patch.object(Path, "open", opened), patch.object(atomic.tempfile, "mkstemp") as created:
+            with self.assertRaisesRegex(ArtifactPublicationError, "^artifact_changed_during_read$"):
+                publish_bytes_no_overwrite(destination, payload)
+            created.assert_not_called()
+        self.assertEqual(len(payload)+1, sum(consumed))
+        self.assertTrue(all(0 < size <= 1024*1024 for size in requests))
+        self.assertEqual([True], closed)
+        self.assertEqual(payload+b"y"*131072, destination.read_bytes())
+
+    def test_size_change_between_inspection_and_open_rejects_before_read(self):
+        destination = self.root/"manifest.json"
+        payload = b"synthetic"
+        destination.write_bytes(payload)
+        real_open = Path.open
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args): self.stream.close()
+            def fileno(self): return self.stream.fileno()
+            def read(self, *_): raise AssertionError("changed handle must not read")
+        def opened(path, *args, **kwargs):
+            with real_open(path, "ab") as writer: writer.write(b"x")
+            return Stream(real_open(path, *args, **kwargs))
+        with patch.object(Path, "open", opened):
+            with self.assertRaisesRegex(ArtifactPublicationError, "^artifact_changed_during_read$"):
+                publish_bytes_no_overwrite(destination, payload)
+        self.assertEqual(payload+b"x", destination.read_bytes())
+
     def test_staging_is_reread_before_atomic_link_and_final_bytes_verified(self):
         destination = self.root / "manifest.json"
         payload = b"synthetic"

@@ -99,6 +99,12 @@ The isolated `Common/ArtifactSetPublication.py` composes the single-file no-over
 - This helper is not yet approved for official entry-point integration, Drive interaction, manifest lifecycle mutation, archive, or deletion. Cross-process crash/concurrency acceptance and target-filesystem behavior remain required.
 
 
+### Publication comparisons bounded by expected bytes (2026-10-26)
+
+`AtomicArtifactPublication._same_bytes` rejects an inspected regular file whose initial size differs from the immutable expected payload length without opening its content. For an existing destination this remains `destination_conflict`; it does not allocate a temp file or overwrite the destination. A staging/final readback size conflict still fails its existing verification gate, and changed/unverified temporary content is preserved under the existing ownership-based cleanup checks.
+
+When initial sizes agree, each read is at most 1,048,576 bytes and the total comparison stops at expected length plus one byte. Observed growth immediately rejects with `artifact_changed_during_read`, preventing a continuously growing file from extending the comparison indefinitely. Handle/path/ancestor signatures and byte comparisons remain required for an identical result. Empty and multichunk payloads retain idempotent behavior. This uses known caller bytes rather than introducing configurable production limits. It does not bound caller payload memory or read latency, qualify ownership/filesystems, prevent ABA, or establish durability/runtime acceptance. Synthetic tests cover pre-open size conflicts, exact empty/multichunk comparisons, growth during reading, and size change between inspection and open.
+
 ### Publisher and classifier transaction grammar (2026-10-26)
 
 The publisher now uses the existing classifier's shared `is_artifact_transaction_id` grammar before payload validation or any publication call: a hyphenated UUID with version 1 through 8 and RFC variant (fourth group starting 8, 9, a or b), accepting upper/lowercase hex. The supplied spelling is preserved in the marker; independent transaction expectations remain exact string comparisons rather than UUID normalization. The marker classifier and expected-ID validator use the same grammar.

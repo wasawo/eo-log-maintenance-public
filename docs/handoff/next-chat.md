@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### 単一file公開比較を期待payload長で制限（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`72995bd`、クリーンな同branch `codex/manifest-entry-bounds`で[期待bytesによる比較上限](../validation/lock-recovery-acceptance-gate.md#publication-comparisons-bounded-by-expected-bytes-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `AtomicArtifactPublication._same_bytes`でregular fileの初期sizeが期待payload長と異なる場合はopenせず不一致を返す。既存destinationは従来のconflictでtempも生成しない。初期size一致時も最大1,048,576 byte/chunk・期待長+1 byteへ制限し、増大は固定変更理由で停止。既存handle/path/祖先/内容検査・staging/final/cleanupの保全境界を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_atomic_artifact_publication test_artifact_set_publication test_crash_publication_harness test_internal_publication_crash test_terminal_bundle_integration test_owned_publication_integration test_artifact_read_stability`の計73件中72成功・既存symlink作成不可1skip。新規4件を既存CI登録済みsuiteへ追加し、size不一致の非open/非生成・空/複数chunk同一再公開・読取中増大・open前変化を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 既知の期待bytes長を使う拒否側の制限であり、新しい本番上限やschema制約は採用しない。初期size競合は本文検証を省略するが、同一判定や公開許可を返さない。caller payloadのmemory/読取遅延・正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### marker producer/consumerのtransaction文法を一致（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`a62f2cb`、クリーンな同branch `codex/manifest-entry-bounds`で[transaction文法共通化](../validation/lock-recovery-acceptance-gate.md#publisher-and-classifier-transaction-grammar-2026-10-26)を実装。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
