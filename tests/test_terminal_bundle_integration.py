@@ -16,7 +16,7 @@ from uuid import uuid4
 from Common import AtomicArtifactPublication as atomic
 from Common.ArtifactSetPublication import ArtifactSetPublicationError, publish_artifact_set_marker_last
 from Common.ArtifactSetDirectoryVerification import ArtifactSetDirectoryVerificationError, verify_published_artifact_set
-from Common.OwnedRunLock import acquire_owned_lock
+from Common.OwnedRunLock import acquire_owned_lock, _strict_record_bytes
 from Common.ManifestTransitionInspection import prepare_terminal_manifest_transition
 from Common.RunInputEvidenceIntegrity import compute_evidence_digest
 from Common.validate_aggregation_artifacts import validate_referenced_artifacts
@@ -79,10 +79,12 @@ class CandidateBundleFixture:
         return (json.dumps(dict(schema_version=1, transaction_id=self.transaction, artifact_sha256=self.hashes),
             sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
 
-    def publish(self, *, before_publish=None, maximum_artifact_bytes=None, maximum_total_bytes=None):
-        self._limits(maximum_artifact_bytes, maximum_total_bytes)
+    def publish(self, *, before_publish=None, maximum_artifact_bytes=None, maximum_total_bytes=None,
+                maximum_record_bytes=None):
+        self._limits(maximum_artifact_bytes, maximum_total_bytes, maximum_record_bytes)
         self._guard()
-        with acquire_owned_lock(self.scope, self.root / "synthetic-owner.json", timeout_seconds=0):
+        with acquire_owned_lock(self.scope, self.root / "synthetic-owner.json", timeout_seconds=0,
+                maximum_record_bytes=maximum_record_bytes):
             self._guard()
             if before_publish is not None:
                 before_publish()
@@ -92,15 +94,16 @@ class CandidateBundleFixture:
             return result
 
     def readback(self, *, maximum_artifact_bytes=None, maximum_total_bytes=None,
-                 maximum_semantic_artifact_bytes=None, maximum_total_semantic_bytes=None):
+                 maximum_semantic_artifact_bytes=None, maximum_total_semantic_bytes=None, maximum_record_bytes=None):
         self._limits(maximum_artifact_bytes, maximum_total_bytes,
-            maximum_semantic_artifact_bytes, maximum_total_semantic_bytes)
+            maximum_semantic_artifact_bytes, maximum_total_semantic_bytes, maximum_record_bytes)
         verification_limits = dict(maximum_artifact_bytes=maximum_artifact_bytes, maximum_total_bytes=maximum_total_bytes)
         semantic_limits = {key: value for key, value in dict(maximum_artifact_bytes=maximum_semantic_artifact_bytes,
             maximum_total_artifact_bytes=maximum_total_semantic_bytes).items() if value is not None}
         self._guard()
         result = dict(status="held", may_update_manifest=False, may_archive=False)
-        with acquire_owned_lock(self.scope, self.root / "synthetic-owner.json", timeout_seconds=0):
+        with acquire_owned_lock(self.scope, self.root / "synthetic-owner.json", timeout_seconds=0,
+                maximum_record_bytes=maximum_record_bytes):
             self._guard()
             observed = verify_published_artifact_set(self.bundle, self.hashes,
                 expected_transaction_id=self.transaction, **verification_limits)
@@ -128,11 +131,50 @@ class CandidateBundleFixture:
 
 @unittest.skipUnless(os.name == "nt", "real Windows mutex/publication required")
 class TerminalBundleIntegrationTests(unittest.TestCase):
+    def test_owner_budget_excess_blocks_publication_and_readback_without_changing_candidates(self):
+        for pc in ("PC-A", "PC-B"):
+            value = self.make((), pc)
+            with patch(__name__ + ".publish_artifact_set_marker_last") as publish:
+                with self.assertRaisesRegex(RuntimeError, "^lock_record_limit_exceeded$"):
+                    value.publish(maximum_record_bytes=1)
+                publish.assert_not_called()
+            self.assertEqual([], list(value.bundle.iterdir()))
+            value.publish()
+            before = {p: p.read_bytes() for p in value.bundle.iterdir()}
+            with patch(__name__ + ".verify_published_artifact_set") as verify:
+                with self.assertRaisesRegex(RuntimeError, "^lock_record_limit_exceeded$"):
+                    value.readback(maximum_record_bytes=1)
+                verify.assert_not_called()
+            self.assertEqual(before, {p: p.read_bytes() for p in value.bundle.iterdir()})
+            self.assertEqual(value.plan.expected_bytes, value.prior.read_bytes())
+            self.assertFalse((value.root / "synthetic-owner.json").exists())
+
+    def test_grown_owner_record_is_preserved_after_abort_and_mutex_is_available_again(self):
+        for pc in ("PC-A", "PC-B"):
+            value = self.make((), pc)
+            limit = len(_strict_record_bytes(value.scope, "a" * 64))
+            owner = value.root / "synthetic-owner.json"
+            changed = b"x" * (limit + 1)
+            def abort_after_growth():
+                owner.write_bytes(changed)
+                raise RuntimeError("synthetic_abort")
+            with self.assertRaisesRegex(RuntimeError, "^synthetic_abort$"):
+                value.publish(before_publish=abort_after_growth, maximum_record_bytes=limit)
+            self.assertEqual(changed, owner.read_bytes())
+            self.assertEqual([], list(value.bundle.iterdir()))
+            self.assertEqual(value.plan.expected_bytes, value.prior.read_bytes())
+            # Separate record path tests mutex release only, never record adoption.
+            with acquire_owned_lock(value.scope, value.root / "probe-owner.json", timeout_seconds=0,
+                    maximum_record_bytes=limit):
+                self.assertEqual(changed, owner.read_bytes())
+            self.assertFalse((value.root / "probe-owner.json").exists())
+
     def test_explicit_publication_and_readback_budgets_preserve_prior_for_both_roles(self):
         for pc in ("PC-A", "PC-B"):
             value = self.make((), pc)
             sizes = [len(data) for data in value.payloads.values()] + [len(value.marker_bytes())]
-            limits = dict(maximum_artifact_bytes=max(sizes), maximum_total_bytes=sum(sizes))
+            limits = dict(maximum_artifact_bytes=max(sizes), maximum_total_bytes=sum(sizes),
+                maximum_record_bytes=len(_strict_record_bytes(value.scope, "a" * 64)))
             value.publish(**limits)
             schema_sizes = [path.stat().st_size for path in (ROOT / "contracts").glob("*.schema.json")]
             result = value.readback(**limits, maximum_semantic_artifact_bytes=max(sizes + schema_sizes),
@@ -159,9 +201,9 @@ class TerminalBundleIntegrationTests(unittest.TestCase):
 
     def test_invalid_fixture_budgets_stop_before_guards_and_owner_acquisition(self):
         value = self.make()
-        for method, keys in ((value.publish, ("maximum_artifact_bytes", "maximum_total_bytes")),
+        for method, keys in ((value.publish, ("maximum_artifact_bytes", "maximum_total_bytes", "maximum_record_bytes")),
                 (value.readback, ("maximum_artifact_bytes", "maximum_total_bytes",
-                                 "maximum_semantic_artifact_bytes", "maximum_total_semantic_bytes"))):
+                                 "maximum_semantic_artifact_bytes", "maximum_total_semantic_bytes", "maximum_record_bytes"))):
             for key in keys:
                 for limit in (0, -1, True, 1.0, "1"):
                     with self.subTest(method=method.__name__, key=key, limit=limit), \

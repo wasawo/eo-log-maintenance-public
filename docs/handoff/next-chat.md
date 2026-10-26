@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+### 隔離保存接続へのowner record予算伝播（2026-10-27）
+
+- 利用者の次作業指示を受け、cleanな`ea69c4d`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [隔離候補の予算接続](../design/manifest-transition-inspection.md#explicit-fixture-publicationreadback-budgets-2026-10-27)でpublish/readback・全履歴使用点保存から`maximum_record_bytes`をowned lockへ伝播。不正値はguard/owner取得前、record作成前超過は候補保存/検証・履歴再導出前に停止する。予算内の実record長境界、公開/読戻しの別予算、prior/candidate保全を維持する。所有中のrecord増大+例外でも元例外/recordを保持し、別合成record pathで同一mutexを再取得して解放だけを確認する。
+- 既存Python 3.11.9実体（shim版未選択のため設定変更せず指定、CIは3.12）で`$env:PYTHONPATH='tests;.'`後、`& $python311 -B -m unittest test_owned_run_lock test_terminal_bundle_integration test_terminal_history_usepoint test_terminal_plan_usepoint test_owned_publication_integration`の63件全成功・skipなし。既知のsandbox hardlink WinError 5を避け、auto-review承認済みのsandbox外で自作tempだけを使用。新規3件と既存境界/不正値matrixの拡張は既存CI登録suiteに追加した。変更2文書の相対リンク113件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- tests専用の接続証拠であり、Common/schema/SDK/配布集合・固定本番値・正式runtime/配置/IPC契約は変更しない。予算は各呼出しの指定で保存/自動伝播しない。残存recordの採用/復旧・次run認可、root/FS/owner/provider真正性、現在性/ABA・実Drive/runtime・電源断/Tier B/C受け入れや要件全体/P0-010閉鎖は未実装・未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchでsource/公開/ownerの累積差分と残る承認済みhelper境界を照合して次単位を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
 ### owner recordのcaller上限と安定読取（2026-10-27）
 
 - 利用者の次実装指示を受け、cleanな`559f06a`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。

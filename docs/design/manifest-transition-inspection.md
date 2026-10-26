@@ -62,6 +62,10 @@ missing priorを新規runへ置き換えず、running提案から終端reportも
 
 ### Explicit fixture publication/readback budgets (2026-10-27)
 
+fixtureの`publish` / `readback`と全履歴使用点保存接続はoptional `maximum_record_bytes`も受け、owner取得の`acquire_owned_lock`へ渡す。不正値は他のfixture予算と同様guard/owner取得前に拒否する。record作成前超過は候補保存/検証・履歴再導出へ進まず、priorと既存候補を保持する。予算内の公開/読戻しを実際の生成record bytes長の境界で確認するが、固定本番値やowner真正性を採用しない。
+
+所有中の例外とrecord増大が重なっても元の例外を保持し、oversized recordを残してmutexを解放する。別の合成record pathで同じmutexを再取得できることは解放の証拠だけであり、残存recordの採用・復旧や次run開始の許可ではない。予算は呼出しごとの明示指定で、保存/自動伝播・正式runtime接続は行わない。
+
 tests専用`CandidateBundleFixture.publish`と全履歴使用点接続はoptional `maximum_artifact_bytes` / `maximum_total_bytes`をmarker-last publisherへ渡す。fixtureの不正値はguard/owner取得前に拒否し、実size超過は所有mutex内のpublisherから拒否する。超過時もprior-runningと既存候補を保持し、ownerを解放する。予算内はmarker込みの同じ値をreadbackのdirectory verifierへ独立指定できる。
 
 `readback`は別途`maximum_semantic_artifact_bytes` / `maximum_total_semantic_bytes`を参照validatorの既存`maximum_artifact_bytes` / `maximum_total_artifact_bytes`へ渡す。schema読取・再読取も計上する意味論予算と、marker込み候補一式の論理bytes予算を混同しない。意味論予算の拒否も候補検証held・全操作許可falseで、候補を変更しない。Noneはcaller上限なしであり、固定本番値を選ばない。
