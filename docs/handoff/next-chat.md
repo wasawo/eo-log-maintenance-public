@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### 成果物集合のcaller期待値をI/O前に検査（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`4a12761`、クリーンな同branch `codex/manifest-entry-bounds`で[期待値の事前検査](../validation/lock-recovery-acceptance-gate.md#artifact-set-expectations-before-filesystem-access-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `verify_published_artifact_set`の期待hash mappingコピーをroot/path検査前へ移動し、既存pure classifierのname/hash/transaction文法で事前検査する。不正文法は既存blocked decision、非mapping/空/marker名衝突/コピー失敗は固定directory errorで、I/O前に拒否する。独自mapping例外の内容は非echo。valid入力は事前分類結果を捨て、実bytes/marker/再読取・再列挙による従来の分類を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_set_directory_verification test_artifact_set_recovery test_artifact_directory_reparse test_terminal_bundle_integration test_owned_publication_integration test_artifact_read_stability`の計76件中75成功・既存symlink作成不可1skip。新規5件を既存CI登録済みsuiteへ追加し、既存mutation injection2件は実marker分類時に発火するよう追従。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- caller不備はroot利用不能より先に拒否する検査順序の変更。最初のroot検査中の元mapping変更はコピーへ影響しないが、copy中の外部変更に対する原子的snapshotやcaller真正性は保証しない。正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### marker付き成果物集合の読取上限（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`61091e7`、クリーンな同branch `codex/manifest-entry-bounds`で[集合読取上限](../validation/lock-recovery-acceptance-gate.md#caller-selected-artifact-set-read-bounds-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

@@ -134,18 +134,27 @@ def verify_published_artifact_set(
     ):
         raise ArtifactSetDirectoryVerificationError("commit_marker_name_invalid")
 
+    if not isinstance(expected_sha256, Mapping):
+        raise ArtifactSetDirectoryVerificationError("expected_artifact_set_invalid")
+    try:
+        expected = dict(expected_sha256)
+    except Exception:
+        raise ArtifactSetDirectoryVerificationError("expected_artifact_set_invalid") from None
+    expected_names = set(expected)
+    if not expected_names or commit_marker_name in expected_names:
+        raise ArtifactSetDirectoryVerificationError("expected_artifact_set_invalid")
+    # Reuse the classifier's input grammar before any directory I/O. The
+    # resulting empty-publication decision is only preflight, never authority.
+    preflight = classify_artifact_set(expected_sha256=expected,
+        published_sha256={}, staged_sha256={}, expected_transaction_id=expected_transaction_id)
+    if preflight.state == "blocked":
+        return preflight
+
     root = Path(directory).absolute()
     try:
         if root.is_symlink() or not root.is_dir():
             raise ArtifactSetDirectoryVerificationError("directory_unavailable")
         chain = _chain(root)
-        if not isinstance(expected_sha256, Mapping):
-            raise ArtifactSetDirectoryVerificationError("expected_artifact_set_invalid")
-        expected = dict(expected_sha256)
-        expected_names = set(expected)
-        if not expected_names or commit_marker_name in expected_names:
-            raise ArtifactSetDirectoryVerificationError("expected_artifact_set_invalid")
-
         published: dict[str, str] = {}
         marker: object = None
         allowed_names = expected_names | {commit_marker_name}

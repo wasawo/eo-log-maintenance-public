@@ -108,6 +108,12 @@ The isolated `Common/ArtifactSetPublication.py` composes the single-file no-over
 - This slice does not establish multi-file atomicity, durable directory entries, crash recovery, network/Windows filesystem semantics, Drive consistency, or official entrypoint safety. Cross-process crash/concurrency tests remain required before integration.
 
 
+### Artifact-set expectations before filesystem access (2026-10-26)
+
+`verify_published_artifact_set` copies the caller's expected hash mapping before root/path inspection and validates that snapshot plus the optional expected transaction ID with the existing pure classifier. Invalid filename/hash grammar or transaction identity returns the classifier's blocked decision without filesystem access. Non-mapping/empty inputs, collision with the marker name, and mapping-copy failure raise the fixed `expected_artifact_set_invalid` directory error before I/O; custom mapping exception details are suppressed. Existing marker-name and resource-limit checks also remain before I/O.
+
+This changes rejection timing: caller errors take precedence over an unavailable or malformed directory, and invalid expectations no longer trigger scans or payload reads. Valid expectations retain the same marker/hash/transaction classification and full before/after observations. A mutation to the original mapping during the first root inspection cannot change the copied expectations. Copying is not an atomic snapshot of an externally mutated custom mapping and does not prove caller authenticity or root/owner qualification. The preliminary empty-publication classifier result is discarded for valid inputs; it cannot report an observed directory or authorize publication. Synthetic tests cover invalid hashes/names/transactions, invalid containers, sanitized copy failure and mutation at first root inspection.
+
 ### Caller-selected artifact-set read bounds (2026-10-26)
 
 `verify_published_artifact_set` accepts optional `maximum_artifact_bytes` and `maximum_total_bytes`, each None or a positive exact integer. Invalid values reject with `artifact_read_limit_invalid` before filesystem access. After the initial metadata scan, every observed artifact and the marker are checked before any payload opens. A file over its bound rejects with `artifact_read_limit_exceeded`; the sum of observed initial sizes over the set bound rejects with `artifact_total_limit_exceeded`. Partial sets and marker-missing states do not bypass these checks. Empty directories still classify as not published.

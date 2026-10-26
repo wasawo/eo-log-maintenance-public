@@ -36,8 +36,9 @@ class ArtifactSetDirectoryVerificationTests(unittest.TestCase):
                 real = verification.classify_artifact_set
                 def changed(**kwargs):
                     decision = real(**kwargs)
-                    path = self.root / name
-                    path.write_bytes(path.read_bytes() + b"\n")
+                    if kwargs.get("commit_marker") is not None:
+                        path = self.root / name
+                        path.write_bytes(path.read_bytes() + b"\n")
                     return decision
                 with patch.object(verification, "classify_artifact_set", side_effect=changed):
                     with self.assertRaises(ArtifactSetDirectoryVerificationError):
@@ -48,7 +49,8 @@ class ArtifactSetDirectoryVerificationTests(unittest.TestCase):
         real = verification.classify_artifact_set
         def changed(**kwargs):
             result = real(**kwargs)
-            (self.root / "unexpected.tmp").write_bytes(b"synthetic")
+            if kwargs.get("commit_marker") is not None:
+                (self.root / "unexpected.tmp").write_bytes(b"synthetic")
             return result
         with patch.object(verification, "classify_artifact_set", side_effect=changed):
             with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "unexpected_directory_entry"):
@@ -199,6 +201,67 @@ class ArtifactSetDirectoryVerificationTests(unittest.TestCase):
         result = verify_published_artifact_set(self.root, self.expected)
         self.assertEqual(result.state, "nothing_published")
         self.assertFalse(result.may_report_committed)
+
+
+class ArtifactSetInputPreflightTests(unittest.TestCase):
+    setUp = ArtifactSetDirectoryVerificationTests.setUp
+    write_complete_set = ArtifactSetDirectoryVerificationTests.write_complete_set
+
+    def test_invalid_hash_maps_block_before_root_io(self):
+        digest = "a"*64
+        for expected in ({"../escape": digest}, {"/absolute": digest}, {"dir/file": digest},
+                {"dir\\file": digest}, {".hidden": digest}, {"bad\x00name": digest},
+                {1: digest}, {"manifest.json": "bad"}, {"manifest.json": "A"*64},
+                {"manifest.json": None}):
+            with self.subTest(expected=expected), patch.object(Path, "is_symlink") as inspected:
+                result = verify_published_artifact_set(self.root, expected)
+                self.assertEqual("blocked", result.state)
+                self.assertEqual("expected_artifact_set_invalid", result.reason_code)
+                self.assertFalse(result.may_report_committed)
+                self.assertFalse(result.may_publish_next)
+                self.assertTrue(result.preserve_existing_artifacts)
+                inspected.assert_not_called()
+
+    def test_invalid_transaction_blocks_before_root_io(self):
+        for transaction in ("", "bad", True, 1, [], "11111111-2222-0333-8444-555555555555"):
+            with self.subTest(transaction=transaction), patch.object(Path, "is_symlink") as inspected:
+                result = verify_published_artifact_set(self.root, self.expected, expected_transaction_id=transaction)
+                self.assertEqual("expected_transaction_id_invalid", result.reason_code)
+                self.assertFalse(result.may_report_committed)
+                inspected.assert_not_called()
+
+    def test_invalid_container_empty_and_marker_collision_raise_before_root_io(self):
+        for expected in (None, [], {}, {"commit-marker.json": "a"*64}):
+            with self.subTest(expected=expected), patch.object(Path, "is_symlink") as inspected:
+                with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^expected_artifact_set_invalid$"):
+                    verify_published_artifact_set(self.root, expected)
+                inspected.assert_not_called()
+
+    def test_mapping_copy_failure_is_sanitized_before_root_io(self):
+        from collections.abc import Mapping
+        class BrokenMap(Mapping):
+            def __iter__(self): raise RuntimeError("synthetic private mapping detail")
+            def __len__(self): return 1
+            def __getitem__(self, key): raise RuntimeError("synthetic private mapping detail")
+        with patch.object(Path, "is_symlink") as inspected:
+            with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^expected_artifact_set_invalid$"):
+                verify_published_artifact_set(self.root, BrokenMap())
+            inspected.assert_not_called()
+
+    def test_expectations_are_copied_before_the_first_root_inspection(self):
+        self.write_complete_set()
+        before = {p: p.read_bytes() for p in self.root.iterdir()}
+        real = Path.is_symlink
+        def inspected(path):
+            if path == self.root:
+                self.expected.clear()
+            return real(path)
+        with patch.object(Path, "is_symlink", inspected):
+            result = verify_published_artifact_set(self.root, self.expected,
+                expected_transaction_id=self.transaction_id)
+        self.assertTrue(result.may_report_committed)
+        self.assertEqual({}, self.expected)
+        self.assertEqual(before, {p: p.read_bytes() for p in self.root.iterdir()})
 
 
 class ArtifactSetReadBoundsTests(unittest.TestCase):
