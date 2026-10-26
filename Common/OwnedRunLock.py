@@ -203,6 +203,8 @@ def acquire_owned_lock(
     mutex = mutex_factory(_mutex_name(scope))
     acquired = False
     record_created = False
+    record_verified = False
+    write_error = None
     try:
         acquired = bool(mutex.acquire(float(timeout_seconds)))
         if not acquired:
@@ -218,19 +220,27 @@ def acquire_owned_lock(
         try:
             with path.open("xb") as stream:
                 record_created = True
-                stream.write(payload)
+                written = stream.write(payload)
+                if type(written) is not int or written != len(payload):
+                    write_error = LockAcquisitionError("lock_record_write_incomplete")
+                    raise write_error
                 stream.flush()
                 os.fsync(stream.fileno())
         except FileExistsError as exc:
+            if write_error is not None:
+                raise write_error from None
             raise LockAcquisitionError("lock_record_already_exists") from exc
         except OSError as exc:
+            if write_error is not None:
+                raise write_error from None
             raise LockAcquisitionError("lock_record_create_failed") from exc
 
         if not _record_matches(path, scope, token, maximum_record_bytes):
             raise LockAcquisitionError("lock_record_ownership_unverified")
+        record_verified = True
         yield token
     finally:
-        if record_created:
+        if record_created and record_verified:
             try:
                 if _record_matches(path, scope, token, maximum_record_bytes):
                     path.unlink()

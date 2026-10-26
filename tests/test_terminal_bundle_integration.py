@@ -131,6 +131,32 @@ class CandidateBundleFixture:
 
 @unittest.skipUnless(os.name == "nt", "real Windows mutex/publication required")
 class TerminalBundleIntegrationTests(unittest.TestCase):
+    def test_short_owner_record_write_preserves_record_blocks_candidates_and_releases_mutex(self):
+        for pc in ("PC-A", "PC-B"):
+            value = self.make((), pc)
+            owner = value.root / "synthetic-owner.json"
+            real_open = Path.open
+            class Stream:
+                def __init__(self, stream): self.stream = stream
+                def __enter__(self): return self
+                def __exit__(self, *args): self.stream.close()
+                def write(self, payload): return self.stream.write(payload[:-1])
+                def flush(self): raise AssertionError("must not flush after short write")
+                def fileno(self): raise AssertionError("must not fsync after short write")
+            def opened(path, mode="r", *args, **kwargs):
+                stream = real_open(path, mode, *args, **kwargs)
+                return Stream(stream) if path == owner and mode == "xb" else stream
+            with patch.object(Path, "open", opened):
+                with self.assertRaisesRegex(RuntimeError, "^lock_record_write_incomplete$"):
+                    value.publish()
+            before = owner.read_bytes()
+            self.assertIsInstance(json.loads(before), dict)
+            self.assertEqual([], list(value.bundle.iterdir()))
+            self.assertEqual(value.plan.expected_bytes, value.prior.read_bytes())
+            with acquire_owned_lock(value.scope, value.root / "probe-owner.json", timeout_seconds=0):
+                self.assertEqual(before, owner.read_bytes())
+            self.assertFalse((value.root / "probe-owner.json").exists())
+
     def test_owner_budget_excess_blocks_publication_and_readback_without_changing_candidates(self):
         for pc in ("PC-A", "PC-B"):
             value = self.make((), pc)

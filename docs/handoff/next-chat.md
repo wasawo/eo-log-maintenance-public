@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+### owner record作成失敗の保全とshort write拒否（2026-10-27）
+
+- 利用者の次作業指示を受け、cleanな`96d6f25`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [owner record作成失敗の保全](../../Common/README.md#owner-record-creation-failure-preservation-2026-10-27)を追加。`write`がexact intの全bytes件数でなければ`lock_record_write_incomplete`で停止し、closeの二重OSError/FileExistsErrorでも一次reasonを保持。通常write/flush/fsync/close失敗は既存create-failed境界を維持する。finallyでのrecord cleanupを、作成完了と最初の安定所有確認に成功した場合だけへ限定し、失敗recordはparse可能/正しいtokenでも所有再確認して削除しない。mutex release/closeと正常取得後の従来cleanupは維持。
+- 既存Python 3.11.9実体（shim版未選択のため設定変更せず指定、CIは3.12）で`$env:PYTHONPATH='tests;.'`後、`& $python311 -B -m unittest test_owned_run_lock test_terminal_bundle_integration test_terminal_history_usepoint test_terminal_plan_usepoint test_owned_publication_integration test_initial_source_integration test_initial_source_usepoint test_internal_publication_crash test_crash_publication_harness test_download_staging_integration`の105件全成功・skipなし。既知sandbox hardlink拒否を避けauto-review承認済みのsandbox外・自作tempだけを使用。追加のclose FileExistsError caseを補強後、`& $python311 -B -m unittest test_owned_run_lock`の27件全成功を対象再確認（105件内のsuiteで独立総数へ加算しない）。新規4件は既存CI登録suiteへ追加し、書込件数/二重close failure、4段階のI/O失敗、初回所有確認失敗、両PCの候補非作成・parse可能record保全・mutex再取得を確認。変更2文書の相対リンク131件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- 既存lockの失敗保全境界補助で、schema/owner-v2/SDK/配布集合・固定本番値は不変。残存record採用/復旧や新しい削除能力・次run認可は追加しない。root/ACL/FS/owner/provider真正性、unlinkまでの競合/ABA・電源断/Tier B/C/runtime受け入れや要件全体/P0-010閉鎖は未実装・未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで累積source/公開/owner境界と未決runtime契約を照合して次単位を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
 ### 隔離保存接続へのowner record予算伝播（2026-10-27）
 
 - 利用者の次作業指示を受け、cleanな`ea69c4d`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。

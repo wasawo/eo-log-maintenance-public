@@ -59,6 +59,83 @@ class NamedMutexCloseTests(unittest.TestCase):
 
 
 class OwnedRunLockTests(unittest.TestCase):
+    def test_invalid_write_counts_preserve_even_parseable_records_and_primary_reason(self):
+        real_open = Path.open
+        for index, count in enumerate((None, False, True, -1, 0, "short", "long")):
+            for close_failure in (False, True, "exists"):
+                path = self.root / f"count-{index}-{close_failure}.lock"
+                contents = []
+                class Stream:
+                    def __init__(self, stream): self.stream = stream
+                    def __enter__(self): return self
+                    def __exit__(self, *args):
+                        self.stream.close()
+                        if close_failure == "exists": raise FileExistsError("synthetic close failure")
+                        if close_failure: raise OSError("synthetic close failure")
+                    def write(self, payload):
+                        raw = payload[:-1] if count == "short" else payload
+                        contents.append(raw)
+                        self.stream.write(raw)
+                        return len(payload)-1 if count == "short" else len(payload)+1 if count == "long" else count
+                    def flush(self): raise AssertionError("must stop before flush")
+                    def fileno(self): raise AssertionError("must stop before fsync")
+                def opened(target, mode="r", *args, **kwargs):
+                    stream = real_open(target, mode, *args, **kwargs)
+                    return Stream(stream) if target == path and mode == "xb" else stream
+                with self.subTest(count=count, close_failure=close_failure), patch.object(Path, "open", opened), \
+                        patch.object(owned, "_record_matches") as verify:
+                    with self.assertRaisesRegex(LockAcquisitionError, "^lock_record_write_incomplete$"):
+                        with acquire_owned_lock("PC-A", path, mutex_factory=self.factory(), token_factory=lambda: "a"*64):
+                            self.fail("must not enter")
+                    verify.assert_not_called()
+                self.assertEqual(contents[0], path.read_bytes())
+                self.assertIsInstance(json.loads(path.read_bytes()), dict)
+                self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_creation_io_failures_preserve_written_record_and_never_attempt_cleanup(self):
+        real_open, real_fsync = Path.open, owned.os.fsync
+        for stage in ("write", "flush", "fsync", "close"):
+            path = self.root / (stage + ".lock")
+            contents = []
+            class Stream:
+                def __init__(self, stream): self.stream = stream
+                def __enter__(self): return self
+                def __exit__(self, *args):
+                    self.stream.close()
+                    if stage == "close": raise OSError("synthetic close failure")
+                def write(self, payload):
+                    contents.append(payload)
+                    count = self.stream.write(payload)
+                    if stage == "write": raise OSError("synthetic write failure")
+                    return count
+                def flush(self):
+                    if stage == "flush": raise OSError("synthetic flush failure")
+                    self.stream.flush()
+                def fileno(self): return self.stream.fileno()
+            def opened(target, mode="r", *args, **kwargs):
+                stream = real_open(target, mode, *args, **kwargs)
+                return Stream(stream) if target == path and mode == "xb" else stream
+            def sync(fd):
+                if stage == "fsync": raise OSError("synthetic fsync failure")
+                return real_fsync(fd)
+            with self.subTest(stage=stage), patch.object(Path, "open", opened), \
+                    patch.object(owned.os, "fsync", sync), patch.object(owned, "_record_matches") as verify:
+                with self.assertRaisesRegex(LockAcquisitionError, "^lock_record_create_failed$"):
+                    with acquire_owned_lock("PC-A", path, mutex_factory=self.factory(), token_factory=lambda: "a"*64):
+                        self.fail("must not enter")
+                verify.assert_not_called()
+            self.assertEqual(contents[0], path.read_bytes())
+            self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_failed_initial_ownership_verification_is_not_retried_for_cleanup(self):
+        with patch.object(owned, "_record_matches", side_effect=(False, True)) as verify:
+            with self.assertRaisesRegex(LockAcquisitionError, "^lock_record_ownership_unverified$"):
+                with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(), token_factory=lambda: "a"*64):
+                    self.fail("must not enter")
+            self.assertEqual(1, verify.call_count)
+        self.assertEqual(owned._strict_record_bytes("PC-A", "a"*64), self.path.read_bytes())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
     def test_record_byte_limit_exact_boundary_preserves_normal_ownership_cleanup(self):
         token = "a" * 64
         limit = len(owned._strict_record_bytes("PC-A", token))

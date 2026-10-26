@@ -225,3 +225,11 @@ publisherは全payload名/marker名を単一file公開前に同じ関数で検�
 strict field集合、scope/tokenとpid/hostの従来検査は維持し、canonical JSON表記や作成時のexact bytes一致を新しい削除条件にしません。Noneでも安定読取は行いますがcaller上限はありません。実I/O/時間/全memory、認可root/ACL/FS/owner真正性・一回性、観測からunlinkまでの競合/ABA、実Drive/runtime・電源断/Tier B/C受け入れは証明しません。既存recordの自動採用/復旧や新しい削除能力も追加しません。
 
 [owner lock試験](../tests/test_owned_run_lock.py)でexact境界・不正値の早期拒否・作成前超過・解放時超過の非読取/保全、path→handle間増大、不明観測/deep JSONでもmutex解放、JSON表記互換を確認します。
+
+## Owner-record creation failure preservation (2026-10-27)
+
+owner recordの`write`は戻り値がexact intかつ全payload長と一致することを要求し、short/過大/不正値は`lock_record_write_incomplete`で停止します。続くcloseもOSErrorになった場合は元の固定reasonを保持します。write/flush/fsync/closeのOSErrorは従来の`lock_record_create_failed`を維持し、呼出し元へowner tokenを渡しません。
+
+解放時のrecord cleanupは、作成・flush/fsync/closeと最初の安定所有確認を全て通過した場合だけ行います。作成中や初回確認に失敗したrecordは、たとえ完全なJSONや正しいtokenが残っていても、finallyで所有確認を再試行して削除しません。通常の所有中例外では従来どおり、解放時に同じscope/tokenを安定確認できるrecordだけをcleanupします。mutexのrelease/closeはどちらの場合も行い、不明な残存recordを自動採用・修復しません。
+
+[単体回帰](../tests/test_owned_run_lock.py)と[隔離保存接続](../tests/test_terminal_bundle_integration.py)で、各書込件数・二重close失敗、write/flush/fsync/closeの失敗、初回確認失敗、parse可能な不完全recordの保全・候補非作成と同一mutexの再取得を確認します。これはmutex解放の合成証拠であり、残存recordの復旧/次run認可、root/FS/provider資格、ABA排除・電源断/Tier B/C/runtime受け入れやP0閉鎖を示しません。
