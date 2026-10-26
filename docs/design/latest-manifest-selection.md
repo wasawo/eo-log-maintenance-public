@@ -1,5 +1,11 @@
 # Latest manifest selection core
 
+## Local-only schema references (2026-10-27)
+
+Before constructing the manifest validator, the selector checks the loaded schema tree and requires every `$ref` / `$dynamicRef` value to be a string starting with `#`. Nonlocal HTTP/file/relative references, including unused definitions, reject with existing `manifest_schema_unavailable`. The validator also uses a registry whose retrieval callback always refuses resource retrieval, so reference resolution cannot fall back to network or other external resources. Existing repository-local fragments and structural/format checks remain supported.
+
+An unresolved local fragment rejects the candidate with existing `candidate_manifest_invalid`; an invalid schema rejects with `manifest_schema_unavailable`. Neither path echoes a reference URL or modifies candidates. Core and directory tests inject external and broken schemas with socket calls prohibited and verify fixed rejection/byte preservation. This follows the report builder's existing local-reference policy without adding a package file or dependency requirement. It does not authenticate the loaded schema, impose schema-read/resource budgets, qualify roots or grant runtime/Drive authority.
+
 ## Actual bytes for subclass candidate content (2026-10-27)
 
 The pure selector retains support for bytes-subclass candidate content but first materializes the actual exposed buffer into plain bytes before UTF-8/JSON parsing. Exact bytes are used unchanged. Custom subclass `decode`, conversion or length methods cannot substitute different JSON for the content being validated. The original candidate and caller object are not modified; non-bytes content retains `candidate_read_failed`.

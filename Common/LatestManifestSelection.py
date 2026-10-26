@@ -14,6 +14,8 @@ import re
 from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
+from referencing import Registry
+from referencing.exceptions import NoSuchResource
 
 
 @dataclass(frozen=True)
@@ -46,6 +48,23 @@ def _unique_object(pairs):
             _reject("candidate_manifest_invalid")
         value[key] = item
     return value
+
+
+def _no_schema_retrieval(uri):
+    raise NoSuchResource(ref=uri)
+
+
+def _require_local_schema_refs(schema):
+    pending = [schema]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key in ("$ref", "$dynamicRef") and (type(item) is not str or not item.startswith("#")):
+                    _reject("manifest_schema_unavailable")
+                pending.append(item)
+        elif isinstance(value, list):
+            pending.extend(value)
 
 
 def parse_manifest_filename(filename: str) -> dict[str, str]:
@@ -148,8 +167,10 @@ def select_latest_manifest(
     try:
         schema = json.loads((Path(__file__).resolve().parents[1] /
                              "contracts/manifest-v1.schema.json").read_text(encoding="utf-8"))
+        _require_local_schema_refs(schema)
         Draft202012Validator.check_schema(schema)
-        validator = Draft202012Validator(schema, format_checker=FormatChecker())
+        validator = Draft202012Validator(schema, format_checker=FormatChecker(),
+            registry=Registry(retrieve=_no_schema_retrieval))
     except Exception:
         _reject("manifest_schema_unavailable")
 

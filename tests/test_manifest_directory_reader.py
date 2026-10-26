@@ -2,6 +2,7 @@
 from contextlib import contextmanager
 from datetime import datetime, timezone
 import hashlib
+import json
 import os
 from pathlib import Path
 import shutil
@@ -19,6 +20,15 @@ from test_source_enumeration_stability import duplicate_scan_on_call
 
 
 class ManifestDirectoryReaderTests(unittest.TestCase):
+    def test_nonlocal_manifest_schema_rejects_directory_read_without_network_or_mutation(self):
+        candidate = self.put()
+        with patch.object(Path, "read_text", return_value=json.dumps({"$ref": "https://synthetic.invalid/private-detail"})), \
+                patch("socket.socket", side_effect=AssertionError("unexpected retrieval")) as network:
+            with self.assertRaisesRegex(LatestManifestSelectionError, "^manifest_schema_unavailable$"):
+                self.read()
+            network.assert_not_called()
+        self.assertEqual(candidate.content, (self.directory/candidate.filename).read_bytes())
+
     def test_duplicate_initial_or_final_enumeration_blocks_without_deduplication(self):
         candidate = self.put()
         for repeat_call in (1, 2):

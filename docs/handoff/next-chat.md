@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### 最新manifest schemaの外部参照取得を禁止（2026-10-27）
+
+- 利用者の次実装指示を受け、基準`2145396`、クリーンな同branch `codex/manifest-entry-bounds`で[manifest schemaのlocal参照制約](../design/latest-manifest-selection.md#local-only-schema-references-2026-10-27)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- selectorのschema全treeで`$ref` / `$dynamicRef`をlocal fragment文字列に限定し、非local/不正値は既存schema-unavailable理由で拒否。validatorのRegistryも全resource retrievalを拒否し、外部取得fallbackを提供しない。既存report builderのlocal参照方針へ整合し、正常なrepo fragment/format/候補検査を維持する。破損local参照は既存candidate-invalid、invalid schemaは既存schema-unavailable、URL非echo/候補非変更。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_latest_manifest_selection test_manifest_directory_reader test_manifest_reader_bounds test_manifest_report_selection test_manifest_recovery_integration test_owned_publication_integration test_aggregation_report_builder test_completion_wait_checkpoint`の計133件全成功・skipなし。新規3件を既存CI登録済みsuiteへ追加し、HTTP/file/相対/不正参照・未使用defs・破損local/invalid schemaをsocket非呼出しで拒否し、directory経由のbytes保全を確認。referencingは既存jsonschema依存/既存builder使用分で追加依存なし。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- schema真正性/読取資源上限・provenance/現在性/同時snapshot/ABA・root/FS/provider資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### 最新manifest選択のbytes派生型を実bufferで解析（2026-10-27）
 
 - 利用者の次実装指示を受け、基準`4cbfc0b`、クリーンな同branch `codex/manifest-entry-bounds`で[manifest候補の実bytes解析](../design/latest-manifest-selection.md#actual-bytes-for-subclass-candidate-content-2026-10-27)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。作業中の利用者environment更新に合わせ本記録は日本時間10月27日付。

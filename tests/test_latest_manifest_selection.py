@@ -1,6 +1,7 @@
 """Synthetic C4 selection: all candidates checked, no arbitrary fallback."""
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 import json
 import traceback
 import unittest
@@ -13,6 +14,27 @@ from Common.LatestManifestSelection import (
 
 
 class LatestManifestSelectionTests(unittest.TestCase):
+    def test_nonlocal_schema_references_are_rejected_without_retrieval(self):
+        good = self.candidate()
+        for keyword in ("$ref", "$dynamicRef"):
+            for reference in ("https://synthetic.invalid/private-detail", "file:///synthetic-private-detail",
+                    "relative-private-detail.json", "", None, 1):
+                for schema in ({keyword: reference}, {"$defs": {"unused": {keyword: reference}}}):
+                    with self.subTest(keyword=keyword, reference=reference), patch.object(
+                            Path, "read_text", return_value=json.dumps(schema)), \
+                            patch("socket.socket", side_effect=AssertionError("unexpected retrieval")) as network:
+                        self.rejected("manifest_schema_unavailable", [good])
+                        network.assert_not_called()
+
+    def test_broken_local_or_invalid_schema_is_rejected_without_retrieval(self):
+        good = self.candidate()
+        for schema, reason in (({"$ref": "#/$defs/missing"}, "candidate_manifest_invalid"),
+                ({"type": "synthetic-invalid"}, "manifest_schema_unavailable")):
+            with self.subTest(schema=schema), patch.object(Path, "read_text", return_value=json.dumps(schema)), \
+                    patch("socket.socket", side_effect=AssertionError("unexpected retrieval")) as network:
+                self.rejected(reason, [good])
+                network.assert_not_called()
+
     def test_bytes_subclass_decode_cannot_hide_invalid_actual_buffer(self):
         good = self.candidate()
         class Content(bytes):
