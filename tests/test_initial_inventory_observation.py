@@ -16,6 +16,32 @@ from test_aggregation_report_builder import SCHEMAS, NOW
 
 
 class InitialInventoryObservationTests(unittest.TestCase):
+    def test_download_output_budgets_preserve_initial_inventory_observations(self):
+        raw, paths, drive = self.seed()
+        expected = self.observe(raw, paths, drive)
+        result = self.observe(raw, paths, drive, maximum_downloads=2, maximum_total_download_bytes=11)
+        self.assertEqual(expected, result)
+        self.assert_observation_only(result)
+
+    def test_download_budget_excess_retains_selection_and_b2_without_partial_inventory(self):
+        raw, paths, drive = self.seed()
+        for limits, reason in ((dict(maximum_downloads=1), "comparison_download_count_limit_exceeded"),
+                (dict(maximum_total_download_bytes=10), "comparison_download_bytes_limit_exceeded")):
+            result = self.observe(raw, paths, drive, **limits)
+            self.assertEqual(("held", reason, paths, ()),
+                (result.status, result.reason_code, result.selected_paths, result.files))
+            self.assertIs(raw, result.evidence_bytes)
+            self.assert_observation_only(result)
+
+    def test_invalid_download_budgets_reject_before_source_reobservation(self):
+        raw, paths, drive = self.seed()
+        for key in ("maximum_downloads", "maximum_total_download_bytes"):
+            for value in (True, False, 0, -1, 1.5, "100"):
+                with self.subTest(key=key, value=value), patch.object(check, "revalidate_comparison_sources") as read:
+                    with self.assertRaisesRegex(check.SourceRevalidationError, "^comparison_download_limit_invalid$"):
+                        self.observe(raw, paths, drive, **{key: value})
+                    read.assert_not_called()
+
     setUp = fixture.InitialSourceIntegrationTests.setUp
     cleanup = fixture.InitialSourceIntegrationTests.cleanup
     plan_context = fixture.InitialSourceIntegrationTests.plan_context

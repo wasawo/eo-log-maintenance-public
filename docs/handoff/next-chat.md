@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### download plan予算をlocal観測入口へ接続（2026-10-26）
+
+- 前単位の検証/文書更新中に利用者の追加継続指示を受けたため、前単位を`129e752`へコミット後、クリーンな同branch `codex/manifest-entry-bounds`で[local観測入口への予算接続](../design/source-inventory-revalidation.md#download-plan-output-budgets-at-local-entrypoints-2026-10-26)を実装。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- staging/Drive比較と初期inventory入口にoptional `maximum_downloads` / `maximum_total_download_bytes`を追加。planと共通のpure型検査で不正値をlocal I/O前に拒否し、completed-set比較へ上限を渡す。超過時はcopy tupleまたは元B2/選択pathを保全したheld・比較なし、予算内は毎回local再読取後に従来の結果/順序/全false flagsを維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_staged_drive_content_observation test_initial_inventory_observation test_initial_inventory_summary test_content_download_plan test_planned_drive_comparison test_comparison_source_batch test_initial_staging_copy_batch`の計62件全成功・skipなし。新規6件を既存CI登録済みsuiteへ追加し、exact境界/不正値のlocal非読取/超過時の証拠保全・非認可を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- download計画の出力予算で、local読取量/件数/staging容量/全memoryの制限や新しい本番値は採用しない。正式SDK/C-02/provider真正性・root/FS/owner/現在性/ABA・runtime受け入れやUpload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### download planの件数・合計bytes予算（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`268a0ff`、クリーンな同branch `codex/manifest-entry-bounds`で[download plan出力予算](../design/drive-content-comparison.md#caller-selected-download-plan-output-budgets-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

@@ -12,6 +12,34 @@ import test_initial_source_integration as fixture
 
 
 class StagedDriveContentTests(unittest.TestCase):
+    def test_download_output_budgets_preserve_exact_staging_comparisons(self):
+        for pc in ("PC-A", "PC-B"):
+            self.seed(pc=pc)
+            expected = self.observe()
+            result = self.observe(maximum_downloads=2, maximum_total_download_bytes=11)
+            self.assertEqual(expected, result)
+            self.assert_no_authority(result)
+
+    def test_download_budget_excess_retains_staging_copies_without_partial_comparisons(self):
+        self.seed()
+        before = {p: p.read_bytes() for p in self.destinations}
+        for limits, reason in ((dict(maximum_downloads=1), "comparison_download_count_limit_exceeded"),
+                (dict(maximum_total_download_bytes=10), "comparison_download_bytes_limit_exceeded")):
+            result = self.observe(**limits)
+            self.assertEqual(("held", reason, ()), (result.status, result.reason_code, result.comparisons))
+            self.assertEqual(2, len(result.copies))
+            self.assert_no_authority(result)
+            self.assertEqual(before, {p: p.read_bytes() for p in self.destinations})
+
+    def test_invalid_download_budgets_reject_before_staging_read(self):
+        self.seed()
+        for key in ("maximum_downloads", "maximum_total_download_bytes"):
+            for value in (True, False, 0, -1, 1.5, "100"):
+                with self.subTest(key=key, value=value), patch.object(check, "observe_initial_staging_copies") as read:
+                    with self.assertRaisesRegex(check.SourceRevalidationError, "^comparison_download_limit_invalid$"):
+                        self.observe(**{key: value})
+                    read.assert_not_called()
+
     setUp = fixture.InitialSourceIntegrationTests.setUp
     cleanup = fixture.InitialSourceIntegrationTests.cleanup
     build = fixture.InitialSourceIntegrationTests.build

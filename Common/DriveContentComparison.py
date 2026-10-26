@@ -418,6 +418,11 @@ class ContentDownloadPlan:
     may_archive: bool = field(default=False, init=False)
 
 
+def _valid_download_plan_limits(maximum_downloads, maximum_total_download_bytes):
+    return all(value is None or (type(value) is int and value > 0)
+               for value in (maximum_downloads, maximum_total_download_bytes))
+
+
 def plan_content_downloads(sources, listing, *, source_trusted, expected_folder_id,
                            maximum_downloads=None, maximum_total_download_bytes=None):
     """Describe missing hash observations; never initiate or authorize download.
@@ -433,8 +438,7 @@ def plan_content_downloads(sources, listing, *, source_trusted, expected_folder_
         return held("comparison_source_untrusted")
     if type(sources) is not tuple:
         return held("comparison_sources_invalid")
-    if any(value is not None and (type(value) is not int or value < 1)
-           for value in (maximum_downloads, maximum_total_download_bytes)):
+    if not _valid_download_plan_limits(maximum_downloads, maximum_total_download_bytes):
         return held("comparison_download_limit_invalid")
     if any(not _valid_source(source) for source in sources):
         return held("comparison_source_invalid")

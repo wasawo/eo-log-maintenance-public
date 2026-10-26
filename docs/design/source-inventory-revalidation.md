@@ -1,5 +1,13 @@
 # 凍結B2に対するsource再観測
 
+## Download-plan output budgets at local entrypoints (2026-10-26)
+
+`inspect_initial_staged_drive_contents`と`inspect_initial_inventory`はoptional `maximum_downloads` / `maximum_total_download_bytes`を受け、既存の[download plan出力予算](drive-content-comparison.md#caller-selected-download-plan-output-budgets-2026-10-26)をcompleted-set比較へ渡す。両入口とplanは共通のpure型検査を使い、不正値はlocal再読取前に固定`comparison_download_limit_invalid`のSourceRevalidationErrorで停止する。Noneではcaller上限なし、固定本番値を採用しない。
+
+有効な上限では従来どおり毎回localを観測した後にDrive/plan比較を行う。予算超過時、staging入口は照合済みcopiesを保持しcomparisons空のheld、初期inventory入口は元B2/選択pathを保持しfiles空のheldとする。部分比較や完全な空inventoryへ変換しない。予算内の結果・順序・全false flagsは従来どおりで、plan一致からlocal/Driveの真正性や実行認可を導かない。
+
+この予算はlocal読取量/source件数/staging容量/全memoryを制限せず、callerは呼出しごとに明示する。実SDK/C-02・root/FS/owner/現在性/ABA・runtime受け入れは別gateのまま。[staging接続試験](../../tests/test_staged_drive_content_observation.py)と[初期inventory試験](../../tests/test_initial_inventory_observation.py)でexact境界、不正値の非読取、超過時の証拠保全・非認可を確認する。
+
 ## 既存stagingとDrive観測の接続
 
 `inspect_initial_staged_drive_contents`は独立run contextと初期plan、明示allocationを使ってstagingを毎回一括再読取し、得たsize/hashと元basenameを既存`compare_planned_drive_contents`へ渡す。source payloadを読み直さず、local copy一致からsource信頼確認を自動付与しない。期待folder・source_trusted・Drive前後完全列挙・不足hash計画・完了hash集合は独立引数で要求し、既存helperで整合を再検査する。
