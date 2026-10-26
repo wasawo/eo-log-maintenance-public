@@ -92,6 +92,8 @@ def publish_bytes_no_overwrite(destination: str | os.PathLike[str], data: bytes)
     """
     if not isinstance(data, bytes):
         raise ArtifactPublicationError("artifact_bytes_required")
+    if type(data) is not bytes:
+        data = memoryview(data).tobytes()
     try:
         requested = Path(destination)
         if requested.name in ("", ".", "..") or requested.name.endswith((" ", ".")):

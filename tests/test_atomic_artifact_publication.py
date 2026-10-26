@@ -17,6 +17,32 @@ from Common.AtomicArtifactPublication import (
 
 
 class AtomicArtifactPublicationTests(unittest.TestCase):
+    def test_bytes_subclass_cannot_spoof_existing_file_equality(self):
+        class Payload(bytes):
+            def __getitem__(self, key): return b"spoofed!"[key]
+            def __bytes__(self): raise AssertionError("must snapshot buffer rather than __bytes__")
+        payload = Payload(b"original")
+        destination = self.root/"manifest.json"
+        destination.write_bytes(b"spoofed!")
+        with patch.object(atomic.tempfile, "mkstemp") as created:
+            with self.assertRaisesRegex(ArtifactPublicationError, "^destination_conflict$"):
+                publish_bytes_no_overwrite(destination, payload)
+            created.assert_not_called()
+        self.assertEqual(b"spoofed!", destination.read_bytes())
+        self.assertEqual(b"original", memoryview(payload).tobytes())
+
+    def test_bytes_subclass_length_and_slice_overrides_do_not_change_new_publication(self):
+        class Payload(bytes):
+            def __len__(self): return 0
+            def __getitem__(self, key): raise AssertionError("must not call subclass slice")
+            def __bytes__(self): raise AssertionError("must not call subclass conversion")
+        payload = Payload(b"original")
+        destination = self.root/"manifest.json"
+        self.assertEqual("published", publish_bytes_no_overwrite(destination, payload))
+        self.assertEqual("already_exists_identical", publish_bytes_no_overwrite(destination, payload))
+        self.assertEqual(b"original", destination.read_bytes())
+        self.assertEqual([destination], list(self.root.iterdir()))
+
     def test_short_write_reason_survives_a_second_failure_on_stream_close(self):
         real_fdopen = atomic.os.fdopen
         class Stream:

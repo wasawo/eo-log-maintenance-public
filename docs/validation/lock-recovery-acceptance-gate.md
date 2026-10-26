@@ -144,6 +144,12 @@ Previously, the publisher's generic UUID parse accepted nil IDs, unsupported ver
 - This slice does not establish multi-file atomicity, durable directory entries, crash recovery, network/Windows filesystem semantics, Drive consistency, or official entrypoint safety. Cross-process crash/concurrency tests remain required before integration.
 
 
+### Plain bytes for publication comparisons (2026-10-26)
+
+The single-file and set publishers retain support for bytes subclasses but materialize their exposed buffer into plain immutable bytes before destination inspection, hashing or publication. This bypasses subclass length/slice/`__bytes__` overrides, so byte comparisons, writes and marker digests describe the same payload. Ordinary exact bytes remain unchanged without an extra snapshot copy. Other input types, including bytearray and memoryview, retain the existing `artifact_bytes_required` rejection.
+
+Previously a subclass could return existing destination bytes from slicing and obtain an identical classification despite a different underlying buffer. Synthetic tests require a fixed destination conflict with original files preserved, successful publication/idempotence of the actual buffer despite misleading length/slice overrides, and a marker that verifies against the actual published bytes. Caller mapping/payload objects are not modified. This does not bound snapshot allocation, qualify an external writer/provider or establish runtime authority, durability or ABA protection.
+
 ### Duplicate artifact directory entries (2026-10-26)
 
 Artifact-set directory scans reject exact repeated entry names with existing fixed `directory_changed` before replacing a stored signature. The initial scan and both later rescans use this rule, so a duplicate artifact or marker observation cannot collapse into a committed classification. No casefolding, normalization, deduplication or new alias policy is added. Existing allowlist/reparse/type/hash/marker/byte-limit checks remain required.

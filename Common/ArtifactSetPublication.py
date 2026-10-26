@@ -58,6 +58,8 @@ def _validate_payloads(artifacts: Mapping[str, bytes], marker_name: str) -> dict
             raise ArtifactSetPublicationError("artifact_name_invalid")
         if not isinstance(payload, bytes):
             raise ArtifactSetPublicationError("artifact_bytes_required")
+        if type(payload) is not bytes:
+            copied[name] = memoryview(payload).tobytes()
     return copied
 
 

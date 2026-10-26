@@ -53,6 +53,35 @@ class ArtifactSetPublicationTests(unittest.TestCase):
     def expected_hashes(self):
         return {name: hashlib.sha256(data).hexdigest() for name, data in self.payloads.items()}
 
+    def test_bytes_subclass_payloads_are_snapshotted_before_hashing_and_publication(self):
+        from Common import ArtifactSetPublication as publication
+        class Payload(bytes):
+            def __len__(self): return 0
+            def __getitem__(self, key): raise AssertionError("must not call subclass slice")
+            def __bytes__(self): raise AssertionError("must not call subclass conversion")
+        supplied = {name: Payload(data) for name, data in self.payloads.items()}
+        real_digest = publication._digest
+        def digest(data):
+            self.assertIs(type(data), bytes)
+            return real_digest(data)
+        with patch.object(publication, "_digest", side_effect=digest):
+            publish_artifact_set_marker_last(str(self.root), supplied, transaction_id=self.transaction_id)
+        self.assertTrue(verify_published_artifact_set(self.root, self.expected_hashes(),
+            expected_transaction_id=self.transaction_id).may_report_committed)
+        for name, data in self.payloads.items():
+            self.assertEqual(data, (self.root/name).read_bytes())
+            self.assertIs(type(supplied[name]), Payload)
+
+    def test_bytes_subclass_cannot_mark_a_conflicting_first_artifact_idempotent(self):
+        class Payload(bytes):
+            def __getitem__(self, key): return b"spoofed!"[key]
+        supplied = {"manifest.json": Payload(b"original"), "report.json": b"synthetic later"}
+        (self.root/"manifest.json").write_bytes(b"spoofed!")
+        before = {p: p.read_bytes() for p in self.root.iterdir()}
+        with self.assertRaisesRegex(ArtifactSetPublicationError, "^destination_conflict$"):
+            publish_artifact_set_marker_last(str(self.root), supplied, transaction_id=self.transaction_id)
+        self.assertEqual(before, {p: p.read_bytes() for p in self.root.iterdir()})
+
     def test_short_write_and_close_failure_propagate_primary_reason_without_marker(self):
         real_fdopen = atomic.os.fdopen
         calls = []

@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### 公開payloadのbytes派生型を実bufferへ固定（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`3f72d25`、クリーンな同branch `codex/manifest-entry-bounds`で[公開bytesの統一](../validation/lock-recovery-acceptance-gate.md#plain-bytes-for-publication-comparisons-2026-10-26)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 単一/集合publisherで受理済みbytes派生型をmemoryviewの実bufferからplain immutable bytesへ固定し、hash/書込/比較へ同じ内容を使う。独自len/slice/__bytes__の不一致で別の既存内容を同一扱いする余地を防ぐ。通常exact bytesは追加コピーせず、bytearray/memoryview等の非bytes拒否・caller object非変更・既存no-overwrite/marker-lastを維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_atomic_artifact_publication test_artifact_set_publication test_crash_publication_harness test_internal_publication_crash test_terminal_bundle_integration test_owned_publication_integration`の計73件中72成功・既存symlink作成不可1skip。新規4件を既存CI登録済みsuiteへ追加し、独自len/slice/変換を持つbytes派生型の実buffer公開/同一再公開・競合保全・plain bytesでのhashとmarker読戻しを確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 派生型の固定copyに必要なmemory上限は設けない。provider真正性/同時snapshot/ABA・root/FS/owner資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### report参照JSONの解析失敗・非有限数値を固定拒否（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`d35cbbb`、クリーンな同branch `codex/manifest-entry-bounds`で[参照JSON解析拒否](../design/aggregation-report-v1-proposal.md#fixed-json-parse-failures-in-referenced-inputs-2026-10-26)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
