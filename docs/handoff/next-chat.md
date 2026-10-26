@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### source hash reader内の祖先identity前後照合（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`3c1ef93`、クリーンな同branch `codex/manifest-entry-bounds`で[source hash祖先binding](../design/source-inventory-revalidation.md#ancestor-binding-inside-the-source-hash-reader-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `_hash_stable_file`でparent絶対pathから全祖先chainをfile読取前/最終path検査後に比較し、不一致を既存固定mutation理由で拒否。chain取得OSErrorも既存unavailable理由へ変換する。外側の列挙/batch検査に依存せず、単体利用でも同file identityを使うparent置換を検出。既存reparse/file/handle/size/mtime/hash/期待size/読取上限とbytes保全は維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_source_hash_identity test_source_inventory_reparse test_source_enumeration_stability test_source_inventory_revalidation test_initial_staging_copy_observation test_initial_staging_copy_batch test_staged_drive_content_observation test_initial_inventory_observation`の計74件全成功・skipなし。新規3件を既存CI登録済みsuiteへ追加。自作tempでparent rename→新directory→同identity hardlinkを実行し拒否/両path bytes保全を確認、上位祖先変化/初回・最終chain取得不能も確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 前後metadata検査でありnamespace lease/途中置換復元・ABA/同時snapshot/対象volume受け入れ・root/ACL/FS/owner・runtimeを証明しない。source hardlinkの新方針やstaging単一link制約を変更せず、実Drive/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### 初期inventory要約の比較検査を観測入口と統一（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`aafe8ff`、クリーンな同branch `codex/manifest-entry-bounds`で[件数要約](../design/initial-inventory-observation.md#件数のみの内部要約)の比較検査を共通化。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

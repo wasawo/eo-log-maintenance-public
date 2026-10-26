@@ -1,5 +1,13 @@
 # 凍結B2に対するsource再観測
 
+## Ancestor binding inside the source hash reader (2026-10-26)
+
+共通`_hash_stable_file`はfile読取前にparentの絶対pathから全祖先directoryのdevice/inode chainを取得し、読取・reparse再検査・最終path stat後に同じchainを照合する。異なるchainは固定`source_mutation_detected`、chain取得のOSErrorは既存`source_file_unavailable`で拒否する。既存のfile path/handle identity・size/mtime、期待size・初期size+1読取境界・SHA検査は維持する。
+
+外側のinventory列挙/staging batch検査に加え、hash helper単体でも祖先置換を観測できるようにした。自作temp内でparentをrenameして別directoryを作り、同じfile identityのhardlinkを同じbasenameへ置いても、file identity一致だけで受け入れない。[source hash試験](../../tests/test_source_hash_identity.py)はこの実置換、上位祖先identity変更、初回/最終chain取得不能を扱い、bytesと両pathを保全する。
+
+これは前後のmetadata観測であり、全操作期間のnamespace固定、途中の置換後復元/ABA排除、同時snapshot、適格root/ACL/FS/ownerやruntime受け入れを証明しない。hardlink自体の新しい許否方針を採用せず、stagingの既存単一link制約も変更しない。実ログ/本番Driveへ接続しない。
+
 ## Internal comparison output validation (2026-10-26)
 
 file別比較の検査は`_valid_content_comparison`として分離し、batch検査と初期inventoryの件数要約が同じstatus/reason/ID/非認可flag条件を再利用する。要約は保存済み観測を検査するだけで、local/Driveの再観測にはならない。
