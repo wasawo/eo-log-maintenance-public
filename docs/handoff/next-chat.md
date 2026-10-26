@@ -8,6 +8,15 @@
 
 ## 最新基準と今回の作業
 
+### 隔離保存fixtureへの予算伝播と追加読取の有界化（2026-10-27）
+
+- 利用者の次実装指示を受け、cleanな`1072248`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- 正式保存wrapperは未実装のため、[自作OS-temp内の候補bundle接続](../design/manifest-transition-inspection.md#explicit-fixture-publicationreadback-budgets-2026-10-27)に限定。fixture publish/全履歴使用点接続で`maximum_artifact_bytes` / `maximum_total_bytes`をpublisherへ伝播。readbackのdirectory検査とは別の`maximum_semantic_artifact_bytes` / `maximum_total_semantic_bytes`を参照validatorへ渡す。不正予算はguard/owner取得前に拒否し、有効な超過は保全/owner解放へ接続する。
+- fixture所有marker/priorと追加payload/commit marker比較を既存atomicの期待bytes有界readerへ置換。commit markerはfixture transaction/hash集合から決定的bytesを再構成し、表記違いも補完しない。初回directory検証後の増大は追加比較のopen前に拒否する。Common runtime/schema/SDK/配布集合に変更なし。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_terminal_bundle_integration test_terminal_history_usepoint test_terminal_plan_usepoint test_terminal_manifest_history test_terminal_manifest_plan test_artifact_set_publication test_artifact_set_directory_verification test_atomic_artifact_publication test_owned_publication_integration test_initial_source_usepoint test_internal_publication_crash test_crash_publication_harness`の158件中156成功・既存symlink作成不可2skip。既存CI登録suiteへ新規5件を追加し、両PCの公開/読戻し境界・超過/不正値・既存prior保全/owner解放、report/marker増大の非open、履歴再導出との接続を確認。意味論予算の明示成功caseを追加後、`python -B -m unittest test_terminal_bundle_integration.TerminalBundleIntegrationTests.test_explicit_publication_and_readback_budgets_preserve_prior_for_both_roles`を対象再実行し1件成功。これは上記158件に含まれ、独立総数へ加算しない。変更2文書の相対リンク111件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- tests専用の保存接続証拠であり、正式保存runtime/元runningの更新や要件全体/P0-010を完了扱いしない。意味論予算はschema/再読取も計上し、候補論理bytesと別指定。root/FS/owner/provider真正性、現在性/ABA・実Drive/runtime・電源断/Tier B/C受け入れ、実I/O/時間/全memory/disk容量の上限は未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで既承認helper/隔離接続と未決runtime契約の境界を確認して次単位を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
 ### marker込みのcaller指定公開bytes予算（2026-10-27）
 
 - 利用者の次実装指示を受け、cleanな`e09ab79`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。

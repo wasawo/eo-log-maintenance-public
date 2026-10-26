@@ -101,15 +101,32 @@ class TerminalHistoryUsepointTests(unittest.TestCase):
         value.hashes = {name: hashlib.sha256(data).hexdigest() for name, data in value.payloads.items()}
         return value, plan
 
-    def publish_candidate(self, value, plan, *, ac=True, before_check=None):
+    def publish_candidate(self, value, plan, *, ac=True, before_check=None,
+                          maximum_artifact_bytes=None, maximum_total_bytes=None):
+        value._limits(maximum_artifact_bytes, maximum_total_bytes)
         value._guard()
         with acquire_owned_lock(value.scope, value.root / "synthetic-owner.json", timeout_seconds=0):
             value._guard()
             if before_check is not None: before_check()
             restored = self.observe(plan, expected_previous_bytes=value.prior.read_bytes(), ac_connected=ac)
             self.assertEqual(value.payloads["report.json"], restored.terminal.report_bytes)
-            publish_artifact_set_marker_last(str(value.bundle), value.payloads, transaction_id=value.transaction)
+            publish_artifact_set_marker_last(str(value.bundle), value.payloads, transaction_id=value.transaction,
+                maximum_artifact_bytes=maximum_artifact_bytes, maximum_total_bytes=maximum_total_bytes)
             value._guard()
+
+    @unittest.skipUnless(os.name == "nt", "Windows synthetic mutex/publication required")
+    def test_history_reconstruction_connects_explicit_publication_and_readback_budgets(self):
+        for pc in ("PC-A", "PC-B"):
+            value, plan = self.make_bundle(pc)
+            sizes = [len(data) for data in value.payloads.values()] + [len(value.marker_bytes())]
+            limits = dict(maximum_artifact_bytes=max(sizes), maximum_total_bytes=sum(sizes))
+            with self.assertRaisesRegex(RuntimeError, "^artifact_publish_total_limit_exceeded$"):
+                self.publish_candidate(value, plan, maximum_total_bytes=1)
+            self.assertEqual([], list(value.bundle.iterdir()))
+            self.publish_candidate(value, plan, **limits)
+            self.assertEqual("candidate_bundle_verified", value.readback(**limits)["status"])
+            self.assertEqual(plan.terminal.expected_bytes, value.prior.read_bytes())
+            self.assertFalse((value.root / "synthetic-owner.json").exists())
 
     @unittest.skipUnless(os.name == "nt", "Windows synthetic mutex/publication required")
     def test_owned_candidate_publication_and_semantic_readback_for_both_pcs(self):

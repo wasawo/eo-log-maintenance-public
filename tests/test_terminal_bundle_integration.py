@@ -59,7 +59,7 @@ class CandidateBundleFixture:
                 or self.root.resolve(strict=True) != self.root or not stat.S_ISDIR(info.st_mode)
                 or getattr(info, "st_file_attributes", 0) & 0x400
                 or not stat.S_ISREG(marker_info.st_mode) or marker_info.st_nlink != 1
-                or getattr(marker_info, "st_file_attributes", 0) & 0x400 or marker.read_bytes() != self._nonce):
+                or getattr(marker_info, "st_file_attributes", 0) & 0x400 or not atomic._same_bytes(marker, self._nonce)):
             raise RuntimeError("fixture_root_changed")
 
     def _guard(self):
@@ -68,20 +68,36 @@ class CandidateBundleFixture:
             info = path.lstat()
             if getattr(info, "st_file_attributes", 0) & 0x400 or stat.S_ISLNK(info.st_mode):
                 raise RuntimeError("fixture_path_changed")
-        if not self.bundle.is_dir() or not self.prior.is_file() or self.prior.read_bytes() != self.plan.expected_bytes:
+        if not self.bundle.is_dir() or not self.prior.is_file() or not atomic._same_bytes(self.prior, self.plan.expected_bytes):
             raise RuntimeError("fixture_prior_changed")
 
-    def publish(self, *, before_publish=None):
+    def _limits(self, *values):
+        if any(value is not None and (type(value) is not int or value < 1) for value in values):
+            raise RuntimeError("fixture_limit_invalid")
+
+    def marker_bytes(self):
+        return (json.dumps(dict(schema_version=1, transaction_id=self.transaction, artifact_sha256=self.hashes),
+            sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+
+    def publish(self, *, before_publish=None, maximum_artifact_bytes=None, maximum_total_bytes=None):
+        self._limits(maximum_artifact_bytes, maximum_total_bytes)
         self._guard()
         with acquire_owned_lock(self.scope, self.root / "synthetic-owner.json", timeout_seconds=0):
             self._guard()
             if before_publish is not None:
                 before_publish()
-            result = publish_artifact_set_marker_last(str(self.bundle), self.payloads, transaction_id=self.transaction)
+            result = publish_artifact_set_marker_last(str(self.bundle), self.payloads, transaction_id=self.transaction,
+                maximum_artifact_bytes=maximum_artifact_bytes, maximum_total_bytes=maximum_total_bytes)
             self._guard()
             return result
 
-    def readback(self, **verification_limits):
+    def readback(self, *, maximum_artifact_bytes=None, maximum_total_bytes=None,
+                 maximum_semantic_artifact_bytes=None, maximum_total_semantic_bytes=None):
+        self._limits(maximum_artifact_bytes, maximum_total_bytes,
+            maximum_semantic_artifact_bytes, maximum_total_semantic_bytes)
+        verification_limits = dict(maximum_artifact_bytes=maximum_artifact_bytes, maximum_total_bytes=maximum_total_bytes)
+        semantic_limits = {key: value for key, value in dict(maximum_artifact_bytes=maximum_semantic_artifact_bytes,
+            maximum_total_artifact_bytes=maximum_total_semantic_bytes).items() if value is not None}
         self._guard()
         result = dict(status="held", may_update_manifest=False, may_archive=False)
         with acquire_owned_lock(self.scope, self.root / "synthetic-owner.json", timeout_seconds=0):
@@ -90,17 +106,17 @@ class CandidateBundleFixture:
                 expected_transaction_id=self.transaction, **verification_limits)
             if not observed.may_report_committed:
                 return result
-            marker_before = (self.bundle / "commit-marker.json").read_bytes()
-            if json.loads(marker_before)["transaction_id"] != self.transaction:
+            marker_before = self.marker_bytes()
+            if not atomic._same_bytes(self.bundle / "commit-marker.json", marker_before):
                 return result
-            if any((self.bundle / name).read_bytes() != data for name, data in self.payloads.items()):
+            if any(not atomic._same_bytes(self.bundle / name, data) for name, data in self.payloads.items()):
                 return result
-            semantic = validate_referenced_artifacts(self.bundle, self.bundle / "report.json", ROOT / "contracts")
+            semantic = validate_referenced_artifacts(self.bundle, self.bundle / "report.json", ROOT / "contracts", **semantic_limits)
             after = verify_published_artifact_set(self.bundle, self.hashes,
                 expected_transaction_id=self.transaction, **verification_limits)
             self._guard()
             if (semantic["status"] == "verified" and after.may_report_committed
-                    and (self.bundle / "commit-marker.json").read_bytes() == marker_before):
+                    and atomic._same_bytes(self.bundle / "commit-marker.json", marker_before)):
                 result["status"] = "candidate_bundle_verified"
         return result
 
@@ -112,6 +128,75 @@ class CandidateBundleFixture:
 
 @unittest.skipUnless(os.name == "nt", "real Windows mutex/publication required")
 class TerminalBundleIntegrationTests(unittest.TestCase):
+    def test_explicit_publication_and_readback_budgets_preserve_prior_for_both_roles(self):
+        for pc in ("PC-A", "PC-B"):
+            value = self.make((), pc)
+            sizes = [len(data) for data in value.payloads.values()] + [len(value.marker_bytes())]
+            limits = dict(maximum_artifact_bytes=max(sizes), maximum_total_bytes=sum(sizes))
+            value.publish(**limits)
+            schema_sizes = [path.stat().st_size for path in (ROOT / "contracts").glob("*.schema.json")]
+            result = value.readback(**limits, maximum_semantic_artifact_bytes=max(sizes + schema_sizes),
+                maximum_total_semantic_bytes=10 * sum(sizes + schema_sizes))
+            self.assertEqual("candidate_bundle_verified", result["status"])
+            self.assertFalse(result["may_update_manifest"] or result["may_archive"])
+            before = {p: p.read_bytes() for p in value.bundle.iterdir()}
+            rejected = value.readback(**limits, maximum_semantic_artifact_bytes=1,
+                maximum_total_semantic_bytes=1)
+            self.assertEqual("held", rejected["status"])
+            self.assertFalse(rejected["may_update_manifest"] or rejected["may_archive"])
+            self.assertEqual(before, {p: p.read_bytes() for p in value.bundle.iterdir()})
+            self.assertEqual(value.plan.expected_bytes, value.prior.read_bytes())
+            self.assertFalse((value.root / "synthetic-owner.json").exists())
+
+    def test_publication_overflow_preserves_empty_candidate_and_releases_owner(self):
+        for pc in ("PC-A", "PC-B"):
+            value = self.make((), pc)
+            with self.assertRaisesRegex(ArtifactSetPublicationError, "^artifact_publish_total_limit_exceeded$"):
+                value.publish(maximum_total_bytes=1)
+            self.assertEqual([], list(value.bundle.iterdir()))
+            self.assertEqual(value.plan.expected_bytes, value.prior.read_bytes())
+            self.assertFalse((value.root / "synthetic-owner.json").exists())
+
+    def test_invalid_fixture_budgets_stop_before_guards_and_owner_acquisition(self):
+        value = self.make()
+        for method, keys in ((value.publish, ("maximum_artifact_bytes", "maximum_total_bytes")),
+                (value.readback, ("maximum_artifact_bytes", "maximum_total_bytes",
+                                 "maximum_semantic_artifact_bytes", "maximum_total_semantic_bytes"))):
+            for key in keys:
+                for limit in (0, -1, True, 1.0, "1"):
+                    with self.subTest(method=method.__name__, key=key, limit=limit), \
+                            patch.object(value, "_guard") as guard, patch(__name__ + ".acquire_owned_lock") as owner:
+                        with self.assertRaisesRegex(RuntimeError, "^fixture_limit_invalid$"):
+                            method(**{key: limit})
+                        guard.assert_not_called()
+                        owner.assert_not_called()
+
+    def test_growth_after_directory_verification_is_rejected_without_opening_grown_payload(self):
+        for name in ("report.json", "commit-marker.json"):
+            value = self.make()
+            value.publish()
+            target = value.bundle / name
+            original = target.read_bytes()
+            real_verify = verify_published_artifact_set
+            real_open = Path.open
+            grown = False
+            def verify_then_grow(*args, **kwargs):
+                nonlocal grown
+                result = real_verify(*args, **kwargs)
+                self.assertTrue(result.may_report_committed)
+                with open(target, "wb") as stream: stream.write(original + b"x" * 4096)
+                grown = True
+                return result
+            def guarded_open(path, *args, **kwargs):
+                if grown and path == target:
+                    raise AssertionError("grown candidate must fail size check before open")
+                return real_open(path, *args, **kwargs)
+            with self.subTest(name=name), patch(__name__ + ".verify_published_artifact_set", side_effect=verify_then_grow), \
+                    patch.object(Path, "open", guarded_open):
+                self.assertEqual("held", value.readback()["status"])
+            self.assertEqual(original + b"x" * 4096, target.read_bytes())
+            self.assertFalse((value.root / "synthetic-owner.json").exists())
+
     def test_duplicate_bundle_enumeration_preserves_bytes_and_releases_owner(self):
         real_iterdir = Path.iterdir
         for pc_id in ("PC-A", "PC-B"):
