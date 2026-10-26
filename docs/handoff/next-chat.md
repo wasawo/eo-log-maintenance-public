@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### 累積PR作成・マージ承認と統合検証（2026-10-27）
+
+- 利用者が累積コミットをまとめたPR作成・マージを明示指示。`898f4ff`までの実装28コミット（42 files）と本記録を同じPRへまとめ、最新HEADのValidate/Package Validation両成功を確認後squash mergeする。branchは`codex/manifest-entry-bounds`、取得・照合済み正本mainは`6e9ad82d8ae11146041b5eba0ab6b94e21c5cad8`（PR #44）。本記録時点は未push/未PR/未マージ。結果のPR/merge SHAとCIはGitHub実状態・本チャットの最終報告を照合する。
+- 範囲：manifest/report/marker/source/stagingの読取・件数・bytes予算、Drive page/file/hash/download plan予算とlocal入口接続、内部比較/要約の共通検査、重複scan/祖先identity検査、JSON解析拒否と非有限数値・schema外部取得禁止、marker producer/consumer文法・Mapping/buffer固定、bounded write/比較とshort write/close失敗理由の保全。固定本番上限・新schema/C-02/provider契約は選ばず、実行認可・cleanup/PC-B archive能力を追加しない。レビューpackage集合は50 filesのまま。
+- 累積統合検証：Python 3.11.9（CI 3.12）で`python -B -m unittest discover -s tests -p test_*.py`の870件中868成功・既存symlink作成不可2skip。PATH上PowerShell 7.6.7を版確認し、tests内PS bridgeを含むPython suiteが成功。`pwsh -NoLogo -NoProfile -File tests/Test-ReleasePackage.ps1`で両role package回帰成功。累積変更8 Markdownの相対リンク160件欠落0、`git diff --check origin/main...HEAD`成功。PS/schema/CI定義に変更なし。root自己点検のみ、独立レビューなし。過去の単位別test修正/再実行は各節へ保持し、本統合suiteは全件再実行した。
+- マージ後は次の実装を始めず本作業を終了する。以後の実装は最新mainから新しい作業branchを作成し、マージ済みbranchを再利用しない。正式runtime/SDK/credential/C-02、metadata-first/event/writer/CAS/receipt、真正なroot/FS/owner/clock/AC/session/account、現在性/ABA・電源断・両PC/Tier B/C/runtime受け入れは未完。helper/CI/package成功を配布/本番適用/削除/Archiveの許可やP0完了へ変換しない。
+
 ### 最新manifest schemaの外部参照取得を禁止（2026-10-27）
 
 - 利用者の次実装指示を受け、基準`2145396`、クリーンな同branch `codex/manifest-entry-bounds`で[manifest schemaのlocal参照制約](../design/latest-manifest-selection.md#local-only-schema-references-2026-10-27)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
