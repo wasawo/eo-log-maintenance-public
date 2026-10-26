@@ -112,6 +112,19 @@ class CandidateBundleFixture:
 
 @unittest.skipUnless(os.name == "nt", "real Windows mutex/publication required")
 class TerminalBundleIntegrationTests(unittest.TestCase):
+    def test_invalid_marker_json_preserves_bundle_and_releases_owner_for_both_roles(self):
+        for pc_id in ("PC-A", "PC-B"):
+            for content in (b"null", b'{"schema_version":NaN}'):
+                value = self.make((), pc_id)
+                value.publish()
+                (value.bundle/"commit-marker.json").write_bytes(content)
+                before = {p: p.read_bytes() for p in value.bundle.iterdir()}
+                with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^commit_marker_json_invalid$"):
+                    value.readback()
+                self.assertFalse((value.root/"synthetic-owner.json").exists())
+                self.assertEqual(before, {p: p.read_bytes() for p in value.bundle.iterdir()})
+                self.assertEqual(value.plan.expected_bytes, value.prior.read_bytes())
+
     def test_explicit_bundle_read_bounds_preserve_candidates_and_release_owner_on_rejection(self):
         for pc_id in ("PC-A", "PC-B"):
             value = self.make((), pc_id)

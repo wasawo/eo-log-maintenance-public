@@ -138,6 +138,12 @@ Previously, the publisher's generic UUID parse accepted nil IDs, unsupported ver
 - This slice does not establish multi-file atomicity, durable directory entries, crash recovery, network/Windows filesystem semantics, Drive consistency, or official entrypoint safety. Cross-process crash/concurrency tests remain required before integration.
 
 
+### Present marker JSON is distinct from an absent marker (2026-10-26)
+
+When a marker file is present, its UTF-8 JSON must have an object root. `null`, arrays and scalar roots raise the fixed directory error `commit_marker_json_invalid`; a present `null` can no longer be classified as a missing marker. NaN/Infinity/-Infinity constants are rejected at every nesting level, duplicate keys remain rejected, and JSON parsing recursion failures map to the same fixed error instead of escaping as interpreter exceptions. Object shape/version/transaction/hash checks still belong to the existing classifier; an actually absent marker retains its prior missing/partial-set behavior.
+
+The reader does not repair or delete invalid markers or promote another artifact set. Synthetic tests cover root types, nonstandard constants, nested duplicate keys and excessive nesting. Both-role candidate integration verifies original bundle/prior preservation and owner release on rejection. This tightens invalid-marker handling without introducing a numeric JSON depth/complexity policy or claiming bounded parser resources, atomicity, durability or runtime authorization. Existing caller read bounds and signature/rescan checks remain unchanged.
+
 ### Artifact-set expectations before filesystem access (2026-10-26)
 
 `verify_published_artifact_set` copies the caller's expected hash mapping before root/path inspection and validates that snapshot plus the optional expected transaction ID with the existing pure classifier. Invalid filename/hash grammar or transaction identity returns the classifier's blocked decision without filesystem access. Non-mapping/empty inputs, collision with the marker name, and mapping-copy failure raise the fixed `expected_artifact_set_invalid` directory error before I/O; custom mapping exception details are suppressed. Existing marker-name and resource-limit checks also remain before I/O.

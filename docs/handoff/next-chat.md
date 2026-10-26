@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### markerのstrict JSONと欠落区別（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`96708e9`、クリーンな同branch `codex/manifest-entry-bounds`で[存在するmarker JSONの拒否境界](../validation/lock-recovery-acceptance-gate.md#present-marker-json-is-distinct-from-an-absent-marker-2026-10-26)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- directory verifierは存在するmarkerのrootをobject必須とし、nullを欠落扱いにしない。非標準NaN/Infinity/-Infinityを全depthで拒否、既存duplicate key検査を維持し、解析RecursionErrorも固定`commit_marker_json_invalid`へ変換する。真のmarker欠落とobjectのshape/version/transaction/hash分類は既存のまま。原本を修復/削除せず、別集合へのfallbackや成功補完はしない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_set_directory_verification test_artifact_set_recovery test_artifact_directory_reparse test_terminal_bundle_integration test_owned_publication_integration test_artifact_set_publication`の計77件中76成功・既存symlink作成不可1skip。新規5件を既存CI登録済みsuiteへ追加。root型/非標準定数/nested duplicate/過度な入れ子と、両PC相当の拒否時bundle/prior保全・owner解放を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 不正markerの拒否厳格化であり、JSON最大depth/複雑度の新しい本番値を選ばない。parser資源上限・正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### 集合公開payload mappingのコピー検査（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`5fe9e76`、クリーンな同branch `codex/manifest-entry-bounds`で[payload mappingコピー検査](../validation/lock-recovery-acceptance-gate.md#payload-mapping-snapshot-before-publication-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

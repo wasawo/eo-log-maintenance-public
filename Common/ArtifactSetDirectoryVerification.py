@@ -32,6 +32,10 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]
     return result
 
 
+def _reject_json_constant(_value):
+    raise ValueError("nonstandard_json_constant")
+
+
 def _is_link_or_reparse(path: Path) -> bool:
     info = path.lstat()
     return stat.S_ISLNK(info.st_mode) or bool(
@@ -177,8 +181,11 @@ def verify_published_artifact_set(
                     marker = json.loads(
                         content.decode("utf-8"),
                         object_pairs_hook=_reject_duplicate_keys,
+                        parse_constant=_reject_json_constant,
                     )
-                except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+                    if type(marker) is not dict:
+                        raise ValueError("commit_marker_root_not_object")
+                except (UnicodeDecodeError, json.JSONDecodeError, ValueError, RecursionError) as exc:
                     raise ArtifactSetDirectoryVerificationError("commit_marker_json_invalid") from exc
             else:
                 published[entry.name] = hashlib.sha256(content).hexdigest()

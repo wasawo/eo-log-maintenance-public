@@ -19,6 +19,50 @@ from Common.ArtifactSetDirectoryVerification import (
 
 
 class ArtifactSetDirectoryVerificationTests(unittest.TestCase):
+    def test_present_marker_with_nonobject_json_never_becomes_missing_marker(self):
+        self.write_complete_set()
+        path = self.root/"commit-marker.json"
+        for content in (b"null", b"true", b"false", b"0", b"1.5", b'"synthetic"', b"[]", b"[{}]"):
+            path.write_bytes(content)
+            before = {p: p.read_bytes() for p in self.root.iterdir()}
+            with self.subTest(content=content), self.assertRaisesRegex(
+                    ArtifactSetDirectoryVerificationError, "^commit_marker_json_invalid$"):
+                verify_published_artifact_set(self.root, self.expected)
+            self.assertEqual(before, {p: p.read_bytes() for p in self.root.iterdir()})
+
+    def test_nonstandard_json_constants_are_rejected_at_any_marker_depth(self):
+        self.write_complete_set()
+        path = self.root/"commit-marker.json"
+        for constant in (b"NaN", b"Infinity", b"-Infinity"):
+            for content in (constant, b'{"schema_version":'+constant+b'}',
+                    b'{"nested":[{"value":'+constant+b'}]}'):
+                path.write_bytes(content)
+                with self.subTest(content=content), self.assertRaisesRegex(
+                        ArtifactSetDirectoryVerificationError, "^commit_marker_json_invalid$"):
+                    verify_published_artifact_set(self.root, self.expected)
+                self.assertEqual(content, path.read_bytes())
+
+    def test_nested_duplicate_marker_keys_are_rejected(self):
+        self.write_complete_set()
+        path = self.root/"commit-marker.json"
+        marker = path.read_bytes()
+        key = b'"manifest.json":'
+        digest = json.dumps(self.expected["manifest.json"]).encode("ascii")
+        marker = marker.replace(key, key+digest+b", "+key)
+        path.write_bytes(marker)
+        with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^commit_marker_json_invalid$"):
+            verify_published_artifact_set(self.root, self.expected)
+        self.assertEqual(marker, path.read_bytes())
+
+    def test_excessive_marker_nesting_is_a_sanitized_parse_failure(self):
+        self.write_complete_set()
+        content = b'{"nested":'+b"["*2048+b"0"+b"]"*2048+b"}"
+        path = self.root/"commit-marker.json"
+        path.write_bytes(content)
+        with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^commit_marker_json_invalid$"):
+            verify_published_artifact_set(self.root, self.expected)
+        self.assertEqual(content, path.read_bytes())
+
     def test_expected_transaction_is_independently_bound_and_optional(self):
         self.write_complete_set()
         self.assertTrue(verify_published_artifact_set(self.root, self.expected,
