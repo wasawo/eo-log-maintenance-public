@@ -46,6 +46,7 @@ docs/
 
 ### 開発手順・単独運用
 
+- [要件・設計・タスクの再確認（2026-10-27）](development/requirements-design-task-review-20261027.md): 利用者との壁打ち記録。完成像から見直し、合意済み/提案/未決を区別して既存仕様・タスクへ反映する。
 - [root単独運用](development/agent-workflow.md)
 - [開発時の詳細仕様・手順の参照表](development/development-guide.md)
 - [Implementation Workflow: ElectronicObserver Log Maintenance](development/implementation-workflow.md)

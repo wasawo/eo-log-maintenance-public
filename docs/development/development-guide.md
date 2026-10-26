@@ -2,6 +2,8 @@
 
 共通の開始規則は [AGENTS.md](../../AGENTS.md)。この表は対象別の読取先で、すべてを毎回読む一覧ではない。対象の承認記録・仕様・実装・テストを照合し、矛盾や未決定はrootへ返す。文書を移動・参照化しても仕様・承認範囲は変更しない。
 
+2026-10-27から[要件・設計・タスクを利用者と再確認中](requirements-design-task-review-20261027.md)。この再確認の対話が終わり実装再開の指示を受けるまでは、新規実装単位を自動選択せず、同書の現在の質問・合意/提案/未決とhandoffを確認する。既存仕様は明示的な変更合意まで維持する。
+
 | 変更対象 | 読む文書・実体 | 維持する条件 |
 | --- | --- | --- |
 | 全体・未完了 | [現行handoff](../handoff/next-chat.md)、[初回配布棚卸し](../status/first-release-readiness-20261024.md)、[実装計画](implementation-workflow.md)、[要件台帳](../requirements/requirements-traceability.md)、[P0台帳](../requirements/p0-gap-register.md) | 記録より実ファイル・実Git状態を優先し、実装済みhelperと正式runtime完成を区別 |
