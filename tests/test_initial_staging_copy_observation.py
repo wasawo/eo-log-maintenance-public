@@ -11,6 +11,16 @@ import test_initial_source_integration as fixture
 
 
 class InitialStagingCopyTests(unittest.TestCase):
+    def test_single_copy_forwards_staging_byte_limits_without_mutating_payload(self):
+        _, destination, plan = self.seed()
+        expected = self.observe(plan)
+        self.assertEqual(expected, self.observe(plan, maximum_staging_file_bytes=9, maximum_total_staging_bytes=9))
+        for key, reason in (("maximum_staging_file_bytes", "staging_copy_file_limit_exceeded"),
+                ("maximum_total_staging_bytes", "staging_copy_total_limit_exceeded")):
+            with self.subTest(key=key), self.assertRaisesRegex(check.SourceRevalidationError, "^"+reason+"$"):
+                self.observe(plan, **{key: 8})
+        self.assertEqual(b"synthetic", destination.read_bytes())
+
     setUp = fixture.InitialSourceIntegrationTests.setUp
     cleanup = fixture.InitialSourceIntegrationTests.cleanup
     build = fixture.InitialSourceIntegrationTests.build

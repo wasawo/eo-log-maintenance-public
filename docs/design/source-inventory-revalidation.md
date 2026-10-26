@@ -1,5 +1,13 @@
 # 凍結B2に対するsource再観測
 
+## Caller-selected staging payload read bounds (2026-10-26)
+
+`observe_initial_staging_copy` / `observe_initial_staging_copies` / `inspect_initial_staged_drive_contents`はoptional `maximum_staging_file_bytes` / `maximum_total_staging_bytes`を受ける。Noneまたは正のexact intのみ許し、不正値はplan再構成前に固定`staging_copy_limit_invalid`で拒否する。単一入口とDrive比較入口は同じ上限を一括readerへ渡す。
+
+独立contextでplanを再構成してallocation全件を検査した後、選択した凍結targetのsizeからfile別/合計上限を検査する。超過は`staging_copy_file_limit_exceeded` / `staging_copy_total_limit_exceeded`で、staging root I/O・payload open/hash・Drive比較前に全体拒否する。targetをskipした部分結果を返さない。予算内は従来のsize/hash/signature/祖先chain確認、順序と全may_*falseを維持する。空選択は0 bytesとして検査するがroot検査を省略せずno_workにも変えない。
+
+Noneではcaller上限なし、固定本番値やschema制約を選ばない。対象は選択payloadの凍結sizeで、非選択file・plan/B2の解析memory・allocation件数・metadata I/O・遅延/全memoryを制限しない。既存hash readerは増大検出用に初期size+1 byteを読み得るが、その場合は拒否する。download計画予算やupload stagingの空き容量/予約式と独立し、copy/Upload実行やFS/provider資格を付与しない。単一/一括/Drive接続試験で境界、不正値、全payload読取前の超過拒否、bytes保全と予算の伝播を確認する。
+
 ## Duplicate names in shared enumeration snapshots (2026-10-26)
 
 共通snapshotはoptional `maximum_entries`を受け、正のexact intをI/O前に検査し、列挙中の超過をmetadata保持前に拒否できる。現在の接続先は[残存staging観測のcaller上限](staging-residual-observation.md#caller-selected-entry-limit-2026-10-26)で、source builderの通常呼出しは既定Noneのままとする。source全体の件数/容量方針は新設しない。

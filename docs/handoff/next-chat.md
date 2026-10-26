@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### 既存staging payloadの明示bytes上限（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`0b62ef5`、クリーンな同branch `codex/manifest-entry-bounds`で[staging payload読取上限](../design/source-inventory-revalidation.md#caller-selected-staging-payload-read-bounds-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 単一/一括staging読取とstaging/Drive比較にoptional `maximum_staging_file_bytes` / `maximum_total_staging_bytes`を追加。不正値はplan再構成前、選択した凍結targetのfile別/合計size超過はroot I/O・payload hash・Drive比較前に既存SourceRevalidationErrorの固定理由で全体拒否。単一/接続入口から同じ上限を一括readerへ渡す。予算内は既存exact再読取・順序・全非認可を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_initial_staging_copy_batch test_initial_staging_copy_observation test_staged_drive_content_observation test_upload_staging_integration test_source_hash_identity test_initial_inventory_observation test_initial_inventory_summary`の計72件全成功・skipなし。新規5件を既存CI登録済みsuiteへ追加し、file/合計境界・空選択・不正値・全読取前拒否・上限伝播・bytes保全を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- Noneではcaller上限なし。非選択file・plan/B2解析memory/metadata I/O/全memoryや実容量予約の上限ではなく、増大検知で初期size+1 byteを読み得る。固定本番値/新schema/copy実行を採用せず、provider真正性/同時snapshot/ABA・root/FS/owner資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### 残存staging観測のcaller指定entry上限（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`b3c035c`、クリーンな同branch `codex/manifest-entry-bounds`で[残存staging entry上限](../design/staging-residual-observation.md#caller-selected-entry-limit-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

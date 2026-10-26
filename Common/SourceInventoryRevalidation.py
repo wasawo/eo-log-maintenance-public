@@ -201,6 +201,7 @@ def observe_initial_staging_copy(
     staging_root, plan, *, relative_path, sequence, expected_pc_id, expected_log_type,
     expected_target_period, expected_run_id, started_at_utc, current_utc,
     current_utc_reliable, manifest_schema, evidence_schema,
+    maximum_staging_file_bytes=None, maximum_total_staging_bytes=None,
 ):
     """Single-target compatibility API; no cached observation is accepted."""
     return observe_initial_staging_copies(staging_root, plan, allocations=((relative_path, sequence),),
@@ -208,13 +209,15 @@ def observe_initial_staging_copy(
         expected_target_period=expected_target_period, expected_run_id=expected_run_id,
         started_at_utc=started_at_utc, current_utc=current_utc,
         current_utc_reliable=current_utc_reliable, manifest_schema=manifest_schema,
-        evidence_schema=evidence_schema)[0]
+        evidence_schema=evidence_schema, maximum_staging_file_bytes=maximum_staging_file_bytes,
+        maximum_total_staging_bytes=maximum_total_staging_bytes)[0]
 
 
 def observe_initial_staging_copies(
     staging_root, plan, *, allocations, expected_pc_id, expected_log_type,
     expected_target_period, expected_run_id, started_at_utc, current_utc,
     current_utc_reliable, manifest_schema, evidence_schema,
+    maximum_staging_file_bytes=None, maximum_total_staging_bytes=None,
 ):
     """Observe explicit (relative_path, sequence) tuples, returning all or none.
 
@@ -224,6 +227,9 @@ def observe_initial_staging_copies(
     I/O. Final metadata checks span the batch, not an atomic snapshot/lease.
     """
     try:
+        if any(value is not None and (type(value) is not int or value < 1)
+               for value in (maximum_staging_file_bytes, maximum_total_staging_bytes)):
+            _reject("staging_copy_limit_invalid")
         if (type(plan) is not InitialManifestPlan
                 or any(flag is not False for flag in (plan.may_publish, plan.may_upload, plan.may_archive))):
             _reject("staging_copy_plan_invalid")
@@ -258,6 +264,12 @@ def observe_initial_staging_copies(
             seen_paths.add(relative_path)
             seen_names.add(name.casefold())
             selected.append((relative_path, sequence, name, inventory[relative_path]))
+        if (maximum_staging_file_bytes is not None
+                and any(target["size_bytes"] > maximum_staging_file_bytes for _, _, _, target in selected)):
+            _reject("staging_copy_file_limit_exceeded")
+        if (maximum_total_staging_bytes is not None
+                and sum(target["size_bytes"] for _, _, _, target in selected) > maximum_total_staging_bytes):
+            _reject("staging_copy_total_limit_exceeded")
         root = Path(staging_root)
         if not root.is_absolute():
             _reject("staging_copy_root_invalid")
@@ -296,6 +308,7 @@ def inspect_initial_staged_drive_contents(
     current_utc_reliable, manifest_schema, evidence_schema, source_trusted,
     drive_before, drive_after, download_plan, downloads, expected_folder_id,
     maximum_downloads=None, maximum_total_download_bytes=None,
+    maximum_staging_file_bytes=None, maximum_total_staging_bytes=None,
 ):
     """Re-read staging then compare supplied complete Drive observations.
 
@@ -311,7 +324,8 @@ def inspect_initial_staged_drive_contents(
             expected_target_period=expected_target_period, expected_run_id=expected_run_id,
             started_at_utc=started_at_utc, current_utc=current_utc,
             current_utc_reliable=current_utc_reliable, manifest_schema=manifest_schema,
-            evidence_schema=evidence_schema)
+            evidence_schema=evidence_schema, maximum_staging_file_bytes=maximum_staging_file_bytes,
+            maximum_total_staging_bytes=maximum_total_staging_bytes)
         sources = tuple(ComparisonSource(copy.relative_path.rsplit("/", 1)[-1],
             copy.size_bytes, copy.sha256) for copy in copies)
         compared = compare_planned_drive_contents(sources, drive_before, drive_after, download_plan,

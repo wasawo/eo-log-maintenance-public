@@ -13,6 +13,21 @@ from test_drive_comparison_batch import invalid_comparison_batches
 
 
 class StagedDriveContentTests(unittest.TestCase):
+    def test_staging_read_limits_reach_local_reader_before_drive_comparison(self):
+        self.seed()
+        self.assertEqual(self.observe(), self.observe(maximum_staging_file_bytes=6, maximum_total_staging_bytes=11,
+            maximum_downloads=2, maximum_total_download_bytes=11))
+        for limits, reason in ((dict(maximum_staging_file_bytes=5), "staging_copy_file_limit_exceeded"),
+                (dict(maximum_total_staging_bytes=10), "staging_copy_total_limit_exceeded"),
+                (dict(maximum_staging_file_bytes=True), "staging_copy_limit_invalid")):
+            with self.subTest(limits=limits), patch.object(check, "compare_planned_drive_contents") as compare, \
+                    patch.object(check, "_source_chain") as root:
+                with self.assertRaisesRegex(check.SourceRevalidationError, "^"+reason+"$"):
+                    self.observe(**limits)
+                compare.assert_not_called()
+                root.assert_not_called()
+        self.assertEqual((b"first", b"second"), tuple(p.read_bytes() for p in self.destinations))
+
     def test_invalid_internal_comparison_states_ids_and_flags_preserve_staging(self):
         self.seed()
         valid = self.observe()
