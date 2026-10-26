@@ -19,6 +19,15 @@ from test_aggregation_report_builder import fixture, encode, SCHEMAS, NOW, ROOT
 
 
 class ManifestReportSelectionTests(unittest.TestCase):
+    def test_excessive_report_nesting_is_a_fixed_selection_failure_and_preserves_inputs(self):
+        source = self.install()
+        malformed = b'{"nested":'+b"["*2048+b"0"+b"]"*2048+b"}"
+        source.report_path.write_bytes(malformed)
+        with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^selected_manifest_report_invalid$"):
+            self.read(source)
+        self.assertEqual(source.content, source.manifest_path.read_bytes())
+        self.assertEqual(malformed, source.report_path.read_bytes())
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="eolm-manifest-report-")
         self.addCleanup(self.temp.cleanup)

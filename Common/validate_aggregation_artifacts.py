@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import stat
@@ -124,6 +125,13 @@ def _stable_bytes(path, maximum_bytes=None, budget=None):
         raise ArtifactValidationError("artifact_unavailable") from exc
 
 
+def _finite_json_float(value):
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ArtifactValidationError("invalid_json_constant")
+    return parsed
+
+
 def _read_json_bytes(path: Path, snapshots=None, maximum_bytes=None, budget=None) -> tuple[bytes, Any]:
     snapshot = _stable_bytes(path, maximum_bytes, budget)
     raw = snapshot[0]
@@ -135,11 +143,12 @@ def _read_json_bytes(path: Path, snapshots=None, maximum_bytes=None, budget=None
         value = json.loads(
             raw.decode("utf-8-sig"),
             object_pairs_hook=_reject_duplicate_keys,
+            parse_float=_finite_json_float,
             parse_constant=lambda _value: (_ for _ in ()).throw(
                 ArtifactValidationError("invalid_json_constant")
             ),
         )
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+    except (UnicodeDecodeError, ValueError, RecursionError) as exc:
         raise ArtifactValidationError("malformed_json") from exc
     except ArtifactValidationError:
         raise

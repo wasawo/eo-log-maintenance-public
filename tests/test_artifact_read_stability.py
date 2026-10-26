@@ -139,6 +139,49 @@ class ArtifactReadStabilityTests(unittest.TestCase):
 
 
 class ArtifactReadBoundsTests(unittest.TestCase):
+    def test_excessive_json_nesting_in_any_read_input_returns_fixed_rejection(self):
+        paths = self.seed()
+        malformed = b'{"nested":'+b"["*2048+b"0"+b"]"*2048+b"}"
+        for path in paths:
+            original = path.read_bytes()
+            path.write_bytes(malformed)
+            with self.subTest(path=path.name):
+                self.assert_rejected(self.validate(), "malformed_json")
+                self.assertEqual(malformed, path.read_bytes())
+            path.write_bytes(original)
+
+    def test_nonfinite_json_numbers_in_all_artifacts_and_schemas_are_rejected(self):
+        paths = self.seed()
+        for path in paths:
+            original = path.read_bytes()
+            for number in (b"1e999", b"-1e999", b"NaN", b"Infinity", b"-Infinity"):
+                content = b'{"nested":{"number":'+number+b"}}"
+                path.write_bytes(content)
+                with self.subTest(path=path.name, number=number):
+                    self.assert_rejected(self.validate(), "invalid_json_constant")
+                    self.assertEqual(content, path.read_bytes())
+            path.write_bytes(original)
+
+    def test_finite_json_float_tokens_preserve_original_bytes_and_values(self):
+        for number, expected in ((b"1.25", 1.25), (b"1e-3", 0.001), (b"1.0", 1.0)):
+            raw = b'{"number":'+number+b"}"
+            self.report_path.write_bytes(raw)
+            with self.subTest(number=number):
+                observed, value = validator._read_json_bytes(self.report_path)
+                self.assertEqual(raw, observed)
+                self.assertIs(type(value["number"]), float)
+                self.assertEqual(expected, value["number"])
+
+    def test_cli_malformed_nested_json_returns_json_exit_two_without_traceback(self):
+        self.seed()
+        self.report_path.write_bytes(b'{"nested":'+b"["*2048+b"0"+b"]"*2048+b"}")
+        result = subprocess.run([sys.executable, "-B", str(Path(validator.__file__)),
+            "--root", str(self.root), "--report", str(self.report_path), "--contracts", str(self.contracts)],
+            capture_output=True, text=True, check=False)
+        self.assertEqual(2, result.returncode)
+        self.assert_rejected(json.loads(result.stdout), "malformed_json")
+        self.assertEqual("", result.stderr)
+
     setUp = ArtifactReadStabilityTests.setUp
     write_report = ArtifactReadStabilityTests.write_report
     install_terminal_plan = referenced_fixture.ReferencedArtifactValidationTests.install_terminal_plan

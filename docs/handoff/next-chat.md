@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### report参照JSONの解析失敗・非有限数値を固定拒否（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`d35cbbb`、クリーンな同branch `codex/manifest-entry-bounds`で[参照JSON解析拒否](../design/aggregation-report-v1-proposal.md#fixed-json-parse-failures-in-referenced-inputs-2026-10-26)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- report/manifest/B2/3 schema共通JSON readerで解析ValueError/RecursionErrorを既存`malformed_json`へ変換し、深いJSONによる例外の外部逸脱を防ぐ。float tokenの指数overflow等が非有限になる場合は既存`invalid_json_constant`で拒否し、builderの有限float境界へ整合。有限小数の型・元bytes・schema/意味論検査・読取上限は維持する。CLIはJSON/exit 2、manifest-report wrapperは既存固定拒否へ接続。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_read_stability test_aggregation_referenced_artifacts test_manifest_report_selection test_manifest_reader_bounds test_terminal_bundle_integration test_aggregation_report_builder.AggregationReportBuilderTests.test_existing_referenced_artifact_validator_accepts_generated_fixture`の計79件全成功・skipなし。新規5件を既存CI登録済みsuiteへ追加し、全6入力の過度な入れ子/非有限数値・bytes保全・有限小数・CLI非tracebackとwrapper拒否を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- JSON最大depth/複雑度の本番値や新schema制約を選ばず、parser資源上限・真正性/現在性/同時snapshot/ABA・root/FS/provider資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### 既存staging payloadの明示bytes上限（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`0b62ef5`、クリーンな同branch `codex/manifest-entry-bounds`で[staging payload読取上限](../design/source-inventory-revalidation.md#caller-selected-staging-payload-read-bounds-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

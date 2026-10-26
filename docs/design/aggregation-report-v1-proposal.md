@@ -10,6 +10,14 @@
 - G1 generated-UTC derivation approved 2026-10-24: use the later original finish-UTC string from exact manifest/B2 inputs, choosing the manifest spelling for equal instants. The [selected-policy record](../decisions/selected-policy-decisions-20261024.md#3-g1の確定規則) is authoritative; builder/reference-validator follow-up is implemented with synthetic tests; formal publication/regeneration acceptance remains incomplete.
 - Approved inventory digest direction (2026-10-21): A2 versioned length-prefixed records; exact contract and reference vectors are recorded in `docs/decisions/aggregation-inventory-integrity-options.md`. B2 immutable run-input evidence, embedded inventory, exhaustive count reconciliation, and canonical evidence digest rules are approved and specified in `docs/design/run-input-evidence-v1-proposal.md` and `docs/decisions/aggregation-inventory-integrity-options.md`.
 
+## Fixed JSON parse failures in referenced inputs (2026-10-26)
+
+The referenced-artifact validator maps JSON decoding ValueError and parsing RecursionError to fixed `malformed_json` for the report, manifest, B2 evidence and all three schema inputs. It returns the ordinary rejected result rather than leaking an interpreter recursion failure to the caller. The CLI preserves JSON output and exit code 2 with no traceback; the latest-manifest/report wrapper receives rejection and uses its existing `selected_manifest_report_invalid` failure.
+
+Floating-point tokens that overflow to nonfinite values (for example an exponent outside float range) use fixed `invalid_json_constant`, matching rejection of NaN/Infinity/-Infinity and the report builder's existing finite-float rule. Finite float tokens remain floats, original read bytes remain unchanged, and later schema/type/semantic checks remain required. No input is repaired or coerced into a valid report.
+
+Synthetic read-stability tests inject excessive nesting and nonfinite numbers into each read input, verify byte preservation, and cover finite floats and CLI behavior. The report-selection suite verifies fixed wrapper rejection. This does not select a numeric depth/JSON-complexity budget, guarantee bounded parser resources or qualify runtime/Drive operations; caller byte budgets remain separate controls.
+
 ## Caller-selected local read bounds (2026-10-26)
 
 `validate_referenced_artifacts` accepts optional `maximum_artifact_bytes`, a positive exact integer or None. Invalid values (including bool) return fixed reason `artifact_read_limit_invalid` before filesystem I/O. None selects no caller size ceiling. No production ceiling, schema constraint or retention policy is chosen. The CLI exposes the same control as `--maximum-artifact-bytes`; a rejected validation retains JSON output and exit code 2.
