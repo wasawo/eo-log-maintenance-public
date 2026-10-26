@@ -52,16 +52,35 @@ class InitialSourceIntegrationTests(unittest.TestCase):
             current_utc=NOW, current_utc_reliable=True,
             manifest_schema=SCHEMAS["manifest_schema"], evidence_schema=SCHEMAS["evidence_schema"])
 
-    def build(self, *, pc="PC-A", log="BattleLog", source=None, run=None):
+    def build(self, *, pc="PC-A", log="BattleLog", source=None, run=None, **limits):
         source = self.source if source is None else source
         self.assertTrue(source.resolve().is_relative_to(self.root.resolve()))
         context = self.plan_context(pc, log, run)
         with patch.object(builder, "datetime", FixedDateTime):
             e = builder.build_run_input_evidence(source, root_id="synthetic-source", relative_scope=log,
                 pc_id=pc, log_type=log, run_id=context["expected_run_id"], evidence_id="synthetic-evidence",
-                reference_date=date(2026, 10, 1), started_at=START)
+                reference_date=date(2026, 10, 1), started_at=START, **limits)
         raw = builder.serialize_evidence(e, SCHEMAS["evidence_schema"])
         return e, prepare_initial_manifest(raw, **context)
+
+    def test_inventory_resource_overflow_never_becomes_completed_no_work_or_upload_authority(self):
+        for pc in ("PC-A", "PC-B"):
+            for log in ("BattleLog", "ErrorReport"):
+                source = self.source / (pc + log); source.mkdir()
+                names = (["20260901_01020304@a.txt", "20260902_01020304@b.txt"] if log == "BattleLog"
+                         else ["20250901_01020304.txt", "20250902_01020304.txt"])
+                for name, content in zip(names, (b"abc", b"defg")):
+                    (source / name).write_bytes(content)
+                for limits in ({"maximum_entries": 1}, {"maximum_file_bytes": 3},
+                               {"maximum_total_hash_bytes": 6}):
+                    with self.subTest(pc=pc, log=log, limits=limits):
+                        evidence, plan = self.build(pc=pc, log=log, source=source, **limits)
+                        self.assertEqual("incomplete", evidence["enumeration"]["status"])
+                        manifest = json.loads(plan.proposed_bytes)
+                        self.assertEqual(("running", None), (manifest["status"], manifest["outcome"]))
+                        self.assertFalse(plan.may_publish or plan.may_upload or plan.may_archive)
+                        self.assertEqual(0 if "maximum_entries" in limits else 1, len(manifest["files"]))
+                        self.assertEqual((b"abc", b"defg"), tuple((source / name).read_bytes() for name in names))
 
     def publish(self, plan, *, before_publish=None):
         m = json.loads(plan.proposed_bytes)

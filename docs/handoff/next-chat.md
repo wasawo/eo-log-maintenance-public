@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+### source inventoryのcaller指定資源予算（2026-10-27）
+
+- 利用者の次実装指示を受け、GitHub mainとlocal/origin mainの`0d4945260067a86aaf8beb5ae792a4108b0091f9`を照合。PR #45はsquash merge済みで、mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40347516491) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40347516412)両成功・PR本文への結果記録済み。cleanな最新mainからupstreamなしの新branch `codex/source-inventory-budgets`を作成した。
+- [source inventory予算仕様](../design/source-inventory-revalidation.md#caller-selected-source-inventory-budgets-2026-10-27)に従い、B2 builderへoptional `maximum_entries` / `maximum_file_bytes` / `maximum_total_hash_bytes`を追加。不正値はroot I/O前に拒否。件数は再帰全体・最終再scanで各pass共有、hashは試行sizeを先に予約し失敗でも消費を戻さない。予算超過で走査/hashを停止し、既存target/errorを保全してincompleteとする。bytes予算時はexpected sizeをhash helperへ渡し、直前増大をopen前に拒否する。固定本番値・schema/PS/package file集合の変更なし。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_source_inventory_evidence_builder test_source_enumeration_stability test_source_hash_identity test_source_inventory_reparse test_initial_source_integration test_initial_source_usepoint test_source_inventory_revalidation test_comparison_source_revalidation test_comparison_source_batch test_initial_inventory_observation test_staging_residual_observation test_aggregation_report_builder test_manifest_transition_inspection`の145件全成功・skipなし。新規10件は既存CI登録済みsuiteに追加し、境界/不正値/再帰共有/最終scan増大/失敗試行予約/直前size増大と、両PC・両logでinitial planがrunning/outcome null・全許可falseを維持することを検証した。変更2文書の相対リンク109件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- EOLM-FIL-005/007の列挙・不完全coverage保全を補助する変更で、要件全体やP0-010の閉鎖ではない。予算指定はbuilder入口だけで再観測/比較wrapperへの伝播・保存は未実装。初期size+1の増大probeを許すため厳密な実I/O/時間/全memory制限ではなく、root/FS/provider真正性・同時snapshot/ABA・Drive/runtime・電源断/Tier B/C受け入れも未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り、次の指示を待つ。未push・新PRなし。次は同branchでsource再観測入口への予算伝播など既承認の独立範囲を選ぶ。前回のPR/merge承認は今回のpush/PR/mergeへ拡張しない。
+
 ### 累積PR作成・マージ承認と統合検証（2026-10-27）
 
 - 利用者が累積コミットをまとめたPR作成・マージを明示指示。`898f4ff`までの実装28コミット（42 files）と本記録を同じPRへまとめ、最新HEADのValidate/Package Validation両成功を確認後squash mergeする。branchは`codex/manifest-entry-bounds`、取得・照合済み正本mainは`6e9ad82d8ae11146041b5eba0ab6b94e21c5cad8`（PR #44）。本記録時点は未push/未PR/未マージ。結果のPR/merge SHAとCIはGitHub実状態・本チャットの最終報告を照合する。

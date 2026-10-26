@@ -1,5 +1,17 @@
 # 凍結B2に対するsource再観測
 
+## Caller-selected source inventory budgets (2026-10-27)
+
+`build_run_input_evidence`はoptional `maximum_entries` / `maximum_file_bytes` / `maximum_total_hash_bytes`を受ける。Noneまたは正のexact intだけを許し、不正値はroot I/O前に固定`source_inventory_limit_invalid`で拒否する。固定本番値・schema field・配布fileは追加しない。
+
+entry予算は再帰走査全体で共有し、directory、対象外期間、不正名、失敗したscanの取得済みentryも消費する。超過の判定には追加entryを1件取得し得るが、そのmetadataの保持・検査前に停止する。最終metadata再scanにも同じ上限の独立した共有予算を使い、namespace増大で再検査だけが無制限になることを防ぐ。初回と最終の合計は最大2走査分で、既存B2の`entries_observed`は引き続きfile分類件数であり、新しい資源counterへ置換しない。
+
+bytes予算は適格fileの現在stat sizeでhash前に検査する。各hash試行分を先に予約し、失敗しても合計予算を戻さない。hash helperへexpected sizeを渡し、stat後の増大はopen前に拒否する。初期size+1 byteによる増大検出は維持するため、これは厳密な実I/O bytes・時間・全memory制限ではない。対象外期間・不正名のpayloadは従来どおり読まず、entry予算だけを消費する。
+
+いずれかの予算超過で以降の走査/hashを停止し、既に得たtarget/errorは保持してenumeration/validationをincomplete、enumeration_errorsを正とする。超過後の最終再scanは省略し、完全な空inventoryやno_workへ変換しない。最終再scanでの超過もpartial証拠を保全する。既存initial manifest consumerはこのB2をrunning/outcome nullの非認可planとして扱い、PC-A/B・両log種別の合成接続試験で確認する。
+
+Noneは従来動作。今回の指定入口はbuilderのみで、再観測/比較wrapperは既定Noneを使い、予算の保存・自動伝播・正式runtime接続は提供しない。source/root/FS/providerの真正性、同時snapshot/ABA、実Drive・電源断・Tier B/C受け入れやP0閉鎖は証明しない。
+
 ## Caller-selected staging payload read bounds (2026-10-26)
 
 `observe_initial_staging_copy` / `observe_initial_staging_copies` / `inspect_initial_staged_drive_contents`はoptional `maximum_staging_file_bytes` / `maximum_total_staging_bytes`を受ける。Noneまたは正のexact intのみ許し、不正値はplan再構成前に固定`staging_copy_limit_invalid`で拒否する。単一入口とDrive比較入口は同じ上限を一括readerへ渡す。
@@ -10,7 +22,7 @@ Noneではcaller上限なし、固定本番値やschema制約を選ばない。�
 
 ## Duplicate names in shared enumeration snapshots (2026-10-26)
 
-共通snapshotはoptional `maximum_entries`を受け、正のexact intをI/O前に検査し、列挙中の超過をmetadata保持前に拒否できる。現在の接続先は[残存staging観測のcaller上限](staging-residual-observation.md#caller-selected-entry-limit-2026-10-26)で、source builderの通常呼出しは既定Noneのままとする。source全体の件数/容量方針は新設しない。
+共通snapshotはoptional `maximum_entries`を受け、正のexact intをI/O前に検査し、列挙中の超過をmetadata保持前に拒否できる。[残存staging観測のcaller上限](staging-residual-observation.md#caller-selected-entry-limit-2026-10-26)に加え、上記source builderではprivate共有予算を使う。source全体の固定本番件数/容量方針は新設しない。
 
 共通`_enumeration_snapshot`は同じscan内でexact同名entryを再び観測したら、identity辞書へ上書きせず固定`source_directory_changed`で拒否する。casefold/正規化/自動dedupは行わない。source builderは初回失敗でそのdirectoryのpayloadを読まず不完全coverageとし、最終再scan失敗では既に観測済みのtarget/errorを保持して不完全とする。曖昧な列挙を完全な空集合へ変換しない。
 
