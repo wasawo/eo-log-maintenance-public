@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### marker付き成果物集合の読取上限（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`61091e7`、クリーンな同branch `codex/manifest-entry-bounds`で[集合読取上限](../validation/lock-recovery-acceptance-gate.md#caller-selected-artifact-set-read-bounds-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `verify_published_artifact_set`へoptional file別`maximum_artifact_bytes`/初期集合size合計`maximum_total_bytes`を追加。不正値はI/O前、markerを含む全観測fileのsize超過は最初のpayload open前に拒否する。partial/marker欠落でもskipしない。全読取を最大65,536 byte/chunk・初期size+1に変更し増大停止、既存signature/hash/marker/transaction/最終再読取・再列挙を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_set_directory_verification test_artifact_directory_reparse test_terminal_bundle_integration test_owned_publication_integration test_artifact_read_stability`の計58件中57成功・既存symlink作成不可1skip。新規7件を既存CI登録済みsuiteへ追加。新規integrationの例外型を専用型へ厳密化後、該当1件を再実行して成功。両PC相当の候補bundle前後観測へ指定上限を渡し、超過時も元bundle/priorを保全しownerを解放する。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 合計は初期集合sizeで、validatorの累積読取予算とは別。最終再読取のI/Oを再計上せず、caller mapping件数/JSON複雑度/全memory/遅延も制限しない。Noneではcaller上限なし、固定本番値/保持方針/新schema制約を採用しない。分類成功はsnapshot観測であり正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可ではない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### report参照validatorの合計読取size予算（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`6af2f9b`、クリーンな同branch `codex/manifest-entry-bounds`で[合計検査size予算](../design/aggregation-report-v1-proposal.md#aggregate-inspected-size-budget-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

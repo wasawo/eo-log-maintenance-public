@@ -201,5 +201,91 @@ class ArtifactSetDirectoryVerificationTests(unittest.TestCase):
         self.assertFalse(result.may_report_committed)
 
 
+class ArtifactSetReadBoundsTests(unittest.TestCase):
+    setUp = ArtifactSetDirectoryVerificationTests.setUp
+    write_complete_set = ArtifactSetDirectoryVerificationTests.write_complete_set
+
+    def verify(self, **limits):
+        return verify_published_artifact_set(self.root, self.expected, **limits)
+
+    def test_exact_file_and_set_limits_preserve_classification_and_bytes(self):
+        self.write_complete_set()
+        before = {p: p.read_bytes() for p in self.root.iterdir()}
+        limits = dict(maximum_artifact_bytes=max(map(len, before.values())),
+            maximum_total_bytes=sum(map(len, before.values())))
+        self.assertEqual(self.verify(), self.verify(**limits))
+        self.assertTrue(self.verify(**limits).may_report_committed)
+        self.assertEqual(before, {p: p.read_bytes() for p in self.root.iterdir()})
+
+    def test_invalid_limits_reject_before_filesystem_access(self):
+        for key in ("maximum_artifact_bytes", "maximum_total_bytes"):
+            for value in (True, False, 0, -1, 1.5, "4096"):
+                with self.subTest(key=key, value=value), patch.object(Path, "is_symlink") as inspected:
+                    with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^artifact_read_limit_invalid$"):
+                        self.verify(**{key: value})
+                    inspected.assert_not_called()
+
+    def test_each_oversized_file_including_marker_blocks_all_payload_opens(self):
+        self.write_complete_set()
+        paths = list(self.root.iterdir())
+        ceiling = max(path.stat().st_size for path in paths)
+        for path in paths:
+            original = path.read_bytes()
+            path.write_bytes(original+b" "*(ceiling+1-len(original)))
+            with self.subTest(name=path.name), patch.object(Path, "open") as opened:
+                with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^artifact_read_limit_exceeded$"):
+                    self.verify(maximum_artifact_bytes=ceiling)
+                opened.assert_not_called()
+            self.assertEqual(ceiling+1, path.stat().st_size)
+            path.write_bytes(original)
+
+    def test_total_includes_marker_and_rejects_before_any_payload_open(self):
+        self.write_complete_set()
+        total = sum(p.stat().st_size for p in self.root.iterdir())
+        with patch.object(Path, "open") as opened:
+            with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^artifact_total_limit_exceeded$"):
+                self.verify(maximum_total_bytes=total-1)
+            opened.assert_not_called()
+
+    def test_incomplete_sets_and_empty_directory_do_not_bypass_limits_or_classification(self):
+        self.assertFalse(self.verify(maximum_artifact_bytes=1, maximum_total_bytes=1).may_report_committed)
+        path = self.root/"manifest.json"
+        path.write_bytes(self.payloads[path.name])
+        self.assertEqual("partial_publication", self.verify(maximum_total_bytes=path.stat().st_size).state)
+        with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^artifact_total_limit_exceeded$"):
+            self.verify(maximum_total_bytes=path.stat().st_size-1)
+
+    def test_reads_are_chunked_and_growth_stops_at_initial_size_plus_one(self):
+        path = self.root/"manifest.json"
+        payload = b"x"*70000
+        path.write_bytes(payload)
+        self.expected = {path.name: hashlib.sha256(payload).hexdigest()}
+        real_open = Path.open
+        for grow in (False, True):
+            requests, consumed = [], []
+            class Stream:
+                def __init__(self, stream): self.stream = stream
+                def __enter__(self): return self
+                def __exit__(self, *args): self.stream.close()
+                def fileno(self): return self.stream.fileno()
+                def read(self, size):
+                    requests.append(size)
+                    block = self.stream.read(size)
+                    consumed.append(len(block))
+                    if grow and len(requests) == 1:
+                        with real_open(path, "ab") as writer: writer.write(b"y"*70000)
+                    return block
+            def opened(target, *args, **kwargs): return Stream(real_open(target, *args, **kwargs))
+            with self.subTest(grow=grow), patch.object(Path, "open", opened):
+                if grow:
+                    with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^artifact_changed$"):
+                        self.verify(maximum_artifact_bytes=70000, maximum_total_bytes=70000)
+                    self.assertEqual(70001, sum(consumed))
+                else:
+                    self.assertFalse(self.verify().may_report_committed)
+                    self.assertEqual(140000, sum(consumed))  # Initial and final read.
+            self.assertTrue(all(0 < size <= 65536 for size in requests))
+
+
 if __name__ == "__main__":
     unittest.main()

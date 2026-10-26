@@ -108,6 +108,14 @@ The isolated `Common/ArtifactSetPublication.py` composes the single-file no-over
 - This slice does not establish multi-file atomicity, durable directory entries, crash recovery, network/Windows filesystem semantics, Drive consistency, or official entrypoint safety. Cross-process crash/concurrency tests remain required before integration.
 
 
+### Caller-selected artifact-set read bounds (2026-10-26)
+
+`verify_published_artifact_set` accepts optional `maximum_artifact_bytes` and `maximum_total_bytes`, each None or a positive exact integer. Invalid values reject with `artifact_read_limit_invalid` before filesystem access. After the initial metadata scan, every observed artifact and the marker are checked before any payload opens. A file over its bound rejects with `artifact_read_limit_exceeded`; the sum of observed initial sizes over the set bound rejects with `artifact_total_limit_exceeded`. Partial sets and marker-missing states do not bypass these checks. Empty directories still classify as not published.
+
+The total is the initial observed set size, not cumulative I/O: final rereads must match the same signatures and exact bytes but are not charged again. Each read uses chunks of at most 65,536 bytes and stops at the inspected initial size plus one byte, rejecting observed growth with `artifact_changed`, even without caller bounds. Existing marker/hash/transaction classification, final rereads and directory rescans remain required. No truncation, fallback or mutation occurs on a resource failure.
+
+None imposes no caller ceiling; no production default, schema constraint or retention policy is selected. These controls do not bound caller mapping size, native enumeration/read latency, JSON complexity or total memory, and do not establish qualified roots/owners, atomicity, ABA protection, durability or runtime authorization. Synthetic directory tests cover exact boundaries, every payload including the marker, pre-open rejection, incomplete sets and bounded growth. Tests-only terminal candidate integration supplies bounds on both observations for both PC roles and verifies that rejection preserves the bundle/prior and releases ownership. A committed classifier result remains an observation of the marker/hash snapshot, not permission to update a manifest or archive.
+
 ## 11. Cross-process marker-last publication race (synthetic test)
 
 The publication tests now exercise two spawned processes concurrently publishing sets with the same manifest bytes but conflicting report bytes to one temporary directory. Acceptance requires exactly one success, one fail-closed conflict, and a commit marker that validates against the winning on-disk bytes. This only tests the host runner's temporary local filesystem; it does not prove behavior on Drive/network filesystems, power loss, cross-file atomicity, or coordination with the owned-run lock. Official integration remains gated.

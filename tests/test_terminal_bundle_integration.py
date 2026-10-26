@@ -15,7 +15,7 @@ from uuid import uuid4
 
 from Common import AtomicArtifactPublication as atomic
 from Common.ArtifactSetPublication import ArtifactSetPublicationError, publish_artifact_set_marker_last
-from Common.ArtifactSetDirectoryVerification import verify_published_artifact_set
+from Common.ArtifactSetDirectoryVerification import ArtifactSetDirectoryVerificationError, verify_published_artifact_set
 from Common.OwnedRunLock import acquire_owned_lock
 from Common.ManifestTransitionInspection import prepare_terminal_manifest_transition
 from Common.RunInputEvidenceIntegrity import compute_evidence_digest
@@ -81,12 +81,13 @@ class CandidateBundleFixture:
             self._guard()
             return result
 
-    def readback(self):
+    def readback(self, **verification_limits):
         self._guard()
         result = dict(status="held", may_update_manifest=False, may_archive=False)
         with acquire_owned_lock(self.scope, self.root / "synthetic-owner.json", timeout_seconds=0):
             self._guard()
-            observed = verify_published_artifact_set(self.bundle, self.hashes, expected_transaction_id=self.transaction)
+            observed = verify_published_artifact_set(self.bundle, self.hashes,
+                expected_transaction_id=self.transaction, **verification_limits)
             if not observed.may_report_committed:
                 return result
             marker_before = (self.bundle / "commit-marker.json").read_bytes()
@@ -95,7 +96,8 @@ class CandidateBundleFixture:
             if any((self.bundle / name).read_bytes() != data for name, data in self.payloads.items()):
                 return result
             semantic = validate_referenced_artifacts(self.bundle, self.bundle / "report.json", ROOT / "contracts")
-            after = verify_published_artifact_set(self.bundle, self.hashes, expected_transaction_id=self.transaction)
+            after = verify_published_artifact_set(self.bundle, self.hashes,
+                expected_transaction_id=self.transaction, **verification_limits)
             self._guard()
             if (semantic["status"] == "verified" and after.may_report_committed
                     and (self.bundle / "commit-marker.json").read_bytes() == marker_before):
@@ -110,6 +112,22 @@ class CandidateBundleFixture:
 
 @unittest.skipUnless(os.name == "nt", "real Windows mutex/publication required")
 class TerminalBundleIntegrationTests(unittest.TestCase):
+    def test_explicit_bundle_read_bounds_preserve_candidates_and_release_owner_on_rejection(self):
+        for pc_id in ("PC-A", "PC-B"):
+            value = self.make((), pc_id)
+            value.publish()
+            before = {p: p.read_bytes() for p in value.bundle.iterdir()}
+            total = sum(map(len, before.values()))
+            result = value.readback(maximum_artifact_bytes=max(map(len, before.values())), maximum_total_bytes=total)
+            self.assertEqual("candidate_bundle_verified", result["status"])
+            self.assertFalse(result["may_update_manifest"])
+            self.assertFalse(result["may_archive"])
+            with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^artifact_total_limit_exceeded$"):
+                value.readback(maximum_total_bytes=total-1)
+            self.assertFalse((value.root/"synthetic-owner.json").exists())
+            self.assertEqual(before, {p: p.read_bytes() for p in value.bundle.iterdir()})
+            self.assertEqual(value.plan.expected_bytes, value.prior.read_bytes())
+
     def make(self, *args, **kwargs):
         value = CandidateBundleFixture(*args, **kwargs)
         self.addCleanup(value.close)

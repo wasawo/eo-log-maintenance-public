@@ -80,7 +80,16 @@ def _read_stable(path, expected, root, chain):
             opened = os.fstat(stream.fileno())
             if not stat.S_ISREG(opened.st_mode) or _signature(opened) != expected:
                 raise ArtifactSetDirectoryVerificationError("artifact_changed")
-            content = stream.read()
+            blocks, count = [], 0
+            while True:
+                block = stream.read(min(65536, before.st_size-count+1))
+                if not block:
+                    break
+                count += len(block)
+                if count > before.st_size:
+                    raise ArtifactSetDirectoryVerificationError("artifact_changed")
+                blocks.append(block)
+            content = b"".join(blocks)
             finished = os.fstat(stream.fileno())
     except OSError as exc:
         raise ArtifactSetDirectoryVerificationError("artifact_read_failed") from exc
@@ -98,6 +107,8 @@ def verify_published_artifact_set(
     *,
     commit_marker_name: str = "commit-marker.json",
     expected_transaction_id: str | None = None,
+    maximum_artifact_bytes: int | None = None,
+    maximum_total_bytes: int | None = None,
 ) -> ArtifactSetDecision:
     """Inspect one directory and classify only bytes actually observed on disk.
 
@@ -109,6 +120,9 @@ def verify_published_artifact_set(
     Optional expected_transaction_id binds the marker to a supplied identity,
     not to a qualified owner or one-use receipt.
     """
+    if any(value is not None and (type(value) is not int or value < 1)
+           for value in (maximum_artifact_bytes, maximum_total_bytes)):
+        raise ArtifactSetDirectoryVerificationError("artifact_read_limit_invalid")
     if (
         not isinstance(commit_marker_name, str)
         or not commit_marker_name
@@ -136,6 +150,13 @@ def verify_published_artifact_set(
         marker: object = None
         allowed_names = expected_names | {commit_marker_name}
         initial = _scan(root, allowed_names, chain)
+        # Include the marker and incomplete sets. Never truncate/fall back to
+        # a subset when caller-selected resource bounds cannot be met.
+        if (maximum_artifact_bytes is not None
+                and any(signature[2] > maximum_artifact_bytes for signature in initial.values())):
+            raise ArtifactSetDirectoryVerificationError("artifact_read_limit_exceeded")
+        if maximum_total_bytes is not None and sum(signature[2] for signature in initial.values()) > maximum_total_bytes:
+            raise ArtifactSetDirectoryVerificationError("artifact_total_limit_exceeded")
         contents = {}
         for name, signature in initial.items():
             entry = root / name
