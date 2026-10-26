@@ -1,12 +1,19 @@
 # 現在の引き継ぎ
 
-更新日: 2026-10-26（日本時間）
+更新日: 2026-10-27（日本時間）
 
 恒久ルール: [AGENTS.md](../../AGENTS.md)。旧記録: [アーカイブ](archive/pre-agents-history.md)。
 正本は Public の `wasawo/eo-log-maintenance-public`。元リポジトリは Private のまま。
 この文書の状態は記録コミット時点。実際のmain/PR/CIは作業開始時に照合する。
 
 ## 最新基準と今回の作業
+
+### 最新manifest選択のbytes派生型を実bufferで解析（2026-10-27）
+
+- 利用者の次実装指示を受け、基準`4cbfc0b`、クリーンな同branch `codex/manifest-entry-bounds`で[manifest候補の実bytes解析](../design/latest-manifest-selection.md#actual-bytes-for-subclass-candidate-content-2026-10-27)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。作業中の利用者environment更新に合わせ本記録は日本時間10月27日付。
+- pure selectorでbytes派生型のcontentを実buffer由来のplain bytesへ固定してUTF-8/JSON解析する。独自decodeで不正bytesを正常JSONへ差し替える余地を防ぎ、実buffer正常の派生型は受理する。通常exact bytes/非bytesの既存拒否、入力object保全、全候補のschema/identity/time検査・非fallbackを維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_latest_manifest_selection test_manifest_directory_reader test_manifest_reader_bounds test_manifest_report_selection test_manifest_recovery_integration test_owned_publication_integration`の計94件全成功・skipなし。新規3件を既存CI登録済みsuiteへ追加し、不正実bufferの拒否、正常bufferと独自decode/変換/lenの非使用、新しい成功候補があっても古い不正候補を両順序で拒否することと入力保全を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 派生型buffer copyのmemory上限を追加せず、provenance/現在性/同時snapshot/ABA・root/FS/provider資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
 
 ### 公開payloadのbytes派生型を実bufferへ固定（2026-10-26）
 

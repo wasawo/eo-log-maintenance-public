@@ -164,7 +164,10 @@ def select_latest_manifest(
         if not isinstance(candidate.content, bytes):
             _reject("candidate_read_failed")
         try:
-            manifest = json.loads(candidate.content.decode("utf-8"), object_pairs_hook=_unique_object)
+            content = candidate.content
+            if type(content) is not bytes:
+                content = memoryview(content).tobytes()
+            manifest = json.loads(content.decode("utf-8"), object_pairs_hook=_unique_object)
             validator.validate(manifest)
         except LatestManifestSelectionError:
             raise

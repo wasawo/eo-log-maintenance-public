@@ -1,5 +1,11 @@
 # Latest manifest selection core
 
+## Actual bytes for subclass candidate content (2026-10-27)
+
+The pure selector retains support for bytes-subclass candidate content but first materializes the actual exposed buffer into plain bytes before UTF-8/JSON parsing. Exact bytes are used unchanged. Custom subclass `decode`, conversion or length methods cannot substitute different JSON for the content being validated. The original candidate and caller object are not modified; non-bytes content retains `candidate_read_failed`.
+
+Invalid actual bytes raise existing `candidate_manifest_invalid` even if custom decode could present a valid manifest. Every candidate, including an older candidate beside a newer success, still passes the same schema/identity/time checks without fallback. Synthetic core tests cover deceptive decode, valid buffers with unusable custom methods, both candidate orders and input preservation. This does not bound buffer-copy memory, authenticate provenance, grant a receipt or qualify filesystem/runtime use.
+
 ## Duplicate entries in directory observations (2026-10-26)
 
 Each manifest directory scan rejects an exact repeated basename with `manifest_directory_changed` before replacing an existing observation. Initial and final scans follow the same rule: duplicate entries cannot be silently deduplicated into a valid candidate set, an older-success fallback or an unchanged snapshot. Caller entry/byte limits and all existing basename/content checks remain in force; resource-limit rejection can precede duplicate validation. No case normalization or filesystem alias policy is introduced.
