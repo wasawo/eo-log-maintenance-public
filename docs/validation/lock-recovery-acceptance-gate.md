@@ -99,6 +99,12 @@ The isolated `Common/ArtifactSetPublication.py` composes the single-file no-over
 - This helper is not yet approved for official entry-point integration, Drive interaction, manifest lifecycle mutation, archive, or deletion. Cross-process crash/concurrency acceptance and target-filesystem behavior remain required.
 
 
+### Destination basenames before publication (2026-10-26)
+
+The artifact-set publisher applies the single-file publisher's existing prohibition on trailing spaces/dots to every artifact basename and the marker basename during whole-set input validation. Invalid artifact names raise `artifact_name_invalid`; invalid marker names raise `commit_marker_name_invalid`, before any call to publish an artifact. Previously, a later invalid basename or the invalid marker could be discovered only after earlier valid files had been published. Invalid input no longer creates that avoidable partial set; an existing partial set remains unchanged.
+
+The single-file publisher also checks its existing basename rule before parent inspection, so `destination_name_invalid` takes precedence over an unavailable parent for such invalid names. This reorders existing single-file validation and tightens the set preflight to the same rule. It does not define a complete Windows namespace/alias policy, change valid-file ordering or no-overwrite behavior, or authorize cleanup/recovery. Synthetic tests cover invalid trailing spaces/dots on later artifacts and markers, preservation of existing partial sets, and absence of parent inspection/temp allocation for invalid single-file basenames.
+
 ### Publication comparisons bounded by expected bytes (2026-10-26)
 
 `AtomicArtifactPublication._same_bytes` rejects an inspected regular file whose initial size differs from the immutable expected payload length without opening its content. For an existing destination this remains `destination_conflict`; it does not allocate a temp file or overwrite the destination. A staging/final readback size conflict still fails its existing verification gate, and changed/unverified temporary content is preserved under the existing ownership-based cleanup checks.

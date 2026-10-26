@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### 公開先basenameの全件事前検査（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`af78bcc`、クリーンな同branch `codex/manifest-entry-bounds`で[公開先basenameの事前検査](../validation/lock-recovery-acceptance-gate.md#destination-basenames-before-publication-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 集合publisherの全件payload/marker検査に、既存単一file側の末尾空白/dot禁止を反映。不正な後続artifact/marker名を全publish前に拒否し、入力不備だけによる先行fileのpartial公開を防ぐ。単一file側の既存basename検査もparent I/O前へ移動。既存partial集合の保全・valid fileの順序・同一bytes再公開・no-overwriteは維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_atomic_artifact_publication test_artifact_set_publication test_crash_publication_harness test_internal_publication_crash test_terminal_bundle_integration test_owned_publication_integration`の計56件中55成功・既存symlink作成不可1skip。新規4件を既存CI登録済みsuiteへ追加。不正名の全publish非呼出し・既存partial保全・単一fileのparent非検査/temp非生成を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 集合側の入力厳格化と単一file側の拒否優先順位変更。Windows namespace/alias全体の新方針や自動cleanup/回復は採用しない。正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### 単一file公開比較を期待payload長で制限（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`72995bd`、クリーンな同branch `codex/manifest-entry-bounds`で[期待bytesによる比較上限](../validation/lock-recovery-acceptance-gate.md#publication-comparisons-bounded-by-expected-bytes-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

@@ -17,6 +17,16 @@ from Common.AtomicArtifactPublication import (
 
 
 class AtomicArtifactPublicationTests(unittest.TestCase):
+    def test_invalid_destination_basename_rejects_before_parent_io_or_temp_creation(self):
+        for name in ("invalid.", "invalid ", "invalid. ", ".."):
+            with self.subTest(name=name), patch.object(atomic, "_chain") as chain, \
+                    patch.object(atomic.tempfile, "mkstemp") as created:
+                with self.assertRaisesRegex(ArtifactPublicationError, "^destination_name_invalid$"):
+                    publish_bytes_no_overwrite(self.root/"missing-parent"/name, b"synthetic")
+                chain.assert_not_called()
+                created.assert_not_called()
+            self.assertEqual([], list(self.root.iterdir()))
+
     def test_initial_size_conflict_rejects_without_payload_open_or_creation(self):
         destination = self.root/"manifest.json"
         expected = b"synthetic"

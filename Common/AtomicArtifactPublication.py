@@ -94,12 +94,12 @@ def publish_bytes_no_overwrite(destination: str | os.PathLike[str], data: bytes)
         raise ArtifactPublicationError("artifact_bytes_required")
     try:
         requested = Path(destination)
+        if requested.name in ("", ".", "..") or requested.name.endswith((" ", ".")):
+            raise ArtifactPublicationError("destination_name_invalid")
         parent = requested.parent.absolute()
         chain = _chain(parent)
         if not parent.is_dir():
             raise ArtifactPublicationError("destination_parent_invalid")
-        if requested.name in ("", ".", "..") or requested.name.endswith((" ", ".")):
-            raise ArtifactPublicationError("destination_name_invalid")
         final_path = parent / requested.name
         if final_path.exists() or final_path.is_symlink():
             if not _regular(final_path.lstat()):

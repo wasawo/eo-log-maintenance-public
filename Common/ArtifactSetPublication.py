@@ -33,7 +33,8 @@ def _validate_payloads(artifacts: Mapping[str, bytes], marker_name: str) -> dict
         raise ArtifactSetPublicationError("artifact_set_empty_or_invalid")
     if not isinstance(marker_name, str) or not marker_name or marker_name.startswith("."):
         raise ArtifactSetPublicationError("commit_marker_name_invalid")
-    if marker_name in {".", ".."} or "/" in marker_name or "\\" in marker_name or "\x00" in marker_name:
+    if (marker_name in {".", ".."} or "/" in marker_name or "\\" in marker_name
+            or "\x00" in marker_name or marker_name.endswith((" ", "."))):
         raise ArtifactSetPublicationError("commit_marker_name_invalid")
 
     copied: dict[str, bytes] = {}
@@ -47,6 +48,7 @@ def _validate_payloads(artifacts: Mapping[str, bytes], marker_name: str) -> dict
             or "\\" in name
             or "\x00" in name
             or name == marker_name
+            or name.endswith((" ", "."))
         ):
             raise ArtifactSetPublicationError("artifact_name_invalid")
         if not isinstance(payload, bytes):

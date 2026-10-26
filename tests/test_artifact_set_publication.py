@@ -53,6 +53,34 @@ class ArtifactSetPublicationTests(unittest.TestCase):
     def expected_hashes(self):
         return {name: hashlib.sha256(data).hexdigest() for name, data in self.payloads.items()}
 
+    def test_invalid_late_artifact_basename_rejects_entire_set_before_publish(self):
+        for name in ("z-invalid.", "z-invalid ", "z-invalid. "):
+            payloads = {"a-valid.json": b"synthetic first", name: b"synthetic last"}
+            with self.subTest(name=name), patch.object(atomic, "publish_bytes_no_overwrite") as publish:
+                with self.assertRaisesRegex(ArtifactSetPublicationError, "^artifact_name_invalid$"):
+                    publish_artifact_set_marker_last(str(self.root), payloads, transaction_id=self.transaction_id)
+                publish.assert_not_called()
+            self.assertEqual([], list(self.root.iterdir()))
+
+    def test_invalid_marker_basename_rejects_before_any_artifact_publish(self):
+        for name in ("marker.json.", "marker.json ", "marker.json. "):
+            with self.subTest(name=name), patch.object(atomic, "publish_bytes_no_overwrite") as publish:
+                with self.assertRaisesRegex(ArtifactSetPublicationError, "^commit_marker_name_invalid$"):
+                    publish_artifact_set_marker_last(str(self.root), self.payloads,
+                        transaction_id=self.transaction_id, commit_marker_name=name)
+                publish.assert_not_called()
+            self.assertEqual([], list(self.root.iterdir()))
+
+    def test_invalid_names_preserve_existing_partial_set(self):
+        (self.root/"a-valid.json").write_bytes(b"synthetic prior")
+        before = {p: p.read_bytes() for p in self.root.iterdir()}
+        for payloads, marker in (({"a-valid.json": b"synthetic prior", "z-invalid.": b"invalid"}, "marker.json"),
+                ({"a-valid.json": b"synthetic prior"}, "marker.json ")):
+            with self.assertRaises(ArtifactSetPublicationError):
+                publish_artifact_set_marker_last(str(self.root), payloads,
+                    transaction_id=self.transaction_id, commit_marker_name=marker)
+            self.assertEqual(before, {p: p.read_bytes() for p in self.root.iterdir()})
+
     def test_invalid_transaction_grammar_rejects_before_any_publication(self):
         for transaction in (None, True, 1, b"uuid", [], "", "bad",
                 "00000000-0000-0000-0000-000000000000",
