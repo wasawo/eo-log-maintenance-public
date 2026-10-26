@@ -17,6 +17,64 @@ from Common.AtomicArtifactPublication import (
 
 
 class AtomicArtifactPublicationTests(unittest.TestCase):
+    def test_short_write_reason_survives_a_second_failure_on_stream_close(self):
+        real_fdopen = atomic.os.fdopen
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args):
+                self.stream.close()
+                raise OSError("synthetic private close detail")
+            def write(self, block): return self.stream.write(block[:2])
+        def opened(*args, **kwargs): return Stream(real_fdopen(*args, **kwargs))
+        destination = self.root/"manifest.json"
+        with patch.object(atomic.os, "fdopen", opened), patch.object(atomic.os, "link") as link:
+            with self.assertRaisesRegex(ArtifactPublicationError, "^artifact_write_incomplete$"):
+                publish_bytes_no_overwrite(destination, b"synthetic")
+            link.assert_not_called()
+        self.assertFalse(destination.exists())
+        temporary = list(self.root.glob(".manifest.json.tmp-*"))
+        self.assertEqual(1, len(temporary))
+        self.assertEqual(b"sy", temporary[0].read_bytes())
+
+    def test_stream_io_failure_stages_never_link_or_replace_the_destination(self):
+        real_fdopen = atomic.os.fdopen
+        real_fsync = atomic.os.fsync
+        for stage in ("write", "flush", "fsync", "close"):
+            destination = self.root/f"{stage}.json"
+            class Stream:
+                def __init__(self, stream): self.stream = stream
+                def __enter__(self): return self
+                def __exit__(self, *args):
+                    self.stream.close()
+                    if stage == "close": raise OSError("synthetic private close detail")
+                def write(self, block):
+                    if stage == "write":
+                        self.stream.write(block[:2])
+                        raise OSError("synthetic private write detail")
+                    return self.stream.write(block)
+                def flush(self):
+                    if stage == "flush": raise OSError("synthetic private flush detail")
+                    return self.stream.flush()
+                def fileno(self): return self.stream.fileno()
+            def opened(*args, **kwargs): return Stream(real_fdopen(*args, **kwargs))
+            def sync(fd):
+                if stage == "fsync": raise OSError("synthetic private fsync detail")
+                return real_fsync(fd)
+            with self.subTest(stage=stage), patch.object(atomic.os, "fdopen", opened), \
+                    patch.object(atomic.os, "fsync", sync), patch.object(atomic.os, "link") as link:
+                with self.assertRaisesRegex(ArtifactPublicationError, "^artifact_publish_failed$"):
+                    publish_bytes_no_overwrite(destination, b"synthetic")
+                link.assert_not_called()
+            self.assertFalse(destination.exists())
+            temporary = list(self.root.glob(f".{stage}.json.tmp-*"))
+            if stage == "close":
+                # Fully verified owned bytes can still use the existing cleanup.
+                self.assertEqual([], temporary)
+            else:
+                self.assertEqual(1, len(temporary))
+                self.assertEqual(b"sy" if stage == "write" else b"synthetic", temporary[0].read_bytes())
+
     def test_temp_writes_are_bounded_and_exact_before_publication(self):
         real_fdopen = atomic.os.fdopen
         lengths = []

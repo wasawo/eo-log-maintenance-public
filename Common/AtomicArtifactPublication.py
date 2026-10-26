@@ -115,6 +115,7 @@ def publish_bytes_no_overwrite(destination: str | os.PathLike[str], data: bytes)
     temp_path: Path | None = None
     fd: int | None = None
     temp_identity = None
+    write_error = None
     try:
         if _chain(parent) != chain:
             raise ArtifactPublicationError("destination_parent_changed")
@@ -127,7 +128,8 @@ def publish_bytes_no_overwrite(destination: str | os.PathLike[str], data: bytes)
                 block = payload[offset:offset + 1024 * 1024]
                 written = stream.write(block)
                 if type(written) is not int or written != len(block):
-                    raise ArtifactPublicationError("artifact_write_incomplete")
+                    write_error = ArtifactPublicationError("artifact_write_incomplete")
+                    raise write_error
             stream.flush()
             os.fsync(stream.fileno())
             temp_identity = _identity(os.fstat(stream.fileno()))
@@ -153,6 +155,9 @@ def publish_bytes_no_overwrite(destination: str | os.PathLike[str], data: bytes)
     except ArtifactPublicationError:
         raise
     except OSError as exc:
+        if write_error is not None:
+            # Closing a failed write must not replace its primary fixed reason.
+            raise write_error from None
         raise ArtifactPublicationError("artifact_publish_failed") from exc
     finally:
         if fd is not None:

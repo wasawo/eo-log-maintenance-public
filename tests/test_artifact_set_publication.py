@@ -53,6 +53,30 @@ class ArtifactSetPublicationTests(unittest.TestCase):
     def expected_hashes(self):
         return {name: hashlib.sha256(data).hexdigest() for name, data in self.payloads.items()}
 
+    def test_short_write_and_close_failure_propagate_primary_reason_without_marker(self):
+        real_fdopen = atomic.os.fdopen
+        calls = []
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args):
+                self.stream.close()
+                raise OSError("synthetic private close detail")
+            def write(self, block): return self.stream.write(block[:2])
+        def opened(*args, **kwargs):
+            stream = real_fdopen(*args, **kwargs)
+            calls.append(True)
+            return Stream(stream) if len(calls) == 2 else stream
+        with patch.object(atomic.os, "fdopen", opened):
+            with self.assertRaisesRegex(ArtifactSetPublicationError, "^artifact_write_incomplete$"):
+                publish_artifact_set_marker_last(str(self.root), self.payloads, transaction_id=self.transaction_id)
+        self.assertEqual(self.payloads["manifest.json"], (self.root/"manifest.json").read_bytes())
+        self.assertFalse((self.root/"report.json").exists())
+        self.assertFalse((self.root/"commit-marker.json").exists())
+        temporary = list(self.root.glob(".report.json.tmp-*"))
+        self.assertEqual(1, len(temporary))
+        self.assertEqual(self.payloads["report.json"][:2], temporary[0].read_bytes())
+
     def test_mapping_copy_failures_reject_before_publication_without_private_details(self):
         from collections.abc import Mapping
         class BrokenMap(Mapping):

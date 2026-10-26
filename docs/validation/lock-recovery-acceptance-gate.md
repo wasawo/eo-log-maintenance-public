@@ -99,6 +99,12 @@ The isolated `Common/ArtifactSetPublication.py` composes the single-file no-over
 - This helper is not yet approved for official entry-point integration, Drive interaction, manifest lifecycle mutation, archive, or deletion. Cross-process crash/concurrency acceptance and target-filesystem behavior remain required.
 
 
+### Primary write failure survives stream-close failure (2026-10-26)
+
+If an incomplete write is detected and stream close subsequently raises an OSError, the single-file publisher preserves the primary fixed `artifact_write_incomplete` reason. It does not replace that reason with the generic `artifact_publish_failed`. The artifact-set publisher propagates the same primary reason, preserving earlier artifacts and leaving the marker unpublished. Partial/unverified temporary content remains preserved under the existing cleanup rules.
+
+Synthetic tests also inject individual write/flush/fsync/close OSErrors and require fixed `artifact_publish_failed` without linking a destination. Existing cleanup may remove a temp after a close failure only when its already-captured identity, complete exact bytes and parent chain still verify; incomplete or otherwise unverified temps remain. This does not introduce cleanup authority, retries, filesystem qualification, power-loss guarantees or formal runtime integration. Tests cover the double failure through both single-file and set publishers and each individual I/O failure stage.
+
 ### Payload mapping snapshot before publication (2026-10-26)
 
 The artifact-set publisher first copies a Mapping into a plain dictionary, rejects an empty copied set, and then validates every copied name and payload before hashing or publication. Failures while copying keys/items are suppressed behind fixed `artifact_set_empty_or_invalid`; no artifacts or marker are published and any existing partial set is preserved. A caller's truthiness/length declaration cannot substitute for actual copied content, so a nonempty declaration with no enumerated entries cannot produce an empty marker. Invalid marker/name/payload checks remain required after copying.

@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### short writeとclose失敗が重なった場合の理由保全（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`dd620d9`、クリーンな同branch `codex/manifest-entry-bounds`で[一次書込失敗理由の保全](../validation/lock-recovery-acceptance-gate.md#primary-write-failure-survives-stream-close-failure-2026-10-26)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 不完全writeで生成した固定errorを保持し、その後stream closeがOSErrorを出しても`artifact_write_incomplete`を維持する。集合publisherへ同理由を伝播し、先行公開fileを保持・marker非公開。個別write/flush/fsync/close OSErrorの既存`artifact_publish_failed`とno-linkを回帰確認。tempの所有identity/完全bytes/祖先検査に基づく従来cleanup境界を変えず、未検証tempは保全する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_atomic_artifact_publication test_artifact_set_publication test_crash_publication_harness test_internal_publication_crash test_terminal_bundle_integration test_owned_publication_integration`の計68件中67成功・既存symlink作成不可1skip。新規3件を既存CI登録済みsuiteへ追加し、単一/集合の二重失敗と個別4段階の失敗を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 新たなcleanup/retry/修復権限は付与しない。正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### pure classifierのmapping検査と分類を同じコピーへ統一（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`9bbaea5`、クリーンな同branch `codex/manifest-entry-bounds`で[classifierコピー検査](../validation/lock-recovery-acceptance-gate.md#classifier-validates-the-copied-mappings-2026-10-26)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
