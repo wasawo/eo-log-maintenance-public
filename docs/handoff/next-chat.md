@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+### marker込みのcaller指定公開bytes予算（2026-10-27）
+
+- 利用者の次実装指示を受け、cleanな`e09ab79`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [marker-last公開bytes予算](../../Common/README.md#caller-selected-marker-last-publication-byte-budgets-2026-10-27)としてpublisherへoptional `maximum_artifact_bytes` / `maximum_total_bytes`を追加。不正値はMapping snapshot/hash前に固定`artifact_publish_limit_invalid`、payload超過はhash前にfile/total limit理由で拒否する。生成marker自身とmarker込み合計も単一file公開前に検査し、部分公開・skip/切詰めを行わない。既存の全名/型/実buffer検査、決定的公開順・marker-last・冪等/競合拒否を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_set_recovery test_artifact_set_publication test_artifact_set_directory_verification test_atomic_artifact_publication test_owned_publication_integration test_initial_source_integration test_initial_source_usepoint test_internal_publication_crash test_terminal_bundle_integration test_crash_publication_harness`の148件中146成功・既存symlink作成不可2skip。既存CI登録suiteへ新規6件を追加し、marker込みexact境界の公開/再公開/同予算読戻し、不正値の非snapshot、payload超過の非hash・既存partial保全、markerのみの超過・非部分公開、bytes派生型の実sizeと空payloadを確認した。変更2文書の相対リンク124件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- 既存公開の資源境界補助であり、正式writer/要件全体/P0-010を完了扱いしない。固定本番値・schema/C-02/SDK/配布集合は不変。予算はB2/markerへ保存せず呼出しごとの指定で、wrapper/runtimeへの伝播は未実装。論理bytes予算であり、コピー/生成済みmarkerのmemory、hash/JSON生成時間、temp/readbackを含む実I/O総量やdisk容量を制限しない。root/FS/provider/owner真正性・現在性/ABA・実Drive/runtime・電源断/Tier B/C受け入れは未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで既存の保存接続入口への公開/読戻し予算伝播など、承認済みの独立範囲を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
 ### marker-last公開・分類・読取のbasename条件整合（2026-10-27）
 
 - 利用者の次実装指示を受け、cleanな`5eacf41`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。

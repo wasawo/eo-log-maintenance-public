@@ -205,3 +205,13 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 publisherは全payload名/marker名を単一file公開前に同じ関数で検査し、既存の`artifact_name_invalid` / `commit_marker_name_invalid`を返します。pure classifierはexpected/published/staged/marker hash集合にも同条件を適用し、不正名は各集合の既存invalid/mismatch reasonでblockedとします。directory verifierはmarker名と期待集合を同条件でpreflightし、directory走査・payload読取前に拒否します。末尾空白/dotがpublisherで拒否されるのにconsumerで受理される不整合を解消し、既存成果物を変更しません。
 
 [公開試験](../tests/test_artifact_set_publication.py)・[分類試験](../tests/test_artifact_set_recovery.py)・[directory試験](../tests/test_artifact_set_directory_verification.py)で不正名の全件事前拒否、非I/O・保全、Unicode/内部空白の公開→marker→検証と文字列の原形保持を確認します。単一file primitiveのtemp名方針や公開/復旧認可を変更せず、同時snapshot/ABA・FS/provider真正性・正式runtime/Drive・電源断/Tier B/C受け入れやP0閉鎖は証明しません。
+
+## Caller-selected marker-last publication byte budgets (2026-10-27)
+
+`publish_artifact_set_marker_last`はoptional `maximum_artifact_bytes` / `maximum_total_bytes`を受け、Noneまたは正のexact intだけを許します。不正値は既存transaction文法検査後、payload Mappingのsnapshot・hash・単一file公開前に`artifact_publish_limit_invalid`で拒否します。固定本番値・新schema/配布契約は追加しません。
+
+既存の全payload名/型検査とbytes派生型の実buffer固定後、各payloadの実lenと合計を検査します。超過は`artifact_publish_file_limit_exceeded` / `artifact_publish_total_limit_exceeded`でhash前に拒否します。その後、通常どおりhashとmarker JSONを生成し、marker自身のsizeとmarker込み合計にも同じ上限を適用します。全件予算確認後だけ最初のfile公開へ進み、超過を部分公開・skip・切詰め成功へ変換しません。既存partial/complete setも読取り・書換え・cleanupせず保持します。
+
+予算内は既存の決定的順序・marker-last・同一内容冪等・競合拒否を維持します。空payloadでもmarker分の予算が必要で、公開後は同じ値をdirectory verifierへ独立指定して検査できます。予算はmarkerへ保存せず、後続呼出しへ自動伝播しません。Noneでは従来動作。対象は一式の論理bytesであり、既存payload/コピー済みbytes・生成済みmarkerのmemory、hash/JSON生成の時間、一時fileとreadbackを含む実I/O総量やdisk容量を制限するものではありません。
+
+[公開回帰](../tests/test_artifact_set_publication.py)でexact境界の公開/再公開/読戻し、不正値の非snapshot、payload超過の非hash、markerだけの超過・非部分公開、bytes派生型と空payloadを確認します。root/FS/provider資格・所有権/真正性、同時snapshot/ABA・電源断/Tier B/C/runtime受け入れや公開/Archiveの認可は追加しません。
