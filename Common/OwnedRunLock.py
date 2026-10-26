@@ -255,21 +255,25 @@ def acquire_owned_lock(
         record_verified = True
         yield token
     finally:
-        if record_created and record_verified:
-            try:
-                if _record_matches(path, scope, token, maximum_record_bytes):
-                    path.unlink()
-            except OSError:
-                # Preserve mismatched or unverifiable state for explicit recovery.
-                pass
-        if acquired:
-            try:
-                mutex.release()
-            finally:
+        try:
+            if record_created and record_verified:
+                try:
+                    if _record_matches(path, scope, token, maximum_record_bytes):
+                        path.unlink()
+                except OSError:
+                    # Preserve mismatched or unverifiable state for explicit recovery.
+                    pass
+        finally:
+            # Record observation/cleanup can itself be interrupted. It must
+            # never bypass release/close of the already-created OS mutex.
+            if acquired:
+                try:
+                    mutex.release()
+                finally:
+                    close = getattr(mutex, "close", None)
+                    if callable(close):
+                        close()
+            else:
                 close = getattr(mutex, "close", None)
                 if callable(close):
                     close()
-        else:
-            close = getattr(mutex, "close", None)
-            if callable(close):
-                close()

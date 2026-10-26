@@ -14,6 +14,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from Common import AtomicArtifactPublication as atomic
+from Common import OwnedRunLock as owned
 from Common.ArtifactSetPublication import ArtifactSetPublicationError, publish_artifact_set_marker_last
 from Common.ArtifactSetDirectoryVerification import ArtifactSetDirectoryVerificationError, verify_published_artifact_set
 from Common.OwnedRunLock import acquire_owned_lock, _strict_record_bytes
@@ -131,6 +132,26 @@ class CandidateBundleFixture:
 
 @unittest.skipUnless(os.name == "nt", "real Windows mutex/publication required")
 class TerminalBundleIntegrationTests(unittest.TestCase):
+    def test_record_cleanup_interruption_preserves_candidate_and_releases_real_mutex(self):
+        for pc in ("PC-A", "PC-B"):
+            value = self.make((), pc)
+            owner = value.root / "synthetic-owner.json"
+            real_matches = owned._record_matches
+            observations = []
+            def matches(*args, **kwargs):
+                observations.append(owner.read_bytes())
+                if len(observations) == 2: raise KeyboardInterrupt()
+                return real_matches(*args, **kwargs)
+            with patch.object(owned, "_record_matches", side_effect=matches), self.assertRaises(KeyboardInterrupt):
+                value.publish()
+            self.assertEqual(observations[0], owner.read_bytes())
+            self.assertEqual(value.plan.expected_bytes, value.prior.read_bytes())
+            self.assertEqual(set(value.payloads) | {"commit-marker.json"}, {p.name for p in value.bundle.iterdir()})
+            for name, data in value.payloads.items(): self.assertEqual(data, (value.bundle / name).read_bytes())
+            with acquire_owned_lock(value.scope, value.root / "probe-owner.json", timeout_seconds=0):
+                self.assertEqual(observations[0], owner.read_bytes())
+            self.assertFalse((value.root / "probe-owner.json").exists())
+
     def test_short_owner_record_write_preserves_record_blocks_candidates_and_releases_mutex(self):
         for pc in ("PC-A", "PC-B"):
             value = self.make((), pc)

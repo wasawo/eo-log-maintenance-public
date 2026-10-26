@@ -59,6 +59,49 @@ class NamedMutexCloseTests(unittest.TestCase):
 
 
 class OwnedRunLockTests(unittest.TestCase):
+    def test_record_observation_or_unlink_interruption_cannot_bypass_mutex_cleanup(self):
+        real_matches, real_unlink = owned._record_matches, Path.unlink
+        for stage in ("observation", "unlink"):
+            for index, error in enumerate((KeyboardInterrupt(), SystemExit(7), RuntimeError("synthetic interruption"))):
+                path = self.root / f"{stage}-{index}.lock"
+                calls = 0
+                def matches(*args, **kwargs):
+                    nonlocal calls
+                    calls += 1
+                    if calls == 2 and stage == "observation": raise error
+                    return real_matches(*args, **kwargs)
+                def unlink(target, *args, **kwargs):
+                    if target == path and stage == "unlink": raise error
+                    return real_unlink(target, *args, **kwargs)
+                with self.subTest(stage=stage, error_type=type(error).__name__), \
+                        patch.object(owned, "_record_matches", side_effect=matches), patch.object(Path, "unlink", unlink):
+                    with self.assertRaises(type(error)):
+                        with acquire_owned_lock("PC-A", path, mutex_factory=self.factory(), token_factory=lambda: "a"*64):
+                            before = path.read_bytes()
+                self.assertEqual(before, path.read_bytes())
+                self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_failed_or_interrupted_release_still_attempts_close(self):
+        for error in (OSError("synthetic release failure"), KeyboardInterrupt()):
+            mutex = FakeMutex("synthetic")
+            with self.subTest(error_type=type(error).__name__), patch.object(mutex, "release", side_effect=error) as release:
+                with self.assertRaises(type(error)):
+                    with acquire_owned_lock("PC-A", self.path, mutex_factory=lambda name: mutex,
+                            token_factory=lambda: "a"*64):
+                        pass
+                release.assert_called_once_with()
+            self.assertTrue(mutex.closed)
+            self.assertFalse(self.path.exists())
+
+    def test_record_cleanup_oserror_preserves_body_exception_and_record(self):
+        with patch.object(Path, "unlink", side_effect=OSError("synthetic cleanup failure")):
+            with self.assertRaisesRegex(RuntimeError, "^synthetic body failure$"):
+                with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(), token_factory=lambda: "a"*64):
+                    before = self.path.read_bytes()
+                    raise RuntimeError("synthetic body failure")
+        self.assertEqual(before, self.path.read_bytes())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
     def test_nonbool_wait_results_cannot_create_records_or_enter_body(self):
         class UnexpectedTruth:
             def __bool__(self): raise AssertionError("must not coerce adapter result")

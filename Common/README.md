@@ -241,3 +241,9 @@ owner recordの`write`は戻り値がexact intかつ全payload長と一致する
 待機呼出し前からcleanup対象として扱い、不正応答/例外・KeyboardInterrupt等で結果が不明でもreleaseを試み、その成否にかかわらずcloseを試みます。既存adapterのreleaseは未所有ならno-opです。真偽の待機結果やこのcleanup試行は、新しいprovider資格/所有権証明にはなりません。
 
 取得後の`abandoned`もexact boolを要求し、欠落・取得不能・不正型をFalseへ補完せず`named_mutex_observation_invalid`で停止します。Trueは従来どおり`abandoned_mutex_requires_recovery`で保全停止、Falseだけが既存record作成境界へ進みます。[単体回帰](../tests/test_owned_run_lock.py)で不正型/例外/中断とcleanup・非record作成を検査し、実mutexを使う隔離保存/診断接続で既存正常動作を確認します。正式runtime、owner-v2/provider真正性、復旧/次run認可、電源断/Tier B/C受け入れやP0閉鎖は追加しません。
+
+## Mutex cleanup after record-cleanup interruption (2026-10-27)
+
+owned lockのrecord解放時確認とunlinkを外側のfinallyで囲み、その途中のKeyboardInterrupt/SystemExit等でもmutex release・closeを試みます。release自身が失敗/中断してもcloseを試みる既存順序を維持し、中断を正常終了へ変換しません。record cleanupのOSErrorを保全へ落とす既存動作と、通常の所有確認/cleanup条件は変更しません。
+
+[単体回帰](../tests/test_owned_run_lock.py)で解放時観測/unlinkの中断、release失敗/中断、unlinkのOSErrorとbody例外の保全を確認します。[隔離保存接続](../tests/test_terminal_bundle_integration.py)は両PCの候補公開後にrecord解放確認を中断し、prior・候補・recordを保全したまま別合成record pathで同一mutexを再取得して解放を確認します。これは中断後のmutex解放に関する合成証拠であり、残存recordの採用/復旧・次run認可、敵対的競合/ABA・強制process終了や電源断耐久性、正式runtime/Tier B/C受け入れやP0閉鎖を示しません。

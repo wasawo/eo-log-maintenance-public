@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+### record cleanup中断後のmutex解放試行（2026-10-27）
+
+- 利用者の次作業指示を受け、cleanな`cd703dc`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [record cleanup中断時のmutex処理](../../Common/README.md#mutex-cleanup-after-record-cleanup-interruption-2026-10-27)としてrecordの解放時観測/unlinkを外側finallyで囲み、KeyboardInterrupt/SystemExit等でも後続のmutex release・closeを試みる。release自体の失敗/中断でもcloseを試みる順序、通常の所有確認/cleanupとOSError時のrecord保全を維持する。中断は正常終了へ変換しない。
+- 既存Python 3.11.9実体（shim版未選択のため設定変更せず指定、CIは3.12）で`$env:PYTHONPATH='tests;.'`後、`& $python311 -B -m unittest test_owned_run_lock test_owned_publication_integration test_recovery_diagnostic_mutex test_terminal_bundle_integration test_terminal_history_usepoint test_terminal_plan_usepoint test_initial_source_integration test_initial_source_usepoint test_internal_publication_crash test_crash_publication_harness test_download_staging_integration`の128件全成功・skipなし。既知sandbox hardlink拒否を避けauto-review承認済みのsandbox外・自作temp/合成adapterだけを使用。既存CI登録suiteに新規4件を追加し、record観測/unlink中断・release失敗/中断とclose、unlink OSError時のbody例外/record保全、両PCの候補公開後中断と実mutex再取得を確認した。変更2文書の相対リンク136件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- 通常終了/中断でのcleanup試行経路を守る補助であり、強制process終了・電源断時のfinally実行や耐久性を証明しない。schema/owner-v2/SDK/配布集合・固定本番値、新しい削除/復旧/次run認可は追加しない。root/ACL/FS/owner/provider真正性、現在性/ABA・実Drive/runtime・Tier B/C受け入れや要件全体/P0-010閉鎖は未実装・未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで累積source/公開/owner境界と未決runtime契約を照合して次単位を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
 ### owned mutex応答の厳密検査と不確かな待機のcleanup（2026-10-27）
 
 - 利用者の次作業指示を受け、cleanな`83ee8e0`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
