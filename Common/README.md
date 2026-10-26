@@ -197,3 +197,61 @@ source builderは[列挙完了前の再確認](../docs/design/source-enumeration
 `summarize_initial_inventory`は専用観測とB2/対象対応を検査し、候補/保留/未比較・既知error等の件数だけを返します。path/ID/hash/bytes/reasonを転記せず、歴史要約を現在性や同期成功・復元/Archive許可にしません。
 
 `StagingResidualObservation.py`は[残存staging直下entry](../docs/design/staging-residual-observation.md)を内容非読取・非再帰で件数観測します。不明/変化は保留して初回件数を保持し、metadata検査やcleanup/Upload/Archiveを許可しません。
+
+## Shared marker-last basename validation (2026-10-27)
+
+`ArtifactSetRecovery.is_artifact_basename`は既存marker-last publisherの名前条件を共通化します。空/非文字列、先頭dot、slash/backslash/NUL、末尾ASCII空白/dotを拒否し、Unicode・内部空白/dotを変更せず判定します。trim・casefold・Unicode正規化や自動修正は行いません。これは既存の限定したleaf文法であり、全Windows予約名/禁止文字/長さや実FS資格の検査を追加するものではありません。
+
+publisherは全payload名/marker名を単一file公開前に同じ関数で検査し、既存の`artifact_name_invalid` / `commit_marker_name_invalid`を返します。pure classifierはexpected/published/staged/marker hash集合にも同条件を適用し、不正名は各集合の既存invalid/mismatch reasonでblockedとします。directory verifierはmarker名と期待集合を同条件でpreflightし、directory走査・payload読取前に拒否します。末尾空白/dotがpublisherで拒否されるのにconsumerで受理される不整合を解消し、既存成果物を変更しません。
+
+[公開試験](../tests/test_artifact_set_publication.py)・[分類試験](../tests/test_artifact_set_recovery.py)・[directory試験](../tests/test_artifact_set_directory_verification.py)で不正名の全件事前拒否、非I/O・保全、Unicode/内部空白の公開→marker→検証と文字列の原形保持を確認します。単一file primitiveのtemp名方針や公開/復旧認可を変更せず、同時snapshot/ABA・FS/provider真正性・正式runtime/Drive・電源断/Tier B/C受け入れやP0閉鎖は証明しません。
+
+## Caller-selected marker-last publication byte budgets (2026-10-27)
+
+`publish_artifact_set_marker_last`はoptional `maximum_artifact_bytes` / `maximum_total_bytes`を受け、Noneまたは正のexact intだけを許します。不正値は既存transaction文法検査後、payload Mappingのsnapshot・hash・単一file公開前に`artifact_publish_limit_invalid`で拒否します。固定本番値・新schema/配布契約は追加しません。
+
+既存の全payload名/型検査とbytes派生型の実buffer固定後、各payloadの実lenと合計を検査します。超過は`artifact_publish_file_limit_exceeded` / `artifact_publish_total_limit_exceeded`でhash前に拒否します。その後、通常どおりhashとmarker JSONを生成し、marker自身のsizeとmarker込み合計にも同じ上限を適用します。全件予算確認後だけ最初のfile公開へ進み、超過を部分公開・skip・切詰め成功へ変換しません。既存partial/complete setも読取り・書換え・cleanupせず保持します。
+
+予算内は既存の決定的順序・marker-last・同一内容冪等・競合拒否を維持します。空payloadでもmarker分の予算が必要で、公開後は同じ値をdirectory verifierへ独立指定して検査できます。予算はmarkerへ保存せず、後続呼出しへ自動伝播しません。Noneでは従来動作。対象は一式の論理bytesであり、既存payload/コピー済みbytes・生成済みmarkerのmemory、hash/JSON生成の時間、一時fileとreadbackを含む実I/O総量やdisk容量を制限するものではありません。
+
+[公開回帰](../tests/test_artifact_set_publication.py)でexact境界の公開/再公開/読戻し、不正値の非snapshot、payload超過の非hash、markerだけの超過・非部分公開、bytes派生型と空payloadを確認します。root/FS/provider資格・所有権/真正性、同時snapshot/ABA・電源断/Tier B/C/runtime受け入れや公開/Archiveの認可は追加しません。
+
+## Bounded stable owner-record observations (2026-10-27)
+
+`acquire_owned_lock`はoptional `maximum_record_bytes`を受け、Noneまたは正のexact intだけを許します。不正値はscope検査後・token/path/mutex準備前に`lock_record_limit_invalid`で拒否します。生成recordが超過する場合は所有mutex内で`lock_record_limit_exceeded`としてrecord作成前に拒否し、mutexを解放します。固定本番値・schemaやowner-v2/provider契約を追加しません。
+
+作成後と解放前の`_record_matches`は同じ上限でmetadata sizeを先に検査し、超過recordを開きません。既存directory verifierの安定読取を再利用し、regular/non-reparse、path/handleのidentity・size/timestamp・link数と祖先chainの前後一致を検査します。観測size+1 byteの増大probeを維持し、変化/不明・解析不能・deep JSONのRecursionErrorは所有確認失敗として扱います。作成後の確認失敗は既存`lock_record_ownership_unverified`で停止し、解放時の失敗はrecordを保全してmutex解放/closeへ進みます。
+
+strict field集合、scope/tokenとpid/hostの従来検査は維持し、canonical JSON表記や作成時のexact bytes一致を新しい削除条件にしません。Noneでも安定読取は行いますがcaller上限はありません。実I/O/時間/全memory、認可root/ACL/FS/owner真正性・一回性、観測からunlinkまでの競合/ABA、実Drive/runtime・電源断/Tier B/C受け入れは証明しません。既存recordの自動採用/復旧や新しい削除能力も追加しません。
+
+[owner lock試験](../tests/test_owned_run_lock.py)でexact境界・不正値の早期拒否・作成前超過・解放時超過の非読取/保全、path→handle間増大、不明観測/deep JSONでもmutex解放、JSON表記互換を確認します。
+
+## Owner-record creation failure preservation (2026-10-27)
+
+owner recordの`write`は戻り値がexact intかつ全payload長と一致することを要求し、short/過大/不正値は`lock_record_write_incomplete`で停止します。続くcloseもOSErrorになった場合は元の固定reasonを保持します。write/flush/fsync/closeのOSErrorは従来の`lock_record_create_failed`を維持し、呼出し元へowner tokenを渡しません。
+
+解放時のrecord cleanupは、作成・flush/fsync/closeと最初の安定所有確認を全て通過した場合だけ行います。作成中や初回確認に失敗したrecordは、たとえ完全なJSONや正しいtokenが残っていても、finallyで所有確認を再試行して削除しません。通常の所有中例外では従来どおり、解放時に同じscope/tokenを安定確認できるrecordだけをcleanupします。mutexのrelease/closeはどちらの場合も行い、不明な残存recordを自動採用・修復しません。
+
+[単体回帰](../tests/test_owned_run_lock.py)と[隔離保存接続](../tests/test_terminal_bundle_integration.py)で、各書込件数・二重close失敗、write/flush/fsync/closeの失敗、初回確認失敗、parse可能な不完全recordの保全・候補非作成と同一mutexの再取得を確認します。これはmutex解放の合成証拠であり、残存recordの復旧/次run認可、root/FS/provider資格、ABA排除・電源断/Tier B/C/runtime受け入れやP0閉鎖を示しません。
+
+## Strict owned-mutex adapter observations (2026-10-27)
+
+`acquire_owned_lock`は既存`_NamedMutex`/診断mutexと同じadapter契約を前提とし、`acquire`の戻り値をexact boolとして検査します。数値/文字列/None等を`bool()`で所有確認へ変換しません。不正値と待機例外は固定`named_mutex_wait_failed`で、record payload生成・作成・bodyへ進みません。確定Falseは従来の`lock_timeout`でcloseのみ、確定Trueだけが次の観測へ進みます。
+
+待機呼出し前からcleanup対象として扱い、不正応答/例外・KeyboardInterrupt等で結果が不明でもreleaseを試み、その成否にかかわらずcloseを試みます。既存adapterのreleaseは未所有ならno-opです。真偽の待機結果やこのcleanup試行は、新しいprovider資格/所有権証明にはなりません。
+
+取得後の`abandoned`もexact boolを要求し、欠落・取得不能・不正型をFalseへ補完せず`named_mutex_observation_invalid`で停止します。Trueは従来どおり`abandoned_mutex_requires_recovery`で保全停止、Falseだけが既存record作成境界へ進みます。[単体回帰](../tests/test_owned_run_lock.py)で不正型/例外/中断とcleanup・非record作成を検査し、実mutexを使う隔離保存/診断接続で既存正常動作を確認します。正式runtime、owner-v2/provider真正性、復旧/次run認可、電源断/Tier B/C受け入れやP0閉鎖は追加しません。
+
+## Mutex cleanup after record-cleanup interruption (2026-10-27)
+
+owned lockのrecord解放時確認とunlinkを外側のfinallyで囲み、その途中のKeyboardInterrupt/SystemExit等でもmutex release・closeを試みます。release自身が失敗/中断してもcloseを試みる既存順序を維持し、中断を正常終了へ変換しません。record cleanupのOSErrorを保全へ落とす既存動作と、通常の所有確認/cleanup条件は変更しません。
+
+[単体回帰](../tests/test_owned_run_lock.py)で解放時観測/unlinkの中断、release失敗/中断、unlinkのOSErrorとbody例外の保全を確認します。[隔離保存接続](../tests/test_terminal_bundle_integration.py)は両PCの候補公開後にrecord解放確認を中断し、prior・候補・recordを保全したまま別合成record pathで同一mutexを再取得して解放を確認します。これは中断後のmutex解放に関する合成証拠であり、残存recordの採用/復旧・次run認可、敵対的競合/ABA・強制process終了や電源断耐久性、正式runtime/Tier B/C受け入れやP0閉鎖を示しません。
+
+## Local-only recovery schema references (2026-10-27)
+
+`PrivateRecoveryEvidence`のbuild/validateと`CrashRecoveryDecision`のprior manifest検査も、既存manifest selectorのlocal-only参照検査・取得禁止Registryを使用します。schema全treeの`$ref` / `$dynamicRef`は`#`で始まる文字列だけを許し、HTTP/file/相対resource・不正型を、未使用のdefs内でも拒否します。validator自身にもresource retrievalを拒否するRegistryを明示し、事前検査だけに依存しません。
+
+正常なlocal fragment・既存repository schemaは維持し、壊れたlocal参照/invalid schemaも拒否します。private evidenceは従来の`private_evidence_invalid`、crash classifierは`prior_manifest_invalid_or_not_running`へ閉じ、URL・raw lock・schema例外をreasonへ出しません。元metadata/raw bytes・prior manifestを変更せず、外部取得を新しい受け入れや復旧認可の根拠にしません。
+
+[private evidence試験](../tests/test_private_recovery_evidence.py)と[crash判定試験](../tests/test_crash_recovery_decision.py)で、非local/未使用/不正参照、正常/破損local参照、invalid schemaとRegistryの独立拒否をsocket非呼出しで確認します。これはschema参照取得の制限で、schema自身の真正性/資源上限・owner/provider資格、実保存/復旧・runtime/Tier B/C受け入れやP0閉鎖を示しません。既存依存・配布file集合は変更しません。

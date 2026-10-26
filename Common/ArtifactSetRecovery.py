@@ -15,7 +15,6 @@ _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _TX_ID = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
 )
-_RESERVED = {".", ".."}
 
 
 @dataclass(frozen=True)
@@ -37,6 +36,13 @@ def is_artifact_transaction_id(value: Any) -> bool:
     return isinstance(value, str) and _TX_ID.fullmatch(value) is not None
 
 
+def is_artifact_basename(value: Any) -> bool:
+    """Shared existing marker-last leaf grammar; no normalization or I/O."""
+    return (isinstance(value, str) and bool(value) and not value.startswith(".")
+            and "/" not in value and "\\" not in value and "\x00" not in value
+            and not value.endswith((" ", ".")))
+
+
 def _copy_mapping(value):
     if not isinstance(value, Mapping):
         return None
@@ -51,13 +57,7 @@ def _valid_artifact_map(value: Any) -> bool:
         return False
     for name, digest in value.items():
         if (
-            not isinstance(name, str)
-            or not name
-            or name in _RESERVED
-            or "/" in name
-            or "\\" in name
-            or "\x00" in name
-            or name.startswith(".")
+            not is_artifact_basename(name)
             or not isinstance(digest, str)
             or not _SHA256.fullmatch(digest)
         ):

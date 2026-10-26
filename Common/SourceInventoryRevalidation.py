@@ -8,7 +8,7 @@ from Common.AggregationReportBuilder import _parse, _validate, _validator
 from Common.LatestManifestSelection import _utc_key, _clock_key
 from Common.RunInputEvidenceIntegrity import validate_evidence_invariants, _safe_relative_path
 from Common.SourceInventoryEvidenceBuilder import (build_run_input_evidence, _classify_filename,
-    _source_chain, _hash_stable_file, _source_entry_signature, _is_source_reparse)
+    _source_chain, _hash_stable_file, _source_entry_signature, _is_source_reparse, _valid_inventory_limits)
 from Common.ManifestTransitionInspection import InitialManifestPlan, prepare_initial_manifest
 from Common.DriveRequestPath import is_drive_request_file_path
 from Common.DriveContentComparison import (ComparisonSource, ContentComparison, ContentComparisonBatch,
@@ -117,9 +117,15 @@ def _observations(value):
                 "status", "entries_observed", "eligible_target_count", "inventory_sha256", "enumeration_errors")})
 
 
+def _require_inventory_limits(maximum_entries, maximum_file_bytes, maximum_total_hash_bytes):
+    if not _valid_inventory_limits(maximum_entries, maximum_file_bytes, maximum_total_hash_bytes):
+        _reject("source_revalidation_limit_invalid")
+
+
 def revalidate_source_inventory(
     source_root, evidence_bytes, *, schema, expected_pc_id, expected_log_type, expected_run_id,
     expected_root_id, expected_relative_scope, reference_date, current_utc, current_utc_reliable,
+    maximum_entries=None, maximum_file_bytes=None, maximum_total_hash_bytes=None,
 ):
     """Rebuild read observations using independently supplied scope/date/root.
 
@@ -129,6 +135,7 @@ def revalidate_source_inventory(
     contents/identities, qualified roots, races/ABA and later use remain outside
     this helper; all returned permission flags are false.
     """
+    _require_inventory_limits(maximum_entries, maximum_file_bytes, maximum_total_hash_bytes)
     try:
         if (current_utc_reliable is not True or not isinstance(current_utc, datetime)
                 or current_utc.tzinfo is None or current_utc.utcoffset() != timedelta(0)):
@@ -150,7 +157,8 @@ def revalidate_source_inventory(
         observed = build_run_input_evidence(source_root, root_id=expected_root_id,
             relative_scope=expected_relative_scope, pc_id=expected_pc_id, log_type=expected_log_type,
             run_id=expected_run_id, evidence_id=value["evidence_id"], reference_date=reference_date,
-            started_at=current_utc)
+            started_at=current_utc, maximum_entries=maximum_entries,
+            maximum_file_bytes=maximum_file_bytes, maximum_total_hash_bytes=maximum_total_hash_bytes)
         validate_evidence_invariants(observed, schema)
         if observed["enumeration"]["status"] != "completed" or observed["validation"]["status"] != "completed":
             _reject("source_revalidation_incomplete")
@@ -167,6 +175,7 @@ def revalidate_initial_manifest_source(
     source_root, plan, *, ac_connected, expected_pc_id, expected_log_type, expected_target_period,
     expected_run_id, started_at_utc, current_utc, current_utc_reliable,
     manifest_schema, evidence_schema, expected_root_id, expected_relative_scope, reference_date,
+    maximum_entries=None, maximum_file_bytes=None, maximum_total_hash_bytes=None,
 ):
     """Reconstruct a bound initial plan before making a new source observation.
 
@@ -174,6 +183,7 @@ def revalidate_initial_manifest_source(
     is accepted as a receipt; every invocation rechecks the actual source. A
     successful result still grants no publication/upload and is not a lease.
     """
+    _require_inventory_limits(maximum_entries, maximum_file_bytes, maximum_total_hash_bytes)
     if (type(plan) is not InitialManifestPlan
             or any(flag is not False for flag in (plan.may_publish, plan.may_upload, plan.may_archive))):
         _reject("initial_source_plan_invalid")
@@ -194,7 +204,9 @@ def revalidate_initial_manifest_source(
     return revalidate_source_inventory(source_root, plan.evidence_bytes, schema=evidence_schema,
         expected_pc_id=expected_pc_id, expected_log_type=expected_log_type, expected_run_id=expected_run_id,
         expected_root_id=expected_root_id, expected_relative_scope=expected_relative_scope,
-        reference_date=reference_date, current_utc=current_utc, current_utc_reliable=current_utc_reliable)
+        reference_date=reference_date, current_utc=current_utc, current_utc_reliable=current_utc_reliable,
+        maximum_entries=maximum_entries, maximum_file_bytes=maximum_file_bytes,
+        maximum_total_hash_bytes=maximum_total_hash_bytes)
 
 
 def observe_initial_staging_copy(
@@ -349,19 +361,24 @@ def revalidate_comparison_source(
     source_root, evidence_bytes, *, relative_path, source_trusted, schema, expected_log_type,
     expected_run_id, expected_root_id, expected_relative_scope, reference_date,
     current_utc, current_utc_reliable,
+    maximum_entries=None, maximum_file_bytes=None, maximum_total_hash_bytes=None,
 ):
     """Single-target compatibility API; a new full re-scan is still required."""
+    _require_inventory_limits(maximum_entries, maximum_file_bytes, maximum_total_hash_bytes)
     return revalidate_comparison_sources(source_root, evidence_bytes, relative_paths=(relative_path,),
         source_trusted=source_trusted, schema=schema, expected_log_type=expected_log_type,
         expected_run_id=expected_run_id, expected_root_id=expected_root_id,
         expected_relative_scope=expected_relative_scope, reference_date=reference_date,
-        current_utc=current_utc, current_utc_reliable=current_utc_reliable)[0]
+        current_utc=current_utc, current_utc_reliable=current_utc_reliable,
+        maximum_entries=maximum_entries, maximum_file_bytes=maximum_file_bytes,
+        maximum_total_hash_bytes=maximum_total_hash_bytes)[0]
 
 
 def revalidate_comparison_sources(
     source_root, evidence_bytes, *, relative_paths, source_trusted, schema, expected_log_type,
     expected_run_id, expected_root_id, expected_relative_scope, reference_date,
     current_utc, current_utc_reliable,
+    maximum_entries=None, maximum_file_bytes=None, maximum_total_hash_bytes=None,
 ):
     """Bind explicit PC-A targets after one fresh full inventory re-scan.
 
@@ -369,6 +386,7 @@ def revalidate_comparison_sources(
     or nothing. Empty selection still revalidates coverage, never means no_work.
     Trust, later use and every operational permission remain external gates.
     """
+    _require_inventory_limits(maximum_entries, maximum_file_bytes, maximum_total_hash_bytes)
     if source_trusted is not True:
         _reject("comparison_source_untrusted")
     try:
@@ -399,7 +417,9 @@ def revalidate_comparison_sources(
         observed = revalidate_source_inventory(source_root, evidence_bytes, schema=schema,
             expected_pc_id="PC-A", expected_log_type=expected_log_type, expected_run_id=expected_run_id,
             expected_root_id=expected_root_id, expected_relative_scope=expected_relative_scope,
-            reference_date=reference_date, current_utc=current_utc, current_utc_reliable=current_utc_reliable)
+            reference_date=reference_date, current_utc=current_utc, current_utc_reliable=current_utc_reliable,
+            maximum_entries=maximum_entries, maximum_file_bytes=maximum_file_bytes,
+            maximum_total_hash_bytes=maximum_total_hash_bytes)
         return tuple(RevalidatedComparisonSource(
             ComparisonSource(target["filename"], target["size_bytes"], target["expected_sha256"]),
             observed.evidence_bytes, target["relative_path"]) for target in selected)
@@ -415,6 +435,7 @@ def inspect_initial_inventory(
     current_utc, current_utc_reliable, drive_before, drive_after, download_plan,
     downloads, expected_folder_id,
     maximum_downloads=None, maximum_total_download_bytes=None,
+    maximum_entries=None, maximum_file_bytes=None, maximum_total_hash_bytes=None,
 ):
     """Read-only selected initial-inventory observations, separate from sync state.
 
@@ -422,6 +443,7 @@ def inspect_initial_inventory(
     A global hold retains the explicit selection and B2, not a completed empty
     inventory. Provenance, actual API freshness and all operations remain gates.
     """
+    _require_inventory_limits(maximum_entries, maximum_file_bytes, maximum_total_hash_bytes)
     try:
         if not _valid_download_plan_limits(maximum_downloads, maximum_total_download_bytes):
             _reject("comparison_download_limit_invalid")
@@ -429,7 +451,9 @@ def inspect_initial_inventory(
             source_trusted=source_trusted, schema=schema, expected_log_type=expected_log_type,
             expected_run_id=expected_run_id, expected_root_id=expected_root_id,
             expected_relative_scope=expected_relative_scope, reference_date=reference_date,
-            current_utc=current_utc, current_utc_reliable=current_utc_reliable)
+            current_utc=current_utc, current_utc_reliable=current_utc_reliable,
+            maximum_entries=maximum_entries, maximum_file_bytes=maximum_file_bytes,
+            maximum_total_hash_bytes=maximum_total_hash_bytes)
         compared = compare_planned_drive_contents(tuple(item.source for item in sources),
             drive_before, drive_after, download_plan, source_trusted=source_trusted,
             expected_folder_id=expected_folder_id, downloads=downloads,

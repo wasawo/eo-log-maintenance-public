@@ -60,6 +60,20 @@ missing priorを新規runへ置き換えず、running提案から終端reportも
 
 ## 隔離候補bundleの公開・読戻し接続
 
+### Explicit fixture publication/readback budgets (2026-10-27)
+
+fixtureの`publish` / `readback`と全履歴使用点保存接続はoptional `maximum_record_bytes`も受け、owner取得の`acquire_owned_lock`へ渡す。不正値は他のfixture予算と同様guard/owner取得前に拒否する。record作成前超過は候補保存/検証・履歴再導出へ進まず、priorと既存候補を保持する。予算内の公開/読戻しを実際の生成record bytes長の境界で確認するが、固定本番値やowner真正性を採用しない。
+
+所有中の例外とrecord増大が重なっても元の例外を保持し、oversized recordを残してmutexを解放する。別の合成record pathで同じmutexを再取得できることは解放の証拠だけであり、残存recordの採用・復旧や次run開始の許可ではない。予算は呼出しごとの明示指定で、保存/自動伝播・正式runtime接続は行わない。
+
+tests専用`CandidateBundleFixture.publish`と全履歴使用点接続はoptional `maximum_artifact_bytes` / `maximum_total_bytes`をmarker-last publisherへ渡す。fixtureの不正値はguard/owner取得前に拒否し、実size超過は所有mutex内のpublisherから拒否する。超過時もprior-runningと既存候補を保持し、ownerを解放する。予算内はmarker込みの同じ値をreadbackのdirectory verifierへ独立指定できる。
+
+`readback`は別途`maximum_semantic_artifact_bytes` / `maximum_total_semantic_bytes`を参照validatorの既存`maximum_artifact_bytes` / `maximum_total_artifact_bytes`へ渡す。schema読取・再読取も計上する意味論予算と、marker込み候補一式の論理bytes予算を混同しない。意味論予算の拒否も候補検証held・全操作許可falseで、候補を変更しない。Noneはcaller上限なしであり、固定本番値を選ばない。
+
+fixture所有marker/priorと、directory検証に加えて行う候補payload/commit markerのexact比較は既存の期待bytes有界・metadata照合付き単一file readerを使用する。commit markerはfixtureのtransaction/hash集合から決定的bytesを組み立て、表記違いも自動補完せず保持/保留する。検証直後に増大したfileはサイズ不一致でpayload open前に拒否し、元runningを置換しない。これらは複数回の観測で、同時snapshot・ABA排除・後続使用の資格にはならない。
+
+この接続はcaller指定root/実clientを受けない自作OS-temp内の合成証拠であり、正式保存wrapper/配置/IPC契約を追加しない。実ログ/Drive、root/FS/owner/provider真正性、実I/O/時間/全memoryやdisk容量、電源断/Tier B/C/runtime受け入れは未実証のまま。
+
 [tests専用fixture](../../tests/test_terminal_bundle_integration.py)はcaller指定rootを受けず、自分で作ったOS-tempと固定合成filenameだけを使う。prior-runningを候補directoryの外に保存し、一切置換しない。実Windows mutex/ownerを保持して、既存create-only helperで候補のB2・提案manifest・reportとmarker-lastを保存する。これはimmutableな候補snapshot一式で、現在manifestのC1比較更新ではない。fixture配置/APIを正式runtime契約にしない。
 
 読戻しではplan由来のexact bytes/hash、directoryのmarker分類に加え、そのfixtureで期待したtransaction IDを比較する。generic directory分類のcommittedは任意のvalid transactionを許すため、その分類だけで当該試行へのbindingを証明しない。参照validatorの全report意味論検査後にもdirectory/hash/markerと元priorを再観測する。返す候補検証結果は常にmay_update_manifest/may_archive=falseで、同一bytesの再公開やmarker後の応答喪失から一回限りreceiptを作らない。

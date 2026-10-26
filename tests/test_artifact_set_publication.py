@@ -40,6 +40,99 @@ def _cross_process_publish(destination, report_payload, barrier, result_queue):
 
 
 class ArtifactSetPublicationTests(unittest.TestCase):
+    def marker_bytes(self, payloads, transaction=None):
+        return (json.dumps(dict(schema_version=1, transaction_id=self.transaction_id if transaction is None else transaction,
+            artifact_sha256={name: hashlib.sha256(data).hexdigest() for name, data in payloads.items()}),
+            sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+
+    def test_publication_limits_include_marker_and_roundtrip_at_exact_boundaries(self):
+        marker = self.marker_bytes(self.payloads)
+        sizes = [len(data) for data in self.payloads.values()] + [len(marker)]
+        limits = dict(maximum_artifact_bytes=max(sizes), maximum_total_bytes=sum(sizes))
+        first = publish_artifact_set_marker_last(str(self.root), self.payloads,
+            transaction_id=self.transaction_id, **limits)
+        self.assertEqual({"published"}, set(first.values()))
+        second = publish_artifact_set_marker_last(str(self.root), self.payloads,
+            transaction_id=self.transaction_id, **limits)
+        self.assertEqual({"already_exists_identical"}, set(second.values()))
+        self.assertTrue(verify_published_artifact_set(self.root, self.expected_hashes(),
+            expected_transaction_id=self.transaction_id, **limits).may_report_committed)
+        self.assertEqual(marker, (self.root / "commit-marker.json").read_bytes())
+
+    def test_invalid_publication_limits_reject_before_mapping_snapshot_or_hashing(self):
+        from Common import ArtifactSetPublication as publication
+        for key in ("maximum_artifact_bytes", "maximum_total_bytes"):
+            for limit in (0, -1, False, True, 1.0, "1"):
+                with self.subTest(key=key, limit=limit), patch.object(publication, "_validate_payloads") as copied, \
+                        patch.object(publication, "_digest") as hashed, \
+                        patch.object(atomic, "publish_bytes_no_overwrite") as published:
+                    with self.assertRaisesRegex(ArtifactSetPublicationError, "^artifact_publish_limit_invalid$"):
+                        publish_artifact_set_marker_last(str(self.root), self.payloads,
+                            transaction_id=self.transaction_id, **{key: limit})
+                    for operation in (copied, hashed, published): operation.assert_not_called()
+
+    def test_payload_budget_excess_rejects_before_hash_and_preserves_existing_set(self):
+        from Common import ArtifactSetPublication as publication
+        payloads = {"first.json": b"abc", "second.json": b"defg"}
+        existing = self.root / "first.json"; existing.write_bytes(b"abc")
+        for limits, reason in ((dict(maximum_artifact_bytes=3), "artifact_publish_file_limit_exceeded"),
+                (dict(maximum_total_bytes=6), "artifact_publish_total_limit_exceeded")):
+            with self.subTest(limits=limits), patch.object(publication, "_digest") as hashed, \
+                    patch.object(atomic, "publish_bytes_no_overwrite") as published:
+                with self.assertRaisesRegex(ArtifactSetPublicationError, "^" + reason + "$"):
+                    publish_artifact_set_marker_last(str(self.root), payloads,
+                        transaction_id=self.transaction_id, **limits)
+                hashed.assert_not_called()
+                published.assert_not_called()
+            self.assertEqual({existing: b"abc"}, {p: p.read_bytes() for p in self.root.iterdir()})
+
+    def test_marker_alone_can_exceed_file_or_remaining_total_budget_without_partial_publication(self):
+        marker = self.marker_bytes(self.payloads)
+        for limits, reason in ((dict(maximum_artifact_bytes=len(marker)-1), "artifact_publish_file_limit_exceeded"),
+                (dict(maximum_total_bytes=sum(map(len, self.payloads.values()))+len(marker)-1),
+                 "artifact_publish_total_limit_exceeded")):
+            with self.subTest(limits=limits), patch.object(atomic, "publish_bytes_no_overwrite") as published:
+                with self.assertRaisesRegex(ArtifactSetPublicationError, "^" + reason + "$"):
+                    publish_artifact_set_marker_last(str(self.root), self.payloads,
+                        transaction_id=self.transaction_id, **limits)
+                published.assert_not_called()
+            self.assertEqual([], list(self.root.iterdir()))
+
+    def test_payload_limits_use_actual_bytes_subclass_buffer(self):
+        class Payload(bytes):
+            def __len__(self): return 0
+        payloads = {"large.json": Payload(b"synthetic")}
+        with patch.object(atomic, "publish_bytes_no_overwrite") as published:
+            with self.assertRaisesRegex(ArtifactSetPublicationError, "^artifact_publish_file_limit_exceeded$"):
+                publish_artifact_set_marker_last(str(self.root), payloads, transaction_id=self.transaction_id,
+                    maximum_artifact_bytes=8)
+            published.assert_not_called()
+        self.assertEqual(b"synthetic", memoryview(payloads["large.json"]).tobytes())
+
+    def test_zero_byte_payload_still_requires_marker_budget(self):
+        payloads = {"empty.json": b""}
+        marker = self.marker_bytes(payloads)
+        limits = dict(maximum_artifact_bytes=len(marker), maximum_total_bytes=len(marker))
+        publish_artifact_set_marker_last(str(self.root), payloads, transaction_id=self.transaction_id, **limits)
+        self.assertTrue(verify_published_artifact_set(self.root,
+            {"empty.json": hashlib.sha256(b"").hexdigest()}, **limits).may_report_committed)
+
+    def test_valid_basename_grammar_roundtrips_through_marker_and_directory_verification(self):
+        payloads = {"報告 e\u0301.json": b"synthetic first", "many.parts.json": b"synthetic second",
+                    "internal space.json": b"synthetic third"}
+        marker_name = "完了 marker.json"
+        before = dict(payloads)
+        result = publish_artifact_set_marker_last(str(self.root), payloads,
+            transaction_id=self.transaction_id, commit_marker_name=marker_name)
+        self.assertEqual(set(payloads) | {marker_name}, set(result))
+        expected = {name: hashlib.sha256(data).hexdigest() for name, data in payloads.items()}
+        decision = verify_published_artifact_set(self.root, expected,
+            expected_transaction_id=self.transaction_id, commit_marker_name=marker_name)
+        self.assertTrue(decision.may_report_committed)
+        self.assertEqual(before, payloads)
+        self.assertEqual(set(payloads) | {marker_name}, {p.name for p in self.root.iterdir()})
+        for name, content in payloads.items(): self.assertEqual(content, (self.root / name).read_bytes())
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -200,7 +293,8 @@ class ArtifactSetPublicationTests(unittest.TestCase):
         self.assertEqual(self.payloads["report.json"][:2], temporary[0].read_bytes())
 
     def test_invalid_late_artifact_basename_rejects_entire_set_before_publish(self):
-        for name in ("z-invalid.", "z-invalid ", "z-invalid. "):
+        for name in ("z-invalid.", "z-invalid ", "z-invalid. ", "", ".", "..", ".hidden",
+                     "nested/file", "nested\\file", "bad\x00name", None, 1):
             payloads = {"a-valid.json": b"synthetic first", name: b"synthetic last"}
             with self.subTest(name=name), patch.object(atomic, "publish_bytes_no_overwrite") as publish:
                 with self.assertRaisesRegex(ArtifactSetPublicationError, "^artifact_name_invalid$"):
@@ -209,7 +303,8 @@ class ArtifactSetPublicationTests(unittest.TestCase):
             self.assertEqual([], list(self.root.iterdir()))
 
     def test_invalid_marker_basename_rejects_before_any_artifact_publish(self):
-        for name in ("marker.json.", "marker.json ", "marker.json. "):
+        for name in ("marker.json.", "marker.json ", "marker.json. ", "", ".", "..", ".hidden",
+                     "nested/file", "nested\\file", "bad\x00name", None, 1):
             with self.subTest(name=name), patch.object(atomic, "publish_bytes_no_overwrite") as publish:
                 with self.assertRaisesRegex(ArtifactSetPublicationError, "^commit_marker_name_invalid$"):
                     publish_artifact_set_marker_last(str(self.root), self.payloads,

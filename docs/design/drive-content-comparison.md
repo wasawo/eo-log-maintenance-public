@@ -82,6 +82,14 @@ file上限は全pageのfile件数合計で、page header/token検査後、その
 
 ## 共通Drive観測による複数sourceの比較
 
+### Repeated comparison values within one call (2026-10-27)
+
+`compare_reobserved_drive_contents`と`compare_planned_drive_contents`は共通観測・download集合の検査後、同じfilename/size/SHA-256を持つsourceの比較結果を1呼出し内だけで再利用する。異なるfieldは別の比較条件とし、結果tupleは重複も含めcaller指定の全slot・順序を保持する。共有結果はimmutableな観測であり、local pathの同一性や出所・実行権限を示さない。
+
+再利用辞書は呼出しごとに新規作成し、他run/次の呼出しへ持ち越さない。前後列挙の完全性/不変性とdownload集合・planの再導出/完了検査を省略しない。空選択も共通入力を検査する。比較条件がすべて異なる場合の走査量・全memory/時間には上限を設けず、最大で異なる比較条件数分の結果辞書を持つ。
+
+単一sourceの比較は一致件数と候補ID1件だけを保持し、複数一致の全IDリストは作らない。2件目で早期確定せず、後続候補のsize/hash不明やdownload不一致を引き続き検査し、従来のreason優先順位を維持する。既存のcandidate/heldと全may_*falseは不変で、provider真正性/現在性・同時snapshot/ABA・runtime受け入れは証明しない。
+
 `compare_reobserved_drive_contents`はComparisonSourceの明示tupleを受け、前後の列挙集合を1回ずつ検査し、共通download集合を1回検査する。名前別indexを作り、各sourceの同名候補だけを既存name/size/hash規則で比較する。全fileをsource数だけ再検査せず、結果tupleはcaller指定順を保持する。単一sourceの前後比較APIは1要素batchへ委譲し、直接比較APIも同じ検査/比較部品を使う。
 
 ContentComparisonBatchの`status=compared`は共通入力の検査と比較処理が完了したことだけを表す。各結果のheld/candidateは独立に保持し、全件同期成功やaggregate reportを生成しない。共通の型/信頼/folder/列挙変化/download ID不備はbatch全体をheldとし、部分結果は返さない。file固有のhash不明・不一致・0/複数一致は各ContentComparisonのheldに残す。全結果とbatchのmay_*はfalseである。
@@ -91,6 +99,14 @@ ContentComparisonBatchの`status=compared`は共通入力の検査と比較処�
 [Drive batch試験](../../tests/test_drive_comparison_batch.py)は候補/不明/不在の混在と順序、file検査回数がsource数に乗算されないこと、共通不備の全体保留、download fallback、空選択、重複sourceの保全、単一APIの既存境界を確認する。[source batch接続](../../tests/test_comparison_source_batch.py)も1回のsource再観測→共通page/download→一括前後比較へ接続する。実API・観測真正性・同時snapshot/ABA・runtime受け入れは未実装gateのまま。
 
 ## 不足hash観測のdownload対象計画
+
+### Repeated-source planning and budget preflight (2026-10-27)
+
+`plan_content_downloads`は厳密なsource/列挙検査後、名前ごとの要求size集合を作り、同名sourceが何件あっても各Drive候補bucketを1回ずつ走査して必要件数と総bytesを計算する。hashの違いだけで同じIDを重複計上しない。0 bytesのfileも1件として数え、異なるsize条件も同じ名前の走査で扱う。
+
+全候補のmetadata検査後に件数・bytes上限を順に確認し、予算内の場合だけ2回目の候補走査で必要ID/size辞書とソート済みrequirement tupleを作る。超過時は必要file数に比例する追加辞書を作らず、部分計画も返さない。size不明→件数超過→bytes超過という既存reason優先順位を維持する。None時も同じ候補集合・ID順・非認可flagsで、source/列挙objectは変更しない。
+
+これは重複sourceと同名候補の積に比例する走査を避け、出力辞書の生成を予算確認後に遅らせる改善である。sourceの名前/size集合と全列挙index、caller生成済み入力、bytes/ID文字列長・全memory/時間は依然制限しない。新しい本番値・schema/SDK契約・download認可・runtime/実Drive受け入れは追加しない。[計画試験](../../tests/test_content_download_plan.py)で高重複入力の候補訪問数、複数size/信頼SHA/0 bytes、順序不変とreason優先順位を確認する。
 
 `plan_content_downloads`は明示source tuple、完全列挙観測と独立source信頼/期待folderから、不足しているdownload hash観測だけを計画する。共通の厳密な型/完全性/ID一意性検査後、同名・同sizeのうちcloud SHAが欠落/信頼未確認のfileを選ぶ。同名候補のsize不明は計画全体を保留し、部分requirementを返さない。既知の一致が1件あっても、不明な同名同size候補を省略しない。
 
@@ -104,11 +120,11 @@ DownloadRequirementはfile IDと期待sizeを保持する内部データで、IP
 
 `plan_content_downloads`と`compare_planned_drive_contents`はoptional `maximum_downloads` / `maximum_total_download_bytes`を受け取る。Noneまたは正のexact intのみ許し、不正値は既存のsource trust/type検査後、listing検査前に`comparison_download_limit_invalid`でheldとする。Noneでは当該caller上限なし、固定本番値・C-02/schema・実取得方針は採用しない。
 
-完全listingとsourceから不足hash対象を集めた後、file IDごとに重複排除した件数・期待sizeの合計を検査する。超過は`comparison_download_count_limit_exceeded` / `comparison_download_bytes_limit_exceeded`で全体held、requirementsは空で、requirement objectの構築/出力順序sort前に停止する。候補をskipした部分計画や不足対象の成功補完は行わない。予算内では従来の決定的ID順・exact sizeと全may_*falseを維持し、0件をno_work/同期成功にしない。
+完全listingとsourceから不足hash対象の一意な件数・期待sizeの合計を計算して検査する。超過は`comparison_download_count_limit_exceeded` / `comparison_download_bytes_limit_exceeded`で全体held、requirementsは空で、必要ID/size辞書・requirement objectの構築/出力順序sort前に停止する。候補をskipした部分計画や不足対象の成功補完は行わない。予算内では従来の決定的ID順・exact sizeと全may_*falseを維持し、0件をno_work/同期成功にしない。
 
 比較側はcallerが渡した同じ上限で計画を毎回再導出し、超過/不正値なら完了集合比較前にbatch全体heldとする。予算はplan自体に保存される認可ではなく、未指定の後続呼出しへ自動伝播しない。周囲のpage/file件数上限、個別hashのdownload/chunk上限とは独立である。
 
-これはrequirements出力の資源予算で、既存listing/sourceの保持・index/不足候補dictionary・探索時間/全memoryの制限ではない。source trust/metadata不備は従来どおり保留し、実API/SDK/credential・providerの真正性/現在性やdownload/Archive権限を証明しない。[計画試験](../../tests/test_content_download_plan.py)と[比較接続試験](../../tests/test_planned_drive_comparison.py)で重複IDの一回計上、exact境界、不正値のlisting非検査、超過時のrequirement非構築、0件/未知metadataと比較側への再適用を確認する。
+これはrequirements出力の資源予算で、既存listing/sourceの保持・index/名前別size集合・探索時間/全memoryの制限ではない。source trust/metadata不備は従来どおり保留し、実API/SDK/credential・providerの真正性/現在性やdownload/Archive権限を証明しない。[計画試験](../../tests/test_content_download_plan.py)と[比較接続試験](../../tests/test_planned_drive_comparison.py)で重複IDの一回計上、exact境界、不正値のlisting非検査、超過時のrequirement非構築、0件/未知metadataと比較側への再適用を確認する。
 
 ## 計画と完了download集合の整合検査
 

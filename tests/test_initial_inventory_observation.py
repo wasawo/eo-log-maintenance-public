@@ -17,6 +17,24 @@ from test_drive_comparison_batch import invalid_comparison_batches
 
 
 class InitialInventoryObservationTests(unittest.TestCase):
+    def test_source_budgets_precede_drive_comparison_and_preserve_original_evidence(self):
+        raw, paths, drive = self.seed()
+        expected = self.observe(raw, paths[::-1], drive)
+        actual = self.observe(raw, paths[::-1], drive, maximum_entries=2,
+            maximum_file_bytes=6, maximum_total_hash_bytes=11,
+            maximum_downloads=2, maximum_total_download_bytes=11)
+        self.assertEqual(expected, actual)
+        self.assertIs(raw, actual.evidence_bytes)
+        self.assert_observation_only(actual)
+        for selected in (paths, ()):
+            for limits in (dict(maximum_entries=1), dict(maximum_file_bytes=5), dict(maximum_total_hash_bytes=10)):
+                with self.subTest(selected=selected, limits=limits), \
+                        patch.object(check, "compare_planned_drive_contents") as compare:
+                    with self.assertRaisesRegex(check.SourceRevalidationError, "^source_revalidation_incomplete$"):
+                        self.observe(raw, selected, drive, **limits)
+                    compare.assert_not_called()
+        self.assertEqual((b"first", b"second"), tuple((self.source / path).read_bytes() for path in paths))
+
     def test_invalid_internal_comparison_outputs_never_become_inventory_observations(self):
         raw, paths, drive = self.seed()
         valid = self.observe(raw, paths, drive)

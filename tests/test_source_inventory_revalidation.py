@@ -14,6 +14,60 @@ from test_aggregation_report_builder import SCHEMAS, NOW
 
 
 class SourceInventoryRevalidationTests(unittest.TestCase):
+    def test_all_read_entrypoints_reject_invalid_budgets_before_parsing_or_io(self):
+        _, plan = self.seed()
+        common = dict(expected_log_type="BattleLog", expected_run_id=self.run,
+            expected_root_id="synthetic-source", expected_relative_scope="BattleLog",
+            reference_date=date(2026, 10, 1), current_utc=NOW, current_utc_reliable=True)
+        comparison = dict(common, schema=SCHEMAS["evidence_schema"], source_trusted=True)
+        initial = dict(self.plan_context(), ac_connected=True, expected_root_id="synthetic-source",
+            expected_relative_scope="BattleLog", reference_date=date(2026, 10, 1))
+        entries = (
+            (check.revalidate_source_inventory, plan.evidence_bytes,
+             dict(common, schema=SCHEMAS["evidence_schema"], expected_pc_id="PC-A")),
+            (check.revalidate_initial_manifest_source, plan, initial),
+            (check.revalidate_comparison_source, plan.evidence_bytes,
+             dict(comparison, relative_path="20260901_01020304@synthetic.txt")),
+            (check.revalidate_comparison_sources, plan.evidence_bytes, dict(comparison, relative_paths=())),
+            (check.inspect_initial_inventory, plan.evidence_bytes, dict(comparison, relative_paths=(),
+             drive_before=None, drive_after=None, download_plan=None, downloads=(), expected_folder_id="synthetic")),
+        )
+        for function, value, context in entries:
+            for key in ("maximum_entries", "maximum_file_bytes", "maximum_total_hash_bytes"):
+                for limit in (False, True, 0, -1, 1.0, "1"):
+                    with self.subTest(entry=function.__name__, key=key, limit=limit), \
+                            patch.object(check, "_parse") as parse, \
+                            patch.object(check, "prepare_initial_manifest") as prepare, \
+                            patch.object(check, "build_run_input_evidence") as read, \
+                            patch.object(check, "compare_planned_drive_contents") as compare:
+                        with self.assertRaisesRegex(check.SourceRevalidationError, "^source_revalidation_limit_invalid$"):
+                            function(self.source, value, **context, **{key: limit})
+                        for operation in (parse, prepare, read, compare): operation.assert_not_called()
+
+    def test_recursive_budgets_revalidate_both_pcs_and_logs_without_changing_frozen_bytes(self):
+        for pc in ("PC-A", "PC-B"):
+            for log in ("BattleLog", "ErrorReport"):
+                root = self.source / (pc + log); root.mkdir()
+                nested = root / "nested"; nested.mkdir()
+                names = (["20260901_01020304@a.txt", "20260902_01020304@b.txt"] if log == "BattleLog"
+                         else ["20250901_01020304.txt", "20250902_01020304.txt"])
+                for directory, name, data in zip((root, nested), names, (b"abc", b"defg")):
+                    (directory / name).write_bytes(data)
+                _, plan = self.build(pc=pc, log=log, source=root)
+                expected = self.observe(plan.evidence_bytes, pc=pc, log=log, source=root)
+                actual = self.observe(plan.evidence_bytes, pc=pc, log=log, source=root,
+                    maximum_entries=3, maximum_file_bytes=4, maximum_total_hash_bytes=7)
+                self.assertEqual(expected, actual)
+                self.assertIs(plan.evidence_bytes, actual.evidence_bytes)
+                self.assertFalse(actual.may_upload or actual.may_archive or actual.may_change_state)
+                for limits in (dict(maximum_entries=2), dict(maximum_file_bytes=3),
+                               dict(maximum_total_hash_bytes=6)):
+                    with self.subTest(pc=pc, log=log, limits=limits), self.assertRaisesRegex(
+                            check.SourceRevalidationError, "^source_revalidation_incomplete$"):
+                        self.observe(plan.evidence_bytes, pc=pc, log=log, source=root, **limits)
+                self.assertEqual(b"abc", (root / names[0]).read_bytes())
+                self.assertEqual(b"defg", (nested / names[1]).read_bytes())
+
     setUp = source_fixture.InitialSourceIntegrationTests.setUp
     cleanup = source_fixture.InitialSourceIntegrationTests.cleanup
     plan_context = source_fixture.InitialSourceIntegrationTests.plan_context

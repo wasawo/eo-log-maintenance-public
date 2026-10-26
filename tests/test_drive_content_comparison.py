@@ -24,6 +24,17 @@ def compare(files=(FILE,), **changes):
 
 
 class DriveContentComparisonTests(unittest.TestCase):
+    def test_late_uncertainty_after_multiple_matches_keeps_existing_failure_precedence(self):
+        matches = tuple(replace(FILE, file_id=f"synthetic-{i}") for i in range(40))
+        for tail, downloads, reason in (
+                (replace(FILE, file_id="unknown", size_bytes=None), (), "comparison_metadata_unavailable"),
+                (replace(FILE, file_id="unknown", sha256=None), (), "comparison_hash_unavailable"),
+                (replace(FILE, file_id="unknown"), (DownloadHashObservation("unknown", 8, SHA),),
+                 "comparison_download_mismatch")):
+            with self.subTest(reason=reason):
+                self.assert_held(compare(matches + (tail,), downloads=downloads), reason)
+        self.assert_held(compare(matches), "comparison_multiple_matches")
+
     def assert_held(self, result, reason):
         self.assertEqual(("held", reason, None),
                          (result.status, result.reason_code, result.candidate_file_id))

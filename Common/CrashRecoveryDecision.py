@@ -12,6 +12,9 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator
+from referencing import Registry
+
+from Common.LatestManifestSelection import _require_local_schema_refs, _no_schema_retrieval
 
 
 _RUN_ID = re.compile(
@@ -111,8 +114,9 @@ def _parse_prior_manifest(raw: bytes) -> dict[str, Any] | None:
     schema_path = Path(__file__).resolve().parent.parent / "contracts" / "manifest-v1.schema.json"
     try:
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        _require_local_schema_refs(schema)
         Draft202012Validator.check_schema(schema)
-        Draft202012Validator(schema).validate(value)
+        Draft202012Validator(schema, registry=Registry(retrieve=_no_schema_retrieval)).validate(value)
     except Exception:
         return None
     return value

@@ -2,6 +2,7 @@
 from dataclasses import replace
 import hashlib
 import unittest
+from unittest.mock import patch
 
 from Common import DriveContentComparison as check
 
@@ -38,6 +39,30 @@ def compare(plan=None, downloads=None, **changes):
 
 
 class PlannedDriveComparisonTests(unittest.TestCase):
+    def test_completed_set_comparison_reuses_values_but_preserves_source_order_and_count(self):
+        unique = (SOURCE, replace(SOURCE, sha256="0"*64), replace(SOURCE, size_bytes=10),
+                  replace(SOURCE, filename="absent.txt"))
+        sources = unique * 100
+        with patch.object(check, "_compare_source", wraps=check._compare_source) as compared:
+            result = compare(sources=sources)
+        expected = ("comparison_unique_content_match", "comparison_no_match", "comparison_no_match",
+                    "comparison_no_match") * 100
+        self.assertEqual("compared", result.status)
+        self.assertEqual(expected, tuple(x.reason_code for x in result.results))
+        self.assertEqual(len(unique), compared.call_count)
+        for item in (result, *result.results):
+            self.assertFalse(item.may_restore or item.may_report_sync_success or item.may_archive)
+
+    def test_completed_set_is_rechecked_on_every_call_before_repeated_source_comparison(self):
+        sources = (SOURCE,) * 10
+        first = compare(sources=sources)
+        changed = compare(sources=sources, downloads=(downloaded(payload=b"different"),))
+        self.assertEqual(("comparison_unique_content_match",) * 10, tuple(x.reason_code for x in first.results))
+        self.assertEqual(("comparison_no_match",) * 10, tuple(x.reason_code for x in changed.results))
+        with patch.object(check, "_compare_source") as compared:
+            self.assert_held(compare(sources=sources, downloads=()), "comparison_download_set_mismatch")
+            compared.assert_not_called()
+
     def test_plan_output_budgets_are_reapplied_before_completed_set_comparison(self):
         self.assertEqual(compare(), compare(maximum_downloads=1, maximum_total_download_bytes=9))
         self.assert_held(compare(maximum_total_download_bytes=8), "comparison_download_bytes_limit_exceeded")

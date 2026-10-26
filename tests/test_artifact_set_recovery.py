@@ -7,6 +7,32 @@ from Common.ArtifactSetRecovery import classify_artifact_set
 
 
 class ArtifactSetRecoveryTests(unittest.TestCase):
+    def test_publisher_invalid_basenames_block_every_observed_map(self):
+        for name in ("", ".", "..", ".hidden", "nested/file", "nested\\file", "bad\x00name",
+                     "artifact.", "artifact ", "artifact. ", None, 1):
+            for slot, reason in (("expected_sha256", "expected_artifact_set_invalid"),
+                                 ("published_sha256", "published_artifact_set_invalid"),
+                                 ("staged_sha256", "staged_artifact_set_invalid")):
+                context = dict(expected_sha256=self.expected, published_sha256={}, staged_sha256={})
+                context[slot] = {name: "a" * 64}
+                with self.subTest(name=name, slot=slot):
+                    result = classify_artifact_set(**context)
+                    self.assertEqual(("blocked", reason), (result.state, result.reason_code))
+                    self.assertFalse(result.may_report_committed or result.may_publish_next)
+                    self.assertTrue(result.preserve_existing_artifacts and result.requires_reconciliation)
+
+    def test_valid_unicode_and_internal_spacing_remain_exact_distinct_names(self):
+        names = ("報告 e\u0301.json", "報告 é.json", "many.parts.json", "internal space.json")
+        expected = {name: "a" * 64 for name in names}
+        marker = dict(self.marker, artifact_sha256=expected)
+        before = dict(expected)
+        result = classify_artifact_set(expected_sha256=expected, published_sha256=dict(expected),
+            staged_sha256={}, commit_marker=marker)
+        self.assertEqual("committed", result.state)
+        self.assertTrue(result.may_report_committed)
+        self.assertEqual(before, expected)
+        self.assertEqual(len(names), len(expected))
+
     def test_copy_failures_in_all_mapping_inputs_return_fixed_blocked_decisions(self):
         from collections.abc import Mapping
         class BrokenMap(Mapping):

@@ -26,6 +26,68 @@ def plan(sources=(SOURCE,), observed=None, **changes):
 
 
 class ContentDownloadPlanTests(unittest.TestCase):
+    def test_repeated_sources_do_not_repeat_drive_bucket_scans(self):
+        files = tuple(replace(FILE, file_id=f"synthetic-{i:04d}") for i in range(40))
+        observed = listing(files)
+        sources = (SOURCE, replace(SOURCE, sha256="0"*64)) * 200
+        expected = tuple(check.DownloadRequirement(item.file_id, item.size_bytes) for item in files)
+        real_group = check._group_files
+        visits = []
+        class CountedFiles(list):
+            def __iter__(self):
+                for item in super().__iter__():
+                    visits.append(item.file_id)
+                    yield item
+        def counted_group(by_id):
+            return {name: CountedFiles(bucket) for name, bucket in real_group(by_id).items()}
+        with patch.object(check, "_group_files", side_effect=counted_group):
+            result = plan(sources, observed, maximum_downloads=40, maximum_total_download_bytes=360)
+        self.assertEqual(expected, result.requirements)
+        # Count actual candidate visits rather than depending on wall-clock speed.
+        self.assertLessEqual(len(visits), 2 * len(files))
+        self.assert_no_authority(result)
+
+    def test_distinct_sizes_and_hash_trust_preserve_every_unique_requirement(self):
+        sources = (SOURCE, replace(SOURCE, size_bytes=0), replace(SOURCE, size_bytes=2),
+                   replace(SOURCE, filename="other.txt", size_bytes=3)) * 3
+        files = (FILE, replace(FILE, file_id="empty", size_bytes=0),
+                 replace(FILE, file_id="two", size_bytes=2, sha256=SHA),
+                 replace(FILE, file_id="other", filename="other.txt", size_bytes=3),
+                 replace(FILE, file_id="trusted", sha256=SHA, sha256_trusted=True),
+                 replace(FILE, file_id="wrong-size", size_bytes=4))
+        expected = tuple(check.DownloadRequirement(key, size) for key, size in sorted(
+            ((FILE.file_id, len(DATA)), ("empty", 0), ("two", 2), ("other", 3))))
+        for ordered_sources, ordered_files in ((sources, files), (sources[::-1], files[::-1])):
+            result = plan(ordered_sources, listing(ordered_files), maximum_downloads=4,
+                          maximum_total_download_bytes=14)
+            self.assertEqual(expected, result.requirements)
+            self.assert_no_authority(result)
+        self.assertEqual(files[0], FILE)
+
+    def test_late_unknown_metadata_keeps_priority_over_both_exceeded_budgets(self):
+        other_source = replace(SOURCE, filename="other.txt")
+        files = (FILE, replace(FILE, file_id="second"),
+                 replace(FILE, file_id="unknown", filename="other.txt", size_bytes=None))
+        for sources in ((SOURCE, other_source), (other_source, SOURCE)):
+            with patch.object(check, "DownloadRequirement") as requirement:
+                result = plan(sources, listing(files), maximum_downloads=1, maximum_total_download_bytes=1)
+            self.assertEqual(("held", "comparison_metadata_unavailable", ()),
+                (result.status, result.reason_code, result.requirements))
+            requirement.assert_not_called()
+        result = plan((SOURCE,), listing(files[:2]), maximum_downloads=1, maximum_total_download_bytes=1)
+        self.assertEqual("comparison_download_count_limit_exceeded", result.reason_code)
+
+    def test_zero_byte_candidates_count_once_even_with_repeated_sources(self):
+        sources = (replace(SOURCE, size_bytes=0),) * 50
+        files = tuple(replace(FILE, file_id=f"empty-{i}", size_bytes=0) for i in range(2))
+        expected = tuple(check.DownloadRequirement(item.file_id, 0) for item in files)
+        result = plan(sources, listing(files), maximum_downloads=2, maximum_total_download_bytes=1)
+        self.assertEqual(expected, result.requirements)
+        self.assert_no_authority(result)
+        result = plan(sources, listing(files), maximum_downloads=1, maximum_total_download_bytes=1)
+        self.assertEqual(("held", "comparison_download_count_limit_exceeded", ()),
+            (result.status, result.reason_code, result.requirements))
+
     def test_output_limits_count_unique_ids_and_exact_total_bytes(self):
         second = replace(FILE, file_id="synthetic-second")
         sources = (SOURCE, SOURCE, replace(SOURCE, sha256="0"*64))

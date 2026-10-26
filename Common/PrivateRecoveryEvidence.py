@@ -5,6 +5,9 @@ import json
 from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
+from referencing import Registry
+
+from Common.LatestManifestSelection import _require_local_schema_refs, _no_schema_retrieval
 
 
 class PrivateRecoveryEvidenceError(ValueError):
@@ -30,8 +33,10 @@ def _validate_shape(value):
     try:
         schema = json.loads((Path(__file__).resolve().parent.parent / "contracts" /
                             "private-recovery-evidence-v1.schema.json").read_text(encoding="utf-8"))
+        _require_local_schema_refs(schema)
         Draft202012Validator.check_schema(schema)
-        Draft202012Validator(schema, format_checker=FormatChecker()).validate(value)
+        Draft202012Validator(schema, format_checker=FormatChecker(),
+            registry=Registry(retrieve=_no_schema_retrieval)).validate(value)
         # Optional JSON Schema format dependencies are not proof of a valid
         # calendar date. Enforce it independently on every installation.
         datetime.fromisoformat(value["observed_at_utc"][:-1] + "+00:00")

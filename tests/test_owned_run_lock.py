@@ -5,9 +5,10 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from Common.OwnedRunLock import LockAcquisitionError, _NamedMutex, acquire_owned_lock
+from Common import OwnedRunLock as owned
 
 
 class FakeMutex:
@@ -58,6 +59,274 @@ class NamedMutexCloseTests(unittest.TestCase):
 
 
 class OwnedRunLockTests(unittest.TestCase):
+    def test_record_observation_or_unlink_interruption_cannot_bypass_mutex_cleanup(self):
+        real_matches, real_unlink = owned._record_matches, Path.unlink
+        for stage in ("observation", "unlink"):
+            for index, error in enumerate((KeyboardInterrupt(), SystemExit(7), RuntimeError("synthetic interruption"))):
+                path = self.root / f"{stage}-{index}.lock"
+                calls = 0
+                def matches(*args, **kwargs):
+                    nonlocal calls
+                    calls += 1
+                    if calls == 2 and stage == "observation": raise error
+                    return real_matches(*args, **kwargs)
+                def unlink(target, *args, **kwargs):
+                    if target == path and stage == "unlink": raise error
+                    return real_unlink(target, *args, **kwargs)
+                with self.subTest(stage=stage, error_type=type(error).__name__), \
+                        patch.object(owned, "_record_matches", side_effect=matches), patch.object(Path, "unlink", unlink):
+                    with self.assertRaises(type(error)):
+                        with acquire_owned_lock("PC-A", path, mutex_factory=self.factory(), token_factory=lambda: "a"*64):
+                            before = path.read_bytes()
+                self.assertEqual(before, path.read_bytes())
+                self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_failed_or_interrupted_release_still_attempts_close(self):
+        for error in (OSError("synthetic release failure"), KeyboardInterrupt()):
+            mutex = FakeMutex("synthetic")
+            with self.subTest(error_type=type(error).__name__), patch.object(mutex, "release", side_effect=error) as release:
+                with self.assertRaises(type(error)):
+                    with acquire_owned_lock("PC-A", self.path, mutex_factory=lambda name: mutex,
+                            token_factory=lambda: "a"*64):
+                        pass
+                release.assert_called_once_with()
+            self.assertTrue(mutex.closed)
+            self.assertFalse(self.path.exists())
+
+    def test_record_cleanup_oserror_preserves_body_exception_and_record(self):
+        with patch.object(Path, "unlink", side_effect=OSError("synthetic cleanup failure")):
+            with self.assertRaisesRegex(RuntimeError, "^synthetic body failure$"):
+                with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(), token_factory=lambda: "a"*64):
+                    before = self.path.read_bytes()
+                    raise RuntimeError("synthetic body failure")
+        self.assertEqual(before, self.path.read_bytes())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_nonbool_wait_results_cannot_create_records_or_enter_body(self):
+        class UnexpectedTruth:
+            def __bool__(self): raise AssertionError("must not coerce adapter result")
+        for result in (None, 0, 1, "true", [], UnexpectedTruth()):
+            with self.subTest(result_type=type(result).__name__), patch.object(owned, "_strict_record_bytes") as payload:
+                with self.assertRaisesRegex(LockAcquisitionError, "^named_mutex_wait_failed$"):
+                    with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(acquired=result),
+                            token_factory=lambda: "a"*64):
+                        self.fail("must not enter")
+                payload.assert_not_called()
+            self.assertFalse(self.path.exists())
+            self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_wait_exceptions_are_sanitized_and_uncertain_ownership_is_released(self):
+        for error in (OSError("synthetic private detail"), RuntimeError("synthetic private detail")):
+            mutex = FakeMutex("synthetic")
+            with self.subTest(error_type=type(error).__name__), patch.object(mutex, "acquire", side_effect=error):
+                with self.assertRaises(LockAcquisitionError) as caught:
+                    with acquire_owned_lock("PC-A", self.path, mutex_factory=lambda name: mutex,
+                            token_factory=lambda: "a"*64):
+                        self.fail("must not enter")
+            self.assertEqual("named_mutex_wait_failed", str(caught.exception))
+            self.assertIsNone(caught.exception.__cause__)
+            self.assertFalse(self.path.exists())
+            self.assertTrue(mutex.released and mutex.closed)
+
+    def test_interrupted_wait_still_releases_and_closes_without_record_io(self):
+        mutex = FakeMutex("synthetic")
+        with patch.object(mutex, "acquire", side_effect=KeyboardInterrupt), self.assertRaises(KeyboardInterrupt):
+            with acquire_owned_lock("PC-A", self.path, mutex_factory=lambda name: mutex,
+                    token_factory=lambda: "a"*64):
+                self.fail("must not enter")
+        self.assertFalse(self.path.exists())
+        self.assertTrue(mutex.released and mutex.closed)
+
+    def test_abandoned_observation_requires_exact_bool_before_record_creation(self):
+        for value in (None, 0, 1, "false", []):
+            with self.subTest(value_type=type(value).__name__), patch.object(owned, "_strict_record_bytes") as payload:
+                with self.assertRaisesRegex(LockAcquisitionError, "^named_mutex_observation_invalid$"):
+                    with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(abandoned=value),
+                            token_factory=lambda: "a"*64):
+                        self.fail("must not enter")
+                payload.assert_not_called()
+            self.assertFalse(self.path.exists())
+            self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_missing_or_failed_abandoned_observation_is_not_defaulted_to_false(self):
+        class FailedObservation(FakeMutex):
+            def __getattribute__(self, name):
+                if name == "abandoned": raise OSError("synthetic private detail")
+                return super().__getattribute__(name)
+        missing = FakeMutex("synthetic")
+        del missing.abandoned
+        for mutex in (missing, FailedObservation("synthetic")):
+            with self.subTest(adapter_type=type(mutex).__name__), self.assertRaisesRegex(
+                    LockAcquisitionError, "^named_mutex_observation_invalid$"):
+                with acquire_owned_lock("PC-A", self.path, mutex_factory=lambda name: mutex,
+                        token_factory=lambda: "a"*64):
+                    self.fail("must not enter")
+            self.assertFalse(self.path.exists())
+            self.assertTrue(mutex.released and mutex.closed)
+
+    def test_invalid_write_counts_preserve_even_parseable_records_and_primary_reason(self):
+        real_open = Path.open
+        for index, count in enumerate((None, False, True, -1, 0, "short", "long")):
+            for close_failure in (False, True, "exists"):
+                path = self.root / f"count-{index}-{close_failure}.lock"
+                contents = []
+                class Stream:
+                    def __init__(self, stream): self.stream = stream
+                    def __enter__(self): return self
+                    def __exit__(self, *args):
+                        self.stream.close()
+                        if close_failure == "exists": raise FileExistsError("synthetic close failure")
+                        if close_failure: raise OSError("synthetic close failure")
+                    def write(self, payload):
+                        raw = payload[:-1] if count == "short" else payload
+                        contents.append(raw)
+                        self.stream.write(raw)
+                        return len(payload)-1 if count == "short" else len(payload)+1 if count == "long" else count
+                    def flush(self): raise AssertionError("must stop before flush")
+                    def fileno(self): raise AssertionError("must stop before fsync")
+                def opened(target, mode="r", *args, **kwargs):
+                    stream = real_open(target, mode, *args, **kwargs)
+                    return Stream(stream) if target == path and mode == "xb" else stream
+                with self.subTest(count=count, close_failure=close_failure), patch.object(Path, "open", opened), \
+                        patch.object(owned, "_record_matches") as verify:
+                    with self.assertRaisesRegex(LockAcquisitionError, "^lock_record_write_incomplete$"):
+                        with acquire_owned_lock("PC-A", path, mutex_factory=self.factory(), token_factory=lambda: "a"*64):
+                            self.fail("must not enter")
+                    verify.assert_not_called()
+                self.assertEqual(contents[0], path.read_bytes())
+                self.assertIsInstance(json.loads(path.read_bytes()), dict)
+                self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_creation_io_failures_preserve_written_record_and_never_attempt_cleanup(self):
+        real_open, real_fsync = Path.open, owned.os.fsync
+        for stage in ("write", "flush", "fsync", "close"):
+            path = self.root / (stage + ".lock")
+            contents = []
+            class Stream:
+                def __init__(self, stream): self.stream = stream
+                def __enter__(self): return self
+                def __exit__(self, *args):
+                    self.stream.close()
+                    if stage == "close": raise OSError("synthetic close failure")
+                def write(self, payload):
+                    contents.append(payload)
+                    count = self.stream.write(payload)
+                    if stage == "write": raise OSError("synthetic write failure")
+                    return count
+                def flush(self):
+                    if stage == "flush": raise OSError("synthetic flush failure")
+                    self.stream.flush()
+                def fileno(self): return self.stream.fileno()
+            def opened(target, mode="r", *args, **kwargs):
+                stream = real_open(target, mode, *args, **kwargs)
+                return Stream(stream) if target == path and mode == "xb" else stream
+            def sync(fd):
+                if stage == "fsync": raise OSError("synthetic fsync failure")
+                return real_fsync(fd)
+            with self.subTest(stage=stage), patch.object(Path, "open", opened), \
+                    patch.object(owned.os, "fsync", sync), patch.object(owned, "_record_matches") as verify:
+                with self.assertRaisesRegex(LockAcquisitionError, "^lock_record_create_failed$"):
+                    with acquire_owned_lock("PC-A", path, mutex_factory=self.factory(), token_factory=lambda: "a"*64):
+                        self.fail("must not enter")
+                verify.assert_not_called()
+            self.assertEqual(contents[0], path.read_bytes())
+            self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_failed_initial_ownership_verification_is_not_retried_for_cleanup(self):
+        with patch.object(owned, "_record_matches", side_effect=(False, True)) as verify:
+            with self.assertRaisesRegex(LockAcquisitionError, "^lock_record_ownership_unverified$"):
+                with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(), token_factory=lambda: "a"*64):
+                    self.fail("must not enter")
+            self.assertEqual(1, verify.call_count)
+        self.assertEqual(owned._strict_record_bytes("PC-A", "a"*64), self.path.read_bytes())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_record_byte_limit_exact_boundary_preserves_normal_ownership_cleanup(self):
+        token = "a" * 64
+        limit = len(owned._strict_record_bytes("PC-A", token))
+        with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(),
+                token_factory=lambda: token, maximum_record_bytes=limit):
+            self.assertEqual(limit, self.path.stat().st_size)
+        self.assertFalse(self.path.exists())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_invalid_record_limits_reject_before_token_path_or_mutex(self):
+        class UnpreparedPath:
+            def __fspath__(self): raise AssertionError("must not prepare path")
+        for value in (True, False, 0, -1, 1.0, "1"):
+            factory, token = Mock(), Mock()
+            with self.subTest(value=value), self.assertRaisesRegex(LockAcquisitionError, "^lock_record_limit_invalid$"):
+                with acquire_owned_lock("PC-A", UnpreparedPath(), mutex_factory=factory,
+                        token_factory=token, maximum_record_bytes=value):
+                    self.fail("must not enter")
+            factory.assert_not_called()
+            token.assert_not_called()
+
+    def test_creation_budget_excess_creates_no_record_and_releases_mutex(self):
+        with patch.object(Path, "open") as opened:
+            with self.assertRaisesRegex(LockAcquisitionError, "^lock_record_limit_exceeded$"):
+                with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(),
+                        token_factory=lambda: "a" * 64, maximum_record_bytes=1):
+                    self.fail("must not enter")
+            opened.assert_not_called()
+        self.assertFalse(self.path.exists())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_oversized_replacement_is_preserved_without_payload_read_on_release(self):
+        token = "a" * 64
+        limit = len(owned._strict_record_bytes("PC-A", token))
+        changed = b"synthetic-untrusted" * limit
+        with patch.object(owned, "_read_stable", wraps=owned._read_stable) as read:
+            with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(),
+                    token_factory=lambda: token, maximum_record_bytes=limit):
+                self.assertEqual(1, read.call_count)
+                self.path.write_bytes(changed)
+            self.assertEqual(1, read.call_count)
+        self.assertEqual(changed, self.path.read_bytes())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_growth_between_path_and_handle_observations_never_yields_ownership(self):
+        token = "a" * 64
+        limit = len(owned._strict_record_bytes("PC-A", token))
+        real_open = Path.open
+        grown = False
+        def grow(path, mode="r", *args, **kwargs):
+            nonlocal grown
+            if path == self.path and mode == "rb" and not grown:
+                with open(path, "ab") as stream: stream.write(b"x" * 4096)
+                grown = True
+            return real_open(path, mode, *args, **kwargs)
+        with patch.object(Path, "open", grow), self.assertRaisesRegex(LockAcquisitionError,
+                "^lock_record_ownership_unverified$"):
+            with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(),
+                    token_factory=lambda: token, maximum_record_bytes=limit):
+                self.fail("must not enter")
+        self.assertEqual(limit + 4096, self.path.stat().st_size)
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_deep_json_on_release_is_preserved_and_cannot_skip_mutex_release(self):
+        changed = b"[" * 2000 + b"0" + b"]" * 2000
+        with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(), token_factory=lambda: "a" * 64):
+            self.path.write_bytes(changed)
+        self.assertEqual(changed, self.path.read_bytes())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_unavailable_stable_observation_preserves_record_and_releases_mutex(self):
+        with patch.object(owned, "_read_stable", side_effect=owned.ArtifactSetDirectoryVerificationError("artifact_changed")):
+            with self.assertRaisesRegex(LockAcquisitionError, "^lock_record_ownership_unverified$"):
+                with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(), token_factory=lambda: "a" * 64):
+                    self.fail("must not enter")
+        self.assertTrue(self.path.exists())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_bounded_read_does_not_impose_canonical_json_spelling(self):
+        with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(),
+                token_factory=lambda: "a" * 64, maximum_record_bytes=4096):
+            record = json.loads(self.path.read_bytes())
+            self.path.write_bytes(json.dumps(record, indent=2).encode("utf-8"))
+        self.assertFalse(self.path.exists())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

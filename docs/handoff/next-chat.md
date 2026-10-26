@@ -8,6 +8,120 @@
 
 ## 最新基準と今回の作業
 
+### 累積PR・マージ承認と統合検証（2026-10-27）
+
+- 利用者がここまでの累積コミットをまとめたPR作成→マージを明示指示。正本GitHub/local/origin mainの`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）と、cleanなbranch `codex/source-inventory-budgets`の`2d23d13`を照合した。実装13コミット・34 filesと本記録を同じPRにまとめ、最新PR HEADのValidate/Package Validation両成功を確認後squash mergeする。本記録時点は未push/未PR/未マージ。結果のPR/merge SHA・CIはGitHub実状態と本チャット最終報告/PR本文を照合する。
+- 範囲：source再帰列挙/適格hash予算と再観測5入口への伝播、download計画事前集計と呼出し内比較再利用、marker-lastのbasename共通検査・marker込み公開bytes予算、隔離保存の公開/読戻し/owner予算接続、owner recordの安定読取・short write/作成失敗保全・厳密mutex応答/中断cleanup、復旧schemaのlocal-only参照/外部取得禁止。EOLM-FIL-005/007・EOLM-SYN-007/008/OSD-01等の既存境界を補助し、要件全体/P0閉鎖へ昇格しない。
+- Python 3.11.9実体（shim版未選択のため個人設定を変えず指定、CIは3.12）で`$env:PYTHONPATH='tests;.'`後、`& $python311 -B -m unittest discover -s tests -p 'test_*.py'`の940件中938成功・既存symlink作成不可2skip。既知hardlink sandbox制約を避けauto-review承認済みsandbox外で合成データ/自作tempだけを使用。PowerShell 7.6.7を版確認し`pwsh -NoLogo -NoProfile -File tests/Test-ReleasePackage.ps1`の両role回帰成功。累積変更6 Markdownの相対リンク209件欠落0、`git diff --check origin/main...HEAD`成功。root自己点検のみ、独立レビューなし。個別単位の失敗/修正/再実行/環境差は下記の履歴に保持する。
+- schema/PS/CI定義・既存配布file集合50件は不変。固定本番値、正式runtime/SDK/credential/C-02/writer/CAS/receiptやprivate保存/owner-v2/provider資格を新設しない。root/ACL/FS/owner/時計等の真正性、現在性/ABA・電源断/両PC/Tier B/C/runtime受け入れは未完。実ログ/本番Driveは使わず、PC-B archive/元ログ・Driveログ削除/本番適用の認可を追加しない。
+- マージ後は次実装を始めず、本作業を終了する。作業branchは保持し、次実装は利用者指示を受けて最新mainから新branchで行う。
+
+### private証拠・crash判定schemaの外部取得禁止（2026-10-27）
+
+- 利用者の次作業指示を受け、cleanな`16b7e7b`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [復旧schemaのlocal-only参照](../../Common/README.md#local-only-recovery-schema-references-2026-10-27)をprivate evidence build/validateとcrash classifierのprior manifest検査へ適用。既存selectorの全tree参照検査と取得禁止Registryを再利用し、非local/不正`$ref` / `$dynamicRef`を未使用defs内でも拒否する。privateは既存`private_evidence_invalid`、crashは既存`prior_manifest_invalid_or_not_running`に閉じ、正常local fragment・元metadata/raw/prior bytes・既存非認可/保全を維持する。
+- 既存Python 3.11.9実体（shim版未選択のため設定変更せず指定、CIは3.12）で`$env:PYTHONPATH='tests;.'`後、`& $python311 -B -m unittest test_private_recovery_evidence test_crash_recovery_decision test_manifest_recovery_integration test_latest_manifest_selection test_aggregation_report_builder test_owned_publication_integration test_recovery_diagnostic_mutex`の121件全成功・skipなし。既知sandbox hardlink拒否を避けauto-review承認済みのsandbox外・自作temp/合成入力だけを使用。既存CI登録suiteへ新規6件を追加し、HTTP/file/相対/不正値/未使用参照、破損local/invalid schema、正常local、事前検査を迂回した場合のRegistry拒否をsocket非呼出しで確認。変更3文書の相対リンク146件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- schema取得制限であり、schema真正性/資源上限・private保存/ACL/owner-v2/provider資格、実復旧/次run認可、現在性/ABA・電源断/Tier B/C/runtime受け入れや要件全体/P0-010閉鎖は未実装・未実証。既存依存/配布file集合・schema/C-02/SDK・固定本番値は不変。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで累積source/公開/owner/復旧境界と未決runtime契約を照合して次単位を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
+### record cleanup中断後のmutex解放試行（2026-10-27）
+
+- 利用者の次作業指示を受け、cleanな`cd703dc`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [record cleanup中断時のmutex処理](../../Common/README.md#mutex-cleanup-after-record-cleanup-interruption-2026-10-27)としてrecordの解放時観測/unlinkを外側finallyで囲み、KeyboardInterrupt/SystemExit等でも後続のmutex release・closeを試みる。release自体の失敗/中断でもcloseを試みる順序、通常の所有確認/cleanupとOSError時のrecord保全を維持する。中断は正常終了へ変換しない。
+- 既存Python 3.11.9実体（shim版未選択のため設定変更せず指定、CIは3.12）で`$env:PYTHONPATH='tests;.'`後、`& $python311 -B -m unittest test_owned_run_lock test_owned_publication_integration test_recovery_diagnostic_mutex test_terminal_bundle_integration test_terminal_history_usepoint test_terminal_plan_usepoint test_initial_source_integration test_initial_source_usepoint test_internal_publication_crash test_crash_publication_harness test_download_staging_integration`の128件全成功・skipなし。既知sandbox hardlink拒否を避けauto-review承認済みのsandbox外・自作temp/合成adapterだけを使用。既存CI登録suiteに新規4件を追加し、record観測/unlink中断・release失敗/中断とclose、unlink OSError時のbody例外/record保全、両PCの候補公開後中断と実mutex再取得を確認した。変更2文書の相対リンク136件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- 通常終了/中断でのcleanup試行経路を守る補助であり、強制process終了・電源断時のfinally実行や耐久性を証明しない。schema/owner-v2/SDK/配布集合・固定本番値、新しい削除/復旧/次run認可は追加しない。root/ACL/FS/owner/provider真正性、現在性/ABA・実Drive/runtime・Tier B/C受け入れや要件全体/P0-010閉鎖は未実装・未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで累積source/公開/owner境界と未決runtime契約を照合して次単位を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
+### owned mutex応答の厳密検査と不確かな待機のcleanup（2026-10-27）
+
+- 利用者の次作業指示を受け、cleanな`83ee8e0`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [owned mutex adapter観測](../../Common/README.md#strict-owned-mutex-adapter-observations-2026-10-27)を既存診断mutex/Win32 adapterのbool契約へ整合。acquire結果をbool変換せずexact boolで検査し、不正値/待機例外は固定`named_mutex_wait_failed`でrecord payload生成前に拒否する。待機中断/不確かな結果はrelease・closeを試み、確定False timeoutではcloseのみ。取得後のabandonedもexact boolを要求し、欠落/不明/不正型をFalse補完せず`named_mutex_observation_invalid`で拒否、Trueは従来どおり回復待ち停止とする。
+- 既存Python 3.11.9実体（shim版未選択のため設定変更せず指定、CIは3.12）で`$env:PYTHONPATH='tests;.'`後、`& $python311 -B -m unittest test_owned_run_lock test_owned_publication_integration test_recovery_diagnostic_mutex test_terminal_bundle_integration test_terminal_history_usepoint test_terminal_plan_usepoint test_initial_source_integration test_initial_source_usepoint test_internal_publication_crash test_crash_publication_harness test_download_staging_integration`の124件全成功・skipなし。既知sandbox hardlink拒否を避けauto-review承認済みのsandbox外・自作temp/合成adapterだけを使用。既存CI登録suiteに新規5件を追加し、truthiness変換非使用、不正応答/例外/KeyboardInterrupt時の非record作成とcleanup、abandonedの不正型/欠落/取得失敗を確認。変更2文書の相対リンク133件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- 既存adapterの未所有release no-op契約を前提にcleanupを試みるだけで、provider/実owner真正性・新しい実行認可を与えない。schema/owner-v2/SDK/配布集合・固定本番値は不変。残存recordの採用/復旧、root/ACL/FS資格、現在性/ABA・電源断/Tier B/C/runtime受け入れや要件全体/P0-010閉鎖は未実装・未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで累積source/公開/owner境界と未決runtime契約を照合して次単位を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
+### owner record作成失敗の保全とshort write拒否（2026-10-27）
+
+- 利用者の次作業指示を受け、cleanな`96d6f25`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [owner record作成失敗の保全](../../Common/README.md#owner-record-creation-failure-preservation-2026-10-27)を追加。`write`がexact intの全bytes件数でなければ`lock_record_write_incomplete`で停止し、closeの二重OSError/FileExistsErrorでも一次reasonを保持。通常write/flush/fsync/close失敗は既存create-failed境界を維持する。finallyでのrecord cleanupを、作成完了と最初の安定所有確認に成功した場合だけへ限定し、失敗recordはparse可能/正しいtokenでも所有再確認して削除しない。mutex release/closeと正常取得後の従来cleanupは維持。
+- 既存Python 3.11.9実体（shim版未選択のため設定変更せず指定、CIは3.12）で`$env:PYTHONPATH='tests;.'`後、`& $python311 -B -m unittest test_owned_run_lock test_terminal_bundle_integration test_terminal_history_usepoint test_terminal_plan_usepoint test_owned_publication_integration test_initial_source_integration test_initial_source_usepoint test_internal_publication_crash test_crash_publication_harness test_download_staging_integration`の105件全成功・skipなし。既知sandbox hardlink拒否を避けauto-review承認済みのsandbox外・自作tempだけを使用。追加のclose FileExistsError caseを補強後、`& $python311 -B -m unittest test_owned_run_lock`の27件全成功を対象再確認（105件内のsuiteで独立総数へ加算しない）。新規4件は既存CI登録suiteへ追加し、書込件数/二重close failure、4段階のI/O失敗、初回所有確認失敗、両PCの候補非作成・parse可能record保全・mutex再取得を確認。変更2文書の相対リンク131件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- 既存lockの失敗保全境界補助で、schema/owner-v2/SDK/配布集合・固定本番値は不変。残存record採用/復旧や新しい削除能力・次run認可は追加しない。root/ACL/FS/owner/provider真正性、unlinkまでの競合/ABA・電源断/Tier B/C/runtime受け入れや要件全体/P0-010閉鎖は未実装・未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで累積source/公開/owner境界と未決runtime契約を照合して次単位を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
+### 隔離保存接続へのowner record予算伝播（2026-10-27）
+
+- 利用者の次作業指示を受け、cleanな`ea69c4d`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [隔離候補の予算接続](../design/manifest-transition-inspection.md#explicit-fixture-publicationreadback-budgets-2026-10-27)でpublish/readback・全履歴使用点保存から`maximum_record_bytes`をowned lockへ伝播。不正値はguard/owner取得前、record作成前超過は候補保存/検証・履歴再導出前に停止する。予算内の実record長境界、公開/読戻しの別予算、prior/candidate保全を維持する。所有中のrecord増大+例外でも元例外/recordを保持し、別合成record pathで同一mutexを再取得して解放だけを確認する。
+- 既存Python 3.11.9実体（shim版未選択のため設定変更せず指定、CIは3.12）で`$env:PYTHONPATH='tests;.'`後、`& $python311 -B -m unittest test_owned_run_lock test_terminal_bundle_integration test_terminal_history_usepoint test_terminal_plan_usepoint test_owned_publication_integration`の63件全成功・skipなし。既知のsandbox hardlink WinError 5を避け、auto-review承認済みのsandbox外で自作tempだけを使用。新規3件と既存境界/不正値matrixの拡張は既存CI登録suiteに追加した。変更2文書の相対リンク113件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- tests専用の接続証拠であり、Common/schema/SDK/配布集合・固定本番値・正式runtime/配置/IPC契約は変更しない。予算は各呼出しの指定で保存/自動伝播しない。残存recordの採用/復旧・次run認可、root/FS/owner/provider真正性、現在性/ABA・実Drive/runtime・電源断/Tier B/C受け入れや要件全体/P0-010閉鎖は未実装・未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchでsource/公開/ownerの累積差分と残る承認済みhelper境界を照合して次単位を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
+### owner recordのcaller上限と安定読取（2026-10-27）
+
+- 利用者の次実装指示を受け、cleanな`559f06a`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [owner record読取境界](../../Common/README.md#bounded-stable-owner-record-observations-2026-10-27)として`maximum_record_bytes`をowned lockへ追加。不正値はtoken/path/mutex準備前、生成record超過はmutex内・record作成前に固定reasonで拒否する。作成後/解放前のJSON確認で既存directory verifierの安定readerを再利用し、超過recordの非open、path/handle/祖先chainの前後照合・初期size+1読取を適用。変化/不明/深いJSONのRecursionErrorは所有未確認としてrecord保全・mutex解放/closeへ接続する。scope/token・field/pid/hostの既存意味論とJSON表記互換は維持。
+- 検証環境でpython shimが版未選択となり、最初のコマンドはsuite未起動。個人/global設定は変更せず、既存Python 3.11.9実体を`$python311`相当として指定した。sandbox内の132件はhardlink作成拒否等で8 failures/37 errors・1skipとなり、自作tempの最小probeもerrno 13/WinError 5を確認。auto-review承認済みのsandbox外で同じ合成検査を再実行し、132件中131成功・既存symlink作成不可1skip、未解決失敗なし。実ログ/Driveは使わない。
+- 成功コマンドは`$env:PYTHONPATH='tests;.'`後、`& $python311 -B -m unittest test_owned_run_lock test_owned_publication_integration test_crash_publication_harness test_internal_publication_crash test_terminal_bundle_integration test_terminal_history_usepoint test_terminal_plan_usepoint test_initial_source_integration test_initial_source_usepoint test_download_staging_integration test_artifact_set_directory_verification test_artifact_directory_reparse`。CI Pythonは3.12。既存CI登録suiteに新規8件を追加し、exact境界・不正値・作成前超過/解放時超過、path→handle間増大、deep JSON/不明観測時の保全/解放、JSON表記互換を確認した。変更2文書の相対リンク127件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・package/PS検証は未実行。再利用依存は既存Common .pyで配布対象/集合は不変。
+- 既存lock所有確認の資源/観測境界補助であり、owner-v2/provider契約、root/ACL/FS/owner真正性・一回性、観測からunlinkまでの競合/ABA、実I/O/時間/全memory上限・電源断/Tier B/C/runtime受け入れやP0-010閉鎖は未実装・未実証。固定本番値・新しい削除/復旧能力は追加しない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchでowner取得を使う隔離保存接続へのrecord予算伝播など、承認済みの独立範囲を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
+### 隔離保存fixtureへの予算伝播と追加読取の有界化（2026-10-27）
+
+- 利用者の次実装指示を受け、cleanな`1072248`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- 正式保存wrapperは未実装のため、[自作OS-temp内の候補bundle接続](../design/manifest-transition-inspection.md#explicit-fixture-publicationreadback-budgets-2026-10-27)に限定。fixture publish/全履歴使用点接続で`maximum_artifact_bytes` / `maximum_total_bytes`をpublisherへ伝播。readbackのdirectory検査とは別の`maximum_semantic_artifact_bytes` / `maximum_total_semantic_bytes`を参照validatorへ渡す。不正予算はguard/owner取得前に拒否し、有効な超過は保全/owner解放へ接続する。
+- fixture所有marker/priorと追加payload/commit marker比較を既存atomicの期待bytes有界readerへ置換。commit markerはfixture transaction/hash集合から決定的bytesを再構成し、表記違いも補完しない。初回directory検証後の増大は追加比較のopen前に拒否する。Common runtime/schema/SDK/配布集合に変更なし。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_terminal_bundle_integration test_terminal_history_usepoint test_terminal_plan_usepoint test_terminal_manifest_history test_terminal_manifest_plan test_artifact_set_publication test_artifact_set_directory_verification test_atomic_artifact_publication test_owned_publication_integration test_initial_source_usepoint test_internal_publication_crash test_crash_publication_harness`の158件中156成功・既存symlink作成不可2skip。既存CI登録suiteへ新規5件を追加し、両PCの公開/読戻し境界・超過/不正値・既存prior保全/owner解放、report/marker増大の非open、履歴再導出との接続を確認。意味論予算の明示成功caseを追加後、`python -B -m unittest test_terminal_bundle_integration.TerminalBundleIntegrationTests.test_explicit_publication_and_readback_budgets_preserve_prior_for_both_roles`を対象再実行し1件成功。これは上記158件に含まれ、独立総数へ加算しない。変更2文書の相対リンク111件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- tests専用の保存接続証拠であり、正式保存runtime/元runningの更新や要件全体/P0-010を完了扱いしない。意味論予算はschema/再読取も計上し、候補論理bytesと別指定。root/FS/owner/provider真正性、現在性/ABA・実Drive/runtime・電源断/Tier B/C受け入れ、実I/O/時間/全memory/disk容量の上限は未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで既承認helper/隔離接続と未決runtime契約の境界を確認して次単位を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
+### marker込みのcaller指定公開bytes予算（2026-10-27）
+
+- 利用者の次実装指示を受け、cleanな`e09ab79`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [marker-last公開bytes予算](../../Common/README.md#caller-selected-marker-last-publication-byte-budgets-2026-10-27)としてpublisherへoptional `maximum_artifact_bytes` / `maximum_total_bytes`を追加。不正値はMapping snapshot/hash前に固定`artifact_publish_limit_invalid`、payload超過はhash前にfile/total limit理由で拒否する。生成marker自身とmarker込み合計も単一file公開前に検査し、部分公開・skip/切詰めを行わない。既存の全名/型/実buffer検査、決定的公開順・marker-last・冪等/競合拒否を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_set_recovery test_artifact_set_publication test_artifact_set_directory_verification test_atomic_artifact_publication test_owned_publication_integration test_initial_source_integration test_initial_source_usepoint test_internal_publication_crash test_terminal_bundle_integration test_crash_publication_harness`の148件中146成功・既存symlink作成不可2skip。既存CI登録suiteへ新規6件を追加し、marker込みexact境界の公開/再公開/同予算読戻し、不正値の非snapshot、payload超過の非hash・既存partial保全、markerのみの超過・非部分公開、bytes派生型の実sizeと空payloadを確認した。変更2文書の相対リンク124件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- 既存公開の資源境界補助であり、正式writer/要件全体/P0-010を完了扱いしない。固定本番値・schema/C-02/SDK/配布集合は不変。予算はB2/markerへ保存せず呼出しごとの指定で、wrapper/runtimeへの伝播は未実装。論理bytes予算であり、コピー/生成済みmarkerのmemory、hash/JSON生成時間、temp/readbackを含む実I/O総量やdisk容量を制限しない。root/FS/provider/owner真正性・現在性/ABA・実Drive/runtime・電源断/Tier B/C受け入れは未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで既存の保存接続入口への公開/読戻し予算伝播など、承認済みの独立範囲を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
+### marker-last公開・分類・読取のbasename条件整合（2026-10-27）
+
+- 利用者の次実装指示を受け、cleanな`5eacf41`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [共通basename条件](../../Common/README.md#shared-marker-last-basename-validation-2026-10-27)を既存publisherから`ArtifactSetRecovery.is_artifact_basename`へ抽出。空/非文字列・先頭dot・slash/backslash/NUL・末尾ASCII空白/dotをproducerとconsumerで共通拒否する。classifierのexpected/published/staged/marker hash集合とdirectory verifierの期待集合/marker名に接続し、従来consumerが末尾空白/dotを受理した不整合を修正。不正名は既存reasonで公開/走査/読取前に拒否する。有効名のUnicode/内部空白/dotは原形保持し、単一file temp方針やWindows予約名等の新規規則は採用しない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、初回`python -B -m unittest test_artifact_set_recovery test_artifact_set_publication test_artifact_set_directory_verification test_atomic_artifact_publication test_owned_publication_integration test_initial_source_integration test_initial_source_usepoint test_manifest_terminal_publication test_crash_publication test_internal_publication_crash`を実行。実在8suiteの125件は123成功・symlink作成不可2skipだったが、`test_manifest_terminal_publication` / `test_crash_publication`はrootの名前誤指定でimport error。正しい`python -B -m unittest test_terminal_bundle_integration test_crash_publication_harness`を追加実行し17件全成功。最終実行対象は重複なし142件中140成功・既存2skipで、未解決失敗なし。新規4件と既存2件の不正名matrix拡張は既存CI登録suiteへ追加した。変更2文書の相対リンク122件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- 既存marker-last拒否境界の整合で、P0-010や正式runtime受け入れの閉鎖ではない。schema/C-02/SDK/配布集合・公開/復旧実行認可は不変。完全なWindows名/長さ検査・root/FS/provider真正性・現在性/ABA・正式runtime/Drive・電源断/Tier B/C受け入れは未実装・未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで既承認の独立範囲を調査し、未決runtime契約を推測せず次単位を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
+### 一括Drive比較の呼出し内再利用と一致ID保有量削減（2026-10-27）
+
+- 利用者の次実装指示を受け、cleanな`d0907f6`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [呼出し内の比較再利用](../design/drive-content-comparison.md#repeated-comparison-values-within-one-call-2026-10-27)を通常一括前後比較と計画完了集合比較へ接続。共通観測/plan/download検査後、filename/size/SHA-256の同一条件だけを呼出し内で1回比較し、全source slotと指定順を保持する。異なる条件は分離し、他呼出しへ結果を持ち越さない。単一比較の全一致IDリストは件数+候補ID1件へ置換し、2件一致後も後続の不明/不一致を検査する。既存status/reason/全may_*falseは維持。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_drive_content_comparison test_drive_comparison_batch test_drive_comparison_reobservation test_content_download_plan test_planned_drive_comparison test_drive_listing_observation test_download_hash_observation test_comparison_source_revalidation test_comparison_source_batch test_initial_inventory_observation test_initial_inventory_summary test_staged_drive_content_observation test_download_staging_integration`の137件全成功・skipなし。既存CI登録suiteへ新規5件を追加し、両一括入口の400 source/4条件の実比較回数、全slot/順序/flags、後続download変更・欠落/重複の再検査、40一致後の不明metadata/hash/不一致reason保全を確認した。変更2文書の相対リンク119件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- EOLM-SYN-007/008・OSD-01の候補/保留境界を維持する改善。条件がすべて異なる場合の比較走査量・呼出し内辞書/全memory・時間は制限しない。固定本番値・schema/C-02/SDK/配布集合の変更・実行認可は追加しない。provider真正性/現在性/ABA・正式runtime/実Drive・電源断/Tier B/C受け入れや要件全体/P0閉鎖は未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。以後も同branchで承認済みhelperと未決runtime契約の境界を確認して次単位を選び、PR作成/mergeは別途指示された範囲で行う。
+
+### download計画の同名候補走査と予算事前検査（2026-10-27）
+
+- 利用者の次実装指示を受け、cleanな`29448da`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [重複source計画の仕様](../design/drive-content-comparison.md#repeated-source-planning-and-budget-preflight-2026-10-27)に従い、`plan_content_downloads`でsourceの名前別size集合を構築し、Drive同名候補の反復走査をsource数倍から各bucket最大2回へ変更。初回に一意な件数/総bytesだけを集計し、予算内で初めて必要ID/size辞書とソート済みrequirementを構築する。metadata不明→件数超過→bytes超過の優先順位、異なるsize/未信頼hash/0 bytes、候補ID一意化と元の順序非依存・非認可を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_content_download_plan test_planned_drive_comparison test_drive_content_comparison test_drive_listing_observation test_download_hash_observation test_drive_comparison_reobservation test_drive_comparison_batch test_comparison_source_revalidation test_comparison_source_batch test_initial_inventory_observation test_initial_inventory_summary test_staged_drive_content_observation test_download_staging_integration`の132件全成功・skipなし。既存CI登録suiteに新規4件を追加し、400 source/40候補の訪問数を実測counterで確認、複数size/信頼SHA/空file・境界と後続metadata不明の優先順位を検証した。変更2文書の相対リンク118件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- EOLM-SYN-007/008・OSD-01の候補計画/保留境界を維持する改善であり、要件全体やP0閉鎖ではない。固定本番値・schema/C-02/SDK契約・配布集合は不変。全列挙index/source条件集合や全memory/時間は制限せず、provider真正性・現在性/ABA・正式runtime/実Drive・電源断/Tier B/C受け入れは未実装・未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。以後も同branchで承認済みhelperと未決runtime契約の境界を照合して次単位を選び、PR作成/mergeは別途指示された範囲で行う。
+
+### source再観測・比較入口への資源予算伝播（2026-10-27）
+
+- 利用者の次実装指示を受け、cleanな`9a7d68c`・同branch `codex/source-inventory-budgets`から継続。main基準は直前にGitHub/local/origin一致確認済みの`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回はGitHub状態を再取得せず、branch切替・push/PRなし。
+- [source再観測入口の予算](../design/source-inventory-revalidation.md#source-inventory-budgets-at-revalidation-entrypoints-2026-10-27)を追加。`revalidate_source_inventory`、initial plan照合、単一/一括比較source、initial inventoryの5入口がoptional `maximum_entries` / `maximum_file_bytes` / `maximum_total_hash_bytes`を全source再観測builderへ伝播する。共通pure型検査をbuilderと共有し、不正値は解析/plan再構成/source I/O/Drive比較前に固定`source_revalidation_limit_invalid`。実走査超過は既存`source_revalidation_incomplete`で拒否し、選択subset/空選択でも完全走査を省略しない。固定本番値・schema/PS/配布file集合は変更しない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_source_inventory_evidence_builder test_source_enumeration_stability test_source_hash_identity test_source_inventory_reparse test_initial_source_integration test_initial_source_usepoint test_source_inventory_revalidation test_comparison_source_revalidation test_comparison_source_batch test_initial_inventory_observation test_initial_inventory_summary test_staging_residual_observation test_aggregation_report_builder test_manifest_transition_inspection`の160件全成功・skipなし。新規6件は既存CI登録suiteに追加し、5入口の不正値preflight、PC-A/B・両logの再帰境界/超過、plan/単一/一括/空選択とDrive接続、exact B2/選択順/非認可flagsとsource bytes保全を確認した。変更2文書の相対リンク110件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- EOLM-FIL-005/007に関する不完全coverageの保全補助であり、要件全体やP0-010は閉鎖しない。予算は各呼出しの指定で、B2/planへの保存・正式runtimeへの接続は未実装。実I/O/時間/全memory制限、root/FS/provider真正性、現在性/ABA・Drive/runtime・電源断/Tier B/C受け入れは未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで既承認の独立範囲を調査して選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
+### source inventoryのcaller指定資源予算（2026-10-27）
+
+- 利用者の次実装指示を受け、GitHub mainとlocal/origin mainの`0d4945260067a86aaf8beb5ae792a4108b0091f9`を照合。PR #45はsquash merge済みで、mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40347516491) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40347516412)両成功・PR本文への結果記録済み。cleanな最新mainからupstreamなしの新branch `codex/source-inventory-budgets`を作成した。
+- [source inventory予算仕様](../design/source-inventory-revalidation.md#caller-selected-source-inventory-budgets-2026-10-27)に従い、B2 builderへoptional `maximum_entries` / `maximum_file_bytes` / `maximum_total_hash_bytes`を追加。不正値はroot I/O前に拒否。件数は再帰全体・最終再scanで各pass共有、hashは試行sizeを先に予約し失敗でも消費を戻さない。予算超過で走査/hashを停止し、既存target/errorを保全してincompleteとする。bytes予算時はexpected sizeをhash helperへ渡し、直前増大をopen前に拒否する。固定本番値・schema/PS/package file集合の変更なし。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_source_inventory_evidence_builder test_source_enumeration_stability test_source_hash_identity test_source_inventory_reparse test_initial_source_integration test_initial_source_usepoint test_source_inventory_revalidation test_comparison_source_revalidation test_comparison_source_batch test_initial_inventory_observation test_staging_residual_observation test_aggregation_report_builder test_manifest_transition_inspection`の145件全成功・skipなし。新規10件は既存CI登録済みsuiteに追加し、境界/不正値/再帰共有/最終scan増大/失敗試行予約/直前size増大と、両PC・両logでinitial planがrunning/outcome null・全許可falseを維持することを検証した。変更2文書の相対リンク109件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- EOLM-FIL-005/007の列挙・不完全coverage保全を補助する変更で、要件全体やP0-010の閉鎖ではない。予算指定はbuilder入口だけで再観測/比較wrapperへの伝播・保存は未実装。初期size+1の増大probeを許すため厳密な実I/O/時間/全memory制限ではなく、root/FS/provider真正性・同時snapshot/ABA・Drive/runtime・電源断/Tier B/C受け入れも未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り、次の指示を待つ。未push・新PRなし。次は同branchでsource再観測入口への予算伝播など既承認の独立範囲を選ぶ。前回のPR/merge承認は今回のpush/PR/mergeへ拡張しない。
+
 ### 累積PR作成・マージ承認と統合検証（2026-10-27）
 
 - 利用者が累積コミットをまとめたPR作成・マージを明示指示。`898f4ff`までの実装28コミット（42 files）と本記録を同じPRへまとめ、最新HEADのValidate/Package Validation両成功を確認後squash mergeする。branchは`codex/manifest-entry-bounds`、取得・照合済み正本mainは`6e9ad82d8ae11146041b5eba0ab6b94e21c5cad8`（PR #44）。本記録時点は未push/未PR/未マージ。結果のPR/merge SHAとCIはGitHub実状態・本チャットの最終報告を照合する。

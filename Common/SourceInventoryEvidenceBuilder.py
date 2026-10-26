@@ -93,13 +93,25 @@ def _source_entry_signature(info):
             getattr(info, "st_file_attributes", 0), info.st_nlink)
 
 
-def _enumeration_snapshot(directory: Path, *, maximum_entries=None):
+class _EntryBudget:
+    def __init__(self, maximum):
+        self.remaining = maximum
+
+    def consume(self):
+        if self.remaining == 0:
+            raise InventoryBuildError("source_entry_limit_exceeded")
+        self.remaining -= 1
+
+
+def _enumeration_snapshot(directory: Path, *, maximum_entries=None, _budget=None):
     if maximum_entries is not None and (type(maximum_entries) is not int or maximum_entries < 1):
         raise InventoryBuildError("source_entry_limit_invalid")
     chain = _source_chain(directory)
     with os.scandir(directory) as scan:
         entries = []
         for entry in scan:
+            if _budget is not None:
+                _budget.consume()
             if maximum_entries is not None and len(entries) >= maximum_entries:
                 raise InventoryBuildError("source_entry_limit_exceeded")
             entries.append(entry)
@@ -167,6 +179,11 @@ def _hash_stable_file(path: Path, *, expected_size: int | None = None) -> tuple[
     return byte_count, digest.hexdigest()
 
 
+def _valid_inventory_limits(maximum_entries, maximum_file_bytes, maximum_total_hash_bytes):
+    return all(value is None or (type(value) is int and value > 0)
+               for value in (maximum_entries, maximum_file_bytes, maximum_total_hash_bytes))
+
+
 def build_run_input_evidence(
     source_root: str | os.PathLike[str],
     *,
@@ -178,6 +195,9 @@ def build_run_input_evidence(
     evidence_id: str | None = None,
     reference_date: date | None = None,
     started_at: datetime | None = None,
+    maximum_entries: int | None = None,
+    maximum_file_bytes: int | None = None,
+    maximum_total_hash_bytes: int | None = None,
 ) -> dict[str, Any]:
     """Enumerate a source tree, freeze eligible targets, and build validated B2 evidence.
 
@@ -185,7 +205,12 @@ def build_run_input_evidence(
     enumeration.status='incomplete' and a positive enumeration_errors count.
     It never emits completed enumeration after a failure. Invalid filenames
     are recorded as validation errors rather than silently ignored.
+    Optional caller budgets bound all recursive entries per scan pass and
+    eligible hash attempts by observed file size. Limit hits retain partial
+    evidence with incomplete coverage; they never authorize a partial run.
     """
+    if not _valid_inventory_limits(maximum_entries, maximum_file_bytes, maximum_total_hash_bytes):
+        raise InventoryBuildError("source_inventory_limit_invalid")
     if pc_id not in ("PC-A", "PC-B"):
         raise InventoryBuildError("unsupported_pc_id")
     if log_type not in _PATTERNS:
@@ -223,13 +248,23 @@ def build_run_input_evidence(
     targets: list[dict[str, Any]] = []
     pending = [root]
     snapshots = {}
+    entry_budget = None if maximum_entries is None else _EntryBudget(maximum_entries)
+    scan_options = {} if entry_budget is None else dict(_budget=entry_budget)
+    hash_bytes_reserved = 0
+    limit_exceeded = False
 
     while pending:
         directory = pending.pop()
         try:
-            entries, snapshot = _enumeration_snapshot(directory)
+            entries, snapshot = _enumeration_snapshot(directory, **scan_options)
             snapshots[directory] = snapshot
-        except (OSError, UnicodeError, InventoryBuildError):
+        except InventoryBuildError as exc:
+            enumeration_errors += 1
+            if exc.reason_code == "source_entry_limit_exceeded":
+                limit_exceeded = True
+                break
+            continue
+        except (OSError, UnicodeError):
             enumeration_errors += 1
             continue
         for entry in entries:
@@ -259,8 +294,18 @@ def build_run_input_evidence(
                 if file_date > cutoff:
                     ineligible += 1
                     continue
+                if ((maximum_file_bytes is not None and entry_info.st_size > maximum_file_bytes)
+                        or (maximum_total_hash_bytes is not None
+                            and hash_bytes_reserved + entry_info.st_size > maximum_total_hash_bytes)):
+                    enumeration_errors += 1
+                    limit_exceeded = True
+                    break
+                # Reserve each attempted file, even when hashing later fails.
+                hash_bytes_reserved += entry_info.st_size
+                hash_options = ({} if maximum_file_bytes is None and maximum_total_hash_bytes is None
+                                else dict(expected_size=entry_info.st_size))
                 try:
-                    size, digest = _hash_stable_file(Path(entry.path))
+                    size, digest = _hash_stable_file(Path(entry.path), **hash_options)
                 except InventoryBuildError:
                     enumeration_errors += 1
                     continue
@@ -273,6 +318,8 @@ def build_run_input_evidence(
                 eligible += 1
             except (OSError, UnicodeError, ValueError):
                 enumeration_errors += 1
+        if limit_exceeded:
+            break
 
     targets.sort(key=lambda item: item["relative_path"].encode("utf-8"))
     validation_errors.sort(key=lambda item: item["relative_path"].encode("utf-8"))
@@ -286,12 +333,20 @@ def build_run_input_evidence(
             enumeration_errors += 1
     except (OSError, UnicodeError, InventoryBuildError):
         enumeration_errors += 1
-    for directory, initial in snapshots.items():
+    # Verification has a fresh shared pass budget; it must not grow with a
+    # changing namespace. After a limit hit, coverage is already incomplete.
+    final_budget = None if maximum_entries is None else _EntryBudget(maximum_entries)
+    final_options = {} if final_budget is None else dict(_budget=final_budget)
+    for directory, initial in (() if limit_exceeded else snapshots.items()):
         try:
-            _, final = _enumeration_snapshot(directory)
+            _, final = _enumeration_snapshot(directory, **final_options)
             if final != initial:
                 enumeration_errors += 1
-        except (OSError, UnicodeError, InventoryBuildError):
+        except InventoryBuildError as exc:
+            enumeration_errors += 1
+            if exc.reason_code == "source_entry_limit_exceeded":
+                break
+        except (OSError, UnicodeError):
             enumeration_errors += 1
     finished = datetime.now(timezone.utc)
     evidence: dict[str, Any] = {

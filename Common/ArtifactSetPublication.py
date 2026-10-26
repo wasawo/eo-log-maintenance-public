@@ -12,7 +12,7 @@ import os
 from typing import Mapping
 
 from Common import AtomicArtifactPublication as atomic
-from Common.ArtifactSetRecovery import is_artifact_transaction_id
+from Common.ArtifactSetRecovery import is_artifact_transaction_id, is_artifact_basename
 
 
 class ArtifactSetPublicationError(RuntimeError):
@@ -37,23 +37,13 @@ def _validate_payloads(artifacts: Mapping[str, bytes], marker_name: str) -> dict
         raise ArtifactSetPublicationError("artifact_set_empty_or_invalid") from None
     if not copied:
         raise ArtifactSetPublicationError("artifact_set_empty_or_invalid")
-    if not isinstance(marker_name, str) or not marker_name or marker_name.startswith("."):
-        raise ArtifactSetPublicationError("commit_marker_name_invalid")
-    if (marker_name in {".", ".."} or "/" in marker_name or "\\" in marker_name
-            or "\x00" in marker_name or marker_name.endswith((" ", "."))):
+    if not is_artifact_basename(marker_name):
         raise ArtifactSetPublicationError("commit_marker_name_invalid")
 
     for name, payload in copied.items():
         if (
-            not isinstance(name, str)
-            or not name
-            or name.startswith(".")
-            or name in {".", ".."}
-            or "/" in name
-            or "\\" in name
-            or "\x00" in name
+            not is_artifact_basename(name)
             or name == marker_name
-            or name.endswith((" ", "."))
         ):
             raise ArtifactSetPublicationError("artifact_name_invalid")
         if not isinstance(payload, bytes):
@@ -69,17 +59,29 @@ def publish_artifact_set_marker_last(
     *,
     transaction_id: str,
     commit_marker_name: str = "commit-marker.json",
+    maximum_artifact_bytes: int | None = None,
+    maximum_total_bytes: int | None = None,
 ) -> dict[str, str]:
     """Publish files without overwrite, then publish a commit marker last.
 
     Existing identical artifacts are idempotent. Any conflicting destination
     fails closed. A failure leaves already-published artifacts in place for
     later reconciliation; it never rolls them back or removes them.
+    Caller-selected byte limits include the generated marker and are checked
+    before publishing any file. They do not qualify roots or authorize a run.
     """
     if type(transaction_id) is not str or not is_artifact_transaction_id(transaction_id):
         raise ArtifactSetPublicationError("transaction_id_invalid")
+    if any(value is not None and (type(value) is not int or value < 1)
+           for value in (maximum_artifact_bytes, maximum_total_bytes)):
+        raise ArtifactSetPublicationError("artifact_publish_limit_invalid")
 
     payloads = _validate_payloads(artifacts, commit_marker_name)
+    if maximum_artifact_bytes is not None and any(len(data) > maximum_artifact_bytes for data in payloads.values()):
+        raise ArtifactSetPublicationError("artifact_publish_file_limit_exceeded")
+    payload_total = sum(len(data) for data in payloads.values())
+    if maximum_total_bytes is not None and payload_total > maximum_total_bytes:
+        raise ArtifactSetPublicationError("artifact_publish_total_limit_exceeded")
     hashes = {name: _digest(payload) for name, payload in payloads.items()}
     marker_bytes = (
         json.dumps(
@@ -93,6 +95,10 @@ def publish_artifact_set_marker_last(
         )
         + "\n"
     ).encode("utf-8")
+    if maximum_artifact_bytes is not None and len(marker_bytes) > maximum_artifact_bytes:
+        raise ArtifactSetPublicationError("artifact_publish_file_limit_exceeded")
+    if maximum_total_bytes is not None and payload_total + len(marker_bytes) > maximum_total_bytes:
+        raise ArtifactSetPublicationError("artifact_publish_total_limit_exceeded")
 
     outcomes: dict[str, str] = {}
     try:

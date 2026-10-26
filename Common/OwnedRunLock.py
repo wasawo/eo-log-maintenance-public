@@ -16,6 +16,10 @@ import secrets
 import socket
 from typing import Callable, Iterator
 
+from Common.ArtifactSetDirectoryVerification import (
+    ArtifactSetDirectoryVerificationError, _chain, _read_stable, _signature,
+)
+
 
 class LockAcquisitionError(RuntimeError):
     """Stable, sanitized lock failure."""
@@ -120,11 +124,15 @@ def _reject_duplicate_keys(pairs):
     return result
 
 
-def _record_matches(path: Path, scope_id: str, token: str) -> bool:
+def _record_matches(path: Path, scope_id: str, token: str, maximum_bytes: int | None = None) -> bool:
     try:
-        raw = path.read_bytes()
+        chain = _chain(path.parent)
+        before = path.lstat()
+        if maximum_bytes is not None and before.st_size > maximum_bytes:
+            return False
+        raw = _read_stable(path, _signature(before), path.parent, chain)
         record = json.loads(raw.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
-    except (OSError, UnicodeError, ValueError):
+    except (OSError, UnicodeError, ValueError, RecursionError, ArtifactSetDirectoryVerificationError):
         return False
     if not isinstance(record, dict):
         return False
@@ -152,13 +160,18 @@ def acquire_owned_lock(
     *,
     mutex_factory: Callable[[str], object] = _NamedMutex,
     token_factory: Callable[[], str] = lambda: secrets.token_hex(32),
+    maximum_record_bytes: int | None = None,
 ) -> Iterator[str]:
     """Acquire mutex + exclusive token record, yielding the private owner token.
 
     A pre-existing lock record is never removed or adopted, including after an
     abandoned mutex. Recovery requires a separate validated recovery slice.
+    Optional maximum_record_bytes bounds the newly generated record and each
+    ownership read. Unreadable, changed or oversized records are preserved.
     """
     scope = _validate_scope(scope_id)
+    if maximum_record_bytes is not None and (type(maximum_record_bytes) is not int or maximum_record_bytes < 1):
+        raise LockAcquisitionError("lock_record_limit_invalid")
     if isinstance(timeout_seconds, bool) or not isinstance(timeout_seconds, (int, float)):
         raise LockAcquisitionError("timeout_invalid")
     if timeout_seconds < 0 or timeout_seconds > 60:
@@ -190,46 +203,77 @@ def acquire_owned_lock(
     mutex = mutex_factory(_mutex_name(scope))
     acquired = False
     record_created = False
+    record_verified = False
+    write_error = None
     try:
-        acquired = bool(mutex.acquire(float(timeout_seconds)))
+        # The existing adapter returns exact bool and release is safe when not
+        # owned. On interrupted/uncertain waits, still attempt release + close.
+        acquired = True
+        try:
+            result = mutex.acquire(float(timeout_seconds))
+        except Exception:
+            raise LockAcquisitionError("named_mutex_wait_failed") from None
+        if type(result) is not bool:
+            raise LockAcquisitionError("named_mutex_wait_failed")
+        acquired = result
         if not acquired:
             raise LockAcquisitionError("lock_timeout")
         # Abandonment is evidence only. This slice deliberately does not recover.
-        if getattr(mutex, "abandoned", False):
+        try:
+            abandoned = getattr(mutex, "abandoned", None)
+            if type(abandoned) is not bool:
+                raise LockAcquisitionError("named_mutex_observation_invalid")
+        except Exception:
+            raise LockAcquisitionError("named_mutex_observation_invalid") from None
+        if abandoned:
             raise LockAcquisitionError("abandoned_mutex_requires_recovery")
         payload = _strict_record_bytes(scope, token)
+        if maximum_record_bytes is not None and len(payload) > maximum_record_bytes:
+            raise LockAcquisitionError("lock_record_limit_exceeded")
         if path.exists() or path.is_symlink():
             raise LockAcquisitionError("lock_record_already_exists")
         try:
             with path.open("xb") as stream:
                 record_created = True
-                stream.write(payload)
+                written = stream.write(payload)
+                if type(written) is not int or written != len(payload):
+                    write_error = LockAcquisitionError("lock_record_write_incomplete")
+                    raise write_error
                 stream.flush()
                 os.fsync(stream.fileno())
         except FileExistsError as exc:
+            if write_error is not None:
+                raise write_error from None
             raise LockAcquisitionError("lock_record_already_exists") from exc
         except OSError as exc:
+            if write_error is not None:
+                raise write_error from None
             raise LockAcquisitionError("lock_record_create_failed") from exc
 
-        if not _record_matches(path, scope, token):
+        if not _record_matches(path, scope, token, maximum_record_bytes):
             raise LockAcquisitionError("lock_record_ownership_unverified")
+        record_verified = True
         yield token
     finally:
-        if record_created:
-            try:
-                if _record_matches(path, scope, token):
-                    path.unlink()
-            except OSError:
-                # Preserve mismatched or unverifiable state for explicit recovery.
-                pass
-        if acquired:
-            try:
-                mutex.release()
-            finally:
+        try:
+            if record_created and record_verified:
+                try:
+                    if _record_matches(path, scope, token, maximum_record_bytes):
+                        path.unlink()
+                except OSError:
+                    # Preserve mismatched or unverifiable state for explicit recovery.
+                    pass
+        finally:
+            # Record observation/cleanup can itself be interrupted. It must
+            # never bypass release/close of the already-created OS mutex.
+            if acquired:
+                try:
+                    mutex.release()
+                finally:
+                    close = getattr(mutex, "close", None)
+                    if callable(close):
+                        close()
+            else:
                 close = getattr(mutex, "close", None)
                 if callable(close):
                     close()
-        else:
-            close = getattr(mutex, "close", None)
-            if callable(close):
-                close()
