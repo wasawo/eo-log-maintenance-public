@@ -7,6 +7,78 @@ from Common.ArtifactSetRecovery import classify_artifact_set
 
 
 class ArtifactSetRecoveryTests(unittest.TestCase):
+    def test_copy_failures_in_all_mapping_inputs_return_fixed_blocked_decisions(self):
+        from collections.abc import Mapping
+        class BrokenMap(Mapping):
+            def __init__(self, phase): self.phase = phase
+            def __len__(self): return 2
+            def __iter__(self):
+                if self.phase == "iteration": raise RuntimeError("synthetic private detail")
+                yield "manifest.json"
+                if self.phase == "partial": raise RuntimeError("synthetic private detail")
+                yield "report.json"
+            def __getitem__(self, key):
+                if self.phase == "item": raise RuntimeError("synthetic private detail")
+                return "a"*64
+        for slot, reason in (("expected_sha256", "expected_artifact_set_invalid"),
+                ("published_sha256", "published_artifact_set_invalid"),
+                ("staged_sha256", "staged_artifact_set_invalid"),
+                ("commit_marker", "commit_marker_invalid"),
+                ("marker_hashes", "commit_marker_artifact_set_mismatch")):
+            for phase in ("iteration", "partial", "item"):
+                args = dict(expected_sha256=self.expected, published_sha256=dict(self.expected),
+                    staged_sha256={}, commit_marker=self.marker)
+                if slot == "marker_hashes":
+                    args["commit_marker"] = {**self.marker, "artifact_sha256": BrokenMap(phase)}
+                else:
+                    args[slot] = BrokenMap(phase)
+                with self.subTest(slot=slot, phase=phase):
+                    result = classify_artifact_set(**args)
+                    self.assertEqual("blocked", result.state)
+                    self.assertEqual(reason, result.reason_code)
+                    self.assertFalse(result.may_publish_next or result.may_report_committed)
+                    self.assertTrue(result.requires_reconciliation and result.preserve_existing_artifacts)
+                    self.assertNotIn("synthetic private detail", repr(result))
+
+    def test_deceptive_items_cannot_validate_an_empty_expected_snapshot_as_committed(self):
+        from collections.abc import Mapping
+        class DeceptiveMap(Mapping):
+            def __len__(self): return 1
+            def __iter__(self): return iter(())
+            def __getitem__(self, key): return "a"*64
+            def items(self): return {"manifest.json": "a"*64}.items()
+        deceptive = DeceptiveMap()
+        result = classify_artifact_set(expected_sha256=deceptive, published_sha256={}, staged_sha256={},
+            commit_marker={**self.marker, "artifact_sha256": deceptive})
+        self.assertEqual("expected_artifact_set_invalid", result.reason_code)
+        self.assertFalse(result.may_report_committed or result.may_publish_next)
+
+    def test_valid_read_only_mapping_inputs_retain_committed_and_ready_classification(self):
+        from types import MappingProxyType
+        marker = MappingProxyType({**self.marker, "artifact_sha256": MappingProxyType(dict(self.expected))})
+        committed = classify_artifact_set(expected_sha256=MappingProxyType(self.expected),
+            published_sha256=MappingProxyType(dict(self.expected)), staged_sha256=MappingProxyType({}),
+            commit_marker=marker)
+        self.assertEqual("committed", committed.state)
+        self.assertTrue(committed.may_report_committed)
+        ready = classify_artifact_set(expected_sha256=MappingProxyType(self.expected),
+            published_sha256=MappingProxyType({}), staged_sha256=MappingProxyType(dict(self.expected)))
+        self.assertEqual("ready", ready.state)
+        self.assertTrue(ready.may_publish_next)
+
+    def test_copied_marker_hashes_cannot_hide_an_empty_actual_mapping(self):
+        from collections.abc import Mapping
+        expected = dict(self.expected)
+        class DeceptiveMap(Mapping):
+            def __len__(self): return len(expected)
+            def __iter__(self): return iter(())
+            def __getitem__(self, key): return expected[key]
+            def items(self): return expected.items()
+        result = self.classify(published_sha256=expected, staged_sha256={},
+            commit_marker={**self.marker, "artifact_sha256": DeceptiveMap()})
+        self.assertEqual("commit_marker_artifact_set_mismatch", result.reason_code)
+        self.assertFalse(result.may_report_committed or result.may_publish_next)
+
     def test_independent_transaction_binding_rejects_other_or_nonexact_identity(self):
         for expected in ("123e4567-e89b-42d3-a456-426614174000", "123e4567-e89b-42d3-a456-426614174001",
                          "123E4567-E89B-42D3-A456-426614174000"):

@@ -37,6 +37,15 @@ def is_artifact_transaction_id(value: Any) -> bool:
     return isinstance(value, str) and _TX_ID.fullmatch(value) is not None
 
 
+def _copy_mapping(value):
+    if not isinstance(value, Mapping):
+        return None
+    try:
+        return dict(value)
+    except Exception:
+        return None
+
+
 def _valid_artifact_map(value: Any) -> bool:
     if not isinstance(value, Mapping) or not value:
         return False
@@ -74,16 +83,15 @@ def classify_artifact_set(
     if expected_transaction_id is not None and (
             type(expected_transaction_id) is not str or not is_artifact_transaction_id(expected_transaction_id)):
         return _blocked("expected_transaction_id_invalid")
-    if not _valid_artifact_map(expected_sha256):
+    expected = _copy_mapping(expected_sha256)
+    if not _valid_artifact_map(expected):
         return _blocked("expected_artifact_set_invalid")
-    if not isinstance(published_sha256, Mapping):
+    published = _copy_mapping(published_sha256)
+    if published is None:
         return _blocked("published_artifact_set_invalid")
-    if not isinstance(staged_sha256, Mapping):
+    staged = _copy_mapping(staged_sha256)
+    if staged is None:
         return _blocked("staged_artifact_set_invalid")
-
-    expected = dict(expected_sha256)
-    published = dict(published_sha256)
-    staged = dict(staged_sha256)
 
     # Every observed artifact entry must be syntactically valid, including extras.
     if published and not _valid_artifact_map(published):
@@ -100,19 +108,20 @@ def classify_artifact_set(
         return _blocked("staged_artifact_digest_mismatch")
 
     if commit_marker is not None:
-        if not isinstance(commit_marker, Mapping):
+        marker = _copy_mapping(commit_marker)
+        if marker is None:
             return _blocked("commit_marker_invalid")
-        if set(commit_marker) != {"schema_version", "transaction_id", "artifact_sha256"}:
+        if set(marker) != {"schema_version", "transaction_id", "artifact_sha256"}:
             return _blocked("commit_marker_shape_invalid")
-        if type(commit_marker.get("schema_version")) is not int or commit_marker["schema_version"] != 1:
+        if type(marker.get("schema_version")) is not int or marker["schema_version"] != 1:
             return _blocked("commit_marker_version_invalid")
-        transaction_id = commit_marker.get("transaction_id")
+        transaction_id = marker.get("transaction_id")
         if not is_artifact_transaction_id(transaction_id):
             return _blocked("commit_marker_transaction_id_invalid")
         if expected_transaction_id is not None and transaction_id != expected_transaction_id:
             return _blocked("commit_marker_transaction_id_mismatch")
-        marker_hashes = commit_marker.get("artifact_sha256")
-        if not _valid_artifact_map(marker_hashes) or dict(marker_hashes) != expected:
+        marker_hashes = _copy_mapping(marker.get("artifact_sha256"))
+        if not _valid_artifact_map(marker_hashes) or marker_hashes != expected:
             return _blocked("commit_marker_artifact_set_mismatch")
         if published != expected:
             return _blocked("commit_marker_published_set_incomplete")

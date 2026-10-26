@@ -138,6 +138,12 @@ Previously, the publisher's generic UUID parse accepted nil IDs, unsupported ver
 - This slice does not establish multi-file atomicity, durable directory entries, crash recovery, network/Windows filesystem semantics, Drive consistency, or official entrypoint safety. Cross-process crash/concurrency tests remain required before integration.
 
 
+### Classifier validates the copied mappings (2026-10-26)
+
+The pure artifact-set classifier copies expected/published/staged mappings before validating or comparing their contents. It also copies the marker object and its hash mapping before validating those structures. Each copy failure returns the existing input-specific blocked reason (expected/published/staged set invalid, marker invalid, or marker artifact-set mismatch); custom exception details do not escape. Expected and marker hash snapshots must remain nonempty and pass the existing name/hash grammar.
+
+Previously, expected hashes could be checked through a custom Mapping's `items()` and then separately copied through its key/item protocol. Divergent observations could validate a nominally nonempty expected set but classify an empty copied set, including a false committed outcome with a similarly deceptive marker hash mapping. Validation now uses the same plain dictionaries as classification. Ordinary dict and read-only Mapping inputs retain the existing states/flags, exact transaction binding and preservation behavior. Tests cover all five mapping-copy failure locations, divergent/empty copies and valid read-only mappings. This does not provide an atomic snapshot of a concurrently mutated custom mapping, validate caller provenance or authorize runtime side effects.
+
 ### Present marker JSON is distinct from an absent marker (2026-10-26)
 
 When a marker file is present, its UTF-8 JSON must have an object root. `null`, arrays and scalar roots raise the fixed directory error `commit_marker_json_invalid`; a present `null` can no longer be classified as a missing marker. NaN/Infinity/-Infinity constants are rejected at every nesting level, duplicate keys remain rejected, and JSON parsing recursion failures map to the same fixed error instead of escaping as interpreter exceptions. Object shape/version/transaction/hash checks still belong to the existing classifier; an actually absent marker retains its prior missing/partial-set behavior.
