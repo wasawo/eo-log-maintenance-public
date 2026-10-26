@@ -22,7 +22,7 @@ class ManifestReaderBoundsTests(unittest.TestCase):
         self.assertEqual(candidate.content, expected.content)
 
     def test_bad_limit_types_and_values_reject_before_directory_io(self):
-        for key in ("maximum_candidate_bytes", "maximum_total_bytes"):
+        for key in ("maximum_candidate_bytes", "maximum_total_bytes", "maximum_entries"):
             for value in (True, False, 0, -1, "4096", 1.5):
                 with self.subTest(key=key, value=value), patch.object(reader, "_chain") as chain:
                     with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "manifest_read_limit_invalid"):
@@ -100,11 +100,91 @@ class ManifestReaderBoundsTests(unittest.TestCase):
             result = reader.read_latest_manifest_with_report(self.root, self.root/"report.json", self.root/"contracts",
                 expected_pc_id="PC-A", expected_log_type="BattleLog", expected_target_period="2026-09",
                 current_utc=datetime(2026, 10, 23, 10, tzinfo=timezone.utc), current_utc_reliable=True,
-                maximum_candidate_bytes=4096, maximum_total_bytes=8192)
+                maximum_candidate_bytes=4096, maximum_total_bytes=8192, maximum_entries=3)
         self.assertEqual(selected, result)
         self.assertEqual(2, observe.call_count)
         for call in observe.call_args_list:
             self.assertEqual((4096, 8192), (call.kwargs["maximum_candidate_bytes"], call.kwargs["maximum_total_bytes"]))
+            self.assertEqual(3, call.kwargs["maximum_entries"])
+
+    def test_entry_limit_exact_boundary_and_default_preserve_selection(self):
+        latest = self.put()
+        self.put(number=2, started="2026-10-22T10:00:00Z", target_period="2026-08")
+        expected = self.read()
+        self.assertEqual(latest.content, expected.content)
+        self.assertEqual(expected, self.read(maximum_entries=2))
+        self.assertEqual(expected, self.read(maximum_entries=3))
+
+    def test_entry_limit_counts_foreign_periods_before_payload_open(self):
+        first = self.put()
+        second = self.put(number=2, started="2026-10-22T10:00:00Z", target_period="2026-08")
+        with patch.object(Path, "open", side_effect=AssertionError("must fail before open")) as opened:
+            with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^manifest_entry_limit_exceeded$"):
+                self.read(maximum_entries=1)
+            opened.assert_not_called()
+        for candidate in (first, second):
+            self.assertEqual(candidate.content, (self.directory/candidate.filename).read_bytes())
+
+    def test_enumeration_stops_on_first_excess_entry_without_reading_its_name(self):
+        from types import SimpleNamespace
+        candidate = self.put()
+        consumed = []
+        class ExcessEntry:
+            @property
+            def name(self): raise AssertionError("excess entry name must not be retained")
+        class Scan:
+            def __enter__(self): return self
+            def __exit__(self, *args): consumed.append("closed")
+            def __iter__(self):
+                consumed.append(1)
+                yield SimpleNamespace(name=candidate.filename)
+                consumed.append(2)
+                yield ExcessEntry()
+                raise AssertionError("must stop enumeration")
+        with patch.object(reader.os, "scandir", return_value=Scan()), \
+             patch.object(reader, "_read_stable") as read:
+            with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^manifest_entry_limit_exceeded$"):
+                self.read(maximum_entries=1)
+            read.assert_not_called()
+        self.assertEqual([1, 2, "closed"], consumed)
+
+    def test_final_rescan_applies_limit_to_new_entries(self):
+        self.put()
+        real_scan = reader._scan
+        calls = []
+        def scan(directory, chain, maximum_entries):
+            calls.append(maximum_entries)
+            if len(calls) == 2:
+                # Unrecognized entries count too, before per-name validation.
+                (directory/"synthetic-unrecognized").write_bytes(b"retained")
+            return real_scan(directory, chain, maximum_entries)
+        with patch.object(reader, "_scan", side_effect=scan):
+            with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^manifest_entry_limit_exceeded$"):
+                self.read(maximum_entries=1)
+        self.assertEqual([1, 1], calls)
+        self.assertEqual(b"retained", (self.directory/"synthetic-unrecognized").read_bytes())
+
+    def test_empty_directory_with_entry_limit_still_has_no_candidate(self):
+        from Common.LatestManifestSelection import LatestManifestSelectionError
+        with self.assertRaises(LatestManifestSelectionError):
+            self.read(maximum_entries=1)
+
+    def test_partial_enumeration_below_limit_remains_a_read_failure(self):
+        candidate = self.put()
+        from types import SimpleNamespace
+        closed = []
+        class Scan:
+            def __enter__(self): return self
+            def __exit__(self, *args): closed.append(True)
+            def __iter__(self):
+                yield SimpleNamespace(name=candidate.filename)
+                raise OSError("synthetic private detail")
+        with patch.object(reader.os, "scandir", return_value=Scan()), \
+             patch.object(reader, "_read_stable") as read:
+            with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^manifest_directory_read_failed$"):
+                self.read(maximum_entries=2)
+            read.assert_not_called()
+        self.assertEqual([True], closed)
 
 
 if __name__ == "__main__":

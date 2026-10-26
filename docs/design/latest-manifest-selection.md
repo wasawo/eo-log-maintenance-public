@@ -9,7 +9,15 @@
 
 After metadata enumeration, every entry's initial size is checked before any payload opens. Per-file and aggregate budgets include older and foreign-period/log entries, rather than skipping large candidates or falling back to an older success. An exceeded bound rejects the entire observation. Payload reads use chunks of at most 65,536 bytes and stop at the file's initial size plus one byte; observed growth rejects immediately. Existing handle/path signature and final enumeration checks remain in place.
 
-The report wrapper passes the same bounds to both manifest directory observations. These bounds do not limit report/evidence reads inside the separate referenced-artifact validator, entry count, JSON complexity, or all memory use. They are caller-selected resource controls, not root/FS qualification, an atomic snapshot, ABA protection or authorization. [Synthetic bounds tests](../../tests/test_manifest_reader_bounds.py) cover exact limits, aggregate scope, pre-open rejection, growth and wrapper forwarding.
+The report wrapper passes the same bounds to both manifest directory observations. These byte bounds do not limit report/evidence reads inside the separate referenced-artifact validator, entry count, JSON complexity, or all memory use. They are caller-selected resource controls, not root/FS qualification, an atomic snapshot, ABA protection or authorization. [Synthetic bounds tests](../../tests/test_manifest_reader_bounds.py) cover exact limits, aggregate scope, pre-open rejection, growth and wrapper forwarding.
+
+## Explicit entry budget for directory observations (2026-10-26)
+
+Both readers also accept optional `maximum_entries`, which must be None or a positive exact integer and is checked before root I/O. None retains the existing unbounded entry-count interface; no production limit, retention policy or schema restriction is selected.
+
+Each scan counts every directory entry before name/scope filtering, including older runs, foreign periods/log types, malformed names and non-file entries. Enumeration stops on the first excess entry with `manifest_entry_limit_exceeded`, without retaining its name or opening candidate payloads. Within the limit, all existing name/type/content checks still apply. The limit covers the initial scan and final rescan, and the report wrapper forwards it to both complete observations. A growing namespace cannot cause an unbounded list of names to be collected when this limit is supplied. Exceeding the limit rejects the entire observation without truncation, fallback, cleanup or mutation.
+
+An empty directory still has no selectable candidate; partial enumeration remains a read failure. The limit bounds retained entry count, not native enumeration latency, name length, report/evidence reads, JSON complexity, total memory, an atomic snapshot or later namespace changes. Root/owner/FS qualification and runtime authorization remain external. The existing [bounds suite](../../tests/test_manifest_reader_bounds.py) covers exact boundaries, invalid inputs before I/O, foreign-period counting, early enumeration termination/context closure, final-scan growth, partial enumeration and report forwarding.
 
 ## Inputs and identity
 

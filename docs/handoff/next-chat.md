@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### #002からの継続・manifest列挙件数上限（2026-10-26）
+
+- 利用者の継続指示を受け、GitHubのmainとローカルmainが`6e9ad82d8ae11146041b5eba0ab6b94e21c5cad8`で一致し、[PR #44](https://github.com/wasawo/eo-log-maintenance-public/pull/44)がマージ済み、作業ツリーがクリーンであることを確認した。PR #44本文にはPR/mainのValidate・Package Validation成功記録があるが、本単位では過去CIを再実行していない。新branch `codex/manifest-entry-bounds`をmainから作成し、upstreamは設定していない。下の「本セッション終了」は前セッションの記録であり、今回の継続指示で新しい実装1単位を開始した。
+- [manifest列挙件数の明示上限](../design/latest-manifest-selection.md#explicit-entry-budget-for-directory-observations-2026-10-26)を既存readerとreport wrapperへ追加。optional `maximum_entries`をI/O前に厳密型検査し、初回/最終列挙とも全entryを数え、最初の超過で名前保持・payload読取前に全体拒否する。別period/旧run/不正entryをskipせず、既存bytes上限と非fallback検査を維持する。固定本番値・保持/cleanup方針・schema制約は決めない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'; python -B -m unittest test_manifest_reader_bounds test_manifest_directory_reader test_manifest_report_selection test_manifest_recovery_integration -v`を実行。bounds13件（新規6件＋既存7件の型検査/forwarding拡張）、directory19件、report10件、recovery7件の計49件成功・skipなし。既存CI登録済みsuiteを拡張し、新CIは未実行。PS/schema/配布file集合50件は不変で無関係な検証を再実行しない。文書相対リンク/差分を確認しroot自己点検のみ、独立レビューなし。この記録を含むローカルコミットで区切り、次の指示を待つ。未push・新PRなし。
+- 件数上限はOS列挙時間/名前長/JSON複雑度/全memory/report・evidenceの読取上限ではない。root/FS/owner/clock/現在性/ABA・正式writer/provider・実Drive/runtime受け入れは未実証。次は既承認の独立範囲を同branchで選び、未決C-02/provider/資源方針を推測しない。PR作成は利用者指示時のみ。
+
 ### 累積PR承認と本セッションの終了範囲（2026-10-26）
 
 - 利用者が`c24b13a`までの実装35コミットをまとめたPR作成・マージを明示承認。本節の引き継ぎ記録を同じPRへ含め、最新PR HEADのValidate/Package Validation両成功を確認してsquash mergeする。作業branchは`codex/drive-download-observation`、比較基準は正本main `ccd4ffaf2d785828a700afe8a294f35ef308df43`。本記録時点では未push/未PR/未マージであり、結果はGitHub実状態を確認する。
