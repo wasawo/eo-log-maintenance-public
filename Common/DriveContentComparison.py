@@ -89,7 +89,7 @@ class DriveListingObservationError(ValueError):
         super().__init__(reason_code)
 
 
-def collect_drive_listing(pages, *, expected_folder_id):
+def collect_drive_listing(pages, *, expected_folder_id, maximum_pages=None, maximum_files=None):
     """Validate supplied page continuity; no API calls or trust qualification.
 
     Return no observation on partial/failed/ambiguous pages. Exhaustion alone
@@ -98,6 +98,9 @@ def collect_drive_listing(pages, *, expected_folder_id):
     """
     if not _text(expected_folder_id):
         raise DriveListingObservationError("listing_folder_invalid")
+    if any(value is not None and (type(value) is not int or value < 1)
+           for value in (maximum_pages, maximum_files)):
+        raise DriveListingObservationError("listing_limit_invalid")
     try:
         iterator = iter(pages)
     except Exception:
@@ -107,6 +110,7 @@ def collect_drive_listing(pages, *, expected_folder_id):
     file_ids = set()
     files = []
     terminal = False
+    page_count = 0
     while True:
         try:
             page = next(iterator)
@@ -131,6 +135,8 @@ def collect_drive_listing(pages, *, expected_folder_id):
             if page.next_token in seen_tokens:
                 raise DriveListingObservationError("listing_token_cycle")
             seen_tokens.add(page.next_token)
+        if maximum_files is not None and len(files) + len(page.files) > maximum_files:
+            raise DriveListingObservationError("listing_file_limit_exceeded")
         for item in page.files:
             if not _valid_drive_file(item):
                 raise DriveListingObservationError("listing_file_invalid")
@@ -140,6 +146,9 @@ def collect_drive_listing(pages, *, expected_folder_id):
             files.append(item)
         expected_token = page.next_token
         terminal = expected_token is None
+        page_count += 1
+        if not terminal and maximum_pages is not None and page_count >= maximum_pages:
+            raise DriveListingObservationError("listing_page_limit_exceeded")
     if not terminal:
         raise DriveListingObservationError("listing_terminal_missing")
     return DriveListingObservation(expected_folder_id, tuple(files))

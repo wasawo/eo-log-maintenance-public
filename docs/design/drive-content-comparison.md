@@ -32,6 +32,16 @@ next_token=nullの終端pageがちょうど1件あり、その後にpageも例�
 
 collectorはfile/network APIを直接呼ばず、page提供側のI/O・timeout・件数/時間予算・resource解放はcaller/providerに残る。途中例外は固定reasonへ置換し、token/IDやraw例外を診断へ出さない。部分観測は返さず、callerの元pageを変更/closeしない。[合成page試験](../../tests/test_drive_listing_observation.py)は空/複数/空中間page、token切断/循環、folder/成功不明、ID重複、終端後page/例外、実bytes hash fallbackと複数内容一致の保留までを接続する。
 
+## page集約のcaller指定件数上限（2026-10-26）
+
+`collect_drive_listing`はoptional `maximum_pages` / `maximum_files`を受け取り、Noneまたは正のexact intのみ許す。不正値はiterator取得前に固定`listing_limit_invalid`で拒否し、固定本番値・C-02 field/schema・API方針は採用しない。Noneでは当該caller上限なし。
+
+page数は空pageも数える。上限件数目のpageがnonterminalなら、完全列挙をその予算内で成立させられないため`listing_page_limit_exceeded`で次page取得前に停止する。上限件数目がterminalでも従来どおりiteratorの終端を確認し、trailer pageは`listing_after_terminal`、trailing例外は`listing_read_failed`で拒否する。件数上限を完了証拠や打切り成功にしない。
+
+file上限は全pageのfile件数合計で、page header/token検査後、そのpageのfileを検査・保持する前に合計超過を`listing_file_limit_exceeded`で拒否する。部分観測を返さず、超過fileのskip/dedup/fallbackは行わない。caller所有iteratorをclose/retryせず、transport・後始末はcallerが担う。既存folder/token/ID重複/終端検査と観測順序は維持する。
+
+これらは保持するpage連鎖/file件数に対する資源制限で、callerが生成済みのpage/tupleのmemory、file名/token長、iterator取得/nextの遅延や全memoryを制限しない。実SDK・page真正性/現在性・同時snapshot・runtime資格の証明ではなく、比較結果の全may_*falseを維持する。[page試験](../../tests/test_drive_listing_observation.py)で境界値、不正値の非iter、空中間page、次page非取得/非close、file事前検査、終端後失敗、download hashからの比較接続を確認する。
+
 ## PC-Aの凍結B2とsource再観測への接続
 
 [SourceInventoryRevalidation.py](../../Common/SourceInventoryRevalidation.py)の`revalidate_comparison_source`は比較元の明示信頼確認、PC-Aのexact B2 bytesと独立log/run/root/scope/reference date/現在時計、対象relative pathを要求する。B2のschema/digest/inventory不変条件を検査し、canonical相対pathで一意のeligible targetを選ぶ。PC-BのB2や対象不在・不正文法はsourceを読む前に拒否する。同名でも別pathのtargetを推測して選ばない。

@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### Drive page/file件数の明示上限（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`a19cb92`、クリーンな同branch `codex/manifest-entry-bounds`で[Drive page集約のcaller上限](../design/drive-content-comparison.md#page集約のcaller指定件数上限2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `collect_drive_listing`にoptional `maximum_pages` / `maximum_files`を追加。I/Oを持たないpure入力集約で、不正値はiterator取得前、nonterminalのpage上限到達は次page取得前、file合計超過は当該pageのfile検査/保持前に固定理由で全体拒否する。terminal後のexhaustion/trailer/例外検査、既存folder/token/ID検査・順序を維持し、部分成功・caller iteratorのclose/retryは行わない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_drive_listing_observation test_download_hash_observation test_drive_content_comparison test_drive_comparison_batch test_content_download_plan test_planned_drive_comparison test_initial_inventory_observation`の初回60件は59成功・新規接続testの期待status誤り1fail・skipなし。既存契約`comparison_candidate`へtest期待値を修正し、`python -B -m unittest test_drive_listing_observation.DriveListingObservationTests.test_bounded_listing_still_connects_download_hash_to_non_authorizing_comparison -v`の該当1件成功。製品codeは初回後不変、固有60件の最終結果は全成功・skipなし。新規6件を既存CI登録済みsuiteへ追加。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 固定本番件数/新schema/C-02 field/実API方針を採用しない。生成済みpageのmemory/名前長/token長/iterator遅延や全memory上限ではない。実page真正性/現在性・正式SDK/credential・root/FS/owner/ABA・実Drive/runtime受け入れやUpload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### short writeとclose失敗が重なった場合の理由保全（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`dd620d9`、クリーンな同branch `codex/manifest-entry-bounds`で[一次書込失敗理由の保全](../validation/lock-recovery-acceptance-gate.md#primary-write-failure-survives-stream-close-failure-2026-10-26)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

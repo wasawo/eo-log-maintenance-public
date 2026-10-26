@@ -21,8 +21,69 @@ def page(files=(), requested=None, next_token=None, **changes):
 
 
 class DriveListingObservationTests(unittest.TestCase):
-    def collect(self, pages):
-        return collect_drive_listing(pages, expected_folder_id=FOLDER)
+    def collect(self, pages, **limits):
+        return collect_drive_listing(pages, expected_folder_id=FOLDER, **limits)
+
+    def test_explicit_page_and_file_boundaries_preserve_exact_observation(self):
+        second = replace(FILE, file_id="synthetic-second")
+        pages = (page((FILE,), next_token="one"), page(requested="one", next_token="two"),
+            page((second,), requested="two"))
+        self.assertEqual(self.collect(pages), self.collect(pages, maximum_pages=3, maximum_files=2))
+        self.assertEqual((), self.collect((page(),), maximum_pages=1, maximum_files=1).files)
+
+    def test_invalid_limits_reject_before_iterator_acquisition(self):
+        class Pages:
+            def __iter__(self): raise AssertionError("invalid limits must not acquire iterator")
+        for key in ("maximum_pages", "maximum_files"):
+            for value in (True, False, 0, -1, 1.5, "100"):
+                with self.subTest(key=key, value=value), self.assertRaisesRegex(
+                        DriveListingObservationError, "^listing_limit_invalid$"):
+                    self.collect(Pages(), **{key: value})
+
+    def test_nonterminal_page_at_limit_stops_without_requesting_next_or_closing_iterator(self):
+        events = []
+        def pages():
+            try:
+                events.append("first")
+                yield page(next_token="one")
+                events.append("second")
+                yield page(requested="one", next_token="two")
+                raise AssertionError("must stop before third page")
+            finally:
+                events.append("closed")
+        iterator = pages()
+        with self.assertRaisesRegex(DriveListingObservationError, "^listing_page_limit_exceeded$"):
+            self.collect(iterator, maximum_pages=2)
+        self.assertEqual(["first", "second"], events)
+        iterator.close()
+        self.assertEqual(["first", "second", "closed"], events)
+
+    def test_file_limit_rejects_whole_page_before_validating_or_retaining_its_entries(self):
+        from Common import DriveContentComparison as check
+        with patch.object(check, "_valid_drive_file") as inspect:
+            with self.assertRaisesRegex(DriveListingObservationError, "^listing_file_limit_exceeded$"):
+                self.collect((page((FILE, None)),), maximum_files=1)
+            inspect.assert_not_called()
+        second = replace(FILE, file_id="synthetic-second")
+        with self.assertRaisesRegex(DriveListingObservationError, "^listing_file_limit_exceeded$"):
+            self.collect((page((FILE,), next_token="next"), page((second,), requested="next")), maximum_files=1)
+
+    def test_terminal_at_page_limit_still_requires_exhaustion_and_rejects_trailer(self):
+        with self.assertRaisesRegex(DriveListingObservationError, "^listing_after_terminal$"):
+            self.collect((page(), page()), maximum_pages=1)
+        def failing():
+            yield page()
+            raise OSError("synthetic private detail")
+        with self.assertRaisesRegex(DriveListingObservationError, "^listing_read_failed$"):
+            self.collect(failing(), maximum_pages=1)
+
+    def test_bounded_listing_still_connects_download_hash_to_non_authorizing_comparison(self):
+        listing = self.collect((page((FILE,)),), maximum_pages=1, maximum_files=1)
+        downloaded = hash_downloaded_content(FILE.file_id, (DATA,), expected_size_bytes=len(DATA), download_completed=True)
+        result = compare_drive_content(SOURCE, listing.files, downloads=(downloaded,), source_trusted=True,
+            expected_folder_id=FOLDER, observed_folder_id=listing.folder_id, enumeration_completed=listing.enumeration_completed)
+        self.assertEqual("comparison_candidate", result.status)
+        self.assertFalse(result.may_restore or result.may_report_sync_success or result.may_archive)
 
     def test_complete_empty_listing_is_distinct_from_absent_or_failed_pages(self):
         observed = self.collect((page(),))
