@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### 残存staging観測のcaller指定entry上限（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`b3c035c`、クリーンな同branch `codex/manifest-entry-bounds`で[残存staging entry上限](../design/staging-residual-observation.md#caller-selected-entry-limit-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- public観測と共通snapshotにoptional `maximum_entries`を追加。不正値はroot I/O前にheld/固定拒否、初回/最終scanとも最初の超過entryを保持/sort/metadata検査する前に停止しscanを閉じる。初回未成立は確定件数なし、最終超過は初回件数/warningを保持したheldとする。既存不完全列挙・duplicate/reparse/chain検査と全非認可を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_staging_residual_observation test_source_enumeration_stability test_source_inventory_reparse test_source_inventory_revalidation test_initial_staging_copy_batch test_staged_drive_content_observation test_initial_inventory_observation`の計70件全成功・skipなし。新規5件を既存CI登録済みsuiteへ追加し、境界/不正値非I/O/早期停止とcontext closure/最終件数・bytes保全/部分失敗を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 固定本番上限/保持・cleanup/source全体の新方針を選ばず、Noneではcaller上限なし。名前長/列挙遅延/全memory/真正性・現在性/同時snapshot/ABA・root/FS/provider資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### manifest/成果物集合readerのexact同名重複拒否（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`dc00404`、クリーンな同branch `codex/manifest-entry-bounds`で[manifest scan](../design/latest-manifest-selection.md#duplicate-entries-in-directory-observations-2026-10-26)と[成果物集合scan](../validation/lock-recovery-acceptance-gate.md#duplicate-artifact-directory-entries-2026-10-26)の重複拒否を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

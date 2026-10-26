@@ -2,6 +2,8 @@
 
 ## Duplicate names in shared enumeration snapshots (2026-10-26)
 
+共通snapshotはoptional `maximum_entries`を受け、正のexact intをI/O前に検査し、列挙中の超過をmetadata保持前に拒否できる。現在の接続先は[残存staging観測のcaller上限](staging-residual-observation.md#caller-selected-entry-limit-2026-10-26)で、source builderの通常呼出しは既定Noneのままとする。source全体の件数/容量方針は新設しない。
+
 共通`_enumeration_snapshot`は同じscan内でexact同名entryを再び観測したら、identity辞書へ上書きせず固定`source_directory_changed`で拒否する。casefold/正規化/自動dedupは行わない。source builderは初回失敗でそのdirectoryのpayloadを読まず不完全coverageとし、最終再scan失敗では既に観測済みのtarget/errorを保持して不完全とする。曖昧な列挙を完全な空集合へ変換しない。
 
 [source列挙試験](../../tests/test_source_enumeration_stability.py)は自作tempから得たDirEntryをscandir adapterで重複供給し、共通層の非payload読取・初回/最終inventoryの不完全化とtarget保全を確認する。同helperを使う[残存staging観測](staging-residual-observation.md)もheldへ接続する。これは検出可能な列挙不備の拒否であり、完全列挙の真正性・同時snapshot/ABA・root/FS/provider資格の証明ではない。

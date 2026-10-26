@@ -13,6 +13,81 @@ from test_source_enumeration_stability import duplicate_scan_on_call
 
 
 class StagingResidualObservationTests(unittest.TestCase):
+    def test_explicit_entry_boundary_preserves_empty_and_mixed_counts(self):
+        self.assertEqual(check.observe_staging_residual_entries(self.root),
+            check.observe_staging_residual_entries(self.root, maximum_entries=1))
+        (self.root/"synthetic.tmp").write_bytes(b"preserved")
+        (self.root/"nested").mkdir()
+        result = check.observe_staging_residual_entries(self.root, maximum_entries=2)
+        self.assertEqual(check.observe_staging_residual_entries(self.root), result)
+        self.assertEqual((2, 1, 1), (result.entries_observed, result.regular_file_count, result.directory_count))
+        self.assert_no_authority(result)
+
+    def test_invalid_limits_reject_before_root_io_in_public_and_shared_readers(self):
+        for value in (True, False, 0, -1, 1.5, "100"):
+            with self.subTest(value=value), patch.object(check, "_source_chain") as chain:
+                result = check.observe_staging_residual_entries(self.root, maximum_entries=value)
+                self.assertEqual(("held", "staging_residual_limit_invalid", False, 0),
+                    (result.status, result.reason_code, result.enumeration_completed, result.entries_observed))
+                chain.assert_not_called()
+                self.assert_no_authority(result)
+            with patch.object(builder, "_source_chain") as chain:
+                with self.assertRaisesRegex(InventoryBuildError, "^source_entry_limit_invalid$"):
+                    builder._enumeration_snapshot(self.root, maximum_entries=value)
+                chain.assert_not_called()
+
+    def test_limit_stops_on_first_excess_entry_without_metadata_or_trailer_consumption(self):
+        events = []
+        class Entry:
+            @property
+            def name(self): raise AssertionError("no sorting or metadata after exceeded limit")
+        class Scan:
+            def __enter__(self): return self
+            def __exit__(self, *args): events.append("closed")
+            def __iter__(self):
+                events.append(1)
+                yield Entry()
+                events.append(2)
+                yield Entry()
+                raise AssertionError("must not chase directory growth")
+        with patch.object(builder.os, "scandir", return_value=Scan()), \
+                patch.object(builder, "_source_entry_signature") as metadata:
+            result = check.observe_staging_residual_entries(self.root, maximum_entries=1)
+            metadata.assert_not_called()
+        self.assertEqual([1, 2, "closed"], events)
+        self.assertEqual(("held", "staging_residual_entry_limit_exceeded", False, 0, False),
+            (result.status, result.reason_code, result.enumeration_completed, result.entries_observed, result.warning_required))
+        self.assert_no_authority(result)
+
+    def test_final_limit_excess_preserves_initial_counts_and_forwards_same_limit(self):
+        (self.root/"first.tmp").write_bytes(b"first")
+        real = check._enumeration_snapshot
+        limits = []
+        def changed(root, **options):
+            limits.append(options)
+            if len(limits) == 2: (root/"late.tmp").write_bytes(b"late")
+            return real(root, **options)
+        with patch.object(check, "_enumeration_snapshot", side_effect=changed):
+            result = check.observe_staging_residual_entries(self.root, maximum_entries=1)
+        self.assertEqual([dict(maximum_entries=1)]*2, limits)
+        self.assertEqual(("held", "staging_residual_entry_limit_exceeded", False, 1, True),
+            (result.status, result.reason_code, result.enumeration_completed, result.entries_observed, result.warning_required))
+        self.assertEqual(b"first", (self.root/"first.tmp").read_bytes())
+        self.assertEqual(b"late", (self.root/"late.tmp").read_bytes())
+        self.assert_no_authority(result)
+
+    def test_partial_scan_below_limit_remains_incomplete_not_an_empty_success(self):
+        class Scan:
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+            def __iter__(self): raise OSError("synthetic private detail")
+        with patch.object(builder.os, "scandir", return_value=Scan()):
+            result = check.observe_staging_residual_entries(self.root, maximum_entries=2)
+        self.assertEqual(("held", "staging_residual_observation_incomplete", False, 0),
+            (result.status, result.reason_code, result.enumeration_completed, result.entries_observed))
+        self.assertNotIn("synthetic private detail", repr(result))
+        self.assert_no_authority(result)
+
     def test_duplicate_native_scan_is_held_and_preserves_only_completed_initial_counts(self):
         source = self.root/"synthetic.tmp"
         source.write_bytes(b"preserved")

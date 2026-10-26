@@ -93,10 +93,17 @@ def _source_entry_signature(info):
             getattr(info, "st_file_attributes", 0), info.st_nlink)
 
 
-def _enumeration_snapshot(directory: Path):
+def _enumeration_snapshot(directory: Path, *, maximum_entries=None):
+    if maximum_entries is not None and (type(maximum_entries) is not int or maximum_entries < 1):
+        raise InventoryBuildError("source_entry_limit_invalid")
     chain = _source_chain(directory)
     with os.scandir(directory) as scan:
-        entries = sorted(scan, key=lambda item: item.name.encode("utf-8", errors="strict"))
+        entries = []
+        for entry in scan:
+            if maximum_entries is not None and len(entries) >= maximum_entries:
+                raise InventoryBuildError("source_entry_limit_exceeded")
+            entries.append(entry)
+        entries.sort(key=lambda item: item.name.encode("utf-8", errors="strict"))
     identities = {}
     for entry in entries:
         if entry.name in identities:
