@@ -16,6 +16,7 @@ from Common.ArtifactSetPublication import (
     publish_artifact_set_marker_last,
 )
 from Common.ArtifactSetRecovery import classify_artifact_set
+from Common.ArtifactSetDirectoryVerification import verify_published_artifact_set
 
 
 
@@ -51,6 +52,47 @@ class ArtifactSetPublicationTests(unittest.TestCase):
 
     def expected_hashes(self):
         return {name: hashlib.sha256(data).hexdigest() for name, data in self.payloads.items()}
+
+    def test_invalid_transaction_grammar_rejects_before_any_publication(self):
+        for transaction in (None, True, 1, b"uuid", [], "", "bad",
+                "00000000-0000-0000-0000-000000000000",
+                "123e4567-e89b-02d3-a456-426614174000",
+                "123e4567-e89b-92d3-a456-426614174000",
+                "123e4567-e89b-42d3-7456-426614174000",
+                "123e4567-e89b-42d3-c456-426614174000",
+                "{123e4567-e89b-42d3-a456-426614174000}",
+                "123e4567e89b42d3a456426614174000",
+                "123e4567-e89b-42d3-a456-426614174000\n"):
+            with self.subTest(transaction=transaction), patch.object(atomic, "publish_bytes_no_overwrite") as publish:
+                with self.assertRaisesRegex(ArtifactSetPublicationError, "^transaction_id_invalid$"):
+                    publish_artifact_set_marker_last(str(self.root), self.payloads, transaction_id=transaction)
+                publish.assert_not_called()
+            self.assertEqual([], list(self.root.iterdir()))
+
+    def test_all_supported_versions_variants_and_case_roundtrip_through_directory_reader(self):
+        for version in "12345678":
+            for variant in "89ab":
+                for upper in (False, True):
+                    transaction = f"123e4567-e89b-{version}2d3-{variant}456-426614174000"
+                    if upper: transaction = transaction.upper()
+                    directory = self.root/f"v{version}-{variant}-{upper}"
+                    directory.mkdir()
+                    with self.subTest(version=version, variant=variant, upper=upper):
+                        publish_artifact_set_marker_last(str(directory), self.payloads, transaction_id=transaction)
+                        marker = json.loads((directory/"commit-marker.json").read_bytes())
+                        self.assertEqual(transaction, marker["transaction_id"])
+                        result = verify_published_artifact_set(directory, self.expected_hashes(),
+                            expected_transaction_id=transaction)
+                        self.assertTrue(result.may_report_committed)
+
+    def test_invalid_transaction_preserves_existing_partial_set(self):
+        existing = self.root/"manifest.json"
+        existing.write_bytes(b"synthetic prior")
+        before = {p: p.read_bytes() for p in self.root.iterdir()}
+        with self.assertRaisesRegex(ArtifactSetPublicationError, "^transaction_id_invalid$"):
+            publish_artifact_set_marker_last(str(self.root), self.payloads,
+                transaction_id="00000000-0000-0000-0000-000000000000")
+        self.assertEqual(before, {p: p.read_bytes() for p in self.root.iterdir()})
 
     def test_marker_is_published_last_and_set_is_classifiable_as_committed(self):
         outcomes = publish_artifact_set_marker_last(

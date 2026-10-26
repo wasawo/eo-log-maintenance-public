@@ -32,6 +32,11 @@ def _blocked(reason: str) -> ArtifactSetDecision:
     return ArtifactSetDecision("blocked", reason)
 
 
+def is_artifact_transaction_id(value: Any) -> bool:
+    """Existing marker grammar: hyphenated UUID, version 1-8, RFC variant."""
+    return isinstance(value, str) and _TX_ID.fullmatch(value) is not None
+
+
 def _valid_artifact_map(value: Any) -> bool:
     if not isinstance(value, Mapping) or not value:
         return False
@@ -67,7 +72,7 @@ def classify_artifact_set(
     omitting it does not prove which attempt owns a valid marker.
     """
     if expected_transaction_id is not None and (
-            type(expected_transaction_id) is not str or not _TX_ID.fullmatch(expected_transaction_id)):
+            type(expected_transaction_id) is not str or not is_artifact_transaction_id(expected_transaction_id)):
         return _blocked("expected_transaction_id_invalid")
     if not _valid_artifact_map(expected_sha256):
         return _blocked("expected_artifact_set_invalid")
@@ -102,7 +107,7 @@ def classify_artifact_set(
         if type(commit_marker.get("schema_version")) is not int or commit_marker["schema_version"] != 1:
             return _blocked("commit_marker_version_invalid")
         transaction_id = commit_marker.get("transaction_id")
-        if not isinstance(transaction_id, str) or not _TX_ID.fullmatch(transaction_id):
+        if not is_artifact_transaction_id(transaction_id):
             return _blocked("commit_marker_transaction_id_invalid")
         if expected_transaction_id is not None and transaction_id != expected_transaction_id:
             return _blocked("commit_marker_transaction_id_mismatch")

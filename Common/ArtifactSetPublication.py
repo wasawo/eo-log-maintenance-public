@@ -10,9 +10,9 @@ import hashlib
 import json
 import os
 from typing import Mapping
-from uuid import UUID
 
 from Common import AtomicArtifactPublication as atomic
+from Common.ArtifactSetRecovery import is_artifact_transaction_id
 
 
 class ArtifactSetPublicationError(RuntimeError):
@@ -68,11 +68,7 @@ def publish_artifact_set_marker_last(
     fails closed. A failure leaves already-published artifacts in place for
     later reconciliation; it never rolls them back or removes them.
     """
-    try:
-        parsed_id = UUID(transaction_id)
-    except (TypeError, ValueError, AttributeError) as exc:
-        raise ArtifactSetPublicationError("transaction_id_invalid") from exc
-    if str(parsed_id) != transaction_id.lower():
+    if type(transaction_id) is not str or not is_artifact_transaction_id(transaction_id):
         raise ArtifactSetPublicationError("transaction_id_invalid")
 
     payloads = _validate_payloads(artifacts, commit_marker_name)

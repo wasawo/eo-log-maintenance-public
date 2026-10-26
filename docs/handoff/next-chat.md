@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### marker producer/consumerのtransaction文法を一致（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`a62f2cb`、クリーンな同branch `codex/manifest-entry-bounds`で[transaction文法共通化](../validation/lock-recovery-acceptance-gate.md#publisher-and-classifier-transaction-grammar-2026-10-26)を実装。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- generic UUID parserがnil/version範囲外/non-RFC variantを公開でき、既存classifierではcommittedにできない不一致を修正。既存consumerのversion 1〜8/RFC variant/hyphenated文法をpure共通関数へ抽出しpublisherも再利用、不正値はpayload検査・全publish呼出し前に固定理由で拒否する。大小文字の受入れ・markerの元綴り・期待transactionのexact比較を維持。新しい文法選択や既存不正markerの修復は行わない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_set_publication test_artifact_set_recovery test_artifact_set_directory_verification test_terminal_bundle_integration test_owned_publication_integration test_crash_publication_harness test_internal_publication_crash`の計73件中72成功・既存symlink作成不可1skip。新規3件を既存CI登録済みsuiteへ追加し、64通りのversion/variant/caseを実file公開→directory verifierで読戻し。publisher/recoveryはいずれも既存両role package内でfile集合50件は不変、PS/schema/package回帰を重複実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- producerの不正入力を既存consumer契約へ厳格化した互換性変更。正式transaction protocol/provider・caller真正性・receipt/owner/root/FS/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### 成果物集合のcaller期待値をI/O前に検査（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`4a12761`、クリーンな同branch `codex/manifest-entry-bounds`で[期待値の事前検査](../validation/lock-recovery-acceptance-gate.md#artifact-set-expectations-before-filesystem-access-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

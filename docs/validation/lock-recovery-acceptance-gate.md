@@ -99,6 +99,12 @@ The isolated `Common/ArtifactSetPublication.py` composes the single-file no-over
 - This helper is not yet approved for official entry-point integration, Drive interaction, manifest lifecycle mutation, archive, or deletion. Cross-process crash/concurrency acceptance and target-filesystem behavior remain required.
 
 
+### Publisher and classifier transaction grammar (2026-10-26)
+
+The publisher now uses the existing classifier's shared `is_artifact_transaction_id` grammar before payload validation or any publication call: a hyphenated UUID with version 1 through 8 and RFC variant (fourth group starting 8, 9, a or b), accepting upper/lowercase hex. The supplied spelling is preserved in the marker; independent transaction expectations remain exact string comparisons rather than UUID normalization. The marker classifier and expected-ID validator use the same grammar.
+
+Previously, the publisher's generic UUID parse accepted nil IDs, unsupported versions or non-RFC variants that the classifier could never accept as committed. Such inputs now fail with fixed `transaction_id_invalid` before publishing any artifact or marker. Existing partial sets remain unchanged. This tightens invalid producer inputs to the already established consumer contract; it does not migrate or repair old invalid markers. Synthetic tests cover invalid types/forms, all 64 combinations of supported version/variant/case through real publication and directory verification, and preservation of an existing partial set. Crash/concurrency and formal runtime qualification remain separate gates.
+
 ## 10. Read-only directory-state verification (synthetic implementation)
 
 `Common/ArtifactSetDirectoryVerification.py` now reads observed artifact bytes from one directory, computes SHA-256, parses the marker with duplicate-key rejection, rejects unexpected directory entries and non-regular files, and delegates to the strict artifact-set classifier. It performs no repair, publish, overwrite, or deletion.
