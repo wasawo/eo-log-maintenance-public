@@ -167,7 +167,8 @@ class DownloadObservationError(ValueError):
         super().__init__(reason_code)
 
 
-def hash_downloaded_content(file_id, chunks, *, expected_size_bytes, download_completed):
+def hash_downloaded_content(file_id, chunks, *, expected_size_bytes, download_completed,
+                            maximum_download_bytes=None, maximum_chunk_bytes=None):
     """Hash completed download chunks without retaining contents or owning transport.
 
     The caller must bind the stream and completion to the requested Drive ID.
@@ -178,6 +179,11 @@ def hash_downloaded_content(file_id, chunks, *, expected_size_bytes, download_co
         raise DownloadObservationError("download_context_invalid")
     if download_completed is not True:
         raise DownloadObservationError("download_completion_unconfirmed")
+    if any(value is not None and (type(value) is not int or value < 1)
+           for value in (maximum_download_bytes, maximum_chunk_bytes)):
+        raise DownloadObservationError("download_limit_invalid")
+    if maximum_download_bytes is not None and expected_size_bytes > maximum_download_bytes:
+        raise DownloadObservationError("download_limit_exceeded")
     if isinstance(chunks, (bytes, bytearray, str)):
         raise DownloadObservationError("download_chunks_invalid")
     digest = hashlib.sha256()
@@ -195,6 +201,8 @@ def hash_downloaded_content(file_id, chunks, *, expected_size_bytes, download_co
             raise DownloadObservationError("download_read_failed") from None
         if type(chunk) is not bytes or not chunk:
             raise DownloadObservationError("download_chunk_invalid")
+        if maximum_chunk_bytes is not None and len(chunk) > maximum_chunk_bytes:
+            raise DownloadObservationError("download_chunk_limit_exceeded")
         size += len(chunk)
         if size > expected_size_bytes:
             raise DownloadObservationError("download_size_mismatch")

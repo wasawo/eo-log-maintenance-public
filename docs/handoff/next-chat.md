@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### download hash観測のcaller指定bytes上限（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`357a3ff`、クリーンな同branch `codex/manifest-entry-bounds`で[download bytes上限](../design/drive-content-comparison.md#caller-selected-download-byte-bounds-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `hash_downloaded_content`にoptional `maximum_download_bytes` / `maximum_chunk_bytes`を追加。不正値/期待download size超過はiterator取得/hash生成前、chunk超過はhash更新前に固定理由で全体拒否。既存の型/非空/完了・期待size exact照合・終端確認を維持し、chunkの分割/切詰め/部分観測化やcaller streamのclose/retryを行わない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_download_hash_observation test_drive_listing_observation test_drive_content_comparison test_content_download_plan test_planned_drive_comparison test_download_staging_integration test_drive_comparison_batch`の計64件全成功・skipなし。新規5件を既存CI登録済みsuiteへ追加し、空/分割payload境界、各段階の消費/生成/更新前拒否、caller所有境界、short/overlong/終端例外と非認可比較接続を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 固定本番値/新schema/C-02 field/実SDK方針を採用しない。生成済みchunkのmemory/iterator遅延/真正なID-stream bindingを保証せず、正式SDK/credential・root/FS/owner/ABA・実Drive/runtime受け入れやUpload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### Drive page/file件数の明示上限（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`a19cb92`、クリーンな同branch `codex/manifest-entry-bounds`で[Drive page集約のcaller上限](../design/drive-content-comparison.md#page集約のcaller指定件数上限2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

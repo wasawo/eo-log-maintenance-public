@@ -32,6 +32,14 @@ next_token=nullの終端pageがちょうど1件あり、その後にpageも例�
 
 collectorはfile/network APIを直接呼ばず、page提供側のI/O・timeout・件数/時間予算・resource解放はcaller/providerに残る。途中例外は固定reasonへ置換し、token/IDやraw例外を診断へ出さない。部分観測は返さず、callerの元pageを変更/closeしない。[合成page試験](../../tests/test_drive_listing_observation.py)は空/複数/空中間page、token切断/循環、folder/成功不明、ID重複、終端後page/例外、実bytes hash fallbackと複数内容一致の保留までを接続する。
 
+## Caller-selected download byte bounds (2026-10-26)
+
+`hash_downloaded_content`はoptional `maximum_download_bytes` / `maximum_chunk_bytes`を受け取り、Noneまたは正のexact intのみ許す。不正値はiterator取得/hash生成前に`download_limit_invalid`、期待sizeがdownload上限を超える場合は同じく消費前に`download_limit_exceeded`で拒否する。Noneでは当該caller上限なし、固定本番値やschema/SDK方式は選ばない。空fileは従来どおり0 chunkで表す。
+
+chunkの型/非空検査後、その長さが明示chunk上限を超える場合はhash更新前に`download_chunk_limit_exceeded`で停止する。超過chunkを切り詰めたり分割して受け入れたりせず、部分観測も返さない。期待sizeとのexact一致、終端までの正常消費・完了確認は別に必須であり、short/overlong/終端後例外を上限内だからと成功にしない。caller所有streamのclose/retryは行わない。
+
+これはhelperがhashへ受け入れるbytesの制限であり、callerが既に生成したchunkのmemory、iterator/nextのblock時間、download ID/streamの真正なbindingや実SDK資格を保証しない。既存比較の非認可flagsを維持する。[download試験](../../tests/test_download_hash_observation.py)で空/分割payloadのexact境界、不正上限/期待size超過の非iter・非hash、chunk超過の非hash更新/非trailer消費/非close、従来size/終端検査と比較接続を確認する。
+
 ## page集約のcaller指定件数上限（2026-10-26）
 
 `collect_drive_listing`はoptional `maximum_pages` / `maximum_files`を受け取り、Noneまたは正のexact intのみ許す。不正値はiterator取得前に固定`listing_limit_invalid`で拒否し、固定本番値・C-02 field/schema・API方針は採用しない。Noneでは当該caller上限なし。
