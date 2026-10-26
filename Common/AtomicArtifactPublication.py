@@ -122,7 +122,12 @@ def publish_bytes_no_overwrite(destination: str | os.PathLike[str], data: bytes)
         temp_path = Path(temp_name)
         with os.fdopen(fd, "wb") as stream:
             fd = None
-            stream.write(data)
+            payload = memoryview(data)
+            for offset in range(0, len(payload), 1024 * 1024):
+                block = payload[offset:offset + 1024 * 1024]
+                written = stream.write(block)
+                if type(written) is not int or written != len(block):
+                    raise ArtifactPublicationError("artifact_write_incomplete")
             stream.flush()
             os.fsync(stream.fileno())
             temp_identity = _identity(os.fstat(stream.fileno()))

@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### temp公開書込みの件数検証（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`77ece88`、クリーンな同branch `codex/manifest-entry-bounds`で[temp書込み件数検証](../validation/lock-recovery-acceptance-gate.md#exact-temporary-file-write-counts-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 単一file公開を最大1,048,576 byte/chunkのmemoryview書込みへ変更。write返却値はexact intかつchunk長一致のみ許可し、short/zero/過大/負/非int/boolは固定`artifact_write_incomplete`で停止。再試行/明示flush・fsync/linkへ進まず部分tempを保全する。closeによるbuffer flushは起こり得る。正常/空payloadのflush/fsync/読戻し/identity/祖先検査は維持する。集合の後続file失敗は固定理由を伝播し、先行公開成果物を保全してmarker非公開とする。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_atomic_artifact_publication test_artifact_set_publication test_crash_publication_harness test_internal_publication_crash test_terminal_bundle_integration test_owned_publication_integration`の計60件中59成功・既存symlink作成不可1skip。新規4件を既存CI登録済みsuiteへ追加し、multichunk/不正返却値/空payload/2件目のshort writeを確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- caller payloadのmemory上限や正式write provider/永続run契約を追加しない。short write後のtempは未検証のまま保全しcleanup/retry/修復しない。正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### 公開先basenameの全件事前検査（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`af78bcc`、クリーンな同branch `codex/manifest-entry-bounds`で[公開先basenameの事前検査](../validation/lock-recovery-acceptance-gate.md#destination-basenames-before-publication-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

@@ -17,6 +17,71 @@ from Common.AtomicArtifactPublication import (
 
 
 class AtomicArtifactPublicationTests(unittest.TestCase):
+    def test_temp_writes_are_bounded_and_exact_before_publication(self):
+        real_fdopen = atomic.os.fdopen
+        lengths = []
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args): return self.stream.__exit__(*args)
+            def fileno(self): return self.stream.fileno()
+            def flush(self): return self.stream.flush()
+            def write(self, block):
+                lengths.append(len(block))
+                return self.stream.write(block)
+        def opened(*args, **kwargs): return Stream(real_fdopen(*args, **kwargs))
+        payload = b"x"*(2*1024*1024+7)
+        destination = self.root/"manifest.json"
+        with patch.object(atomic.os, "fdopen", opened):
+            self.assertEqual("published", publish_bytes_no_overwrite(destination, payload))
+        self.assertEqual([1024*1024, 1024*1024, 7], lengths)
+        self.assertEqual(payload, destination.read_bytes())
+        self.assertEqual([destination], list(self.root.iterdir()))
+
+    def test_invalid_write_counts_stop_without_retry_or_link_and_preserve_temp(self):
+        real_fdopen = atomic.os.fdopen
+        for index, returned in enumerate((0, 2, None, True, False, -1, 100, "3", 3.0)):
+            destination = self.root/f"manifest-{index}.json"
+            calls = []
+            class Stream:
+                def __init__(self, stream): self.stream = stream
+                def __enter__(self): return self
+                def __exit__(self, *args): return self.stream.__exit__(*args)
+                def write(self, block):
+                    calls.append(len(block))
+                    self.stream.write(block[:2])
+                    return returned
+                def flush(self): raise AssertionError("explicit flush must not follow a bad write count")
+                def fileno(self): raise AssertionError("fsync must not follow a bad write count")
+            def opened(*args, **kwargs): return Stream(real_fdopen(*args, **kwargs))
+            with self.subTest(returned=returned), patch.object(atomic.os, "fdopen", opened), \
+                    patch.object(atomic.os, "link") as link:
+                with self.assertRaisesRegex(ArtifactPublicationError, "^artifact_write_incomplete$"):
+                    publish_bytes_no_overwrite(destination, b"synthetic")
+                link.assert_not_called()
+            self.assertEqual([9], calls)
+            self.assertFalse(destination.exists())
+            temporary = list(self.root.glob(f".{destination.name}.tmp-*"))
+            self.assertEqual(1, len(temporary))
+            self.assertEqual(b"sy", temporary[0].read_bytes())
+
+    def test_empty_payload_still_flushes_syncs_and_publishes_without_write_calls(self):
+        real_fdopen = atomic.os.fdopen
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args): return self.stream.__exit__(*args)
+            def write(self, block): raise AssertionError("empty payload needs no write")
+            def flush(self): return self.stream.flush()
+            def fileno(self): return self.stream.fileno()
+        def opened(*args, **kwargs): return Stream(real_fdopen(*args, **kwargs))
+        destination = self.root/"empty.json"
+        with patch.object(atomic.os, "fdopen", opened), \
+                patch.object(atomic.os, "fsync", wraps=atomic.os.fsync) as sync:
+            self.assertEqual("published", publish_bytes_no_overwrite(destination, b""))
+            sync.assert_called_once()
+        self.assertEqual(b"", destination.read_bytes())
+
     def test_invalid_destination_basename_rejects_before_parent_io_or_temp_creation(self):
         for name in ("invalid.", "invalid ", "invalid. ", ".."):
             with self.subTest(name=name), patch.object(atomic, "_chain") as chain, \

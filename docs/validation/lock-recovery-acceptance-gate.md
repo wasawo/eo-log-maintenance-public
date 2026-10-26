@@ -99,6 +99,12 @@ The isolated `Common/ArtifactSetPublication.py` composes the single-file no-over
 - This helper is not yet approved for official entry-point integration, Drive interaction, manifest lifecycle mutation, archive, or deletion. Cross-process crash/concurrency acceptance and target-filesystem behavior remain required.
 
 
+### Exact temporary-file write counts (2026-10-26)
+
+The single-file publisher writes its immutable payload in chunks of at most 1,048,576 bytes using memoryview slices. Every `write` result must be an exact integer equal to that chunk's length; short/zero/negative/oversized counts, bool, None or other types reject with fixed `artifact_write_incomplete`. The helper does not retry a partial write, explicitly flush/fsync it, or link it to the destination. Stream close may flush buffered data, so partial/unverified temp files remain preserved; they are not automatically repaired or removed. Existing readback, identity and parent checks remain required after complete writes. Empty payloads still flush, fsync and pass readback before publication.
+
+The artifact-set publisher propagates the same fixed reason. If a later artifact fails its write, earlier published artifacts remain, no marker is published, and the partial temp remains for separately authorized reconciliation. Synthetic tests cover bounded multichunk writes, invalid return values without retry/link, empty payload publication, and a second-artifact short write. These checks do not add runtime integration, durable recovery, qualified ownership/filesystems, or power-loss guarantees; caller payload memory is not bounded by chunking.
+
 ### Destination basenames before publication (2026-10-26)
 
 The artifact-set publisher applies the single-file publisher's existing prohibition on trailing spaces/dots to every artifact basename and the marker basename during whole-set input validation. Invalid artifact names raise `artifact_name_invalid`; invalid marker names raise `commit_marker_name_invalid`, before any call to publish an artifact. Previously, a later invalid basename or the invalid marker could be discovered only after earlier valid files had been published. Invalid input no longer creates that avoidable partial set; an existing partial set remains unchanged.

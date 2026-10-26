@@ -53,6 +53,29 @@ class ArtifactSetPublicationTests(unittest.TestCase):
     def expected_hashes(self):
         return {name: hashlib.sha256(data).hexdigest() for name, data in self.payloads.items()}
 
+    def test_second_artifact_short_write_preserves_first_and_never_publishes_marker(self):
+        real_fdopen = atomic.os.fdopen
+        opened_count = []
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args): return self.stream.__exit__(*args)
+            def write(self, block): return self.stream.write(block[:2])
+        def opened(*args, **kwargs):
+            stream = real_fdopen(*args, **kwargs)
+            opened_count.append(True)
+            return Stream(stream) if len(opened_count) == 2 else stream
+        with patch.object(atomic.os, "fdopen", opened):
+            with self.assertRaisesRegex(ArtifactSetPublicationError, "^artifact_write_incomplete$"):
+                publish_artifact_set_marker_last(str(self.root), self.payloads, transaction_id=self.transaction_id)
+        self.assertEqual(2, len(opened_count))
+        self.assertEqual(self.payloads["manifest.json"], (self.root/"manifest.json").read_bytes())
+        self.assertFalse((self.root/"report.json").exists())
+        self.assertFalse((self.root/"commit-marker.json").exists())
+        temporary = list(self.root.glob(".report.json.tmp-*"))
+        self.assertEqual(1, len(temporary))
+        self.assertEqual(self.payloads["report.json"][:2], temporary[0].read_bytes())
+
     def test_invalid_late_artifact_basename_rejects_entire_set_before_publish(self):
         for name in ("z-invalid.", "z-invalid ", "z-invalid. "):
             payloads = {"a-valid.json": b"synthetic first", name: b"synthetic last"}
