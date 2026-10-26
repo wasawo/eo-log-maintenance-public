@@ -2,12 +2,49 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from Common.CrashRecoveryDecision import decide_crash_recovery
 
 
 class CrashRecoveryDecisionTests(unittest.TestCase):
+    def test_nonlocal_schema_references_never_enable_recovery_or_network(self):
+        original = self.kwargs["prior_manifest_bytes"]
+        for keyword in ("$ref", "$dynamicRef"):
+            for reference in ("https://synthetic.invalid/schema", "file:///synthetic-schema",
+                              "relative-schema.json", "", None, 1):
+                for schema in ({keyword: reference}, {"$defs": {"unused": {keyword: reference}}}):
+                    with self.subTest(keyword=keyword, reference=reference), \
+                            patch.object(Path, "read_text", return_value=json.dumps(schema)), \
+                            patch("socket.socket", side_effect=AssertionError("must not retrieve")) as network:
+                        result = self.decide()
+                        self.assertEqual("prior_manifest_invalid_or_not_running", result.reason_code)
+                        self.assertFalse(result.may_start_new_run)
+                        self.assertTrue(result.preserve_prior_manifest)
+                        network.assert_not_called()
+        self.assertEqual(original, self.kwargs["prior_manifest_bytes"])
+
+    def test_registry_blocks_retrieval_even_if_reference_preflight_is_bypassed(self):
+        with patch("Common.CrashRecoveryDecision._require_local_schema_refs"), \
+                patch.object(Path, "read_text", return_value='{"$ref":"https://synthetic.invalid/schema"}'), \
+                patch("socket.socket", side_effect=AssertionError("must not retrieve")) as network:
+            self.assertEqual("prior_manifest_invalid_or_not_running", self.decide().reason_code)
+            network.assert_not_called()
+
+    def test_local_schema_reference_support_and_broken_schema_rejection_are_preserved(self):
+        expected = self.decide()
+        path = Path(__file__).resolve().parents[1] / "contracts/manifest-v1.schema.json"
+        schema = json.loads(path.read_text(encoding="utf-8"))
+        schema["$defs"]["synthetic_local"] = True
+        schema["allOf"].append({"$ref": "#/$defs/synthetic_local"})
+        with patch.object(Path, "read_text", return_value=json.dumps(schema)):
+            self.assertEqual(expected, self.decide())
+        for invalid in ({"$ref": "#/$defs/missing"}, {"type": "synthetic-invalid"}):
+            with self.subTest(schema=invalid), patch.object(Path, "read_text", return_value=json.dumps(invalid)):
+                self.assertEqual("prior_manifest_invalid_or_not_running", self.decide().reason_code)
+
     def setUp(self):
         self.manifest = {
             "schema_version": 1,

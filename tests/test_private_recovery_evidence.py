@@ -1,5 +1,6 @@
 """Byte-binding and privacy tests using in-memory synthetic old locks."""
 import json
+from pathlib import Path
 import traceback
 import unittest
 from unittest.mock import patch
@@ -11,6 +12,44 @@ from Common.PrivateRecoveryEvidence import (
 
 
 class PrivateRecoveryEvidenceTests(unittest.TestCase):
+    def test_nonlocal_schema_references_reject_build_and_validation_without_network(self):
+        metadata = self.build()
+        for keyword in ("$ref", "$dynamicRef"):
+            for reference in ("https://synthetic.invalid/schema", "file:///synthetic-schema",
+                              "relative-schema.json", "", None, 1):
+                for schema in ({keyword: reference}, {"$defs": {"unused": {keyword: reference}}}):
+                    with self.subTest(keyword=keyword, reference=reference), \
+                            patch.object(Path, "read_text", return_value=json.dumps(schema)), \
+                            patch("socket.socket", side_effect=AssertionError("must not retrieve")) as network:
+                        with self.assertRaisesRegex(PrivateRecoveryEvidenceError, "^private_evidence_invalid$"):
+                            self.build()
+                        with self.assertRaisesRegex(PrivateRecoveryEvidenceError, "^private_evidence_invalid$"):
+                            validate_private_recovery_evidence(metadata, self.raw)
+                        network.assert_not_called()
+        self.assertEqual(metadata, self.build())
+
+    def test_registry_denies_retrieval_even_if_reference_preflight_is_bypassed(self):
+        with patch("Common.PrivateRecoveryEvidence._require_local_schema_refs"), \
+                patch.object(Path, "read_text", return_value='{"$ref":"https://synthetic.invalid/schema"}'), \
+                patch("socket.socket", side_effect=AssertionError("must not retrieve")) as network:
+            with self.assertRaisesRegex(PrivateRecoveryEvidenceError, "^private_evidence_invalid$"):
+                self.build()
+            network.assert_not_called()
+
+    def test_local_schema_references_work_and_broken_or_invalid_schemas_fail_closed(self):
+        metadata = self.build()
+        path = Path(__file__).resolve().parents[1] / "contracts/private-recovery-evidence-v1.schema.json"
+        schema = json.loads(path.read_text(encoding="utf-8"))
+        schema["$defs"] = {"local": True}
+        schema.setdefault("allOf", []).append({"$ref": "#/$defs/local"})
+        with patch.object(Path, "read_text", return_value=json.dumps(schema)):
+            self.assertEqual(metadata, self.build())
+            self.assertEqual(len(self.raw), validate_private_recovery_evidence(metadata, self.raw)["raw_lock_size"])
+        for invalid in ({"$ref": "#/$defs/missing"}, {"type": "synthetic-invalid"}):
+            with self.subTest(schema=invalid), patch.object(Path, "read_text", return_value=json.dumps(invalid)):
+                with self.assertRaisesRegex(PrivateRecoveryEvidenceError, "^private_evidence_invalid$"):
+                    self.build()
+
     def setUp(self):
         self.raw = b'{"owner_token":"synthetic_private_token","host":"synthetic_host"}'
         self.options = dict(raw_lock_bytes=self.raw,

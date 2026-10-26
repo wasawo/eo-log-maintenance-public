@@ -247,3 +247,11 @@ owner recordの`write`は戻り値がexact intかつ全payload長と一致する
 owned lockのrecord解放時確認とunlinkを外側のfinallyで囲み、その途中のKeyboardInterrupt/SystemExit等でもmutex release・closeを試みます。release自身が失敗/中断してもcloseを試みる既存順序を維持し、中断を正常終了へ変換しません。record cleanupのOSErrorを保全へ落とす既存動作と、通常の所有確認/cleanup条件は変更しません。
 
 [単体回帰](../tests/test_owned_run_lock.py)で解放時観測/unlinkの中断、release失敗/中断、unlinkのOSErrorとbody例外の保全を確認します。[隔離保存接続](../tests/test_terminal_bundle_integration.py)は両PCの候補公開後にrecord解放確認を中断し、prior・候補・recordを保全したまま別合成record pathで同一mutexを再取得して解放を確認します。これは中断後のmutex解放に関する合成証拠であり、残存recordの採用/復旧・次run認可、敵対的競合/ABA・強制process終了や電源断耐久性、正式runtime/Tier B/C受け入れやP0閉鎖を示しません。
+
+## Local-only recovery schema references (2026-10-27)
+
+`PrivateRecoveryEvidence`のbuild/validateと`CrashRecoveryDecision`のprior manifest検査も、既存manifest selectorのlocal-only参照検査・取得禁止Registryを使用します。schema全treeの`$ref` / `$dynamicRef`は`#`で始まる文字列だけを許し、HTTP/file/相対resource・不正型を、未使用のdefs内でも拒否します。validator自身にもresource retrievalを拒否するRegistryを明示し、事前検査だけに依存しません。
+
+正常なlocal fragment・既存repository schemaは維持し、壊れたlocal参照/invalid schemaも拒否します。private evidenceは従来の`private_evidence_invalid`、crash classifierは`prior_manifest_invalid_or_not_running`へ閉じ、URL・raw lock・schema例外をreasonへ出しません。元metadata/raw bytes・prior manifestを変更せず、外部取得を新しい受け入れや復旧認可の根拠にしません。
+
+[private evidence試験](../tests/test_private_recovery_evidence.py)と[crash判定試験](../tests/test_crash_recovery_decision.py)で、非local/未使用/不正参照、正常/破損local参照、invalid schemaとRegistryの独立拒否をsocket非呼出しで確認します。これはschema参照取得の制限で、schema自身の真正性/資源上限・owner/provider資格、実保存/復旧・runtime/Tier B/C受け入れやP0閉鎖を示しません。既存依存・配布file集合は変更しません。

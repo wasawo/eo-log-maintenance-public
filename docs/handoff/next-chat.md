@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+### private証拠・crash判定schemaの外部取得禁止（2026-10-27）
+
+- 利用者の次作業指示を受け、cleanな`16b7e7b`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [復旧schemaのlocal-only参照](../../Common/README.md#local-only-recovery-schema-references-2026-10-27)をprivate evidence build/validateとcrash classifierのprior manifest検査へ適用。既存selectorの全tree参照検査と取得禁止Registryを再利用し、非local/不正`$ref` / `$dynamicRef`を未使用defs内でも拒否する。privateは既存`private_evidence_invalid`、crashは既存`prior_manifest_invalid_or_not_running`に閉じ、正常local fragment・元metadata/raw/prior bytes・既存非認可/保全を維持する。
+- 既存Python 3.11.9実体（shim版未選択のため設定変更せず指定、CIは3.12）で`$env:PYTHONPATH='tests;.'`後、`& $python311 -B -m unittest test_private_recovery_evidence test_crash_recovery_decision test_manifest_recovery_integration test_latest_manifest_selection test_aggregation_report_builder test_owned_publication_integration test_recovery_diagnostic_mutex`の121件全成功・skipなし。既知sandbox hardlink拒否を避けauto-review承認済みのsandbox外・自作temp/合成入力だけを使用。既存CI登録suiteへ新規6件を追加し、HTTP/file/相対/不正値/未使用参照、破損local/invalid schema、正常local、事前検査を迂回した場合のRegistry拒否をsocket非呼出しで確認。変更3文書の相対リンク146件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- schema取得制限であり、schema真正性/資源上限・private保存/ACL/owner-v2/provider資格、実復旧/次run認可、現在性/ABA・電源断/Tier B/C/runtime受け入れや要件全体/P0-010閉鎖は未実装・未実証。既存依存/配布file集合・schema/C-02/SDK・固定本番値は不変。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで累積source/公開/owner/復旧境界と未決runtime契約を照合して次単位を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
 ### record cleanup中断後のmutex解放試行（2026-10-27）
 
 - 利用者の次作業指示を受け、cleanな`cd703dc`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。

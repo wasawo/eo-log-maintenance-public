@@ -23,10 +23,11 @@ privateメタデータ自体も公開診断へ自動掲載しない。SHA-256だ
 
 Common/PrivateRecoveryEvidence.pyのbuilder/validatorは、渡されたbytesだけを使いメタデータの生成・strict JSON/UTF-8・重複key・schema・size/digest対応を検証する。
 信頼済みrepository/package schemaを読む以外のファイル読取、保存、directory作成、ACL、Drive、削除は行わない。
+schemaの参照も[local fragment限定・resource取得禁止](../../Common/README.md#local-only-recovery-schema-references-2026-10-27)として検査し、HTTP/file/相対resourceを取得しない。正常なlocal参照は維持し、非local/破損参照・不正schemaは既存private_evidence_invalidで拒否する。
 UTCは構文と暦日を独立検証するが、時計信頼性・現在性は別ゲート。観測IDやscopeも実recordの出所を証明しない。
 原本は不正JSON/非UTF-8であってもopaque bytesとして保全できる。保全可能であることはsupported lockや回復対象であることを意味しない。
 
-13合成テストで、秘密値非掲載、同サイズ別原本・切断・version/型/任意path/日時の拒否、曖昧JSON、opaque原本、schema読取失敗の秘匿化を検証する。
+合成テストで、秘密値非掲載、同サイズ別原本・切断・version/型/任意path/日時の拒否、曖昧JSON、opaque原本、schema読取失敗の秘匿化、外部参照の事前/Registry独立拒否とlocal参照互換を検証する。
 原本bytesとメタデータの対応検証だけの証拠で、実保存・ACL・中断耐性やP0/Tier B受け入れの証明ではない。
 
 ## 実保存前のACL・rootゲート
