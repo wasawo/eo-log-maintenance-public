@@ -1,5 +1,11 @@
 # 凍結B2に対するsource再観測
 
+## Duplicate names in shared enumeration snapshots (2026-10-26)
+
+共通`_enumeration_snapshot`は同じscan内でexact同名entryを再び観測したら、identity辞書へ上書きせず固定`source_directory_changed`で拒否する。casefold/正規化/自動dedupは行わない。source builderは初回失敗でそのdirectoryのpayloadを読まず不完全coverageとし、最終再scan失敗では既に観測済みのtarget/errorを保持して不完全とする。曖昧な列挙を完全な空集合へ変換しない。
+
+[source列挙試験](../../tests/test_source_enumeration_stability.py)は自作tempから得たDirEntryをscandir adapterで重複供給し、共通層の非payload読取・初回/最終inventoryの不完全化とtarget保全を確認する。同helperを使う[残存staging観測](staging-residual-observation.md)もheldへ接続する。これは検出可能な列挙不備の拒否であり、完全列挙の真正性・同時snapshot/ABA・root/FS/provider資格の証明ではない。
+
 ## Ancestor binding inside the source hash reader (2026-10-26)
 
 共通`_hash_stable_file`はfile読取前にparentの絶対pathから全祖先directoryのdevice/inode chainを取得し、読取・reparse再検査・最終path stat後に同じchainを照合する。異なるchainは固定`source_mutation_detected`、chain取得のOSErrorは既存`source_file_unavailable`で拒否する。既存のfile path/handle identity・size/mtime、期待size・初期size+1読取境界・SHA検査は維持する。

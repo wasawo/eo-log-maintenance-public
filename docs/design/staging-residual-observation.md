@@ -1,5 +1,7 @@
 # 残存staging直下entryの読取観測
 
+2026-10-26：[共通snapshotのexact同名重複拒否](source-inventory-revalidation.md#duplicate-names-in-shared-enumeration-snapshots-2026-10-26)を利用する。初回scanが重複で失敗した場合は未確定件数を推計せず0観測のheld、最終scan失敗では初回の確定件数/warningを保持したheldとする。いずれも完全0件/cleanup許可へ変換しない。scandirへの重複注入試験で両経路とbytes保全を確認する。
+
 2026-10-25。[残存artifact規則](staging-file-lifecycle.md#9-residual-staging-artifacts)を支える[StagingResidualObservation.py](../../Common/StagingResidualObservation.py)。起動時の完全なmetadata検査・run status更新・cleanupの実装ではない。
 
 `observe_staging_residual_entries`は明示された既存絶対directoryの直下を列挙し、regular file/directory/otherの件数を返す。子directoryへ再帰せず、内容やmetadata JSONを読まない。名前/内容/ID/pathを返却せず、固定kind/reasonと整数件数・flagだけを保持する。空/missing/relative rootを補完・作成せず、不明rootはheldとする。

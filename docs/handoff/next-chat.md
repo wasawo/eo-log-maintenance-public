@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### 共通directory snapshotのexact同名重複拒否（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`08d2d1a`、クリーンな同branch `codex/manifest-entry-bounds`で[列挙snapshotの重複拒否](../design/source-inventory-revalidation.md#duplicate-names-in-shared-enumeration-snapshots-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `_enumeration_snapshot`内でexact同名entryをidentity辞書へ上書きする前に既存固定directory-changed理由で拒否。source builderの初回scan失敗はpayload非読取の不完全coverage、最終scan失敗は既存target保全の不完全coverageへ接続する。残存stagingは初回の未確定件数を推計せずheld、最終失敗は初回件数/warningを保持したheld。casefold/dedup/新しい名前方針は採用しない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_source_enumeration_stability test_staging_residual_observation test_source_hash_identity test_source_inventory_revalidation test_source_inventory_reparse test_initial_staging_copy_batch test_staged_drive_content_observation test_initial_inventory_observation`の計77件全成功・skipなし。新規3件を既存CI登録済みsuiteへ追加。自作tempのDirEntryをscandir adapterで重複供給し、共通層の拒否・source初回/最終失敗・残存staging heldの件数/bytes保全を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 検出可能な曖昧列挙を拒否するもので、列挙真正性/同時snapshot/ABA・root/FS/provider資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### source hash reader内の祖先identity前後照合（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`3c1ef93`、クリーンな同branch `codex/manifest-entry-bounds`で[source hash祖先binding](../design/source-inventory-revalidation.md#ancestor-binding-inside-the-source-hash-reader-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

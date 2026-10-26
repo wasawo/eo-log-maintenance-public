@@ -99,6 +99,8 @@ def _enumeration_snapshot(directory: Path):
         entries = sorted(scan, key=lambda item: item.name.encode("utf-8", errors="strict"))
     identities = {}
     for entry in entries:
+        if entry.name in identities:
+            raise InventoryBuildError("source_directory_changed")
         info = Path(entry.path).lstat()
         if _is_source_reparse(info):
             raise InventoryBuildError("source_reparse_component")

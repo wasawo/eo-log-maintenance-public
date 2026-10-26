@@ -8,9 +8,26 @@ from unittest.mock import patch
 
 from Common import StagingResidualObservation as check
 from Common.SourceInventoryEvidenceBuilder import InventoryBuildError
+from Common import SourceInventoryEvidenceBuilder as builder
+from test_source_enumeration_stability import duplicate_scan_on_call
 
 
 class StagingResidualObservationTests(unittest.TestCase):
+    def test_duplicate_native_scan_is_held_and_preserves_only_completed_initial_counts(self):
+        source = self.root/"synthetic.tmp"
+        source.write_bytes(b"preserved")
+        for repeat_call in (1, 2):
+            with self.subTest(repeat_call=repeat_call), patch.object(builder.os, "scandir",
+                    side_effect=duplicate_scan_on_call(self.root, repeat_call)):
+                result = check.observe_staging_residual_entries(self.root)
+            self.assertEqual("held", result.status)
+            self.assertFalse(result.enumeration_completed)
+            self.assertEqual(0 if repeat_call == 1 else 1, result.entries_observed)
+            self.assertEqual(repeat_call == 2, result.warning_required)
+            self.assertEqual(1, result.observation_errors)
+            self.assert_no_authority(result)
+            self.assertEqual(b"preserved", source.read_bytes())
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="eolm-residual-observe-")
         self.addCleanup(self.temp.cleanup)
