@@ -179,6 +179,11 @@ def _hash_stable_file(path: Path, *, expected_size: int | None = None) -> tuple[
     return byte_count, digest.hexdigest()
 
 
+def _valid_inventory_limits(maximum_entries, maximum_file_bytes, maximum_total_hash_bytes):
+    return all(value is None or (type(value) is int and value > 0)
+               for value in (maximum_entries, maximum_file_bytes, maximum_total_hash_bytes))
+
+
 def build_run_input_evidence(
     source_root: str | os.PathLike[str],
     *,
@@ -204,8 +209,7 @@ def build_run_input_evidence(
     eligible hash attempts by observed file size. Limit hits retain partial
     evidence with incomplete coverage; they never authorize a partial run.
     """
-    if any(value is not None and (type(value) is not int or value < 1)
-           for value in (maximum_entries, maximum_file_bytes, maximum_total_hash_bytes)):
+    if not _valid_inventory_limits(maximum_entries, maximum_file_bytes, maximum_total_hash_bytes):
         raise InventoryBuildError("source_inventory_limit_invalid")
     if pc_id not in ("PC-A", "PC-B"):
         raise InventoryBuildError("unsupported_pc_id")

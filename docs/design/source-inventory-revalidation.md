@@ -1,5 +1,13 @@
 # 凍結B2に対するsource再観測
 
+## Source inventory budgets at revalidation entrypoints (2026-10-27)
+
+`revalidate_source_inventory` / `revalidate_initial_manifest_source` / `revalidate_comparison_source` / `revalidate_comparison_sources` / `inspect_initial_inventory`はoptional `maximum_entries` / `maximum_file_bytes` / `maximum_total_hash_bytes`を受け、全再観測のbuilderへそのまま渡す。builderと共通のpure型検査でNoneまたは正のexact intだけを許し、不正値は各入口でB2/plan解析・再構成・source I/O・Drive比較前に固定`source_revalidation_limit_invalid`で拒否する。
+
+予算は選択pathの部分集合でなく、対象外期間・不正名・directoryも含む全source走査と全適格hash試行に適用する。単一選択や空選択でも完全なB2再観測を省略しない。超過で得たincomplete coverageは既存`source_revalidation_incomplete`として拒否し、比較sourceの部分tupleや空の成功観測・Drive比較結果を返さない。initial inventoryではdownload計画の予算と独立し、source再観測が完了してからDrive比較へ進む。
+
+予算内は従来のschema/identity/時間/完全coverageと凍結B2全体の照合を維持し、元のexact evidence bytes・選択順・全may_*falseを保つ。予算はB2/planへ保存せず、呼出しごとにcallerが供給する。Noneでは従来動作。正式runtime・root/FS/provider資格、現在性/ABA、実I/O/時間/全memory上限、実Drive・電源断/Tier B/C受け入れは追加しない。
+
 ## Caller-selected source inventory budgets (2026-10-27)
 
 `build_run_input_evidence`はoptional `maximum_entries` / `maximum_file_bytes` / `maximum_total_hash_bytes`を受ける。Noneまたは正のexact intだけを許し、不正値はroot I/O前に固定`source_inventory_limit_invalid`で拒否する。固定本番値・schema field・配布fileは追加しない。
@@ -10,7 +18,7 @@ bytes予算は適格fileの現在stat sizeでhash前に検査する。各hash試
 
 いずれかの予算超過で以降の走査/hashを停止し、既に得たtarget/errorは保持してenumeration/validationをincomplete、enumeration_errorsを正とする。超過後の最終再scanは省略し、完全な空inventoryやno_workへ変換しない。最終再scanでの超過もpartial証拠を保全する。既存initial manifest consumerはこのB2をrunning/outcome nullの非認可planとして扱い、PC-A/B・両log種別の合成接続試験で確認する。
 
-Noneは従来動作。今回の指定入口はbuilderのみで、再観測/比較wrapperは既定Noneを使い、予算の保存・自動伝播・正式runtime接続は提供しない。source/root/FS/providerの真正性、同時snapshot/ABA、実Drive・電源断・Tier B/C受け入れやP0閉鎖は証明しない。
+Noneは従来動作。再観測/比較wrapperの明示予算は上記入口から伝播するが、予算の保存・正式runtime接続は提供しない。source/root/FS/providerの真正性、同時snapshot/ABA、実Drive・電源断・Tier B/C受け入れやP0閉鎖は証明しない。
 
 ## Caller-selected staging payload read bounds (2026-10-26)
 

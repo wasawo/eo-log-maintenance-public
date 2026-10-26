@@ -16,6 +16,19 @@ from test_aggregation_report_builder import SCHEMAS, NOW
 
 
 class ComparisonSourceRevalidationTests(unittest.TestCase):
+    def test_single_selection_does_not_reduce_full_inventory_hash_budget(self):
+        path, _ = self.seed()
+        extra = self.source / "20260902_01020304@extra.txt"; extra.write_bytes(b"second")
+        _, plan = self.build()
+        expected = self.observe(plan.evidence_bytes, path.name)
+        self.assertEqual(expected, self.observe(plan.evidence_bytes, path.name,
+            maximum_entries=2, maximum_file_bytes=6, maximum_total_hash_bytes=11))
+        for limits in (dict(maximum_entries=1), dict(maximum_file_bytes=5), dict(maximum_total_hash_bytes=10)):
+            with self.subTest(limits=limits), self.assertRaisesRegex(check.SourceRevalidationError,
+                    "^source_revalidation_incomplete$"):
+                self.observe(plan.evidence_bytes, path.name, **limits)
+        self.assertEqual((b"first", b"second"), (path.read_bytes(), extra.read_bytes()))
+
     setUp = source_fixture.InitialSourceIntegrationTests.setUp
     cleanup = source_fixture.InitialSourceIntegrationTests.cleanup
     plan_context = source_fixture.InitialSourceIntegrationTests.plan_context

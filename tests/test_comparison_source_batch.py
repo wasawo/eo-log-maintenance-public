@@ -15,6 +15,17 @@ from test_aggregation_report_builder import SCHEMAS, NOW
 
 
 class ComparisonSourceBatchTests(unittest.TestCase):
+    def test_batch_and_empty_selection_share_full_inventory_budget(self):
+        raw, paths, _ = self.seed()
+        for selected in (paths[::-1], ()):
+            expected = self.observe(raw, selected)
+            self.assertEqual(expected, self.observe(raw, selected, maximum_entries=3,
+                maximum_file_bytes=6, maximum_total_hash_bytes=11))
+            for limits in (dict(maximum_entries=2), dict(maximum_file_bytes=5), dict(maximum_total_hash_bytes=10)):
+                with self.subTest(selected=selected, limits=limits), self.assertRaisesRegex(
+                        check.SourceRevalidationError, "^source_revalidation_incomplete$"):
+                    self.observe(raw, selected, **limits)
+
     setUp = fixture.InitialSourceIntegrationTests.setUp
     cleanup = fixture.InitialSourceIntegrationTests.cleanup
     plan_context = fixture.InitialSourceIntegrationTests.plan_context

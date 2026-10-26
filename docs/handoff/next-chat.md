@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+### source再観測・比較入口への資源予算伝播（2026-10-27）
+
+- 利用者の次実装指示を受け、cleanな`9a7d68c`・同branch `codex/source-inventory-budgets`から継続。main基準は直前にGitHub/local/origin一致確認済みの`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回はGitHub状態を再取得せず、branch切替・push/PRなし。
+- [source再観測入口の予算](../design/source-inventory-revalidation.md#source-inventory-budgets-at-revalidation-entrypoints-2026-10-27)を追加。`revalidate_source_inventory`、initial plan照合、単一/一括比較source、initial inventoryの5入口がoptional `maximum_entries` / `maximum_file_bytes` / `maximum_total_hash_bytes`を全source再観測builderへ伝播する。共通pure型検査をbuilderと共有し、不正値は解析/plan再構成/source I/O/Drive比較前に固定`source_revalidation_limit_invalid`。実走査超過は既存`source_revalidation_incomplete`で拒否し、選択subset/空選択でも完全走査を省略しない。固定本番値・schema/PS/配布file集合は変更しない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_source_inventory_evidence_builder test_source_enumeration_stability test_source_hash_identity test_source_inventory_reparse test_initial_source_integration test_initial_source_usepoint test_source_inventory_revalidation test_comparison_source_revalidation test_comparison_source_batch test_initial_inventory_observation test_initial_inventory_summary test_staging_residual_observation test_aggregation_report_builder test_manifest_transition_inspection`の160件全成功・skipなし。新規6件は既存CI登録suiteに追加し、5入口の不正値preflight、PC-A/B・両logの再帰境界/超過、plan/単一/一括/空選択とDrive接続、exact B2/選択順/非認可flagsとsource bytes保全を確認した。変更2文書の相対リンク110件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- EOLM-FIL-005/007に関する不完全coverageの保全補助であり、要件全体やP0-010は閉鎖しない。予算は各呼出しの指定で、B2/planへの保存・正式runtimeへの接続は未実装。実I/O/時間/全memory制限、root/FS/provider真正性、現在性/ABA・Drive/runtime・電源断/Tier B/C受け入れは未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで既承認の独立範囲を調査して選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
 ### source inventoryのcaller指定資源予算（2026-10-27）
 
 - 利用者の次実装指示を受け、GitHub mainとlocal/origin mainの`0d4945260067a86aaf8beb5ae792a4108b0091f9`を照合。PR #45はsquash merge済みで、mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40347516491) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40347516412)両成功・PR本文への結果記録済み。cleanな最新mainからupstreamなしの新branch `codex/source-inventory-budgets`を作成した。

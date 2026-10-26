@@ -12,6 +12,19 @@ import test_initial_source_integration as fixture
 
 
 class InitialSourceUsepointTests(unittest.TestCase):
+    def test_plan_revalidation_forwards_budgets_and_preserves_exact_plan(self):
+        path, plan = self.seed()
+        expected = self.observe(plan)
+        self.assertEqual(expected, self.observe(plan, maximum_entries=1,
+            maximum_file_bytes=5, maximum_total_hash_bytes=5))
+        for key in ("maximum_file_bytes", "maximum_total_hash_bytes"):
+            with self.subTest(key=key), self.assertRaisesRegex(check.SourceRevalidationError,
+                    "^source_revalidation_incomplete$"):
+                self.observe(plan, **{key: 4})
+        self.assertEqual(b"first", path.read_bytes())
+        self.assertIs(plan.evidence_bytes, expected.evidence_bytes)
+        self.assertFalse(expected.may_upload or expected.may_archive or expected.may_change_state)
+
     setUp = fixture.InitialSourceIntegrationTests.setUp
     cleanup = fixture.InitialSourceIntegrationTests.cleanup
     plan_context = fixture.InitialSourceIntegrationTests.plan_context
