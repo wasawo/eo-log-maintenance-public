@@ -100,6 +100,16 @@ DownloadRequirementはfile IDと期待sizeを保持する内部データで、IP
 
 [計画試験](../../tests/test_content_download_plan.py)はSHAの信頼/欠落、不要downloadの除外、不明metadataの保留、共有IDの一意化/安定順序、空sourceと全may_*false、計画→合成download bytes/hash→再列挙→一括比較を扱う。[source batch接続](../../tests/test_comparison_source_batch.py)も実source再観測からrequirement計画を経由する。実SDK/認証・取得時のID/完了/size binding・使用点資格は未実装gateのまま。
 
+## Caller-selected download-plan output budgets (2026-10-26)
+
+`plan_content_downloads`と`compare_planned_drive_contents`はoptional `maximum_downloads` / `maximum_total_download_bytes`を受け取る。Noneまたは正のexact intのみ許し、不正値は既存のsource trust/type検査後、listing検査前に`comparison_download_limit_invalid`でheldとする。Noneでは当該caller上限なし、固定本番値・C-02/schema・実取得方針は採用しない。
+
+完全listingとsourceから不足hash対象を集めた後、file IDごとに重複排除した件数・期待sizeの合計を検査する。超過は`comparison_download_count_limit_exceeded` / `comparison_download_bytes_limit_exceeded`で全体held、requirementsは空で、requirement objectの構築/出力順序sort前に停止する。候補をskipした部分計画や不足対象の成功補完は行わない。予算内では従来の決定的ID順・exact sizeと全may_*falseを維持し、0件をno_work/同期成功にしない。
+
+比較側はcallerが渡した同じ上限で計画を毎回再導出し、超過/不正値なら完了集合比較前にbatch全体heldとする。予算はplan自体に保存される認可ではなく、未指定の後続呼出しへ自動伝播しない。周囲のpage/file件数上限、個別hashのdownload/chunk上限とは独立である。
+
+これはrequirements出力の資源予算で、既存listing/sourceの保持・index/不足候補dictionary・探索時間/全memoryの制限ではない。source trust/metadata不備は従来どおり保留し、実API/SDK/credential・providerの真正性/現在性やdownload/Archive権限を証明しない。[計画試験](../../tests/test_content_download_plan.py)と[比較接続試験](../../tests/test_planned_drive_comparison.py)で重複IDの一回計上、exact境界、不正値のlisting非検査、超過時のrequirement非構築、0件/未知metadataと比較側への再適用を確認する。
+
 ## 計画と完了download集合の整合検査
 
 `compare_planned_drive_contents`は既存の不足hash計画、source tuple、前後列挙と完了download hashを受ける。plan/requirementsの厳密型・size・全may_*falseを検査し、現入力から計画を毎回再導出してexact一致を要求する。そのうえで前後列挙不変とdownloadのID/型/一意性を検査し、計画したID集合と実観測集合が同一、全実sizeが期待sizeと一致する場合だけ各sourceを比較する。

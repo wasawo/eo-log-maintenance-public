@@ -418,7 +418,8 @@ class ContentDownloadPlan:
     may_archive: bool = field(default=False, init=False)
 
 
-def plan_content_downloads(sources, listing, *, source_trusted, expected_folder_id):
+def plan_content_downloads(sources, listing, *, source_trusted, expected_folder_id,
+                           maximum_downloads=None, maximum_total_download_bytes=None):
     """Describe missing hash observations; never initiate or authorize download.
 
     Plan from explicit sources and complete listing only. Requirements are
@@ -432,6 +433,9 @@ def plan_content_downloads(sources, listing, *, source_trusted, expected_folder_
         return held("comparison_source_untrusted")
     if type(sources) is not tuple:
         return held("comparison_sources_invalid")
+    if any(value is not None and (type(value) is not int or value < 1)
+           for value in (maximum_downloads, maximum_total_download_bytes)):
+        return held("comparison_download_limit_invalid")
     if any(not _valid_source(source) for source in sources):
         return held("comparison_source_invalid")
     try:
@@ -442,17 +446,22 @@ def plan_content_downloads(sources, listing, *, source_trusted, expected_folder_
                 if item.size_bytes is None:
                     return held("comparison_metadata_unavailable")
                 if item.size_bytes == source.size_bytes and (item.sha256 is None or not item.sha256_trusted):
-                    needed[item.file_id] = DownloadRequirement(item.file_id, item.size_bytes)
+                    needed[item.file_id] = item.size_bytes
+        if maximum_downloads is not None and len(needed) > maximum_downloads:
+            return held("comparison_download_count_limit_exceeded")
+        if maximum_total_download_bytes is not None and sum(needed.values()) > maximum_total_download_bytes:
+            return held("comparison_download_bytes_limit_exceeded")
         if needed:
             return ContentDownloadPlan("requires_download_observations", "comparison_hash_observations_missing",
-                                       tuple(needed[key] for key in sorted(needed)))
+                                       tuple(DownloadRequirement(key, needed[key]) for key in sorted(needed)))
         return ContentDownloadPlan("comparison_inputs_available", "comparison_no_download_required")
     except _ComparisonInputError as exc:
         return held(str(exc))
 
 
 def compare_planned_drive_contents(sources, before, after, plan, *, source_trusted,
-                                   expected_folder_id, downloads):
+                                   expected_folder_id, downloads,
+                                   maximum_downloads=None, maximum_total_download_bytes=None):
     """Re-derive the plan and require its exact completed download set.
 
     This stricter batch API returns no partial comparison on missing/extra
@@ -468,7 +477,8 @@ def compare_planned_drive_contents(sources, before, after, plan, *, source_trust
                    or not _size(item.expected_size_bytes) for item in plan.requirements)):
         return held("comparison_download_plan_invalid")
     restored = plan_content_downloads(sources, before, source_trusted=source_trusted,
-                                      expected_folder_id=expected_folder_id)
+        expected_folder_id=expected_folder_id, maximum_downloads=maximum_downloads,
+        maximum_total_download_bytes=maximum_total_download_bytes)
     if restored.status == "held":
         return held(restored.reason_code)
     if restored != plan:

@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### download planの件数・合計bytes予算（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`268a0ff`、クリーンな同branch `codex/manifest-entry-bounds`で[download plan出力予算](../design/drive-content-comparison.md#caller-selected-download-plan-output-budgets-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- plan/completed-set比較の両入口にoptional `maximum_downloads` / `maximum_total_download_bytes`を追加。不正値はlisting検査前にheld。不足対象をIDで重複排除した件数/期待bytes合計を全件検査し、超過時はrequirement構築/sort前に全体held・requirementsなし。比較側の再導出にも同上限を渡し、完了観測から上限を迂回しない。予算内の既存決定的順序・exact比較・全非認可flagsを維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_content_download_plan test_planned_drive_comparison test_download_hash_observation test_drive_listing_observation test_drive_comparison_batch test_comparison_source_batch test_download_staging_integration test_staged_drive_content_observation`の計76件全成功・skipなし。新規6件を既存CI登録済みsuiteへ追加し、重複ID一回計上/境界/不正値/超過時requirement非構築/0件・metadata不備/比較再適用とsource・staging接続を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 出力予算であり既存listing/source/index/不足候補辞書のmemory/探索時間上限ではない。予算はplanへ保存する権限ではなく、後続callerが同じ上限を明示する。固定本番値/新schema/C-02/実SDK方針を採用せず、provider真正性/現在性・正式runtimeやUpload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### download hash観測のcaller指定bytes上限（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`357a3ff`、クリーンな同branch `codex/manifest-entry-bounds`で[download bytes上限](../design/drive-content-comparison.md#caller-selected-download-byte-bounds-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

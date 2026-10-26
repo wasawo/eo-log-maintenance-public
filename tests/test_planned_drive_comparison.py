@@ -38,6 +38,19 @@ def compare(plan=None, downloads=None, **changes):
 
 
 class PlannedDriveComparisonTests(unittest.TestCase):
+    def test_plan_output_budgets_are_reapplied_before_completed_set_comparison(self):
+        self.assertEqual(compare(), compare(maximum_downloads=1, maximum_total_download_bytes=9))
+        self.assert_held(compare(maximum_total_download_bytes=8), "comparison_download_bytes_limit_exceeded")
+        observed = listing((FILE, replace(FILE, file_id="synthetic-second")))
+        self.assert_held(compare(before=observed, after=observed, maximum_downloads=1),
+            "comparison_download_count_limit_exceeded")
+
+    def test_invalid_output_budgets_hold_without_partial_comparison(self):
+        for key in ("maximum_downloads", "maximum_total_download_bytes"):
+            for value in (True, False, 0, -1, 1.5, "100"):
+                with self.subTest(key=key, value=value):
+                    self.assert_held(compare(**{key: value}), "comparison_download_limit_invalid")
+
     def assert_held(self, result, reason):
         self.assertEqual(("held", reason, ()), (result.status, result.reason_code, result.results))
         self.assertFalse(result.may_restore or result.may_report_sync_success or result.may_archive)
