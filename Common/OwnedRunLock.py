@@ -16,6 +16,10 @@ import secrets
 import socket
 from typing import Callable, Iterator
 
+from Common.ArtifactSetDirectoryVerification import (
+    ArtifactSetDirectoryVerificationError, _chain, _read_stable, _signature,
+)
+
 
 class LockAcquisitionError(RuntimeError):
     """Stable, sanitized lock failure."""
@@ -120,11 +124,15 @@ def _reject_duplicate_keys(pairs):
     return result
 
 
-def _record_matches(path: Path, scope_id: str, token: str) -> bool:
+def _record_matches(path: Path, scope_id: str, token: str, maximum_bytes: int | None = None) -> bool:
     try:
-        raw = path.read_bytes()
+        chain = _chain(path.parent)
+        before = path.lstat()
+        if maximum_bytes is not None and before.st_size > maximum_bytes:
+            return False
+        raw = _read_stable(path, _signature(before), path.parent, chain)
         record = json.loads(raw.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
-    except (OSError, UnicodeError, ValueError):
+    except (OSError, UnicodeError, ValueError, RecursionError, ArtifactSetDirectoryVerificationError):
         return False
     if not isinstance(record, dict):
         return False
@@ -152,13 +160,18 @@ def acquire_owned_lock(
     *,
     mutex_factory: Callable[[str], object] = _NamedMutex,
     token_factory: Callable[[], str] = lambda: secrets.token_hex(32),
+    maximum_record_bytes: int | None = None,
 ) -> Iterator[str]:
     """Acquire mutex + exclusive token record, yielding the private owner token.
 
     A pre-existing lock record is never removed or adopted, including after an
     abandoned mutex. Recovery requires a separate validated recovery slice.
+    Optional maximum_record_bytes bounds the newly generated record and each
+    ownership read. Unreadable, changed or oversized records are preserved.
     """
     scope = _validate_scope(scope_id)
+    if maximum_record_bytes is not None and (type(maximum_record_bytes) is not int or maximum_record_bytes < 1):
+        raise LockAcquisitionError("lock_record_limit_invalid")
     if isinstance(timeout_seconds, bool) or not isinstance(timeout_seconds, (int, float)):
         raise LockAcquisitionError("timeout_invalid")
     if timeout_seconds < 0 or timeout_seconds > 60:
@@ -198,6 +211,8 @@ def acquire_owned_lock(
         if getattr(mutex, "abandoned", False):
             raise LockAcquisitionError("abandoned_mutex_requires_recovery")
         payload = _strict_record_bytes(scope, token)
+        if maximum_record_bytes is not None and len(payload) > maximum_record_bytes:
+            raise LockAcquisitionError("lock_record_limit_exceeded")
         if path.exists() or path.is_symlink():
             raise LockAcquisitionError("lock_record_already_exists")
         try:
@@ -211,13 +226,13 @@ def acquire_owned_lock(
         except OSError as exc:
             raise LockAcquisitionError("lock_record_create_failed") from exc
 
-        if not _record_matches(path, scope, token):
+        if not _record_matches(path, scope, token, maximum_record_bytes):
             raise LockAcquisitionError("lock_record_ownership_unverified")
         yield token
     finally:
         if record_created:
             try:
-                if _record_matches(path, scope, token):
+                if _record_matches(path, scope, token, maximum_record_bytes):
                     path.unlink()
             except OSError:
                 # Preserve mismatched or unverifiable state for explicit recovery.

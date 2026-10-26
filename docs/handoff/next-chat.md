@@ -8,6 +8,15 @@
 
 ## 最新基準と今回の作業
 
+### owner recordのcaller上限と安定読取（2026-10-27）
+
+- 利用者の次実装指示を受け、cleanな`559f06a`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [owner record読取境界](../../Common/README.md#bounded-stable-owner-record-observations-2026-10-27)として`maximum_record_bytes`をowned lockへ追加。不正値はtoken/path/mutex準備前、生成record超過はmutex内・record作成前に固定reasonで拒否する。作成後/解放前のJSON確認で既存directory verifierの安定readerを再利用し、超過recordの非open、path/handle/祖先chainの前後照合・初期size+1読取を適用。変化/不明/深いJSONのRecursionErrorは所有未確認としてrecord保全・mutex解放/closeへ接続する。scope/token・field/pid/hostの既存意味論とJSON表記互換は維持。
+- 検証環境でpython shimが版未選択となり、最初のコマンドはsuite未起動。個人/global設定は変更せず、既存Python 3.11.9実体を`$python311`相当として指定した。sandbox内の132件はhardlink作成拒否等で8 failures/37 errors・1skipとなり、自作tempの最小probeもerrno 13/WinError 5を確認。auto-review承認済みのsandbox外で同じ合成検査を再実行し、132件中131成功・既存symlink作成不可1skip、未解決失敗なし。実ログ/Driveは使わない。
+- 成功コマンドは`$env:PYTHONPATH='tests;.'`後、`& $python311 -B -m unittest test_owned_run_lock test_owned_publication_integration test_crash_publication_harness test_internal_publication_crash test_terminal_bundle_integration test_terminal_history_usepoint test_terminal_plan_usepoint test_initial_source_integration test_initial_source_usepoint test_download_staging_integration test_artifact_set_directory_verification test_artifact_directory_reparse`。CI Pythonは3.12。既存CI登録suiteに新規8件を追加し、exact境界・不正値・作成前超過/解放時超過、path→handle間増大、deep JSON/不明観測時の保全/解放、JSON表記互換を確認した。変更2文書の相対リンク127件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・package/PS検証は未実行。再利用依存は既存Common .pyで配布対象/集合は不変。
+- 既存lock所有確認の資源/観測境界補助であり、owner-v2/provider契約、root/ACL/FS/owner真正性・一回性、観測からunlinkまでの競合/ABA、実I/O/時間/全memory上限・電源断/Tier B/C/runtime受け入れやP0-010閉鎖は未実装・未実証。固定本番値・新しい削除/復旧能力は追加しない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchでowner取得を使う隔離保存接続へのrecord予算伝播など、承認済みの独立範囲を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
 ### 隔離保存fixtureへの予算伝播と追加読取の有界化（2026-10-27）
 
 - 利用者の次実装指示を受け、cleanな`1072248`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。

@@ -215,3 +215,13 @@ publisherは全payload名/marker名を単一file公開前に同じ関数で検�
 予算内は既存の決定的順序・marker-last・同一内容冪等・競合拒否を維持します。空payloadでもmarker分の予算が必要で、公開後は同じ値をdirectory verifierへ独立指定して検査できます。予算はmarkerへ保存せず、後続呼出しへ自動伝播しません。Noneでは従来動作。対象は一式の論理bytesであり、既存payload/コピー済みbytes・生成済みmarkerのmemory、hash/JSON生成の時間、一時fileとreadbackを含む実I/O総量やdisk容量を制限するものではありません。
 
 [公開回帰](../tests/test_artifact_set_publication.py)でexact境界の公開/再公開/読戻し、不正値の非snapshot、payload超過の非hash、markerだけの超過・非部分公開、bytes派生型と空payloadを確認します。root/FS/provider資格・所有権/真正性、同時snapshot/ABA・電源断/Tier B/C/runtime受け入れや公開/Archiveの認可は追加しません。
+
+## Bounded stable owner-record observations (2026-10-27)
+
+`acquire_owned_lock`はoptional `maximum_record_bytes`を受け、Noneまたは正のexact intだけを許します。不正値はscope検査後・token/path/mutex準備前に`lock_record_limit_invalid`で拒否します。生成recordが超過する場合は所有mutex内で`lock_record_limit_exceeded`としてrecord作成前に拒否し、mutexを解放します。固定本番値・schemaやowner-v2/provider契約を追加しません。
+
+作成後と解放前の`_record_matches`は同じ上限でmetadata sizeを先に検査し、超過recordを開きません。既存directory verifierの安定読取を再利用し、regular/non-reparse、path/handleのidentity・size/timestamp・link数と祖先chainの前後一致を検査します。観測size+1 byteの増大probeを維持し、変化/不明・解析不能・deep JSONのRecursionErrorは所有確認失敗として扱います。作成後の確認失敗は既存`lock_record_ownership_unverified`で停止し、解放時の失敗はrecordを保全してmutex解放/closeへ進みます。
+
+strict field集合、scope/tokenとpid/hostの従来検査は維持し、canonical JSON表記や作成時のexact bytes一致を新しい削除条件にしません。Noneでも安定読取は行いますがcaller上限はありません。実I/O/時間/全memory、認可root/ACL/FS/owner真正性・一回性、観測からunlinkまでの競合/ABA、実Drive/runtime・電源断/Tier B/C受け入れは証明しません。既存recordの自動採用/復旧や新しい削除能力も追加しません。
+
+[owner lock試験](../tests/test_owned_run_lock.py)でexact境界・不正値の早期拒否・作成前超過・解放時超過の非読取/保全、path→handle間増大、不明観測/deep JSONでもmutex解放、JSON表記互換を確認します。

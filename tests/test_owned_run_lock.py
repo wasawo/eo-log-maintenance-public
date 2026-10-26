@@ -5,9 +5,10 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from Common.OwnedRunLock import LockAcquisitionError, _NamedMutex, acquire_owned_lock
+from Common import OwnedRunLock as owned
 
 
 class FakeMutex:
@@ -58,6 +59,92 @@ class NamedMutexCloseTests(unittest.TestCase):
 
 
 class OwnedRunLockTests(unittest.TestCase):
+    def test_record_byte_limit_exact_boundary_preserves_normal_ownership_cleanup(self):
+        token = "a" * 64
+        limit = len(owned._strict_record_bytes("PC-A", token))
+        with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(),
+                token_factory=lambda: token, maximum_record_bytes=limit):
+            self.assertEqual(limit, self.path.stat().st_size)
+        self.assertFalse(self.path.exists())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_invalid_record_limits_reject_before_token_path_or_mutex(self):
+        class UnpreparedPath:
+            def __fspath__(self): raise AssertionError("must not prepare path")
+        for value in (True, False, 0, -1, 1.0, "1"):
+            factory, token = Mock(), Mock()
+            with self.subTest(value=value), self.assertRaisesRegex(LockAcquisitionError, "^lock_record_limit_invalid$"):
+                with acquire_owned_lock("PC-A", UnpreparedPath(), mutex_factory=factory,
+                        token_factory=token, maximum_record_bytes=value):
+                    self.fail("must not enter")
+            factory.assert_not_called()
+            token.assert_not_called()
+
+    def test_creation_budget_excess_creates_no_record_and_releases_mutex(self):
+        with patch.object(Path, "open") as opened:
+            with self.assertRaisesRegex(LockAcquisitionError, "^lock_record_limit_exceeded$"):
+                with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(),
+                        token_factory=lambda: "a" * 64, maximum_record_bytes=1):
+                    self.fail("must not enter")
+            opened.assert_not_called()
+        self.assertFalse(self.path.exists())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_oversized_replacement_is_preserved_without_payload_read_on_release(self):
+        token = "a" * 64
+        limit = len(owned._strict_record_bytes("PC-A", token))
+        changed = b"synthetic-untrusted" * limit
+        with patch.object(owned, "_read_stable", wraps=owned._read_stable) as read:
+            with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(),
+                    token_factory=lambda: token, maximum_record_bytes=limit):
+                self.assertEqual(1, read.call_count)
+                self.path.write_bytes(changed)
+            self.assertEqual(1, read.call_count)
+        self.assertEqual(changed, self.path.read_bytes())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_growth_between_path_and_handle_observations_never_yields_ownership(self):
+        token = "a" * 64
+        limit = len(owned._strict_record_bytes("PC-A", token))
+        real_open = Path.open
+        grown = False
+        def grow(path, mode="r", *args, **kwargs):
+            nonlocal grown
+            if path == self.path and mode == "rb" and not grown:
+                with open(path, "ab") as stream: stream.write(b"x" * 4096)
+                grown = True
+            return real_open(path, mode, *args, **kwargs)
+        with patch.object(Path, "open", grow), self.assertRaisesRegex(LockAcquisitionError,
+                "^lock_record_ownership_unverified$"):
+            with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(),
+                    token_factory=lambda: token, maximum_record_bytes=limit):
+                self.fail("must not enter")
+        self.assertEqual(limit + 4096, self.path.stat().st_size)
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_deep_json_on_release_is_preserved_and_cannot_skip_mutex_release(self):
+        changed = b"[" * 2000 + b"0" + b"]" * 2000
+        with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(), token_factory=lambda: "a" * 64):
+            self.path.write_bytes(changed)
+        self.assertEqual(changed, self.path.read_bytes())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_unavailable_stable_observation_preserves_record_and_releases_mutex(self):
+        with patch.object(owned, "_read_stable", side_effect=owned.ArtifactSetDirectoryVerificationError("artifact_changed")):
+            with self.assertRaisesRegex(LockAcquisitionError, "^lock_record_ownership_unverified$"):
+                with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(), token_factory=lambda: "a" * 64):
+                    self.fail("must not enter")
+        self.assertTrue(self.path.exists())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_bounded_read_does_not_impose_canonical_json_spelling(self):
+        with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(),
+                token_factory=lambda: "a" * 64, maximum_record_bytes=4096):
+            record = json.loads(self.path.read_bytes())
+            self.path.write_bytes(json.dumps(record, indent=2).encode("utf-8"))
+        self.assertFalse(self.path.exists())
+        self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
