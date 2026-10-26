@@ -202,6 +202,7 @@ def read_latest_manifest_with_report(
     maximum_total_bytes: int | None = None,
     maximum_entries: int | None = None,
     maximum_artifact_bytes: int | None = None,
+    maximum_total_artifact_bytes: int | None = None,
 ) -> ReadManifestSelection:
     """Bind scoped latest bytes to a semantically verified report, then reselect.
 
@@ -209,7 +210,8 @@ def read_latest_manifest_with_report(
     is inferred. This remains a read observation, not archive permission or a
     locked/atomic snapshot. Current clock/root/Drive qualification is external.
     """
-    if maximum_artifact_bytes is not None and (type(maximum_artifact_bytes) is not int or maximum_artifact_bytes < 1):
+    if any(value is not None and (type(value) is not int or value < 1)
+           for value in (maximum_artifact_bytes, maximum_total_artifact_bytes)):
         _reject("manifest_read_limit_invalid")
     options = dict(expected_pc_id=expected_pc_id, expected_log_type=expected_log_type,
         expected_target_period=expected_target_period, current_utc=current_utc,
@@ -220,7 +222,8 @@ def read_latest_manifest_with_report(
     reference = f"_maintenance/manifests/{expected_pc_id}/{selected.filename}"
     result = validate_referenced_artifacts(maintenance_root, report_path, contracts_path,
         expected_manifest_bytes=selected.content, expected_manifest_path=reference,
-        maximum_artifact_bytes=maximum_artifact_bytes)
+        maximum_artifact_bytes=maximum_artifact_bytes,
+        maximum_total_artifact_bytes=maximum_total_artifact_bytes)
     if result["status"] != "verified":
         _reject("selected_manifest_report_invalid")
     observed_again = read_latest_manifest(maintenance_root, **options)

@@ -20,6 +20,14 @@ The bound applies independently to the report, referenced manifest and B2 eviden
 
 This per-file control is not an aggregate I/O/memory/JSON-complexity budget, root/FS qualification, an atomic snapshot, ABA protection or runtime authorization. Synthetic tests in [read stability](../../tests/test_artifact_read_stability.py) and [report selection](../../tests/test_manifest_report_selection.py) cover each input, exact ceilings, pre-open rejection, growing streams, final rereads, CLI and wrapper integration. Runtime/Drive/durability acceptance remains incomplete.
 
+### Aggregate inspected-size budget (2026-10-26)
+
+`maximum_total_artifact_bytes` adds an independent optional positive exact integer bound. Invalid values use `artifact_read_limit_invalid` before filesystem I/O. A fresh budget belongs to one validator invocation. Before each payload open, the file's inspected size is admitted against the remaining budget; an excess returns `artifact_total_read_limit_exceeded`, with no payload open for that file and no verified artifact subset. The report, manifest, evidence and all schemas share this budget. Every final read-set reread is charged again; accounting is not deduplicated by path or reset at the final phase. A stable six-file validation therefore admits twice the sum of those file sizes. Later calls start with a fresh budget after either success or rejection.
+
+The existing per-file limit applies independently and is checked first. None imposes no aggregate caller ceiling. The CLI exposes `--maximum-total-artifact-bytes`, preserving fixed JSON rejection/exit 2. The report wrapper validates and forwards the option, while its surrounding manifest directory reads remain governed by their separate controls.
+
+This measures admitted inspected sizes, not physical disk I/O, cache traffic or total memory. The existing growth probe may read one byte beyond the admitted initial size before rejecting the invocation as changed; a failed invocation stops without retrying or refunding reservations. JSON complexity, read latency, root/FS qualification, atomicity/ABA and runtime authorization remain outside this control. No default production limit, schema change or retention policy is selected. The same synthetic suites cover exact aggregate boundaries, schema/pre-open rejection, final-phase accounting, independent invocations, both limits together and CLI/wrapper forwarding.
+
 ## 1. Design principles
 
 1. Preserve the approved manifest v1 field set and its strict validation rules. Do not add period-summary or unassigned-error fields to that manifest.

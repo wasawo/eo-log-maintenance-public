@@ -88,11 +88,25 @@ class ManifestReportSelectionTests(unittest.TestCase):
 
     def test_invalid_artifact_limit_rejects_before_manifest_io(self):
         source = self.install()
-        for value in (True, False, 0, -1, 1.5, "4096"):
-            with self.subTest(value=value), patch.object(reader, "read_latest_manifest") as observe:
-                with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^manifest_read_limit_invalid$"):
-                    self.read(source, maximum_artifact_bytes=value)
-                observe.assert_not_called()
+        for key in ("maximum_artifact_bytes", "maximum_total_artifact_bytes"):
+            for value in (True, False, 0, -1, 1.5, "4096"):
+                with self.subTest(key=key, value=value), patch.object(reader, "read_latest_manifest") as observe:
+                    with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^manifest_read_limit_invalid$"):
+                        self.read(source, **{key: value})
+                    observe.assert_not_called()
+
+    def test_total_artifact_limit_reaches_validator_without_counting_directory_reads(self):
+        source = self.install()
+        with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^selected_manifest_report_invalid$"):
+            self.read(source, maximum_total_artifact_bytes=1)
+        paths = [source.report_path, source.manifest_path,
+            *self.root.glob("_maintenance/evidence/*.json"),
+            *((ROOT/"contracts"/name) for name in (
+                "aggregation-report-v1.schema.json", "manifest-v1.schema.json", "run-input-evidence-v1.schema.json"))]
+        total = 2*sum(path.stat().st_size for path in paths)
+        self.assertEqual(source.content, self.read(source, maximum_total_artifact_bytes=total).content)
+        with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^selected_manifest_report_invalid$"):
+            self.read(source, maximum_total_artifact_bytes=total-1)
 
     def test_newer_success_does_not_reuse_old_report(self):
         source = self.install()

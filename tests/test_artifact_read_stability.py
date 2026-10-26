@@ -162,10 +162,62 @@ class ArtifactReadBoundsTests(unittest.TestCase):
         self.assertEqual(originals, {path: path.read_bytes() for path in paths})
 
     def test_invalid_limits_reject_before_root_io(self):
-        for value in (True, False, 0, -1, 1.5, "4096"):
-            with self.subTest(value=value), patch.object(validator, "_directory_chain") as chain:
-                self.assert_rejected(self.validate(maximum_artifact_bytes=value), "artifact_read_limit_invalid")
-                chain.assert_not_called()
+        for key in ("maximum_artifact_bytes", "maximum_total_artifact_bytes"):
+            for value in (True, False, 0, -1, 1.5, "4096"):
+                with self.subTest(key=key, value=value), patch.object(validator, "_directory_chain") as chain:
+                    self.assert_rejected(self.validate(**{key: value}), "artifact_read_limit_invalid")
+                    chain.assert_not_called()
+
+    def test_total_exact_boundary_includes_initial_and_final_reads(self):
+        paths = self.seed()
+        total = 2*sum(path.stat().st_size for path in paths)
+        self.assertEqual("verified", self.validate(maximum_total_artifact_bytes=total)["status"])
+        self.assert_rejected(self.validate(maximum_total_artifact_bytes=total-1), "artifact_total_read_limit_exceeded")
+
+    def test_total_budget_does_not_reset_before_final_report_read(self):
+        paths = self.seed()
+        total = sum(path.stat().st_size for path in paths)
+        real_open = Path.open
+        report_opens = []
+        def guarded(path, *args, **kwargs):
+            if path == self.report_path:
+                report_opens.append(path)
+                if len(report_opens) > 1:
+                    raise AssertionError("final read must fail before open")
+            return real_open(path, *args, **kwargs)
+        with patch.object(Path, "open", guarded):
+            self.assert_rejected(self.validate(maximum_total_artifact_bytes=total), "artifact_total_read_limit_exceeded")
+        self.assertEqual([self.report_path], report_opens)
+
+    def test_total_budget_counts_schema_and_rejects_before_open(self):
+        self.seed()
+        schema = self.contracts/"aggregation-report-v1.schema.json"
+        total = self.report_path.stat().st_size + schema.stat().st_size - 1
+        real_open = Path.open
+        def guarded(path, *args, **kwargs):
+            if path == schema:
+                raise AssertionError("schema must fail before open")
+            return real_open(path, *args, **kwargs)
+        with patch.object(Path, "open", guarded):
+            self.assert_rejected(self.validate(maximum_total_artifact_bytes=total), "artifact_total_read_limit_exceeded")
+
+    def test_total_budget_is_local_to_each_invocation_after_success_or_rejection(self):
+        paths = self.seed()
+        total = 2*sum(path.stat().st_size for path in paths)
+        for ceiling in (total, 1, total, total):
+            result = self.validate(maximum_total_artifact_bytes=ceiling)
+            self.assertEqual("rejected" if ceiling == 1 else "verified", result["status"])
+
+    def test_total_and_per_file_limits_are_both_enforced(self):
+        paths = self.seed()
+        maximum = max(path.stat().st_size for path in paths)
+        total = 2*sum(path.stat().st_size for path in paths)
+        self.assertEqual("verified", self.validate(maximum_artifact_bytes=maximum,
+            maximum_total_artifact_bytes=total)["status"])
+        self.assert_rejected(self.validate(maximum_artifact_bytes=maximum-1,
+            maximum_total_artifact_bytes=total), "artifact_read_limit_exceeded")
+        self.assert_rejected(self.validate(maximum_artifact_bytes=maximum,
+            maximum_total_artifact_bytes=total-1), "artifact_total_read_limit_exceeded")
 
     def test_each_oversized_input_rejects_before_its_payload_open(self):
         paths = self.seed()
@@ -260,12 +312,15 @@ class ArtifactReadBoundsTests(unittest.TestCase):
 
     def test_cli_limit_returns_fixed_rejection_and_exit_two(self):
         self.seed()
-        result = subprocess.run([sys.executable, "-B", str(Path(validator.__file__)),
-            "--root", str(self.root), "--report", str(self.report_path), "--contracts", str(self.contracts),
-            "--maximum-artifact-bytes", "1"], capture_output=True, text=True, check=False)
-        self.assertEqual(2, result.returncode)
-        self.assert_rejected(json.loads(result.stdout), "artifact_read_limit_exceeded")
-        self.assertEqual("", result.stderr)
+        for option, reason in (("--maximum-artifact-bytes", "artifact_read_limit_exceeded"),
+                ("--maximum-total-artifact-bytes", "artifact_total_read_limit_exceeded")):
+            with self.subTest(option=option):
+                result = subprocess.run([sys.executable, "-B", str(Path(validator.__file__)),
+                    "--root", str(self.root), "--report", str(self.report_path), "--contracts", str(self.contracts),
+                    option, "1"], capture_output=True, text=True, check=False)
+                self.assertEqual(2, result.returncode)
+                self.assert_rejected(json.loads(result.stdout), reason)
+                self.assertEqual("", result.stderr)
 
 
 if __name__ == "__main__": unittest.main()

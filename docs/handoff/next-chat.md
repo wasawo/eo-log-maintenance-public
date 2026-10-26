@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### report参照validatorの合計読取size予算（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`6af2f9b`、クリーンな同branch `codex/manifest-entry-bounds`で[合計検査size予算](../design/aggregation-report-v1-proposal.md#aggregate-inspected-size-budget-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `maximum_total_artifact_bytes`をvalidator/CLI/report wrapperへ接続。不正値はI/O前に拒否し、呼出しごとに新予算を生成。report/manifest/B2証拠/3 schemaで共有し、各open前に初期sizeを計上する。最終read-set再読取も毎回計上、残予算不足は固定理由で全体拒否する。file別上限・signature/祖先/hash/意味論検査は維持。周囲のmanifest directory読取は別予算。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_read_stability test_aggregation_referenced_artifacts test_manifest_report_selection test_manifest_reader_bounds test_terminal_bundle_integration test_aggregation_report_builder.AggregationReportBuilderTests.test_existing_referenced_artifact_validator_accepts_generated_fixture`の計71件成功・skipなし。新規6件＋既存の型検査/CLI検査を拡張し、既存CI登録済みsuiteへ含めた。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。変更文書リンク/差分を確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 予算は受け入れた初期検査sizeの合計であり物理I/O量/全memory制限ではない。既存の増大検知で追加1 byteを読み得るが、その呼出しは変更として停止する。Noneではcaller合計上限なし、固定本番値/新schema制約/保持方針は選ばない。JSON複雑度/遅延/実root/FS/owner/clock/現在性/ABA・正式writer/provider・実Drive/runtime受け入れは未実証。次は同branchで既承認の独立範囲を選び、未決provider/C-02/資源方針を推測しない。
+
 ### report参照validatorのfile別bytes上限（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`7c1d540`、クリーンな同branch `codex/manifest-entry-bounds`で[report参照読取の明示上限](../design/aggregation-report-v1-proposal.md#caller-selected-local-read-bounds-2026-10-26)を実装。公開基準mainは前単位確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
