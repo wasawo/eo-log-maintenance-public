@@ -206,11 +206,26 @@ def acquire_owned_lock(
     record_verified = False
     write_error = None
     try:
-        acquired = bool(mutex.acquire(float(timeout_seconds)))
+        # The existing adapter returns exact bool and release is safe when not
+        # owned. On interrupted/uncertain waits, still attempt release + close.
+        acquired = True
+        try:
+            result = mutex.acquire(float(timeout_seconds))
+        except Exception:
+            raise LockAcquisitionError("named_mutex_wait_failed") from None
+        if type(result) is not bool:
+            raise LockAcquisitionError("named_mutex_wait_failed")
+        acquired = result
         if not acquired:
             raise LockAcquisitionError("lock_timeout")
         # Abandonment is evidence only. This slice deliberately does not recover.
-        if getattr(mutex, "abandoned", False):
+        try:
+            abandoned = getattr(mutex, "abandoned", None)
+            if type(abandoned) is not bool:
+                raise LockAcquisitionError("named_mutex_observation_invalid")
+        except Exception:
+            raise LockAcquisitionError("named_mutex_observation_invalid") from None
+        if abandoned:
             raise LockAcquisitionError("abandoned_mutex_requires_recovery")
         payload = _strict_record_bytes(scope, token)
         if maximum_record_bytes is not None and len(payload) > maximum_record_bytes:

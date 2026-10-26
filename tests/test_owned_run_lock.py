@@ -59,6 +59,68 @@ class NamedMutexCloseTests(unittest.TestCase):
 
 
 class OwnedRunLockTests(unittest.TestCase):
+    def test_nonbool_wait_results_cannot_create_records_or_enter_body(self):
+        class UnexpectedTruth:
+            def __bool__(self): raise AssertionError("must not coerce adapter result")
+        for result in (None, 0, 1, "true", [], UnexpectedTruth()):
+            with self.subTest(result_type=type(result).__name__), patch.object(owned, "_strict_record_bytes") as payload:
+                with self.assertRaisesRegex(LockAcquisitionError, "^named_mutex_wait_failed$"):
+                    with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(acquired=result),
+                            token_factory=lambda: "a"*64):
+                        self.fail("must not enter")
+                payload.assert_not_called()
+            self.assertFalse(self.path.exists())
+            self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_wait_exceptions_are_sanitized_and_uncertain_ownership_is_released(self):
+        for error in (OSError("synthetic private detail"), RuntimeError("synthetic private detail")):
+            mutex = FakeMutex("synthetic")
+            with self.subTest(error_type=type(error).__name__), patch.object(mutex, "acquire", side_effect=error):
+                with self.assertRaises(LockAcquisitionError) as caught:
+                    with acquire_owned_lock("PC-A", self.path, mutex_factory=lambda name: mutex,
+                            token_factory=lambda: "a"*64):
+                        self.fail("must not enter")
+            self.assertEqual("named_mutex_wait_failed", str(caught.exception))
+            self.assertIsNone(caught.exception.__cause__)
+            self.assertFalse(self.path.exists())
+            self.assertTrue(mutex.released and mutex.closed)
+
+    def test_interrupted_wait_still_releases_and_closes_without_record_io(self):
+        mutex = FakeMutex("synthetic")
+        with patch.object(mutex, "acquire", side_effect=KeyboardInterrupt), self.assertRaises(KeyboardInterrupt):
+            with acquire_owned_lock("PC-A", self.path, mutex_factory=lambda name: mutex,
+                    token_factory=lambda: "a"*64):
+                self.fail("must not enter")
+        self.assertFalse(self.path.exists())
+        self.assertTrue(mutex.released and mutex.closed)
+
+    def test_abandoned_observation_requires_exact_bool_before_record_creation(self):
+        for value in (None, 0, 1, "false", []):
+            with self.subTest(value_type=type(value).__name__), patch.object(owned, "_strict_record_bytes") as payload:
+                with self.assertRaisesRegex(LockAcquisitionError, "^named_mutex_observation_invalid$"):
+                    with acquire_owned_lock("PC-A", self.path, mutex_factory=self.factory(abandoned=value),
+                            token_factory=lambda: "a"*64):
+                        self.fail("must not enter")
+                payload.assert_not_called()
+            self.assertFalse(self.path.exists())
+            self.assertTrue(self.mutexes[-1].released and self.mutexes[-1].closed)
+
+    def test_missing_or_failed_abandoned_observation_is_not_defaulted_to_false(self):
+        class FailedObservation(FakeMutex):
+            def __getattribute__(self, name):
+                if name == "abandoned": raise OSError("synthetic private detail")
+                return super().__getattribute__(name)
+        missing = FakeMutex("synthetic")
+        del missing.abandoned
+        for mutex in (missing, FailedObservation("synthetic")):
+            with self.subTest(adapter_type=type(mutex).__name__), self.assertRaisesRegex(
+                    LockAcquisitionError, "^named_mutex_observation_invalid$"):
+                with acquire_owned_lock("PC-A", self.path, mutex_factory=lambda name: mutex,
+                        token_factory=lambda: "a"*64):
+                    self.fail("must not enter")
+            self.assertFalse(self.path.exists())
+            self.assertTrue(mutex.released and mutex.closed)
+
     def test_invalid_write_counts_preserve_even_parseable_records_and_primary_reason(self):
         real_open = Path.open
         for index, count in enumerate((None, False, True, -1, 0, "short", "long")):

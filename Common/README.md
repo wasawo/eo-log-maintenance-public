@@ -233,3 +233,11 @@ owner recordの`write`は戻り値がexact intかつ全payload長と一致する
 解放時のrecord cleanupは、作成・flush/fsync/closeと最初の安定所有確認を全て通過した場合だけ行います。作成中や初回確認に失敗したrecordは、たとえ完全なJSONや正しいtokenが残っていても、finallyで所有確認を再試行して削除しません。通常の所有中例外では従来どおり、解放時に同じscope/tokenを安定確認できるrecordだけをcleanupします。mutexのrelease/closeはどちらの場合も行い、不明な残存recordを自動採用・修復しません。
 
 [単体回帰](../tests/test_owned_run_lock.py)と[隔離保存接続](../tests/test_terminal_bundle_integration.py)で、各書込件数・二重close失敗、write/flush/fsync/closeの失敗、初回確認失敗、parse可能な不完全recordの保全・候補非作成と同一mutexの再取得を確認します。これはmutex解放の合成証拠であり、残存recordの復旧/次run認可、root/FS/provider資格、ABA排除・電源断/Tier B/C/runtime受け入れやP0閉鎖を示しません。
+
+## Strict owned-mutex adapter observations (2026-10-27)
+
+`acquire_owned_lock`は既存`_NamedMutex`/診断mutexと同じadapter契約を前提とし、`acquire`の戻り値をexact boolとして検査します。数値/文字列/None等を`bool()`で所有確認へ変換しません。不正値と待機例外は固定`named_mutex_wait_failed`で、record payload生成・作成・bodyへ進みません。確定Falseは従来の`lock_timeout`でcloseのみ、確定Trueだけが次の観測へ進みます。
+
+待機呼出し前からcleanup対象として扱い、不正応答/例外・KeyboardInterrupt等で結果が不明でもreleaseを試み、その成否にかかわらずcloseを試みます。既存adapterのreleaseは未所有ならno-opです。真偽の待機結果やこのcleanup試行は、新しいprovider資格/所有権証明にはなりません。
+
+取得後の`abandoned`もexact boolを要求し、欠落・取得不能・不正型をFalseへ補完せず`named_mutex_observation_invalid`で停止します。Trueは従来どおり`abandoned_mutex_requires_recovery`で保全停止、Falseだけが既存record作成境界へ進みます。[単体回帰](../tests/test_owned_run_lock.py)で不正型/例外/中断とcleanup・非record作成を検査し、実mutexを使う隔離保存/診断接続で既存正常動作を確認します。正式runtime、owner-v2/provider真正性、復旧/次run認可、電源断/Tier B/C受け入れやP0閉鎖は追加しません。

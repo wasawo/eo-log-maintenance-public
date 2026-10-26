@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+### owned mutex応答の厳密検査と不確かな待機のcleanup（2026-10-27）
+
+- 利用者の次作業指示を受け、cleanな`83ee8e0`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [owned mutex adapter観測](../../Common/README.md#strict-owned-mutex-adapter-observations-2026-10-27)を既存診断mutex/Win32 adapterのbool契約へ整合。acquire結果をbool変換せずexact boolで検査し、不正値/待機例外は固定`named_mutex_wait_failed`でrecord payload生成前に拒否する。待機中断/不確かな結果はrelease・closeを試み、確定False timeoutではcloseのみ。取得後のabandonedもexact boolを要求し、欠落/不明/不正型をFalse補完せず`named_mutex_observation_invalid`で拒否、Trueは従来どおり回復待ち停止とする。
+- 既存Python 3.11.9実体（shim版未選択のため設定変更せず指定、CIは3.12）で`$env:PYTHONPATH='tests;.'`後、`& $python311 -B -m unittest test_owned_run_lock test_owned_publication_integration test_recovery_diagnostic_mutex test_terminal_bundle_integration test_terminal_history_usepoint test_terminal_plan_usepoint test_initial_source_integration test_initial_source_usepoint test_internal_publication_crash test_crash_publication_harness test_download_staging_integration`の124件全成功・skipなし。既知sandbox hardlink拒否を避けauto-review承認済みのsandbox外・自作temp/合成adapterだけを使用。既存CI登録suiteに新規5件を追加し、truthiness変換非使用、不正応答/例外/KeyboardInterrupt時の非record作成とcleanup、abandonedの不正型/欠落/取得失敗を確認。変更2文書の相対リンク133件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- 既存adapterの未所有release no-op契約を前提にcleanupを試みるだけで、provider/実owner真正性・新しい実行認可を与えない。schema/owner-v2/SDK/配布集合・固定本番値は不変。残存recordの採用/復旧、root/ACL/FS資格、現在性/ABA・電源断/Tier B/C/runtime受け入れや要件全体/P0-010閉鎖は未実装・未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。次は同branchで累積source/公開/owner境界と未決runtime契約を照合して次単位を選ぶ。PR作成/mergeは別途指示された範囲で行う。
+
 ### owner record作成失敗の保全とshort write拒否（2026-10-27）
 
 - 利用者の次作業指示を受け、cleanな`96d6f25`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
