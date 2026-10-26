@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+### 累積PR・マージ承認と統合検証（2026-10-27）
+
+- 利用者がここまでの累積コミットをまとめたPR作成→マージを明示指示。正本GitHub/local/origin mainの`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）と、cleanなbranch `codex/source-inventory-budgets`の`2d23d13`を照合した。実装13コミット・34 filesと本記録を同じPRにまとめ、最新PR HEADのValidate/Package Validation両成功を確認後squash mergeする。本記録時点は未push/未PR/未マージ。結果のPR/merge SHA・CIはGitHub実状態と本チャット最終報告/PR本文を照合する。
+- 範囲：source再帰列挙/適格hash予算と再観測5入口への伝播、download計画事前集計と呼出し内比較再利用、marker-lastのbasename共通検査・marker込み公開bytes予算、隔離保存の公開/読戻し/owner予算接続、owner recordの安定読取・short write/作成失敗保全・厳密mutex応答/中断cleanup、復旧schemaのlocal-only参照/外部取得禁止。EOLM-FIL-005/007・EOLM-SYN-007/008/OSD-01等の既存境界を補助し、要件全体/P0閉鎖へ昇格しない。
+- Python 3.11.9実体（shim版未選択のため個人設定を変えず指定、CIは3.12）で`$env:PYTHONPATH='tests;.'`後、`& $python311 -B -m unittest discover -s tests -p 'test_*.py'`の940件中938成功・既存symlink作成不可2skip。既知hardlink sandbox制約を避けauto-review承認済みsandbox外で合成データ/自作tempだけを使用。PowerShell 7.6.7を版確認し`pwsh -NoLogo -NoProfile -File tests/Test-ReleasePackage.ps1`の両role回帰成功。累積変更6 Markdownの相対リンク209件欠落0、`git diff --check origin/main...HEAD`成功。root自己点検のみ、独立レビューなし。個別単位の失敗/修正/再実行/環境差は下記の履歴に保持する。
+- schema/PS/CI定義・既存配布file集合50件は不変。固定本番値、正式runtime/SDK/credential/C-02/writer/CAS/receiptやprivate保存/owner-v2/provider資格を新設しない。root/ACL/FS/owner/時計等の真正性、現在性/ABA・電源断/両PC/Tier B/C/runtime受け入れは未完。実ログ/本番Driveは使わず、PC-B archive/元ログ・Driveログ削除/本番適用の認可を追加しない。
+- マージ後は次実装を始めず、本作業を終了する。作業branchは保持し、次実装は利用者指示を受けて最新mainから新branchで行う。
+
 ### private証拠・crash判定schemaの外部取得禁止（2026-10-27）
 
 - 利用者の次作業指示を受け、cleanな`16b7e7b`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
