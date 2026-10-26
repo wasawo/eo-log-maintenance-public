@@ -19,6 +19,15 @@ from test_aggregation_report_builder import fixture, encode, SCHEMAS, NOW, ROOT
 
 
 class ManifestReportSelectionTests(unittest.TestCase):
+    def test_excessive_report_nesting_is_a_fixed_selection_failure_and_preserves_inputs(self):
+        source = self.install()
+        malformed = b'{"nested":'+b"["*2048+b"0"+b"]"*2048+b"}"
+        source.report_path.write_bytes(malformed)
+        with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^selected_manifest_report_invalid$"):
+            self.read(source)
+        self.assertEqual(source.content, source.manifest_path.read_bytes())
+        self.assertEqual(malformed, source.report_path.read_bytes())
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="eolm-manifest-report-")
         self.addCleanup(self.temp.cleanup)
@@ -75,6 +84,38 @@ class ManifestReportSelectionTests(unittest.TestCase):
                     self.assertEqual(source.manifest_path.name, selected.filename)
                     self.assertEqual(hashlib.sha256(source.content).hexdigest(), selected.sha256)
                     self.assertEqual(before, {p: p.read_bytes() for p in self.root.rglob("*.json")})
+
+    def test_artifact_byte_limit_reaches_report_validator(self):
+        source = self.install()
+        with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^selected_manifest_report_invalid$"):
+            self.read(source, maximum_artifact_bytes=1)
+        maximum = max([source.report_path.stat().st_size,
+            *(p.stat().st_size for p in self.root.rglob("*.json")),
+            *((ROOT/"contracts"/name).stat().st_size for name in (
+                "aggregation-report-v1.schema.json", "manifest-v1.schema.json", "run-input-evidence-v1.schema.json"))])
+        self.assertEqual(source.content, self.read(source, maximum_artifact_bytes=maximum).content)
+
+    def test_invalid_artifact_limit_rejects_before_manifest_io(self):
+        source = self.install()
+        for key in ("maximum_artifact_bytes", "maximum_total_artifact_bytes"):
+            for value in (True, False, 0, -1, 1.5, "4096"):
+                with self.subTest(key=key, value=value), patch.object(reader, "read_latest_manifest") as observe:
+                    with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^manifest_read_limit_invalid$"):
+                        self.read(source, **{key: value})
+                    observe.assert_not_called()
+
+    def test_total_artifact_limit_reaches_validator_without_counting_directory_reads(self):
+        source = self.install()
+        with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^selected_manifest_report_invalid$"):
+            self.read(source, maximum_total_artifact_bytes=1)
+        paths = [source.report_path, source.manifest_path,
+            *self.root.glob("_maintenance/evidence/*.json"),
+            *((ROOT/"contracts"/name) for name in (
+                "aggregation-report-v1.schema.json", "manifest-v1.schema.json", "run-input-evidence-v1.schema.json"))]
+        total = 2*sum(path.stat().st_size for path in paths)
+        self.assertEqual(source.content, self.read(source, maximum_total_artifact_bytes=total).content)
+        with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^selected_manifest_report_invalid$"):
+            self.read(source, maximum_total_artifact_bytes=total-1)
 
     def test_newer_success_does_not_reuse_old_report(self):
         source = self.install()

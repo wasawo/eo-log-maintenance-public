@@ -32,6 +32,10 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]
     return result
 
 
+def _reject_json_constant(_value):
+    raise ValueError("nonstandard_json_constant")
+
+
 def _is_link_or_reparse(path: Path) -> bool:
     info = path.lstat()
     return stat.S_ISLNK(info.st_mode) or bool(
@@ -62,6 +66,8 @@ def _scan(root, allowed, chain):
     for entry in root.iterdir():
         if entry.name not in allowed:
             raise ArtifactSetDirectoryVerificationError("unexpected_directory_entry")
+        if entry.name in result:
+            raise ArtifactSetDirectoryVerificationError("directory_changed")
         info = entry.lstat()
         if _is_link_or_reparse(entry) or not stat.S_ISREG(info.st_mode):
             raise ArtifactSetDirectoryVerificationError("non_regular_artifact")
@@ -80,7 +86,16 @@ def _read_stable(path, expected, root, chain):
             opened = os.fstat(stream.fileno())
             if not stat.S_ISREG(opened.st_mode) or _signature(opened) != expected:
                 raise ArtifactSetDirectoryVerificationError("artifact_changed")
-            content = stream.read()
+            blocks, count = [], 0
+            while True:
+                block = stream.read(min(65536, before.st_size-count+1))
+                if not block:
+                    break
+                count += len(block)
+                if count > before.st_size:
+                    raise ArtifactSetDirectoryVerificationError("artifact_changed")
+                blocks.append(block)
+            content = b"".join(blocks)
             finished = os.fstat(stream.fileno())
     except OSError as exc:
         raise ArtifactSetDirectoryVerificationError("artifact_read_failed") from exc
@@ -98,6 +113,8 @@ def verify_published_artifact_set(
     *,
     commit_marker_name: str = "commit-marker.json",
     expected_transaction_id: str | None = None,
+    maximum_artifact_bytes: int | None = None,
+    maximum_total_bytes: int | None = None,
 ) -> ArtifactSetDecision:
     """Inspect one directory and classify only bytes actually observed on disk.
 
@@ -109,6 +126,9 @@ def verify_published_artifact_set(
     Optional expected_transaction_id binds the marker to a supplied identity,
     not to a qualified owner or one-use receipt.
     """
+    if any(value is not None and (type(value) is not int or value < 1)
+           for value in (maximum_artifact_bytes, maximum_total_bytes)):
+        raise ArtifactSetDirectoryVerificationError("artifact_read_limit_invalid")
     if (
         not isinstance(commit_marker_name, str)
         or not commit_marker_name
@@ -120,22 +140,38 @@ def verify_published_artifact_set(
     ):
         raise ArtifactSetDirectoryVerificationError("commit_marker_name_invalid")
 
+    if not isinstance(expected_sha256, Mapping):
+        raise ArtifactSetDirectoryVerificationError("expected_artifact_set_invalid")
+    try:
+        expected = dict(expected_sha256)
+    except Exception:
+        raise ArtifactSetDirectoryVerificationError("expected_artifact_set_invalid") from None
+    expected_names = set(expected)
+    if not expected_names or commit_marker_name in expected_names:
+        raise ArtifactSetDirectoryVerificationError("expected_artifact_set_invalid")
+    # Reuse the classifier's input grammar before any directory I/O. The
+    # resulting empty-publication decision is only preflight, never authority.
+    preflight = classify_artifact_set(expected_sha256=expected,
+        published_sha256={}, staged_sha256={}, expected_transaction_id=expected_transaction_id)
+    if preflight.state == "blocked":
+        return preflight
+
     root = Path(directory).absolute()
     try:
         if root.is_symlink() or not root.is_dir():
             raise ArtifactSetDirectoryVerificationError("directory_unavailable")
         chain = _chain(root)
-        if not isinstance(expected_sha256, Mapping):
-            raise ArtifactSetDirectoryVerificationError("expected_artifact_set_invalid")
-        expected = dict(expected_sha256)
-        expected_names = set(expected)
-        if not expected_names or commit_marker_name in expected_names:
-            raise ArtifactSetDirectoryVerificationError("expected_artifact_set_invalid")
-
         published: dict[str, str] = {}
         marker: object = None
         allowed_names = expected_names | {commit_marker_name}
         initial = _scan(root, allowed_names, chain)
+        # Include the marker and incomplete sets. Never truncate/fall back to
+        # a subset when caller-selected resource bounds cannot be met.
+        if (maximum_artifact_bytes is not None
+                and any(signature[2] > maximum_artifact_bytes for signature in initial.values())):
+            raise ArtifactSetDirectoryVerificationError("artifact_read_limit_exceeded")
+        if maximum_total_bytes is not None and sum(signature[2] for signature in initial.values()) > maximum_total_bytes:
+            raise ArtifactSetDirectoryVerificationError("artifact_total_limit_exceeded")
         contents = {}
         for name, signature in initial.items():
             entry = root / name
@@ -147,8 +183,11 @@ def verify_published_artifact_set(
                     marker = json.loads(
                         content.decode("utf-8"),
                         object_pairs_hook=_reject_duplicate_keys,
+                        parse_constant=_reject_json_constant,
                     )
-                except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+                    if type(marker) is not dict:
+                        raise ValueError("commit_marker_root_not_object")
+                except (UnicodeDecodeError, json.JSONDecodeError, ValueError, RecursionError) as exc:
                     raise ArtifactSetDirectoryVerificationError("commit_marker_json_invalid") from exc
             else:
                 published[entry.name] = hashlib.sha256(content).hexdigest()

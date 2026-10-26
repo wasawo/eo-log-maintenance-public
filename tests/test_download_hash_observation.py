@@ -10,6 +10,65 @@ from Common.DriveContentComparison import (
 
 
 class DownloadHashObservationTests(unittest.TestCase):
+    def test_explicit_byte_bounds_preserve_exact_hash_for_empty_and_split_payloads(self):
+        for data in (b"", b"synthetic", b"x"*65537):
+            chunks = tuple(data[index:index+4096] for index in range(0, len(data), 4096))
+            with self.subTest(size=len(data)):
+                observed = self.observe(chunks, len(data), maximum_download_bytes=max(1, len(data)),
+                    maximum_chunk_bytes=4096)
+                self.assertEqual(self.observe(chunks, len(data)), observed)
+                result = self.compare(data, (observed,))
+                self.assertEqual("comparison_candidate", result.status)
+                self.assertFalse(result.may_restore or result.may_report_sync_success or result.may_archive)
+
+    def test_invalid_limits_reject_before_iterator_and_hash_creation(self):
+        class Chunks:
+            def __iter__(self): raise AssertionError("must not acquire iterator")
+        for key in ("maximum_download_bytes", "maximum_chunk_bytes"):
+            for value in (True, False, 0, -1, 1.5, "4096"):
+                with self.subTest(key=key, value=value), patch(
+                        "Common.DriveContentComparison.hashlib.sha256") as digest:
+                    with self.assertRaisesRegex(DownloadObservationError, "^download_limit_invalid$"):
+                        self.observe(Chunks(), 1, **{key: value})
+                    digest.assert_not_called()
+
+    def test_oversized_expected_download_rejects_before_iterator_and_hash_creation(self):
+        class Chunks:
+            def __iter__(self): raise AssertionError("must not acquire iterator")
+        with patch("Common.DriveContentComparison.hashlib.sha256") as digest:
+            with self.assertRaisesRegex(DownloadObservationError, "^download_limit_exceeded$"):
+                self.observe(Chunks(), 4097, maximum_download_bytes=4096)
+            digest.assert_not_called()
+
+    def test_oversized_chunk_rejects_before_hash_update_and_does_not_consume_trailer(self):
+        events = []
+        def chunks():
+            try:
+                events.append("first")
+                yield b"synthetic"
+                raise AssertionError("must not consume trailer")
+            finally:
+                events.append("closed")
+        stream = chunks()
+        with patch("Common.DriveContentComparison.hashlib.sha256") as digest:
+            with self.assertRaisesRegex(DownloadObservationError, "^download_chunk_limit_exceeded$"):
+                self.observe(stream, 9, maximum_download_bytes=9, maximum_chunk_bytes=8)
+            digest.return_value.update.assert_not_called()
+        self.assertEqual(["first"], events)
+        stream.close()
+        self.assertEqual(["first", "closed"], events)
+
+    def test_byte_limits_do_not_replace_exact_size_or_final_exhaustion_checks(self):
+        for chunks in ((b"sy",), (b"synthetic", b"x")):
+            with self.subTest(chunks=chunks), self.assertRaisesRegex(
+                    DownloadObservationError, "^download_size_mismatch$"):
+                self.observe(chunks, 9, maximum_download_bytes=9, maximum_chunk_bytes=9)
+        def failing():
+            yield b"synthetic"
+            raise OSError("synthetic private detail")
+        with self.assertRaisesRegex(DownloadObservationError, "^download_read_failed$"):
+            self.observe(failing(), 9, maximum_download_bytes=9, maximum_chunk_bytes=9)
+
     def observe(self, chunks, size, **changes):
         options = dict(expected_size_bytes=size, download_completed=True)
         options.update(changes)

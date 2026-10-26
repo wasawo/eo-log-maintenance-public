@@ -1,5 +1,47 @@
 # 凍結B2に対するsource再観測
 
+## Caller-selected staging payload read bounds (2026-10-26)
+
+`observe_initial_staging_copy` / `observe_initial_staging_copies` / `inspect_initial_staged_drive_contents`はoptional `maximum_staging_file_bytes` / `maximum_total_staging_bytes`を受ける。Noneまたは正のexact intのみ許し、不正値はplan再構成前に固定`staging_copy_limit_invalid`で拒否する。単一入口とDrive比較入口は同じ上限を一括readerへ渡す。
+
+独立contextでplanを再構成してallocation全件を検査した後、選択した凍結targetのsizeからfile別/合計上限を検査する。超過は`staging_copy_file_limit_exceeded` / `staging_copy_total_limit_exceeded`で、staging root I/O・payload open/hash・Drive比較前に全体拒否する。targetをskipした部分結果を返さない。予算内は従来のsize/hash/signature/祖先chain確認、順序と全may_*falseを維持する。空選択は0 bytesとして検査するがroot検査を省略せずno_workにも変えない。
+
+Noneではcaller上限なし、固定本番値やschema制約を選ばない。対象は選択payloadの凍結sizeで、非選択file・plan/B2の解析memory・allocation件数・metadata I/O・遅延/全memoryを制限しない。既存hash readerは増大検出用に初期size+1 byteを読み得るが、その場合は拒否する。download計画予算やupload stagingの空き容量/予約式と独立し、copy/Upload実行やFS/provider資格を付与しない。単一/一括/Drive接続試験で境界、不正値、全payload読取前の超過拒否、bytes保全と予算の伝播を確認する。
+
+## Duplicate names in shared enumeration snapshots (2026-10-26)
+
+共通snapshotはoptional `maximum_entries`を受け、正のexact intをI/O前に検査し、列挙中の超過をmetadata保持前に拒否できる。現在の接続先は[残存staging観測のcaller上限](staging-residual-observation.md#caller-selected-entry-limit-2026-10-26)で、source builderの通常呼出しは既定Noneのままとする。source全体の件数/容量方針は新設しない。
+
+共通`_enumeration_snapshot`は同じscan内でexact同名entryを再び観測したら、identity辞書へ上書きせず固定`source_directory_changed`で拒否する。casefold/正規化/自動dedupは行わない。source builderは初回失敗でそのdirectoryのpayloadを読まず不完全coverageとし、最終再scan失敗では既に観測済みのtarget/errorを保持して不完全とする。曖昧な列挙を完全な空集合へ変換しない。
+
+[source列挙試験](../../tests/test_source_enumeration_stability.py)は自作tempから得たDirEntryをscandir adapterで重複供給し、共通層の非payload読取・初回/最終inventoryの不完全化とtarget保全を確認する。同helperを使う[残存staging観測](staging-residual-observation.md)もheldへ接続する。これは検出可能な列挙不備の拒否であり、完全列挙の真正性・同時snapshot/ABA・root/FS/provider資格の証明ではない。
+
+## Ancestor binding inside the source hash reader (2026-10-26)
+
+共通`_hash_stable_file`はfile読取前にparentの絶対pathから全祖先directoryのdevice/inode chainを取得し、読取・reparse再検査・最終path stat後に同じchainを照合する。異なるchainは固定`source_mutation_detected`、chain取得のOSErrorは既存`source_file_unavailable`で拒否する。既存のfile path/handle identity・size/mtime、期待size・初期size+1読取境界・SHA検査は維持する。
+
+外側のinventory列挙/staging batch検査に加え、hash helper単体でも祖先置換を観測できるようにした。自作temp内でparentをrenameして別directoryを作り、同じfile identityのhardlinkを同じbasenameへ置いても、file identity一致だけで受け入れない。[source hash試験](../../tests/test_source_hash_identity.py)はこの実置換、上位祖先identity変更、初回/最終chain取得不能を扱い、bytesと両pathを保全する。
+
+これは前後のmetadata観測であり、全操作期間のnamespace固定、途中の置換後復元/ABA排除、同時snapshot、適格root/ACL/FS/ownerやruntime受け入れを証明しない。hardlink自体の新しい許否方針を採用せず、stagingの既存単一link制約も変更しない。実ログ/本番Driveへ接続しない。
+
+## Internal comparison output validation (2026-10-26)
+
+file別比較の検査は`_valid_content_comparison`として分離し、batch検査と初期inventoryの件数要約が同じstatus/reason/ID/非認可flag条件を再利用する。要約は保存済み観測を検査するだけで、local/Driveの再観測にはならない。
+
+staging/Drive比較入口と初期inventory入口は、内部`ContentComparisonBatch`を共通pure検査へ通す。batchと各比較のexact型、resultsのtuple型、既存status/非空reason、batch/各比較の全may_*がexact Falseであることを要求する。batch heldはresults空、comparison_candidateは非空/NULなしのexact string ID、file別heldはcandidate IDなしとする。comparedの件数・local選択順bindingは引き続き各入口で検査する。
+
+不整合はstaging入口で`staged_drive_comparison_invalid`、初期inventory入口で`initial_inventory_result_invalid`の固定例外とし、部分観測へ取り込まない。初期inventoryでheld結果を無条件に空へ落としたり、不正な内包flags/IDを後続summaryまで持ち越したりしない。正常な候補/held混在・空選択・全体heldは従来どおり。新しい状態/実行権限は採用しない。
+
+[batch試験](../../tests/test_drive_comparison_batch.py)の共通34不正variantを[staging](../../tests/test_staged_drive_content_observation.py)・[初期inventory](../../tests/test_initial_inventory_observation.py)へ注入し、固定拒否とlocal bytes保全を確認する。構造の整合はproviderの真正性/現在性、候補IDの出所、atomic snapshot/ABAやruntime受け入れを証明しない。
+
+## Download-plan output budgets at local entrypoints (2026-10-26)
+
+`inspect_initial_staged_drive_contents`と`inspect_initial_inventory`はoptional `maximum_downloads` / `maximum_total_download_bytes`を受け、既存の[download plan出力予算](drive-content-comparison.md#caller-selected-download-plan-output-budgets-2026-10-26)をcompleted-set比較へ渡す。両入口とplanは共通のpure型検査を使い、不正値はlocal再読取前に固定`comparison_download_limit_invalid`のSourceRevalidationErrorで停止する。Noneではcaller上限なし、固定本番値を採用しない。
+
+有効な上限では従来どおり毎回localを観測した後にDrive/plan比較を行う。予算超過時、staging入口は照合済みcopiesを保持しcomparisons空のheld、初期inventory入口は元B2/選択pathを保持しfiles空のheldとする。部分比較や完全な空inventoryへ変換しない。予算内の結果・順序・全false flagsは従来どおりで、plan一致からlocal/Driveの真正性や実行認可を導かない。
+
+この予算はlocal読取量/source件数/staging容量/全memoryを制限せず、callerは呼出しごとに明示する。実SDK/C-02・root/FS/owner/現在性/ABA・runtime受け入れは別gateのまま。[staging接続試験](../../tests/test_staged_drive_content_observation.py)と[初期inventory試験](../../tests/test_initial_inventory_observation.py)でexact境界、不正値の非読取、超過時の証拠保全・非認可を確認する。
+
 ## 既存stagingとDrive観測の接続
 
 `inspect_initial_staged_drive_contents`は独立run contextと初期plan、明示allocationを使ってstagingを毎回一括再読取し、得たsize/hashと元basenameを既存`compare_planned_drive_contents`へ渡す。source payloadを読み直さず、local copy一致からsource信頼確認を自動付与しない。期待folder・source_trusted・Drive前後完全列挙・不足hash計画・完了hash集合は独立引数で要求し、既存helperで整合を再検査する。

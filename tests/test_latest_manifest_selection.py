@@ -1,6 +1,7 @@
 """Synthetic C4 selection: all candidates checked, no arbitrary fallback."""
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 import json
 import traceback
 import unittest
@@ -13,6 +14,58 @@ from Common.LatestManifestSelection import (
 
 
 class LatestManifestSelectionTests(unittest.TestCase):
+    def test_nonlocal_schema_references_are_rejected_without_retrieval(self):
+        good = self.candidate()
+        for keyword in ("$ref", "$dynamicRef"):
+            for reference in ("https://synthetic.invalid/private-detail", "file:///synthetic-private-detail",
+                    "relative-private-detail.json", "", None, 1):
+                for schema in ({keyword: reference}, {"$defs": {"unused": {keyword: reference}}}):
+                    with self.subTest(keyword=keyword, reference=reference), patch.object(
+                            Path, "read_text", return_value=json.dumps(schema)), \
+                            patch("socket.socket", side_effect=AssertionError("unexpected retrieval")) as network:
+                        self.rejected("manifest_schema_unavailable", [good])
+                        network.assert_not_called()
+
+    def test_broken_local_or_invalid_schema_is_rejected_without_retrieval(self):
+        good = self.candidate()
+        for schema, reason in (({"$ref": "#/$defs/missing"}, "candidate_manifest_invalid"),
+                ({"type": "synthetic-invalid"}, "manifest_schema_unavailable")):
+            with self.subTest(schema=schema), patch.object(Path, "read_text", return_value=json.dumps(schema)), \
+                    patch("socket.socket", side_effect=AssertionError("unexpected retrieval")) as network:
+                self.rejected(reason, [good])
+                network.assert_not_called()
+
+    def test_bytes_subclass_decode_cannot_hide_invalid_actual_buffer(self):
+        good = self.candidate()
+        class Content(bytes):
+            def decode(self, *args, **kwargs): return good.content.decode("utf-8")
+        content = Content(b"synthetic-invalid-json")
+        bad = ManifestCandidate(good.filename, content)
+        self.rejected("candidate_manifest_invalid", [bad])
+        self.assertIs(content, bad.content)
+        self.assertEqual(b"synthetic-invalid-json", memoryview(content).tobytes())
+
+    def test_valid_subclass_buffer_is_selected_without_custom_decode_or_conversion(self):
+        good = self.candidate()
+        class Content(bytes):
+            def decode(self, *args, **kwargs): raise AssertionError("must parse the actual buffer")
+            def __bytes__(self): raise AssertionError("must not invoke custom conversion")
+            def __len__(self): return 0
+        content = Content(good.content)
+        candidate = ManifestCandidate(good.filename, content)
+        self.assertEqual(self.select([good]), self.select([candidate]))
+        self.assertIs(content, candidate.content)
+        self.assertEqual(good.content, memoryview(content).tobytes())
+
+    def test_older_subclass_buffer_is_validated_even_with_newer_success(self):
+        older = self.candidate(1, started="2026-10-22T10:00:00Z")
+        newer = self.candidate(2)
+        class Content(bytes):
+            def decode(self, *args, **kwargs): return older.content.decode("utf-8")
+        invalid = ManifestCandidate(older.filename, Content(b"synthetic-invalid-json"))
+        for candidates in ([invalid, newer], [newer, invalid]):
+            self.rejected("candidate_manifest_invalid", candidates)
+
     def candidate(self, number=1, started="2026-10-23T10:00:00Z", status="success", **changes):
         manifest = {
             "schema_version": 1, "run_id": str(UUID(int=number, version=4)),

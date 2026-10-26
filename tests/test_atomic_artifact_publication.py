@@ -17,6 +17,237 @@ from Common.AtomicArtifactPublication import (
 
 
 class AtomicArtifactPublicationTests(unittest.TestCase):
+    def test_bytes_subclass_cannot_spoof_existing_file_equality(self):
+        class Payload(bytes):
+            def __getitem__(self, key): return b"spoofed!"[key]
+            def __bytes__(self): raise AssertionError("must snapshot buffer rather than __bytes__")
+        payload = Payload(b"original")
+        destination = self.root/"manifest.json"
+        destination.write_bytes(b"spoofed!")
+        with patch.object(atomic.tempfile, "mkstemp") as created:
+            with self.assertRaisesRegex(ArtifactPublicationError, "^destination_conflict$"):
+                publish_bytes_no_overwrite(destination, payload)
+            created.assert_not_called()
+        self.assertEqual(b"spoofed!", destination.read_bytes())
+        self.assertEqual(b"original", memoryview(payload).tobytes())
+
+    def test_bytes_subclass_length_and_slice_overrides_do_not_change_new_publication(self):
+        class Payload(bytes):
+            def __len__(self): return 0
+            def __getitem__(self, key): raise AssertionError("must not call subclass slice")
+            def __bytes__(self): raise AssertionError("must not call subclass conversion")
+        payload = Payload(b"original")
+        destination = self.root/"manifest.json"
+        self.assertEqual("published", publish_bytes_no_overwrite(destination, payload))
+        self.assertEqual("already_exists_identical", publish_bytes_no_overwrite(destination, payload))
+        self.assertEqual(b"original", destination.read_bytes())
+        self.assertEqual([destination], list(self.root.iterdir()))
+
+    def test_short_write_reason_survives_a_second_failure_on_stream_close(self):
+        real_fdopen = atomic.os.fdopen
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args):
+                self.stream.close()
+                raise OSError("synthetic private close detail")
+            def write(self, block): return self.stream.write(block[:2])
+        def opened(*args, **kwargs): return Stream(real_fdopen(*args, **kwargs))
+        destination = self.root/"manifest.json"
+        with patch.object(atomic.os, "fdopen", opened), patch.object(atomic.os, "link") as link:
+            with self.assertRaisesRegex(ArtifactPublicationError, "^artifact_write_incomplete$"):
+                publish_bytes_no_overwrite(destination, b"synthetic")
+            link.assert_not_called()
+        self.assertFalse(destination.exists())
+        temporary = list(self.root.glob(".manifest.json.tmp-*"))
+        self.assertEqual(1, len(temporary))
+        self.assertEqual(b"sy", temporary[0].read_bytes())
+
+    def test_stream_io_failure_stages_never_link_or_replace_the_destination(self):
+        real_fdopen = atomic.os.fdopen
+        real_fsync = atomic.os.fsync
+        for stage in ("write", "flush", "fsync", "close"):
+            destination = self.root/f"{stage}.json"
+            class Stream:
+                def __init__(self, stream): self.stream = stream
+                def __enter__(self): return self
+                def __exit__(self, *args):
+                    self.stream.close()
+                    if stage == "close": raise OSError("synthetic private close detail")
+                def write(self, block):
+                    if stage == "write":
+                        self.stream.write(block[:2])
+                        raise OSError("synthetic private write detail")
+                    return self.stream.write(block)
+                def flush(self):
+                    if stage == "flush": raise OSError("synthetic private flush detail")
+                    return self.stream.flush()
+                def fileno(self): return self.stream.fileno()
+            def opened(*args, **kwargs): return Stream(real_fdopen(*args, **kwargs))
+            def sync(fd):
+                if stage == "fsync": raise OSError("synthetic private fsync detail")
+                return real_fsync(fd)
+            with self.subTest(stage=stage), patch.object(atomic.os, "fdopen", opened), \
+                    patch.object(atomic.os, "fsync", sync), patch.object(atomic.os, "link") as link:
+                with self.assertRaisesRegex(ArtifactPublicationError, "^artifact_publish_failed$"):
+                    publish_bytes_no_overwrite(destination, b"synthetic")
+                link.assert_not_called()
+            self.assertFalse(destination.exists())
+            temporary = list(self.root.glob(f".{stage}.json.tmp-*"))
+            if stage == "close":
+                # Fully verified owned bytes can still use the existing cleanup.
+                self.assertEqual([], temporary)
+            else:
+                self.assertEqual(1, len(temporary))
+                self.assertEqual(b"sy" if stage == "write" else b"synthetic", temporary[0].read_bytes())
+
+    def test_temp_writes_are_bounded_and_exact_before_publication(self):
+        real_fdopen = atomic.os.fdopen
+        lengths = []
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args): return self.stream.__exit__(*args)
+            def fileno(self): return self.stream.fileno()
+            def flush(self): return self.stream.flush()
+            def write(self, block):
+                lengths.append(len(block))
+                return self.stream.write(block)
+        def opened(*args, **kwargs): return Stream(real_fdopen(*args, **kwargs))
+        payload = b"x"*(2*1024*1024+7)
+        destination = self.root/"manifest.json"
+        with patch.object(atomic.os, "fdopen", opened):
+            self.assertEqual("published", publish_bytes_no_overwrite(destination, payload))
+        self.assertEqual([1024*1024, 1024*1024, 7], lengths)
+        self.assertEqual(payload, destination.read_bytes())
+        self.assertEqual([destination], list(self.root.iterdir()))
+
+    def test_invalid_write_counts_stop_without_retry_or_link_and_preserve_temp(self):
+        real_fdopen = atomic.os.fdopen
+        for index, returned in enumerate((0, 2, None, True, False, -1, 100, "3", 3.0)):
+            destination = self.root/f"manifest-{index}.json"
+            calls = []
+            class Stream:
+                def __init__(self, stream): self.stream = stream
+                def __enter__(self): return self
+                def __exit__(self, *args): return self.stream.__exit__(*args)
+                def write(self, block):
+                    calls.append(len(block))
+                    self.stream.write(block[:2])
+                    return returned
+                def flush(self): raise AssertionError("explicit flush must not follow a bad write count")
+                def fileno(self): raise AssertionError("fsync must not follow a bad write count")
+            def opened(*args, **kwargs): return Stream(real_fdopen(*args, **kwargs))
+            with self.subTest(returned=returned), patch.object(atomic.os, "fdopen", opened), \
+                    patch.object(atomic.os, "link") as link:
+                with self.assertRaisesRegex(ArtifactPublicationError, "^artifact_write_incomplete$"):
+                    publish_bytes_no_overwrite(destination, b"synthetic")
+                link.assert_not_called()
+            self.assertEqual([9], calls)
+            self.assertFalse(destination.exists())
+            temporary = list(self.root.glob(f".{destination.name}.tmp-*"))
+            self.assertEqual(1, len(temporary))
+            self.assertEqual(b"sy", temporary[0].read_bytes())
+
+    def test_empty_payload_still_flushes_syncs_and_publishes_without_write_calls(self):
+        real_fdopen = atomic.os.fdopen
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args): return self.stream.__exit__(*args)
+            def write(self, block): raise AssertionError("empty payload needs no write")
+            def flush(self): return self.stream.flush()
+            def fileno(self): return self.stream.fileno()
+        def opened(*args, **kwargs): return Stream(real_fdopen(*args, **kwargs))
+        destination = self.root/"empty.json"
+        with patch.object(atomic.os, "fdopen", opened), \
+                patch.object(atomic.os, "fsync", wraps=atomic.os.fsync) as sync:
+            self.assertEqual("published", publish_bytes_no_overwrite(destination, b""))
+            sync.assert_called_once()
+        self.assertEqual(b"", destination.read_bytes())
+
+    def test_invalid_destination_basename_rejects_before_parent_io_or_temp_creation(self):
+        for name in ("invalid.", "invalid ", "invalid. ", ".."):
+            with self.subTest(name=name), patch.object(atomic, "_chain") as chain, \
+                    patch.object(atomic.tempfile, "mkstemp") as created:
+                with self.assertRaisesRegex(ArtifactPublicationError, "^destination_name_invalid$"):
+                    publish_bytes_no_overwrite(self.root/"missing-parent"/name, b"synthetic")
+                chain.assert_not_called()
+                created.assert_not_called()
+            self.assertEqual([], list(self.root.iterdir()))
+
+    def test_initial_size_conflict_rejects_without_payload_open_or_creation(self):
+        destination = self.root/"manifest.json"
+        expected = b"synthetic"
+        for payload in (b"", b"x", expected+b"x"*131072):
+            destination.write_bytes(payload)
+            with self.subTest(size=len(payload)), patch.object(Path, "open") as opened, \
+                    patch.object(atomic.tempfile, "mkstemp") as created:
+                with self.assertRaisesRegex(ArtifactPublicationError, "^destination_conflict$"):
+                    publish_bytes_no_overwrite(destination, expected)
+                opened.assert_not_called()
+                created.assert_not_called()
+            self.assertEqual(payload, destination.read_bytes())
+            self.assertEqual([destination], list(self.root.iterdir()))
+
+    def test_empty_and_multichunk_identical_existing_files_remain_idempotent(self):
+        destination = self.root/"manifest.json"
+        for payload in (b"", b"x"*(1024*1024+7)):
+            destination.write_bytes(payload)
+            with self.subTest(size=len(payload)), patch.object(atomic.tempfile, "mkstemp") as created:
+                self.assertEqual("already_exists_identical", publish_bytes_no_overwrite(destination, payload))
+                created.assert_not_called()
+            self.assertEqual(payload, destination.read_bytes())
+
+    def test_growth_during_comparison_stops_at_expected_size_plus_one(self):
+        destination = self.root/"manifest.json"
+        payload = b"x"*(1024*1024+7)
+        destination.write_bytes(payload)
+        real_open = Path.open
+        requests, consumed, closed = [], [], []
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args):
+                self.stream.close()
+                closed.append(True)
+            def fileno(self): return self.stream.fileno()
+            def read(self, size):
+                requests.append(size)
+                block = self.stream.read(size)
+                consumed.append(len(block))
+                if len(requests) == 1:
+                    with real_open(destination, "ab") as writer: writer.write(b"y"*131072)
+                return block
+        def opened(path, *args, **kwargs): return Stream(real_open(path, *args, **kwargs))
+        with patch.object(Path, "open", opened), patch.object(atomic.tempfile, "mkstemp") as created:
+            with self.assertRaisesRegex(ArtifactPublicationError, "^artifact_changed_during_read$"):
+                publish_bytes_no_overwrite(destination, payload)
+            created.assert_not_called()
+        self.assertEqual(len(payload)+1, sum(consumed))
+        self.assertTrue(all(0 < size <= 1024*1024 for size in requests))
+        self.assertEqual([True], closed)
+        self.assertEqual(payload+b"y"*131072, destination.read_bytes())
+
+    def test_size_change_between_inspection_and_open_rejects_before_read(self):
+        destination = self.root/"manifest.json"
+        payload = b"synthetic"
+        destination.write_bytes(payload)
+        real_open = Path.open
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args): self.stream.close()
+            def fileno(self): return self.stream.fileno()
+            def read(self, *_): raise AssertionError("changed handle must not read")
+        def opened(path, *args, **kwargs):
+            with real_open(path, "ab") as writer: writer.write(b"x")
+            return Stream(real_open(path, *args, **kwargs))
+        with patch.object(Path, "open", opened):
+            with self.assertRaisesRegex(ArtifactPublicationError, "^artifact_changed_during_read$"):
+                publish_bytes_no_overwrite(destination, payload)
+        self.assertEqual(payload+b"x", destination.read_bytes())
+
     def test_staging_is_reread_before_atomic_link_and_final_bytes_verified(self):
         destination = self.root / "manifest.json"
         payload = b"synthetic"

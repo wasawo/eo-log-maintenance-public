@@ -54,6 +54,10 @@ def _same_bytes(path: Path, expected: bytes) -> bool:
         before = path.lstat()
         if not _regular(before):
             raise ArtifactPublicationError("destination_not_regular_file")
+        if before.st_size != len(expected):
+            # A known size conflict needs no payload read and cannot grant
+            # idempotence. Expected bytes also bound every later read.
+            return False
         signature = _signature(before)
         with path.open("rb") as stream:
             opened = os.fstat(stream.fileno())
@@ -61,11 +65,13 @@ def _same_bytes(path: Path, expected: bytes) -> bool:
                 raise ArtifactPublicationError("artifact_changed_during_read")
             offset, matches = 0, True
             while True:
-                block = stream.read(1024 * 1024)
+                block = stream.read(min(1024 * 1024, len(expected)-offset+1))
                 if not block:
                     break
                 matches = matches and block == expected[offset:offset + len(block)]
                 offset += len(block)
+                if offset > len(expected):
+                    raise ArtifactPublicationError("artifact_changed_during_read")
             finished = os.fstat(stream.fileno())
         after = path.lstat()
         if (not _regular(after) or _signature(after) != signature or _signature(finished) != signature
@@ -86,14 +92,16 @@ def publish_bytes_no_overwrite(destination: str | os.PathLike[str], data: bytes)
     """
     if not isinstance(data, bytes):
         raise ArtifactPublicationError("artifact_bytes_required")
+    if type(data) is not bytes:
+        data = memoryview(data).tobytes()
     try:
         requested = Path(destination)
+        if requested.name in ("", ".", "..") or requested.name.endswith((" ", ".")):
+            raise ArtifactPublicationError("destination_name_invalid")
         parent = requested.parent.absolute()
         chain = _chain(parent)
         if not parent.is_dir():
             raise ArtifactPublicationError("destination_parent_invalid")
-        if requested.name in ("", ".", "..") or requested.name.endswith((" ", ".")):
-            raise ArtifactPublicationError("destination_name_invalid")
         final_path = parent / requested.name
         if final_path.exists() or final_path.is_symlink():
             if not _regular(final_path.lstat()):
@@ -109,6 +117,7 @@ def publish_bytes_no_overwrite(destination: str | os.PathLike[str], data: bytes)
     temp_path: Path | None = None
     fd: int | None = None
     temp_identity = None
+    write_error = None
     try:
         if _chain(parent) != chain:
             raise ArtifactPublicationError("destination_parent_changed")
@@ -116,7 +125,13 @@ def publish_bytes_no_overwrite(destination: str | os.PathLike[str], data: bytes)
         temp_path = Path(temp_name)
         with os.fdopen(fd, "wb") as stream:
             fd = None
-            stream.write(data)
+            payload = memoryview(data)
+            for offset in range(0, len(payload), 1024 * 1024):
+                block = payload[offset:offset + 1024 * 1024]
+                written = stream.write(block)
+                if type(written) is not int or written != len(block):
+                    write_error = ArtifactPublicationError("artifact_write_incomplete")
+                    raise write_error
             stream.flush()
             os.fsync(stream.fileno())
             temp_identity = _identity(os.fstat(stream.fileno()))
@@ -142,6 +157,9 @@ def publish_bytes_no_overwrite(destination: str | os.PathLike[str], data: bytes)
     except ArtifactPublicationError:
         raise
     except OSError as exc:
+        if write_error is not None:
+            # Closing a failed write must not replace its primary fixed reason.
+            raise write_error from None
         raise ArtifactPublicationError("artifact_publish_failed") from exc
     finally:
         if fd is not None:

@@ -19,6 +19,69 @@ from Common.ArtifactSetDirectoryVerification import (
 
 
 class ArtifactSetDirectoryVerificationTests(unittest.TestCase):
+    def test_duplicate_entry_on_any_scan_cannot_be_reported_committed(self):
+        self.write_complete_set()
+        before = {p: p.read_bytes() for p in self.root.iterdir()}
+        real_iterdir = Path.iterdir
+        for repeat_call in (1, 2, 3):
+            calls = []
+            def repeated(directory):
+                entries = list(real_iterdir(directory))
+                if directory == self.root:
+                    calls.append(directory)
+                    if len(calls) == repeat_call:
+                        entries += entries
+                return iter(entries)
+            with self.subTest(repeat_call=repeat_call), patch.object(Path, "iterdir", repeated):
+                with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^directory_changed$"):
+                    verify_published_artifact_set(self.root, self.expected)
+            self.assertEqual(repeat_call, len(calls))
+            self.assertEqual(before, {p: p.read_bytes() for p in self.root.iterdir()})
+
+    def test_present_marker_with_nonobject_json_never_becomes_missing_marker(self):
+        self.write_complete_set()
+        path = self.root/"commit-marker.json"
+        for content in (b"null", b"true", b"false", b"0", b"1.5", b'"synthetic"', b"[]", b"[{}]"):
+            path.write_bytes(content)
+            before = {p: p.read_bytes() for p in self.root.iterdir()}
+            with self.subTest(content=content), self.assertRaisesRegex(
+                    ArtifactSetDirectoryVerificationError, "^commit_marker_json_invalid$"):
+                verify_published_artifact_set(self.root, self.expected)
+            self.assertEqual(before, {p: p.read_bytes() for p in self.root.iterdir()})
+
+    def test_nonstandard_json_constants_are_rejected_at_any_marker_depth(self):
+        self.write_complete_set()
+        path = self.root/"commit-marker.json"
+        for constant in (b"NaN", b"Infinity", b"-Infinity"):
+            for content in (constant, b'{"schema_version":'+constant+b'}',
+                    b'{"nested":[{"value":'+constant+b'}]}'):
+                path.write_bytes(content)
+                with self.subTest(content=content), self.assertRaisesRegex(
+                        ArtifactSetDirectoryVerificationError, "^commit_marker_json_invalid$"):
+                    verify_published_artifact_set(self.root, self.expected)
+                self.assertEqual(content, path.read_bytes())
+
+    def test_nested_duplicate_marker_keys_are_rejected(self):
+        self.write_complete_set()
+        path = self.root/"commit-marker.json"
+        marker = path.read_bytes()
+        key = b'"manifest.json":'
+        digest = json.dumps(self.expected["manifest.json"]).encode("ascii")
+        marker = marker.replace(key, key+digest+b", "+key)
+        path.write_bytes(marker)
+        with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^commit_marker_json_invalid$"):
+            verify_published_artifact_set(self.root, self.expected)
+        self.assertEqual(marker, path.read_bytes())
+
+    def test_excessive_marker_nesting_is_a_sanitized_parse_failure(self):
+        self.write_complete_set()
+        content = b'{"nested":'+b"["*2048+b"0"+b"]"*2048+b"}"
+        path = self.root/"commit-marker.json"
+        path.write_bytes(content)
+        with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^commit_marker_json_invalid$"):
+            verify_published_artifact_set(self.root, self.expected)
+        self.assertEqual(content, path.read_bytes())
+
     def test_expected_transaction_is_independently_bound_and_optional(self):
         self.write_complete_set()
         self.assertTrue(verify_published_artifact_set(self.root, self.expected,
@@ -36,8 +99,9 @@ class ArtifactSetDirectoryVerificationTests(unittest.TestCase):
                 real = verification.classify_artifact_set
                 def changed(**kwargs):
                     decision = real(**kwargs)
-                    path = self.root / name
-                    path.write_bytes(path.read_bytes() + b"\n")
+                    if kwargs.get("commit_marker") is not None:
+                        path = self.root / name
+                        path.write_bytes(path.read_bytes() + b"\n")
                     return decision
                 with patch.object(verification, "classify_artifact_set", side_effect=changed):
                     with self.assertRaises(ArtifactSetDirectoryVerificationError):
@@ -48,7 +112,8 @@ class ArtifactSetDirectoryVerificationTests(unittest.TestCase):
         real = verification.classify_artifact_set
         def changed(**kwargs):
             result = real(**kwargs)
-            (self.root / "unexpected.tmp").write_bytes(b"synthetic")
+            if kwargs.get("commit_marker") is not None:
+                (self.root / "unexpected.tmp").write_bytes(b"synthetic")
             return result
         with patch.object(verification, "classify_artifact_set", side_effect=changed):
             with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "unexpected_directory_entry"):
@@ -199,6 +264,153 @@ class ArtifactSetDirectoryVerificationTests(unittest.TestCase):
         result = verify_published_artifact_set(self.root, self.expected)
         self.assertEqual(result.state, "nothing_published")
         self.assertFalse(result.may_report_committed)
+
+
+class ArtifactSetInputPreflightTests(unittest.TestCase):
+    setUp = ArtifactSetDirectoryVerificationTests.setUp
+    write_complete_set = ArtifactSetDirectoryVerificationTests.write_complete_set
+
+    def test_invalid_hash_maps_block_before_root_io(self):
+        digest = "a"*64
+        for expected in ({"../escape": digest}, {"/absolute": digest}, {"dir/file": digest},
+                {"dir\\file": digest}, {".hidden": digest}, {"bad\x00name": digest},
+                {1: digest}, {"manifest.json": "bad"}, {"manifest.json": "A"*64},
+                {"manifest.json": None}):
+            with self.subTest(expected=expected), patch.object(Path, "is_symlink") as inspected:
+                result = verify_published_artifact_set(self.root, expected)
+                self.assertEqual("blocked", result.state)
+                self.assertEqual("expected_artifact_set_invalid", result.reason_code)
+                self.assertFalse(result.may_report_committed)
+                self.assertFalse(result.may_publish_next)
+                self.assertTrue(result.preserve_existing_artifacts)
+                inspected.assert_not_called()
+
+    def test_invalid_transaction_blocks_before_root_io(self):
+        for transaction in ("", "bad", True, 1, [], "11111111-2222-0333-8444-555555555555"):
+            with self.subTest(transaction=transaction), patch.object(Path, "is_symlink") as inspected:
+                result = verify_published_artifact_set(self.root, self.expected, expected_transaction_id=transaction)
+                self.assertEqual("expected_transaction_id_invalid", result.reason_code)
+                self.assertFalse(result.may_report_committed)
+                inspected.assert_not_called()
+
+    def test_invalid_container_empty_and_marker_collision_raise_before_root_io(self):
+        for expected in (None, [], {}, {"commit-marker.json": "a"*64}):
+            with self.subTest(expected=expected), patch.object(Path, "is_symlink") as inspected:
+                with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^expected_artifact_set_invalid$"):
+                    verify_published_artifact_set(self.root, expected)
+                inspected.assert_not_called()
+
+    def test_mapping_copy_failure_is_sanitized_before_root_io(self):
+        from collections.abc import Mapping
+        class BrokenMap(Mapping):
+            def __iter__(self): raise RuntimeError("synthetic private mapping detail")
+            def __len__(self): return 1
+            def __getitem__(self, key): raise RuntimeError("synthetic private mapping detail")
+        with patch.object(Path, "is_symlink") as inspected:
+            with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^expected_artifact_set_invalid$"):
+                verify_published_artifact_set(self.root, BrokenMap())
+            inspected.assert_not_called()
+
+    def test_expectations_are_copied_before_the_first_root_inspection(self):
+        self.write_complete_set()
+        before = {p: p.read_bytes() for p in self.root.iterdir()}
+        real = Path.is_symlink
+        def inspected(path):
+            if path == self.root:
+                self.expected.clear()
+            return real(path)
+        with patch.object(Path, "is_symlink", inspected):
+            result = verify_published_artifact_set(self.root, self.expected,
+                expected_transaction_id=self.transaction_id)
+        self.assertTrue(result.may_report_committed)
+        self.assertEqual({}, self.expected)
+        self.assertEqual(before, {p: p.read_bytes() for p in self.root.iterdir()})
+
+
+class ArtifactSetReadBoundsTests(unittest.TestCase):
+    setUp = ArtifactSetDirectoryVerificationTests.setUp
+    write_complete_set = ArtifactSetDirectoryVerificationTests.write_complete_set
+
+    def verify(self, **limits):
+        return verify_published_artifact_set(self.root, self.expected, **limits)
+
+    def test_exact_file_and_set_limits_preserve_classification_and_bytes(self):
+        self.write_complete_set()
+        before = {p: p.read_bytes() for p in self.root.iterdir()}
+        limits = dict(maximum_artifact_bytes=max(map(len, before.values())),
+            maximum_total_bytes=sum(map(len, before.values())))
+        self.assertEqual(self.verify(), self.verify(**limits))
+        self.assertTrue(self.verify(**limits).may_report_committed)
+        self.assertEqual(before, {p: p.read_bytes() for p in self.root.iterdir()})
+
+    def test_invalid_limits_reject_before_filesystem_access(self):
+        for key in ("maximum_artifact_bytes", "maximum_total_bytes"):
+            for value in (True, False, 0, -1, 1.5, "4096"):
+                with self.subTest(key=key, value=value), patch.object(Path, "is_symlink") as inspected:
+                    with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^artifact_read_limit_invalid$"):
+                        self.verify(**{key: value})
+                    inspected.assert_not_called()
+
+    def test_each_oversized_file_including_marker_blocks_all_payload_opens(self):
+        self.write_complete_set()
+        paths = list(self.root.iterdir())
+        ceiling = max(path.stat().st_size for path in paths)
+        for path in paths:
+            original = path.read_bytes()
+            path.write_bytes(original+b" "*(ceiling+1-len(original)))
+            with self.subTest(name=path.name), patch.object(Path, "open") as opened:
+                with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^artifact_read_limit_exceeded$"):
+                    self.verify(maximum_artifact_bytes=ceiling)
+                opened.assert_not_called()
+            self.assertEqual(ceiling+1, path.stat().st_size)
+            path.write_bytes(original)
+
+    def test_total_includes_marker_and_rejects_before_any_payload_open(self):
+        self.write_complete_set()
+        total = sum(p.stat().st_size for p in self.root.iterdir())
+        with patch.object(Path, "open") as opened:
+            with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^artifact_total_limit_exceeded$"):
+                self.verify(maximum_total_bytes=total-1)
+            opened.assert_not_called()
+
+    def test_incomplete_sets_and_empty_directory_do_not_bypass_limits_or_classification(self):
+        self.assertFalse(self.verify(maximum_artifact_bytes=1, maximum_total_bytes=1).may_report_committed)
+        path = self.root/"manifest.json"
+        path.write_bytes(self.payloads[path.name])
+        self.assertEqual("partial_publication", self.verify(maximum_total_bytes=path.stat().st_size).state)
+        with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^artifact_total_limit_exceeded$"):
+            self.verify(maximum_total_bytes=path.stat().st_size-1)
+
+    def test_reads_are_chunked_and_growth_stops_at_initial_size_plus_one(self):
+        path = self.root/"manifest.json"
+        payload = b"x"*70000
+        path.write_bytes(payload)
+        self.expected = {path.name: hashlib.sha256(payload).hexdigest()}
+        real_open = Path.open
+        for grow in (False, True):
+            requests, consumed = [], []
+            class Stream:
+                def __init__(self, stream): self.stream = stream
+                def __enter__(self): return self
+                def __exit__(self, *args): self.stream.close()
+                def fileno(self): return self.stream.fileno()
+                def read(self, size):
+                    requests.append(size)
+                    block = self.stream.read(size)
+                    consumed.append(len(block))
+                    if grow and len(requests) == 1:
+                        with real_open(path, "ab") as writer: writer.write(b"y"*70000)
+                    return block
+            def opened(target, *args, **kwargs): return Stream(real_open(target, *args, **kwargs))
+            with self.subTest(grow=grow), patch.object(Path, "open", opened):
+                if grow:
+                    with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^artifact_changed$"):
+                        self.verify(maximum_artifact_bytes=70000, maximum_total_bytes=70000)
+                    self.assertEqual(70001, sum(consumed))
+                else:
+                    self.assertFalse(self.verify().may_report_committed)
+                    self.assertEqual(140000, sum(consumed))  # Initial and final read.
+            self.assertTrue(all(0 < size <= 65536 for size in requests))
 
 
 if __name__ == "__main__":

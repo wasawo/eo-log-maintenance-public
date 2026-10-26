@@ -13,9 +13,47 @@ from Common.DriveContentComparison import (
 from Common.ManifestTransitionInspection import InitialManifestPlan, TerminalManifestPlan
 import test_initial_source_integration as fixture
 from test_aggregation_report_builder import SCHEMAS, NOW
+from test_drive_comparison_batch import invalid_comparison_batches
 
 
 class InitialInventoryObservationTests(unittest.TestCase):
+    def test_invalid_internal_comparison_outputs_never_become_inventory_observations(self):
+        raw, paths, drive = self.seed()
+        valid = self.observe(raw, paths, drive)
+        before = {p: p.read_bytes() for p in self.source.iterdir()}
+        for index, batch in enumerate(invalid_comparison_batches(tuple(item.comparison for item in valid.files))):
+            with self.subTest(index=index), patch.object(check, "compare_planned_drive_contents", return_value=batch):
+                with self.assertRaisesRegex(check.SourceRevalidationError, "^initial_inventory_result_invalid$"):
+                    self.observe(raw, paths, drive)
+            self.assertEqual(before, {p: p.read_bytes() for p in self.source.iterdir()})
+        self.assertEqual([], list(self.candidate.iterdir()))
+
+    def test_download_output_budgets_preserve_initial_inventory_observations(self):
+        raw, paths, drive = self.seed()
+        expected = self.observe(raw, paths, drive)
+        result = self.observe(raw, paths, drive, maximum_downloads=2, maximum_total_download_bytes=11)
+        self.assertEqual(expected, result)
+        self.assert_observation_only(result)
+
+    def test_download_budget_excess_retains_selection_and_b2_without_partial_inventory(self):
+        raw, paths, drive = self.seed()
+        for limits, reason in ((dict(maximum_downloads=1), "comparison_download_count_limit_exceeded"),
+                (dict(maximum_total_download_bytes=10), "comparison_download_bytes_limit_exceeded")):
+            result = self.observe(raw, paths, drive, **limits)
+            self.assertEqual(("held", reason, paths, ()),
+                (result.status, result.reason_code, result.selected_paths, result.files))
+            self.assertIs(raw, result.evidence_bytes)
+            self.assert_observation_only(result)
+
+    def test_invalid_download_budgets_reject_before_source_reobservation(self):
+        raw, paths, drive = self.seed()
+        for key in ("maximum_downloads", "maximum_total_download_bytes"):
+            for value in (True, False, 0, -1, 1.5, "100"):
+                with self.subTest(key=key, value=value), patch.object(check, "revalidate_comparison_sources") as read:
+                    with self.assertRaisesRegex(check.SourceRevalidationError, "^comparison_download_limit_invalid$"):
+                        self.observe(raw, paths, drive, **{key: value})
+                    read.assert_not_called()
+
     setUp = fixture.InitialSourceIntegrationTests.setUp
     cleanup = fixture.InitialSourceIntegrationTests.cleanup
     plan_context = fixture.InitialSourceIntegrationTests.plan_context

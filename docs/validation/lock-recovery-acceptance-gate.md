@@ -99,6 +99,42 @@ The isolated `Common/ArtifactSetPublication.py` composes the single-file no-over
 - This helper is not yet approved for official entry-point integration, Drive interaction, manifest lifecycle mutation, archive, or deletion. Cross-process crash/concurrency acceptance and target-filesystem behavior remain required.
 
 
+### Primary write failure survives stream-close failure (2026-10-26)
+
+If an incomplete write is detected and stream close subsequently raises an OSError, the single-file publisher preserves the primary fixed `artifact_write_incomplete` reason. It does not replace that reason with the generic `artifact_publish_failed`. The artifact-set publisher propagates the same primary reason, preserving earlier artifacts and leaving the marker unpublished. Partial/unverified temporary content remains preserved under the existing cleanup rules.
+
+Synthetic tests also inject individual write/flush/fsync/close OSErrors and require fixed `artifact_publish_failed` without linking a destination. Existing cleanup may remove a temp after a close failure only when its already-captured identity, complete exact bytes and parent chain still verify; incomplete or otherwise unverified temps remain. This does not introduce cleanup authority, retries, filesystem qualification, power-loss guarantees or formal runtime integration. Tests cover the double failure through both single-file and set publishers and each individual I/O failure stage.
+
+### Payload mapping snapshot before publication (2026-10-26)
+
+The artifact-set publisher first copies a Mapping into a plain dictionary, rejects an empty copied set, and then validates every copied name and payload before hashing or publication. Failures while copying keys/items are suppressed behind fixed `artifact_set_empty_or_invalid`; no artifacts or marker are published and any existing partial set is preserved. A caller's truthiness/length declaration cannot substitute for actual copied content, so a nonempty declaration with no enumerated entries cannot produce an empty marker. Invalid marker/name/payload checks remain required after copying.
+
+The same copied bytes supply hashes, ordered artifact writes and the marker. Later mutation of the source mapping cannot replace them. This is not an atomic snapshot of a concurrently mutated custom mapping, a memory bound or caller-authenticity proof. Tests cover iteration/partial-copy/item failures, empty copied content despite a positive length declaration, a valid copy independent of an unusable length declaration, mutation during the first actual publication and preservation of an existing partial set. Formal provider/runtime and durability gates remain unchanged.
+
+### Exact temporary-file write counts (2026-10-26)
+
+The single-file publisher writes its immutable payload in chunks of at most 1,048,576 bytes using memoryview slices. Every `write` result must be an exact integer equal to that chunk's length; short/zero/negative/oversized counts, bool, None or other types reject with fixed `artifact_write_incomplete`. The helper does not retry a partial write, explicitly flush/fsync it, or link it to the destination. Stream close may flush buffered data, so partial/unverified temp files remain preserved; they are not automatically repaired or removed. Existing readback, identity and parent checks remain required after complete writes. Empty payloads still flush, fsync and pass readback before publication.
+
+The artifact-set publisher propagates the same fixed reason. If a later artifact fails its write, earlier published artifacts remain, no marker is published, and the partial temp remains for separately authorized reconciliation. Synthetic tests cover bounded multichunk writes, invalid return values without retry/link, empty payload publication, and a second-artifact short write. These checks do not add runtime integration, durable recovery, qualified ownership/filesystems, or power-loss guarantees; caller payload memory is not bounded by chunking.
+
+### Destination basenames before publication (2026-10-26)
+
+The artifact-set publisher applies the single-file publisher's existing prohibition on trailing spaces/dots to every artifact basename and the marker basename during whole-set input validation. Invalid artifact names raise `artifact_name_invalid`; invalid marker names raise `commit_marker_name_invalid`, before any call to publish an artifact. Previously, a later invalid basename or the invalid marker could be discovered only after earlier valid files had been published. Invalid input no longer creates that avoidable partial set; an existing partial set remains unchanged.
+
+The single-file publisher also checks its existing basename rule before parent inspection, so `destination_name_invalid` takes precedence over an unavailable parent for such invalid names. This reorders existing single-file validation and tightens the set preflight to the same rule. It does not define a complete Windows namespace/alias policy, change valid-file ordering or no-overwrite behavior, or authorize cleanup/recovery. Synthetic tests cover invalid trailing spaces/dots on later artifacts and markers, preservation of existing partial sets, and absence of parent inspection/temp allocation for invalid single-file basenames.
+
+### Publication comparisons bounded by expected bytes (2026-10-26)
+
+`AtomicArtifactPublication._same_bytes` rejects an inspected regular file whose initial size differs from the immutable expected payload length without opening its content. For an existing destination this remains `destination_conflict`; it does not allocate a temp file or overwrite the destination. A staging/final readback size conflict still fails its existing verification gate, and changed/unverified temporary content is preserved under the existing ownership-based cleanup checks.
+
+When initial sizes agree, each read is at most 1,048,576 bytes and the total comparison stops at expected length plus one byte. Observed growth immediately rejects with `artifact_changed_during_read`, preventing a continuously growing file from extending the comparison indefinitely. Handle/path/ancestor signatures and byte comparisons remain required for an identical result. Empty and multichunk payloads retain idempotent behavior. This uses known caller bytes rather than introducing configurable production limits. It does not bound caller payload memory or read latency, qualify ownership/filesystems, prevent ABA, or establish durability/runtime acceptance. Synthetic tests cover pre-open size conflicts, exact empty/multichunk comparisons, growth during reading, and size change between inspection and open.
+
+### Publisher and classifier transaction grammar (2026-10-26)
+
+The publisher now uses the existing classifier's shared `is_artifact_transaction_id` grammar before payload validation or any publication call: a hyphenated UUID with version 1 through 8 and RFC variant (fourth group starting 8, 9, a or b), accepting upper/lowercase hex. The supplied spelling is preserved in the marker; independent transaction expectations remain exact string comparisons rather than UUID normalization. The marker classifier and expected-ID validator use the same grammar.
+
+Previously, the publisher's generic UUID parse accepted nil IDs, unsupported versions or non-RFC variants that the classifier could never accept as committed. Such inputs now fail with fixed `transaction_id_invalid` before publishing any artifact or marker. Existing partial sets remain unchanged. This tightens invalid producer inputs to the already established consumer contract; it does not migrate or repair old invalid markers. Synthetic tests cover invalid types/forms, all 64 combinations of supported version/variant/case through real publication and directory verification, and preservation of an existing partial set. Crash/concurrency and formal runtime qualification remain separate gates.
+
 ## 10. Read-only directory-state verification (synthetic implementation)
 
 `Common/ArtifactSetDirectoryVerification.py` now reads observed artifact bytes from one directory, computes SHA-256, parses the marker with duplicate-key rejection, rejects unexpected directory entries and non-regular files, and delegates to the strict artifact-set classifier. It performs no repair, publish, overwrite, or deletion.
@@ -107,6 +143,44 @@ The isolated `Common/ArtifactSetPublication.py` composes the single-file no-over
 - Missing markers and partial sets never report committed. Invalid marker JSON, duplicate keys, unexpected entries, symlinks, unreadable files, or invalid directories fail closed.
 - This slice does not establish multi-file atomicity, durable directory entries, crash recovery, network/Windows filesystem semantics, Drive consistency, or official entrypoint safety. Cross-process crash/concurrency tests remain required before integration.
 
+
+### Plain bytes for publication comparisons (2026-10-26)
+
+The single-file and set publishers retain support for bytes subclasses but materialize their exposed buffer into plain immutable bytes before destination inspection, hashing or publication. This bypasses subclass length/slice/`__bytes__` overrides, so byte comparisons, writes and marker digests describe the same payload. Ordinary exact bytes remain unchanged without an extra snapshot copy. Other input types, including bytearray and memoryview, retain the existing `artifact_bytes_required` rejection.
+
+Previously a subclass could return existing destination bytes from slicing and obtain an identical classification despite a different underlying buffer. Synthetic tests require a fixed destination conflict with original files preserved, successful publication/idempotence of the actual buffer despite misleading length/slice overrides, and a marker that verifies against the actual published bytes. Caller mapping/payload objects are not modified. This does not bound snapshot allocation, qualify an external writer/provider or establish runtime authority, durability or ABA protection.
+
+### Duplicate artifact directory entries (2026-10-26)
+
+Artifact-set directory scans reject exact repeated entry names with existing fixed `directory_changed` before replacing a stored signature. The initial scan and both later rescans use this rule, so a duplicate artifact or marker observation cannot collapse into a committed classification. No casefolding, normalization, deduplication or new alias policy is added. Existing allowlist/reparse/type/hash/marker/byte-limit checks remain required.
+
+Synthetic tests repeat entries on each of the three scans and require original-byte preservation. Both-role candidate integration injects duplicates and verifies that rejection leaves bundle/prior bytes intact and releases the owned lock. This does not certify native provider completeness, prevent ABA, or qualify runtime/Drive operations.
+
+### Classifier validates the copied mappings (2026-10-26)
+
+The pure artifact-set classifier copies expected/published/staged mappings before validating or comparing their contents. It also copies the marker object and its hash mapping before validating those structures. Each copy failure returns the existing input-specific blocked reason (expected/published/staged set invalid, marker invalid, or marker artifact-set mismatch); custom exception details do not escape. Expected and marker hash snapshots must remain nonempty and pass the existing name/hash grammar.
+
+Previously, expected hashes could be checked through a custom Mapping's `items()` and then separately copied through its key/item protocol. Divergent observations could validate a nominally nonempty expected set but classify an empty copied set, including a false committed outcome with a similarly deceptive marker hash mapping. Validation now uses the same plain dictionaries as classification. Ordinary dict and read-only Mapping inputs retain the existing states/flags, exact transaction binding and preservation behavior. Tests cover all five mapping-copy failure locations, divergent/empty copies and valid read-only mappings. This does not provide an atomic snapshot of a concurrently mutated custom mapping, validate caller provenance or authorize runtime side effects.
+
+### Present marker JSON is distinct from an absent marker (2026-10-26)
+
+When a marker file is present, its UTF-8 JSON must have an object root. `null`, arrays and scalar roots raise the fixed directory error `commit_marker_json_invalid`; a present `null` can no longer be classified as a missing marker. NaN/Infinity/-Infinity constants are rejected at every nesting level, duplicate keys remain rejected, and JSON parsing recursion failures map to the same fixed error instead of escaping as interpreter exceptions. Object shape/version/transaction/hash checks still belong to the existing classifier; an actually absent marker retains its prior missing/partial-set behavior.
+
+The reader does not repair or delete invalid markers or promote another artifact set. Synthetic tests cover root types, nonstandard constants, nested duplicate keys and excessive nesting. Both-role candidate integration verifies original bundle/prior preservation and owner release on rejection. This tightens invalid-marker handling without introducing a numeric JSON depth/complexity policy or claiming bounded parser resources, atomicity, durability or runtime authorization. Existing caller read bounds and signature/rescan checks remain unchanged.
+
+### Artifact-set expectations before filesystem access (2026-10-26)
+
+`verify_published_artifact_set` copies the caller's expected hash mapping before root/path inspection and validates that snapshot plus the optional expected transaction ID with the existing pure classifier. Invalid filename/hash grammar or transaction identity returns the classifier's blocked decision without filesystem access. Non-mapping/empty inputs, collision with the marker name, and mapping-copy failure raise the fixed `expected_artifact_set_invalid` directory error before I/O; custom mapping exception details are suppressed. Existing marker-name and resource-limit checks also remain before I/O.
+
+This changes rejection timing: caller errors take precedence over an unavailable or malformed directory, and invalid expectations no longer trigger scans or payload reads. Valid expectations retain the same marker/hash/transaction classification and full before/after observations. A mutation to the original mapping during the first root inspection cannot change the copied expectations. Copying is not an atomic snapshot of an externally mutated custom mapping and does not prove caller authenticity or root/owner qualification. The preliminary empty-publication classifier result is discarded for valid inputs; it cannot report an observed directory or authorize publication. Synthetic tests cover invalid hashes/names/transactions, invalid containers, sanitized copy failure and mutation at first root inspection.
+
+### Caller-selected artifact-set read bounds (2026-10-26)
+
+`verify_published_artifact_set` accepts optional `maximum_artifact_bytes` and `maximum_total_bytes`, each None or a positive exact integer. Invalid values reject with `artifact_read_limit_invalid` before filesystem access. After the initial metadata scan, every observed artifact and the marker are checked before any payload opens. A file over its bound rejects with `artifact_read_limit_exceeded`; the sum of observed initial sizes over the set bound rejects with `artifact_total_limit_exceeded`. Partial sets and marker-missing states do not bypass these checks. Empty directories still classify as not published.
+
+The total is the initial observed set size, not cumulative I/O: final rereads must match the same signatures and exact bytes but are not charged again. Each read uses chunks of at most 65,536 bytes and stops at the inspected initial size plus one byte, rejecting observed growth with `artifact_changed`, even without caller bounds. Existing marker/hash/transaction classification, final rereads and directory rescans remain required. No truncation, fallback or mutation occurs on a resource failure.
+
+None imposes no caller ceiling; no production default, schema constraint or retention policy is selected. These controls do not bound caller mapping size, native enumeration/read latency, JSON complexity or total memory, and do not establish qualified roots/owners, atomicity, ABA protection, durability or runtime authorization. Synthetic directory tests cover exact boundaries, every payload including the marker, pre-open rejection, incomplete sets and bounded growth. Tests-only terminal candidate integration supplies bounds on both observations for both PC roles and verifies that rejection preserves the bundle/prior and releases ownership. A committed classifier result remains an observation of the marker/hash snapshot, not permission to update a manifest or archive.
 
 ## 11. Cross-process marker-last publication race (synthetic test)
 

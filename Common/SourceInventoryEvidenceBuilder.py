@@ -93,12 +93,21 @@ def _source_entry_signature(info):
             getattr(info, "st_file_attributes", 0), info.st_nlink)
 
 
-def _enumeration_snapshot(directory: Path):
+def _enumeration_snapshot(directory: Path, *, maximum_entries=None):
+    if maximum_entries is not None and (type(maximum_entries) is not int or maximum_entries < 1):
+        raise InventoryBuildError("source_entry_limit_invalid")
     chain = _source_chain(directory)
     with os.scandir(directory) as scan:
-        entries = sorted(scan, key=lambda item: item.name.encode("utf-8", errors="strict"))
+        entries = []
+        for entry in scan:
+            if maximum_entries is not None and len(entries) >= maximum_entries:
+                raise InventoryBuildError("source_entry_limit_exceeded")
+            entries.append(entry)
+        entries.sort(key=lambda item: item.name.encode("utf-8", errors="strict"))
     identities = {}
     for entry in entries:
+        if entry.name in identities:
+            raise InventoryBuildError("source_directory_changed")
         info = Path(entry.path).lstat()
         if _is_source_reparse(info):
             raise InventoryBuildError("source_reparse_component")
@@ -115,6 +124,7 @@ def _hash_stable_file(path: Path, *, expected_size: int | None = None) -> tuple[
     """
     try:
         _reject_source_reparse(path)
+        chain = _source_chain(path.parent.absolute())
         before = path.lstat()
         if not stat.S_ISREG(before.st_mode) or _is_source_reparse(before):
             raise InventoryBuildError("source_entry_not_regular_file")
@@ -144,6 +154,8 @@ def _hash_stable_file(path: Path, *, expected_size: int | None = None) -> tuple[
             finished = os.fstat(stream.fileno())
         _reject_source_reparse(path)
         after = path.lstat()
+        if _source_chain(path.parent.absolute()) != chain:
+            raise InventoryBuildError("source_mutation_detected")
     except InventoryBuildError:
         raise
     except OSError as exc:

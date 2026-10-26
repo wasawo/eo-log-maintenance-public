@@ -58,13 +58,22 @@ def _chain(directory):
     return tuple(result)
 
 
-def _scan(directory, chain):
+def _scan(directory, chain, maximum_entries=None):
     if _chain(directory) != chain:
         _reject("manifest_directory_changed")
     with os.scandir(directory) as entries:
-        names = sorted(entry.name for entry in entries)
+        names = []
+        for entry in entries:
+            # Stop before retaining/inspecting an unbounded namespace. Count
+            # every entry, including malformed and foreign-scope names.
+            if maximum_entries is not None and len(names) >= maximum_entries:
+                _reject("manifest_entry_limit_exceeded")
+            names.append(entry.name)
+        names.sort()
     observations = {}
     for name in names:
+        if name in observations:
+            _reject("manifest_directory_changed")
         info = (directory / name).lstat()
         if _reparse(info) or not stat.S_ISREG(info.st_mode):
             _reject("manifest_entry_untrusted")
@@ -119,6 +128,7 @@ def read_latest_manifest(
     future_tolerance: timedelta = timedelta(minutes=5),
     maximum_candidate_bytes: int | None = None,
     maximum_total_bytes: int | None = None,
+    maximum_entries: int | None = None,
 ) -> ReadManifestSelection:
     """Observe fixed PC directory, select scoped latest, recheck before return.
 
@@ -135,7 +145,7 @@ def read_latest_manifest(
     )
     _validate_context(**options)  # Reject invalid scope/clock/mode before any root IO.
     if any(value is not None and (type(value) is not int or value < 1)
-           for value in (maximum_candidate_bytes, maximum_total_bytes)):
+           for value in (maximum_candidate_bytes, maximum_total_bytes, maximum_entries)):
         _reject("manifest_read_limit_invalid")
     try:
         root = Path(maintenance_root)
@@ -143,7 +153,7 @@ def read_latest_manifest(
             _reject("maintenance_root_invalid")
         directory = root / "_maintenance" / "manifests" / expected_pc_id
         chain = _chain(directory)
-        initial = _scan(directory, chain)
+        initial = _scan(directory, chain, maximum_entries)
         # Include older/foreign-period entries: resource limits must not become
         # a way to skip unknown candidates and fall back to an older success.
         if (maximum_candidate_bytes is not None
@@ -171,7 +181,7 @@ def read_latest_manifest(
             if (identity["log_type"], identity["target_period"]) == (expected_log_type, expected_target_period):
                 candidates.append(candidate)
         selected = select_latest_manifest(candidates, **options)
-        if _scan(directory, chain) != initial:
+        if _scan(directory, chain, maximum_entries) != initial:
             _reject("manifest_directory_changed")
         chosen = candidates[selected.selected_index]
         return ReadManifestSelection(
@@ -192,6 +202,9 @@ def read_latest_manifest_with_report(
     future_tolerance: timedelta = timedelta(minutes=5),
     maximum_candidate_bytes: int | None = None,
     maximum_total_bytes: int | None = None,
+    maximum_entries: int | None = None,
+    maximum_artifact_bytes: int | None = None,
+    maximum_total_artifact_bytes: int | None = None,
 ) -> ReadManifestSelection:
     """Bind scoped latest bytes to a semantically verified report, then reselect.
 
@@ -199,15 +212,20 @@ def read_latest_manifest_with_report(
     is inferred. This remains a read observation, not archive permission or a
     locked/atomic snapshot. Current clock/root/Drive qualification is external.
     """
+    if any(value is not None and (type(value) is not int or value < 1)
+           for value in (maximum_artifact_bytes, maximum_total_artifact_bytes)):
+        _reject("manifest_read_limit_invalid")
     options = dict(expected_pc_id=expected_pc_id, expected_log_type=expected_log_type,
         expected_target_period=expected_target_period, current_utc=current_utc,
         current_utc_reliable=current_utc_reliable, require_current_success=require_current_success,
         future_tolerance=future_tolerance, maximum_candidate_bytes=maximum_candidate_bytes,
-        maximum_total_bytes=maximum_total_bytes)
+        maximum_total_bytes=maximum_total_bytes, maximum_entries=maximum_entries)
     selected = read_latest_manifest(maintenance_root, **options)
     reference = f"_maintenance/manifests/{expected_pc_id}/{selected.filename}"
     result = validate_referenced_artifacts(maintenance_root, report_path, contracts_path,
-        expected_manifest_bytes=selected.content, expected_manifest_path=reference)
+        expected_manifest_bytes=selected.content, expected_manifest_path=reference,
+        maximum_artifact_bytes=maximum_artifact_bytes,
+        maximum_total_artifact_bytes=maximum_total_artifact_bytes)
     if result["status"] != "verified":
         _reject("selected_manifest_report_invalid")
     observed_again = read_latest_manifest(maintenance_root, **options)

@@ -89,7 +89,7 @@ class DriveListingObservationError(ValueError):
         super().__init__(reason_code)
 
 
-def collect_drive_listing(pages, *, expected_folder_id):
+def collect_drive_listing(pages, *, expected_folder_id, maximum_pages=None, maximum_files=None):
     """Validate supplied page continuity; no API calls or trust qualification.
 
     Return no observation on partial/failed/ambiguous pages. Exhaustion alone
@@ -98,6 +98,9 @@ def collect_drive_listing(pages, *, expected_folder_id):
     """
     if not _text(expected_folder_id):
         raise DriveListingObservationError("listing_folder_invalid")
+    if any(value is not None and (type(value) is not int or value < 1)
+           for value in (maximum_pages, maximum_files)):
+        raise DriveListingObservationError("listing_limit_invalid")
     try:
         iterator = iter(pages)
     except Exception:
@@ -107,6 +110,7 @@ def collect_drive_listing(pages, *, expected_folder_id):
     file_ids = set()
     files = []
     terminal = False
+    page_count = 0
     while True:
         try:
             page = next(iterator)
@@ -131,6 +135,8 @@ def collect_drive_listing(pages, *, expected_folder_id):
             if page.next_token in seen_tokens:
                 raise DriveListingObservationError("listing_token_cycle")
             seen_tokens.add(page.next_token)
+        if maximum_files is not None and len(files) + len(page.files) > maximum_files:
+            raise DriveListingObservationError("listing_file_limit_exceeded")
         for item in page.files:
             if not _valid_drive_file(item):
                 raise DriveListingObservationError("listing_file_invalid")
@@ -140,6 +146,9 @@ def collect_drive_listing(pages, *, expected_folder_id):
             files.append(item)
         expected_token = page.next_token
         terminal = expected_token is None
+        page_count += 1
+        if not terminal and maximum_pages is not None and page_count >= maximum_pages:
+            raise DriveListingObservationError("listing_page_limit_exceeded")
     if not terminal:
         raise DriveListingObservationError("listing_terminal_missing")
     return DriveListingObservation(expected_folder_id, tuple(files))
@@ -158,7 +167,8 @@ class DownloadObservationError(ValueError):
         super().__init__(reason_code)
 
 
-def hash_downloaded_content(file_id, chunks, *, expected_size_bytes, download_completed):
+def hash_downloaded_content(file_id, chunks, *, expected_size_bytes, download_completed,
+                            maximum_download_bytes=None, maximum_chunk_bytes=None):
     """Hash completed download chunks without retaining contents or owning transport.
 
     The caller must bind the stream and completion to the requested Drive ID.
@@ -169,6 +179,11 @@ def hash_downloaded_content(file_id, chunks, *, expected_size_bytes, download_co
         raise DownloadObservationError("download_context_invalid")
     if download_completed is not True:
         raise DownloadObservationError("download_completion_unconfirmed")
+    if any(value is not None and (type(value) is not int or value < 1)
+           for value in (maximum_download_bytes, maximum_chunk_bytes)):
+        raise DownloadObservationError("download_limit_invalid")
+    if maximum_download_bytes is not None and expected_size_bytes > maximum_download_bytes:
+        raise DownloadObservationError("download_limit_exceeded")
     if isinstance(chunks, (bytes, bytearray, str)):
         raise DownloadObservationError("download_chunks_invalid")
     digest = hashlib.sha256()
@@ -186,6 +201,8 @@ def hash_downloaded_content(file_id, chunks, *, expected_size_bytes, download_co
             raise DownloadObservationError("download_read_failed") from None
         if type(chunk) is not bytes or not chunk:
             raise DownloadObservationError("download_chunk_invalid")
+        if maximum_chunk_bytes is not None and len(chunk) > maximum_chunk_bytes:
+            raise DownloadObservationError("download_chunk_limit_exceeded")
         size += len(chunk)
         if size > expected_size_bytes:
             raise DownloadObservationError("download_size_mismatch")
@@ -232,6 +249,28 @@ class ContentComparisonBatch:
     may_restore: bool = field(default=False, init=False)
     may_report_sync_success: bool = field(default=False, init=False)
     may_archive: bool = field(default=False, init=False)
+
+
+def _valid_content_comparison(item):
+    if (type(item) is not ContentComparison or not _text(item.status) or not _text(item.reason_code)
+            or any(flag is not False for flag in
+                   (item.may_restore, item.may_report_sync_success, item.may_archive))):
+        return False
+    if item.status == "comparison_candidate":
+        return _text(item.candidate_file_id)
+    return item.status == "held" and item.candidate_file_id is None
+
+
+def _valid_comparison_batch(batch):
+    if (type(batch) is not ContentComparisonBatch or type(batch.results) is not tuple
+            or not _text(batch.status) or batch.status not in ("held", "compared")
+            or not _text(batch.reason_code)
+            or any(flag is not False for flag in
+                   (batch.may_restore, batch.may_report_sync_success, batch.may_archive))):
+        return False
+    if batch.status == "held" and batch.results:
+        return False
+    return all(_valid_content_comparison(item) for item in batch.results)
 
 
 class _ComparisonInputError(ValueError):
@@ -401,7 +440,13 @@ class ContentDownloadPlan:
     may_archive: bool = field(default=False, init=False)
 
 
-def plan_content_downloads(sources, listing, *, source_trusted, expected_folder_id):
+def _valid_download_plan_limits(maximum_downloads, maximum_total_download_bytes):
+    return all(value is None or (type(value) is int and value > 0)
+               for value in (maximum_downloads, maximum_total_download_bytes))
+
+
+def plan_content_downloads(sources, listing, *, source_trusted, expected_folder_id,
+                           maximum_downloads=None, maximum_total_download_bytes=None):
     """Describe missing hash observations; never initiate or authorize download.
 
     Plan from explicit sources and complete listing only. Requirements are
@@ -415,6 +460,8 @@ def plan_content_downloads(sources, listing, *, source_trusted, expected_folder_
         return held("comparison_source_untrusted")
     if type(sources) is not tuple:
         return held("comparison_sources_invalid")
+    if not _valid_download_plan_limits(maximum_downloads, maximum_total_download_bytes):
+        return held("comparison_download_limit_invalid")
     if any(not _valid_source(source) for source in sources):
         return held("comparison_source_invalid")
     try:
@@ -425,17 +472,22 @@ def plan_content_downloads(sources, listing, *, source_trusted, expected_folder_
                 if item.size_bytes is None:
                     return held("comparison_metadata_unavailable")
                 if item.size_bytes == source.size_bytes and (item.sha256 is None or not item.sha256_trusted):
-                    needed[item.file_id] = DownloadRequirement(item.file_id, item.size_bytes)
+                    needed[item.file_id] = item.size_bytes
+        if maximum_downloads is not None and len(needed) > maximum_downloads:
+            return held("comparison_download_count_limit_exceeded")
+        if maximum_total_download_bytes is not None and sum(needed.values()) > maximum_total_download_bytes:
+            return held("comparison_download_bytes_limit_exceeded")
         if needed:
             return ContentDownloadPlan("requires_download_observations", "comparison_hash_observations_missing",
-                                       tuple(needed[key] for key in sorted(needed)))
+                                       tuple(DownloadRequirement(key, needed[key]) for key in sorted(needed)))
         return ContentDownloadPlan("comparison_inputs_available", "comparison_no_download_required")
     except _ComparisonInputError as exc:
         return held(str(exc))
 
 
 def compare_planned_drive_contents(sources, before, after, plan, *, source_trusted,
-                                   expected_folder_id, downloads):
+                                   expected_folder_id, downloads,
+                                   maximum_downloads=None, maximum_total_download_bytes=None):
     """Re-derive the plan and require its exact completed download set.
 
     This stricter batch API returns no partial comparison on missing/extra
@@ -451,7 +503,8 @@ def compare_planned_drive_contents(sources, before, after, plan, *, source_trust
                    or not _size(item.expected_size_bytes) for item in plan.requirements)):
         return held("comparison_download_plan_invalid")
     restored = plan_content_downloads(sources, before, source_trusted=source_trusted,
-                                      expected_folder_id=expected_folder_id)
+        expected_folder_id=expected_folder_id, maximum_downloads=maximum_downloads,
+        maximum_total_download_bytes=maximum_total_download_bytes)
     if restored.status == "held":
         return held(restored.reason_code)
     if restored != plan:

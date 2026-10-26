@@ -14,6 +14,63 @@ from Common.SourceInventoryEvidenceBuilder import InventoryBuildError
 
 
 class SourceHashIdentityTests(unittest.TestCase):
+    def test_parent_replacement_with_same_file_identity_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            parent = root/"source"
+            parent.mkdir()
+            source = parent/"source.txt"
+            source.write_bytes(b"original")
+            original = source.stat()
+            moved = root/"moved-source"
+            real_open = Path.open
+            def reparented(path, *args, **kwargs):
+                if path == source:
+                    self.assertEqual(root.resolve(), parent.resolve().parent)
+                    self.assertEqual(root.resolve(), moved.parent.resolve())
+                    parent.rename(moved)
+                    parent.mkdir()
+                    os.link(moved/source.name, source)
+                return real_open(path, *args, **kwargs)
+            with patch.object(Path, "open", reparented):
+                with self.assertRaisesRegex(InventoryBuildError, "^source_mutation_detected$"):
+                    builder._hash_stable_file(source)
+            after = source.stat()
+            self.assertEqual((original.st_dev, original.st_ino), (after.st_dev, after.st_ino))
+            self.assertEqual(b"original", source.read_bytes())
+            self.assertEqual(b"original", (moved/source.name).read_bytes())
+
+    def test_changed_ancestor_identity_is_rejected_even_with_unchanged_file(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp)/"source.txt"
+            source.write_bytes(b"original")
+            real_chain = builder._source_chain
+            calls = []
+            def changed(directory):
+                chain = real_chain(directory)
+                calls.append(directory)
+                if len(calls) == 2:
+                    return (*chain[:-1], (chain[-1][0], chain[-1][1]+1))
+                return chain
+            with patch.object(builder, "_source_chain", side_effect=changed):
+                with self.assertRaisesRegex(InventoryBuildError, "^source_mutation_detected$"):
+                    builder._hash_stable_file(source)
+            self.assertEqual([source.parent, source.parent], calls)
+            self.assertEqual(b"original", source.read_bytes())
+
+    def test_unavailable_initial_or_final_chain_is_a_fixed_failure(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp)/"source.txt"
+            source.write_bytes(b"original")
+            chain = builder._source_chain(source.parent)
+            for observations in ((OSError("synthetic private detail"),),
+                    (chain, OSError("synthetic private detail"))):
+                with self.subTest(final=len(observations) == 2), patch.object(
+                        builder, "_source_chain", side_effect=observations):
+                    with self.assertRaisesRegex(InventoryBuildError, "^source_file_unavailable$"):
+                        builder._hash_stable_file(source)
+                self.assertEqual(b"original", source.read_bytes())
+
     def test_unchanged_file_matches_hash_and_size(self):
         with tempfile.TemporaryDirectory() as temp:
             source = Path(temp) / "source.txt"

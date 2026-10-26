@@ -2,6 +2,7 @@
 from dataclasses import FrozenInstanceError, replace
 import hashlib
 import unittest
+from unittest.mock import patch
 
 from Common import DriveContentComparison as check
 
@@ -25,6 +26,46 @@ def plan(sources=(SOURCE,), observed=None, **changes):
 
 
 class ContentDownloadPlanTests(unittest.TestCase):
+    def test_output_limits_count_unique_ids_and_exact_total_bytes(self):
+        second = replace(FILE, file_id="synthetic-second")
+        sources = (SOURCE, SOURCE, replace(SOURCE, sha256="0"*64))
+        observed = listing((second, FILE))
+        expected = plan(sources, observed)
+        bounded = plan(sources, observed, maximum_downloads=2, maximum_total_download_bytes=18)
+        self.assertEqual(expected, bounded)
+        self.assertEqual(2, len(bounded.requirements))
+        self.assert_no_authority(bounded)
+
+    def test_invalid_limits_hold_before_listing_inspection(self):
+        for key in ("maximum_downloads", "maximum_total_download_bytes"):
+            for value in (True, False, 0, -1, 1.5, "100"):
+                with self.subTest(key=key, value=value), patch.object(check, "_listing_snapshot") as inspect:
+                    result = plan(**{key: value})
+                    self.assertEqual(("held", "comparison_download_limit_invalid", ()),
+                        (result.status, result.reason_code, result.requirements))
+                    inspect.assert_not_called()
+                    self.assert_no_authority(result)
+
+    def test_exceeded_plan_budgets_return_no_requirement_subset_or_constructed_requirements(self):
+        observed = listing((FILE, replace(FILE, file_id="synthetic-second")))
+        for limits, reason in ((dict(maximum_downloads=1), "comparison_download_count_limit_exceeded"),
+                (dict(maximum_total_download_bytes=17), "comparison_download_bytes_limit_exceeded")):
+            with self.subTest(limits=limits), patch.object(check, "DownloadRequirement") as requirement:
+                result = plan(observed=observed, **limits)
+                self.assertEqual(("held", reason, ()), (result.status, result.reason_code, result.requirements))
+                requirement.assert_not_called()
+                self.assert_no_authority(result)
+
+    def test_limits_preserve_no_requirement_and_unknown_metadata_boundaries(self):
+        result = plan((), listing(), maximum_downloads=1, maximum_total_download_bytes=1)
+        self.assertEqual(("comparison_inputs_available", ()), (result.status, result.requirements))
+        self.assert_no_authority(result)
+        result = plan(observed=listing((FILE, replace(FILE, file_id="synthetic-unknown", size_bytes=None))),
+            maximum_downloads=1, maximum_total_download_bytes=1)
+        self.assertEqual(("held", "comparison_metadata_unavailable", ()),
+            (result.status, result.reason_code, result.requirements))
+        self.assert_no_authority(result)
+
     def assert_no_authority(self, result):
         self.assertFalse(result.may_download or result.may_restore or result.may_report_sync_success or result.may_archive)
 

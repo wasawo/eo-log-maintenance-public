@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
@@ -11,7 +12,49 @@ import test_initial_source_integration as fixture
 import test_initial_source_usepoint as usepoint_fixture
 
 
+def duplicate_scan_on_call(directory, repeat_call):
+    """Return a synthetic scandir adapter repeating an actual entry once."""
+    real_scan = builder.os.scandir
+    calls = []
+    class Scan:
+        def __init__(self, entries): self.entries = entries
+        def __enter__(self): return iter(self.entries)
+        def __exit__(self, *args): pass
+    def scan(path):
+        with real_scan(path) as stream:
+            entries = list(stream)
+        if Path(path) == directory:
+            calls.append(path)
+            if len(calls) == repeat_call:
+                entries = entries+entries
+        return Scan(entries)
+    return scan
+
+
 class SourceEnumerationStabilityTests(unittest.TestCase):
+    def test_shared_snapshot_rejects_duplicate_names_without_payload_read(self):
+        source = self.source/"20260901_01020304@synthetic.txt"
+        source.write_bytes(b"synthetic")
+        with patch.object(builder.os, "scandir", side_effect=duplicate_scan_on_call(self.source, 1)), \
+                patch.object(Path, "open") as opened:
+            with self.assertRaisesRegex(builder.InventoryBuildError, "^source_directory_changed$"):
+                builder._enumeration_snapshot(self.source)
+            opened.assert_not_called()
+        self.assertEqual(b"synthetic", source.read_bytes())
+
+    def test_duplicate_initial_or_final_scan_never_certifies_complete_inventory(self):
+        source = self.source/"20260901_01020304@synthetic.txt"
+        source.write_bytes(b"synthetic")
+        for repeat_call in (1, 2):
+            with self.subTest(repeat_call=repeat_call), patch.object(builder.os, "scandir",
+                    side_effect=duplicate_scan_on_call(self.source, repeat_call)), \
+                    patch.object(builder, "_hash_stable_file", wraps=builder._hash_stable_file) as hashed:
+                evidence, plan = self.build()
+                self.assertEqual(0 if repeat_call == 1 else 1, hashed.call_count)
+            self.assert_incomplete(evidence, plan)
+            self.assertEqual(0 if repeat_call == 1 else 1, len(evidence["inventory"]["targets"]))
+            self.assertEqual(b"synthetic", source.read_bytes())
+
     setUp = fixture.InitialSourceIntegrationTests.setUp
     cleanup = fixture.InitialSourceIntegrationTests.cleanup
     plan_context = fixture.InitialSourceIntegrationTests.plan_context

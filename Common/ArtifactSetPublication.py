@@ -10,9 +10,9 @@ import hashlib
 import json
 import os
 from typing import Mapping
-from uuid import UUID
 
 from Common import AtomicArtifactPublication as atomic
+from Common.ArtifactSetRecovery import is_artifact_transaction_id
 
 
 class ArtifactSetPublicationError(RuntimeError):
@@ -29,15 +29,21 @@ def _digest(data: bytes) -> str:
 
 
 def _validate_payloads(artifacts: Mapping[str, bytes], marker_name: str) -> dict[str, bytes]:
-    if not isinstance(artifacts, Mapping) or not artifacts:
+    if not isinstance(artifacts, Mapping):
+        raise ArtifactSetPublicationError("artifact_set_empty_or_invalid")
+    try:
+        copied = dict(artifacts)
+    except Exception:
+        raise ArtifactSetPublicationError("artifact_set_empty_or_invalid") from None
+    if not copied:
         raise ArtifactSetPublicationError("artifact_set_empty_or_invalid")
     if not isinstance(marker_name, str) or not marker_name or marker_name.startswith("."):
         raise ArtifactSetPublicationError("commit_marker_name_invalid")
-    if marker_name in {".", ".."} or "/" in marker_name or "\\" in marker_name or "\x00" in marker_name:
+    if (marker_name in {".", ".."} or "/" in marker_name or "\\" in marker_name
+            or "\x00" in marker_name or marker_name.endswith((" ", "."))):
         raise ArtifactSetPublicationError("commit_marker_name_invalid")
 
-    copied: dict[str, bytes] = {}
-    for name, payload in artifacts.items():
+    for name, payload in copied.items():
         if (
             not isinstance(name, str)
             or not name
@@ -47,11 +53,13 @@ def _validate_payloads(artifacts: Mapping[str, bytes], marker_name: str) -> dict
             or "\\" in name
             or "\x00" in name
             or name == marker_name
+            or name.endswith((" ", "."))
         ):
             raise ArtifactSetPublicationError("artifact_name_invalid")
         if not isinstance(payload, bytes):
             raise ArtifactSetPublicationError("artifact_bytes_required")
-        copied[name] = payload
+        if type(payload) is not bytes:
+            copied[name] = memoryview(payload).tobytes()
     return copied
 
 
@@ -68,11 +76,7 @@ def publish_artifact_set_marker_last(
     fails closed. A failure leaves already-published artifacts in place for
     later reconciliation; it never rolls them back or removes them.
     """
-    try:
-        parsed_id = UUID(transaction_id)
-    except (TypeError, ValueError, AttributeError) as exc:
-        raise ArtifactSetPublicationError("transaction_id_invalid") from exc
-    if str(parsed_id) != transaction_id.lower():
+    if type(transaction_id) is not str or not is_artifact_transaction_id(transaction_id):
         raise ArtifactSetPublicationError("transaction_id_invalid")
 
     payloads = _validate_payloads(artifacts, commit_marker_name)

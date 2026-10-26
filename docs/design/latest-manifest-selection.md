@@ -1,5 +1,23 @@
 # Latest manifest selection core
 
+## Local-only schema references (2026-10-27)
+
+Before constructing the manifest validator, the selector checks the loaded schema tree and requires every `$ref` / `$dynamicRef` value to be a string starting with `#`. Nonlocal HTTP/file/relative references, including unused definitions, reject with existing `manifest_schema_unavailable`. The validator also uses a registry whose retrieval callback always refuses resource retrieval, so reference resolution cannot fall back to network or other external resources. Existing repository-local fragments and structural/format checks remain supported.
+
+An unresolved local fragment rejects the candidate with existing `candidate_manifest_invalid`; an invalid schema rejects with `manifest_schema_unavailable`. Neither path echoes a reference URL or modifies candidates. Core and directory tests inject external and broken schemas with socket calls prohibited and verify fixed rejection/byte preservation. This follows the report builder's existing local-reference policy without adding a package file or dependency requirement. It does not authenticate the loaded schema, impose schema-read/resource budgets, qualify roots or grant runtime/Drive authority.
+
+## Actual bytes for subclass candidate content (2026-10-27)
+
+The pure selector retains support for bytes-subclass candidate content but first materializes the actual exposed buffer into plain bytes before UTF-8/JSON parsing. Exact bytes are used unchanged. Custom subclass `decode`, conversion or length methods cannot substitute different JSON for the content being validated. The original candidate and caller object are not modified; non-bytes content retains `candidate_read_failed`.
+
+Invalid actual bytes raise existing `candidate_manifest_invalid` even if custom decode could present a valid manifest. Every candidate, including an older candidate beside a newer success, still passes the same schema/identity/time checks without fallback. Synthetic core tests cover deceptive decode, valid buffers with unusable custom methods, both candidate orders and input preservation. This does not bound buffer-copy memory, authenticate provenance, grant a receipt or qualify filesystem/runtime use.
+
+## Duplicate entries in directory observations (2026-10-26)
+
+Each manifest directory scan rejects an exact repeated basename with `manifest_directory_changed` before replacing an existing observation. Initial and final scans follow the same rule: duplicate entries cannot be silently deduplicated into a valid candidate set, an older-success fallback or an unchanged snapshot. Caller entry/byte limits and all existing basename/content checks remain in force; resource-limit rejection can precede duplicate validation. No case normalization or filesystem alias policy is introduced.
+
+The synthetic directory suite repeats actual temp-directory entries through a scandir adapter on either scan and requires rejection with original bytes preserved. These are injected enumeration observations, not proof of a qualified provider or atomic namespace snapshot/ABA protection.
+
 - Basis: approved C4-A in osd-02-crash-concurrency-options.md; EOLM-MAN-002 in requirements-traceability.md; staging-file-lifecycle.md section 8.
 - Scope: supplied candidate observations only. No runtime enumeration, source/Drive access, manifest rewrite, lock disposition or operation authorization.
 
@@ -9,7 +27,15 @@
 
 After metadata enumeration, every entry's initial size is checked before any payload opens. Per-file and aggregate budgets include older and foreign-period/log entries, rather than skipping large candidates or falling back to an older success. An exceeded bound rejects the entire observation. Payload reads use chunks of at most 65,536 bytes and stop at the file's initial size plus one byte; observed growth rejects immediately. Existing handle/path signature and final enumeration checks remain in place.
 
-The report wrapper passes the same bounds to both manifest directory observations. These bounds do not limit report/evidence reads inside the separate referenced-artifact validator, entry count, JSON complexity, or all memory use. They are caller-selected resource controls, not root/FS qualification, an atomic snapshot, ABA protection or authorization. [Synthetic bounds tests](../../tests/test_manifest_reader_bounds.py) cover exact limits, aggregate scope, pre-open rejection, growth and wrapper forwarding.
+The report wrapper passes the same bounds to both manifest directory observations. These byte bounds do not limit report/evidence reads inside the separate referenced-artifact validator, entry count, JSON complexity, or all memory use. The wrapper's separate optional `maximum_artifact_bytes` forwards a [per-file bound to that validator](aggregation-report-v1-proposal.md#caller-selected-local-read-bounds-2026-10-26), including report, manifest, evidence and schemas. `maximum_total_artifact_bytes` forwards an [aggregate inspected-size budget](aggregation-report-v1-proposal.md#aggregate-inspected-size-budget-2026-10-26) for that validator invocation, charging final rereads again. Invalid values reject before manifest I/O. Neither option replaces directory read bounds or charges the surrounding directory reads. They are caller-selected resource controls, not root/FS qualification, an atomic snapshot, ABA protection or authorization. [Synthetic bounds tests](../../tests/test_manifest_reader_bounds.py) cover exact limits, aggregate scope, pre-open rejection, growth and wrapper forwarding.
+
+## Explicit entry budget for directory observations (2026-10-26)
+
+Both readers also accept optional `maximum_entries`, which must be None or a positive exact integer and is checked before root I/O. None retains the existing unbounded entry-count interface; no production limit, retention policy or schema restriction is selected.
+
+Each scan counts every directory entry before name/scope filtering, including older runs, foreign periods/log types, malformed names and non-file entries. Enumeration stops on the first excess entry with `manifest_entry_limit_exceeded`, without retaining its name or opening candidate payloads. Within the limit, all existing name/type/content checks still apply. The limit covers the initial scan and final rescan, and the report wrapper forwards it to both complete observations. A growing namespace cannot cause an unbounded list of names to be collected when this limit is supplied. Exceeding the limit rejects the entire observation without truncation, fallback, cleanup or mutation.
+
+An empty directory still has no selectable candidate; partial enumeration remains a read failure. The limit bounds retained entry count, not native enumeration latency, name length, report/evidence reads, JSON complexity, total memory, an atomic snapshot or later namespace changes. Root/owner/FS qualification and runtime authorization remain external. The existing [bounds suite](../../tests/test_manifest_reader_bounds.py) covers exact boundaries, invalid inputs before I/O, foreign-period counting, early enumeration termination/context closure, final-scan growth, partial enumeration and report forwarding.
 
 ## Inputs and identity
 

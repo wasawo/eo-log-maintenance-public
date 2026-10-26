@@ -9,9 +9,63 @@ from Common.DriveContentComparison import (ComparisonSource, ContentComparisonBa
     DriveFileObservation, DriveListingPage, collect_drive_listing,
     hash_downloaded_content, plan_content_downloads)
 import test_initial_source_integration as fixture
+from test_drive_comparison_batch import invalid_comparison_batches
 
 
 class StagedDriveContentTests(unittest.TestCase):
+    def test_staging_read_limits_reach_local_reader_before_drive_comparison(self):
+        self.seed()
+        self.assertEqual(self.observe(), self.observe(maximum_staging_file_bytes=6, maximum_total_staging_bytes=11,
+            maximum_downloads=2, maximum_total_download_bytes=11))
+        for limits, reason in ((dict(maximum_staging_file_bytes=5), "staging_copy_file_limit_exceeded"),
+                (dict(maximum_total_staging_bytes=10), "staging_copy_total_limit_exceeded"),
+                (dict(maximum_staging_file_bytes=True), "staging_copy_limit_invalid")):
+            with self.subTest(limits=limits), patch.object(check, "compare_planned_drive_contents") as compare, \
+                    patch.object(check, "_source_chain") as root:
+                with self.assertRaisesRegex(check.SourceRevalidationError, "^"+reason+"$"):
+                    self.observe(**limits)
+                compare.assert_not_called()
+                root.assert_not_called()
+        self.assertEqual((b"first", b"second"), tuple(p.read_bytes() for p in self.destinations))
+
+    def test_invalid_internal_comparison_states_ids_and_flags_preserve_staging(self):
+        self.seed()
+        valid = self.observe()
+        before = {p: p.read_bytes() for p in self.destinations}
+        for index, batch in enumerate(invalid_comparison_batches(valid.comparisons)):
+            with self.subTest(index=index), patch.object(check, "compare_planned_drive_contents", return_value=batch):
+                with self.assertRaisesRegex(check.SourceRevalidationError, "^staged_drive_comparison_invalid$"):
+                    self.observe()
+            self.assertEqual(before, {p: p.read_bytes() for p in self.destinations})
+
+    def test_download_output_budgets_preserve_exact_staging_comparisons(self):
+        for pc in ("PC-A", "PC-B"):
+            self.seed(pc=pc)
+            expected = self.observe()
+            result = self.observe(maximum_downloads=2, maximum_total_download_bytes=11)
+            self.assertEqual(expected, result)
+            self.assert_no_authority(result)
+
+    def test_download_budget_excess_retains_staging_copies_without_partial_comparisons(self):
+        self.seed()
+        before = {p: p.read_bytes() for p in self.destinations}
+        for limits, reason in ((dict(maximum_downloads=1), "comparison_download_count_limit_exceeded"),
+                (dict(maximum_total_download_bytes=10), "comparison_download_bytes_limit_exceeded")):
+            result = self.observe(**limits)
+            self.assertEqual(("held", reason, ()), (result.status, result.reason_code, result.comparisons))
+            self.assertEqual(2, len(result.copies))
+            self.assert_no_authority(result)
+            self.assertEqual(before, {p: p.read_bytes() for p in self.destinations})
+
+    def test_invalid_download_budgets_reject_before_staging_read(self):
+        self.seed()
+        for key in ("maximum_downloads", "maximum_total_download_bytes"):
+            for value in (True, False, 0, -1, 1.5, "100"):
+                with self.subTest(key=key, value=value), patch.object(check, "observe_initial_staging_copies") as read:
+                    with self.assertRaisesRegex(check.SourceRevalidationError, "^comparison_download_limit_invalid$"):
+                        self.observe(**{key: value})
+                    read.assert_not_called()
+
     setUp = fixture.InitialSourceIntegrationTests.setUp
     cleanup = fixture.InitialSourceIntegrationTests.cleanup
     build = fixture.InitialSourceIntegrationTests.build

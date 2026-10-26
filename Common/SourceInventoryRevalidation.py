@@ -12,7 +12,8 @@ from Common.SourceInventoryEvidenceBuilder import (build_run_input_evidence, _cl
 from Common.ManifestTransitionInspection import InitialManifestPlan, prepare_initial_manifest
 from Common.DriveRequestPath import is_drive_request_file_path
 from Common.DriveContentComparison import (ComparisonSource, ContentComparison, ContentComparisonBatch,
-    compare_planned_drive_contents, _valid_source)
+    compare_planned_drive_contents, _valid_source, _valid_download_plan_limits, _valid_comparison_batch,
+    _valid_content_comparison, _text)
 
 
 class SourceRevalidationError(ValueError):
@@ -200,6 +201,7 @@ def observe_initial_staging_copy(
     staging_root, plan, *, relative_path, sequence, expected_pc_id, expected_log_type,
     expected_target_period, expected_run_id, started_at_utc, current_utc,
     current_utc_reliable, manifest_schema, evidence_schema,
+    maximum_staging_file_bytes=None, maximum_total_staging_bytes=None,
 ):
     """Single-target compatibility API; no cached observation is accepted."""
     return observe_initial_staging_copies(staging_root, plan, allocations=((relative_path, sequence),),
@@ -207,13 +209,15 @@ def observe_initial_staging_copy(
         expected_target_period=expected_target_period, expected_run_id=expected_run_id,
         started_at_utc=started_at_utc, current_utc=current_utc,
         current_utc_reliable=current_utc_reliable, manifest_schema=manifest_schema,
-        evidence_schema=evidence_schema)[0]
+        evidence_schema=evidence_schema, maximum_staging_file_bytes=maximum_staging_file_bytes,
+        maximum_total_staging_bytes=maximum_total_staging_bytes)[0]
 
 
 def observe_initial_staging_copies(
     staging_root, plan, *, allocations, expected_pc_id, expected_log_type,
     expected_target_period, expected_run_id, started_at_utc, current_utc,
     current_utc_reliable, manifest_schema, evidence_schema,
+    maximum_staging_file_bytes=None, maximum_total_staging_bytes=None,
 ):
     """Observe explicit (relative_path, sequence) tuples, returning all or none.
 
@@ -223,6 +227,9 @@ def observe_initial_staging_copies(
     I/O. Final metadata checks span the batch, not an atomic snapshot/lease.
     """
     try:
+        if any(value is not None and (type(value) is not int or value < 1)
+               for value in (maximum_staging_file_bytes, maximum_total_staging_bytes)):
+            _reject("staging_copy_limit_invalid")
         if (type(plan) is not InitialManifestPlan
                 or any(flag is not False for flag in (plan.may_publish, plan.may_upload, plan.may_archive))):
             _reject("staging_copy_plan_invalid")
@@ -257,6 +264,12 @@ def observe_initial_staging_copies(
             seen_paths.add(relative_path)
             seen_names.add(name.casefold())
             selected.append((relative_path, sequence, name, inventory[relative_path]))
+        if (maximum_staging_file_bytes is not None
+                and any(target["size_bytes"] > maximum_staging_file_bytes for _, _, _, target in selected)):
+            _reject("staging_copy_file_limit_exceeded")
+        if (maximum_total_staging_bytes is not None
+                and sum(target["size_bytes"] for _, _, _, target in selected) > maximum_total_staging_bytes):
+            _reject("staging_copy_total_limit_exceeded")
         root = Path(staging_root)
         if not root.is_absolute():
             _reject("staging_copy_root_invalid")
@@ -294,6 +307,8 @@ def inspect_initial_staged_drive_contents(
     expected_target_period, expected_run_id, started_at_utc, current_utc,
     current_utc_reliable, manifest_schema, evidence_schema, source_trusted,
     drive_before, drive_after, download_plan, downloads, expected_folder_id,
+    maximum_downloads=None, maximum_total_download_bytes=None,
+    maximum_staging_file_bytes=None, maximum_total_staging_bytes=None,
 ):
     """Re-read staging then compare supplied complete Drive observations.
 
@@ -302,26 +317,23 @@ def inspect_initial_staged_drive_contents(
     neither performs API calls nor proves the remote Upload outcome.
     """
     try:
+        if not _valid_download_plan_limits(maximum_downloads, maximum_total_download_bytes):
+            _reject("comparison_download_limit_invalid")
         copies = observe_initial_staging_copies(staging_root, plan, allocations=allocations,
             expected_pc_id=expected_pc_id, expected_log_type=expected_log_type,
             expected_target_period=expected_target_period, expected_run_id=expected_run_id,
             started_at_utc=started_at_utc, current_utc=current_utc,
             current_utc_reliable=current_utc_reliable, manifest_schema=manifest_schema,
-            evidence_schema=evidence_schema)
+            evidence_schema=evidence_schema, maximum_staging_file_bytes=maximum_staging_file_bytes,
+            maximum_total_staging_bytes=maximum_total_staging_bytes)
         sources = tuple(ComparisonSource(copy.relative_path.rsplit("/", 1)[-1],
             copy.size_bytes, copy.sha256) for copy in copies)
         compared = compare_planned_drive_contents(sources, drive_before, drive_after, download_plan,
-            source_trusted=source_trusted, expected_folder_id=expected_folder_id, downloads=downloads)
-        if (type(compared) is not ContentComparisonBatch or type(compared.results) is not tuple
-                or any(flag is not False for flag in (compared.may_restore,
-                    compared.may_report_sync_success, compared.may_archive))
-                or any(type(item) is not ContentComparison or any(flag is not False for flag in
-                    (item.may_restore, item.may_report_sync_success, item.may_archive))
-                    for item in compared.results)):
+            source_trusted=source_trusted, expected_folder_id=expected_folder_id, downloads=downloads,
+            maximum_downloads=maximum_downloads, maximum_total_download_bytes=maximum_total_download_bytes)
+        if not _valid_comparison_batch(compared):
             _reject("staged_drive_comparison_invalid")
         if compared.status == "held":
-            if compared.results:
-                _reject("staged_drive_comparison_invalid")
             return StagedDriveContentObservation(copies, (), "held", compared.reason_code)
         if compared.status != "compared" or len(compared.results) != len(copies):
             _reject("staged_drive_comparison_invalid")
@@ -402,6 +414,7 @@ def inspect_initial_inventory(
     expected_run_id, expected_root_id, expected_relative_scope, reference_date,
     current_utc, current_utc_reliable, drive_before, drive_after, download_plan,
     downloads, expected_folder_id,
+    maximum_downloads=None, maximum_total_download_bytes=None,
 ):
     """Read-only selected initial-inventory observations, separate from sync state.
 
@@ -410,6 +423,8 @@ def inspect_initial_inventory(
     inventory. Provenance, actual API freshness and all operations remain gates.
     """
     try:
+        if not _valid_download_plan_limits(maximum_downloads, maximum_total_download_bytes):
+            _reject("comparison_download_limit_invalid")
         sources = revalidate_comparison_sources(source_root, evidence_bytes, relative_paths=relative_paths,
             source_trusted=source_trusted, schema=schema, expected_log_type=expected_log_type,
             expected_run_id=expected_run_id, expected_root_id=expected_root_id,
@@ -417,7 +432,10 @@ def inspect_initial_inventory(
             current_utc=current_utc, current_utc_reliable=current_utc_reliable)
         compared = compare_planned_drive_contents(tuple(item.source for item in sources),
             drive_before, drive_after, download_plan, source_trusted=source_trusted,
-            expected_folder_id=expected_folder_id, downloads=downloads)
+            expected_folder_id=expected_folder_id, downloads=downloads,
+            maximum_downloads=maximum_downloads, maximum_total_download_bytes=maximum_total_download_bytes)
+        if not _valid_comparison_batch(compared):
+            _reject("initial_inventory_result_invalid")
         if compared.status == "held":
             return InitialInventoryObservation(evidence_bytes, relative_paths, (), "held", compared.reason_code)
         if compared.status != "compared" or len(compared.results) != len(sources):
@@ -444,6 +462,7 @@ def summarize_initial_inventory(observation, *, schema):
                 or type(observation.selected_paths) is not tuple or type(observation.files) is not tuple
                 or type(observation.status) is not str
                 or observation.status not in ("held", "requires_runtime_evidence")
+                or not _text(observation.reason_code)
                 or any(flag is not False for flag in (observation.may_restore,
                     observation.may_report_sync_success, observation.may_archive,
                     observation.may_publish_operational_manifest))):
@@ -477,19 +496,12 @@ def summarize_initial_inventory(observation, *, schema):
             if item.source != ComparisonSource(target["filename"], target["size_bytes"], target["expected_sha256"]):
                 _reject("initial_inventory_summary_invalid")
             result = item.comparison
-            if (type(result) is not ContentComparison or type(result.status) is not str
-                    or any(flag is not False for flag in
-                           (result.may_restore, result.may_report_sync_success, result.may_archive))):
+            if not _valid_content_comparison(result):
                 _reject("initial_inventory_summary_invalid")
             if result.status == "comparison_candidate":
-                if (type(result.candidate_file_id) is not str or not result.candidate_file_id
-                        or "\x00" in result.candidate_file_id):
-                    _reject("initial_inventory_summary_invalid")
                 candidates += 1
-            elif result.status == "held" and result.candidate_file_id is None:
-                held += 1
             else:
-                _reject("initial_inventory_summary_invalid")
+                held += 1
         assessed = len(observation.files)
         return InitialInventorySummary(observation.status, len(targets), len(selected), assessed,
             candidates, held, len(selected)-assessed, value["validation"]["invalid_relevant_count"])

@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import stat
 
-from Common.SourceInventoryEvidenceBuilder import _source_chain, _enumeration_snapshot
+from Common.SourceInventoryEvidenceBuilder import InventoryBuildError, _source_chain, _enumeration_snapshot
 
 
 @dataclass(frozen=True)
@@ -30,12 +30,15 @@ def _result(complete, reason, counts=(0, 0, 0)):
         complete, observed, *counts, 0 if complete else 1, observed > 0)
 
 
-def observe_staging_residual_entries(directory):
+def observe_staging_residual_entries(directory, *, maximum_entries=None):
     """Count immediate entries only; no content read, traversal or mutation.
 
     Complete enumeration is not full residual inspection or a clean-start
     permit. Unknown roots/metadata, observed changes and reparse points hold.
     """
+    if maximum_entries is not None and (type(maximum_entries) is not int or maximum_entries < 1):
+        return _result(False, "staging_residual_limit_invalid")
+    limits = {} if maximum_entries is None else dict(maximum_entries=maximum_entries)
     try:
         root = Path(directory)
         if not root.is_absolute():
@@ -45,16 +48,20 @@ def observe_staging_residual_entries(directory):
         return _result(False, "staging_residual_root_unavailable")
     counts = (0, 0, 0)
     try:
-        entries, initial = _enumeration_snapshot(root)
+        entries, initial = _enumeration_snapshot(root, **limits)
         modes = [signature[2] for signature in initial[1].values()]
         regular = sum(stat.S_ISREG(mode) for mode in modes)
         directories = sum(stat.S_ISDIR(mode) for mode in modes)
         counts = (regular, directories, len(modes)-regular-directories)
         if len(entries) != len(modes):
             return _result(False, "staging_residual_observation_incomplete", counts)
-        final_entries, final = _enumeration_snapshot(root)
+        final_entries, final = _enumeration_snapshot(root, **limits)
         if len(final_entries) != len(final[1]) or final != initial:
             return _result(False, "staging_residual_observation_incomplete", counts)
+    except InventoryBuildError as exc:
+        reason = ("staging_residual_entry_limit_exceeded" if exc.reason_code == "source_entry_limit_exceeded"
+                  else "staging_residual_observation_incomplete")
+        return _result(False, reason, counts)
     except Exception:
         return _result(False, "staging_residual_observation_incomplete", counts)
     reason = "staging_entries_present_requires_inspection" if sum(counts) else "staging_no_entries_observed"

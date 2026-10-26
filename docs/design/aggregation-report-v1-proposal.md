@@ -10,6 +10,32 @@
 - G1 generated-UTC derivation approved 2026-10-24: use the later original finish-UTC string from exact manifest/B2 inputs, choosing the manifest spelling for equal instants. The [selected-policy record](../decisions/selected-policy-decisions-20261024.md#3-g1の確定規則) is authoritative; builder/reference-validator follow-up is implemented with synthetic tests; formal publication/regeneration acceptance remains incomplete.
 - Approved inventory digest direction (2026-10-21): A2 versioned length-prefixed records; exact contract and reference vectors are recorded in `docs/decisions/aggregation-inventory-integrity-options.md`. B2 immutable run-input evidence, embedded inventory, exhaustive count reconciliation, and canonical evidence digest rules are approved and specified in `docs/design/run-input-evidence-v1-proposal.md` and `docs/decisions/aggregation-inventory-integrity-options.md`.
 
+## Fixed JSON parse failures in referenced inputs (2026-10-26)
+
+The referenced-artifact validator maps JSON decoding ValueError and parsing RecursionError to fixed `malformed_json` for the report, manifest, B2 evidence and all three schema inputs. It returns the ordinary rejected result rather than leaking an interpreter recursion failure to the caller. The CLI preserves JSON output and exit code 2 with no traceback; the latest-manifest/report wrapper receives rejection and uses its existing `selected_manifest_report_invalid` failure.
+
+Floating-point tokens that overflow to nonfinite values (for example an exponent outside float range) use fixed `invalid_json_constant`, matching rejection of NaN/Infinity/-Infinity and the report builder's existing finite-float rule. Finite float tokens remain floats, original read bytes remain unchanged, and later schema/type/semantic checks remain required. No input is repaired or coerced into a valid report.
+
+Synthetic read-stability tests inject excessive nesting and nonfinite numbers into each read input, verify byte preservation, and cover finite floats and CLI behavior. The report-selection suite verifies fixed wrapper rejection. This does not select a numeric depth/JSON-complexity budget, guarantee bounded parser resources or qualify runtime/Drive operations; caller byte budgets remain separate controls.
+
+## Caller-selected local read bounds (2026-10-26)
+
+`validate_referenced_artifacts` accepts optional `maximum_artifact_bytes`, a positive exact integer or None. Invalid values (including bool) return fixed reason `artifact_read_limit_invalid` before filesystem I/O. None selects no caller size ceiling. No production ceiling, schema constraint or retention policy is chosen. The CLI exposes the same control as `--maximum-artifact-bytes`; a rejected validation retains JSON output and exit code 2.
+
+The bound applies independently to the report, referenced manifest and B2 evidence, and all three schema files, including final read-set verification. Each input's inspected size is checked before its payload opens; excess returns `artifact_read_limit_exceeded`. Reads always use chunks of at most 65,536 bytes and stop after the inspected size plus one byte. Observed growth returns `artifact_changed_during_read`, including when no caller ceiling was supplied. Existing path/handle/ancestor signatures, exact-byte hashes, semantic rederivation and final read-set comparisons remain required. A resource failure rejects the entire result with no verified artifact subset and no content/path disclosure.
+
+`read_latest_manifest_with_report` forwards this option to the report validator and rejects invalid values before manifest I/O. Its separate manifest candidate/total-byte and directory-entry limits continue to govern the surrounding directory observations; `maximum_artifact_bytes` does not replace those limits.
+
+This per-file control is not an aggregate I/O/memory/JSON-complexity budget, root/FS qualification, an atomic snapshot, ABA protection or runtime authorization. Synthetic tests in [read stability](../../tests/test_artifact_read_stability.py) and [report selection](../../tests/test_manifest_report_selection.py) cover each input, exact ceilings, pre-open rejection, growing streams, final rereads, CLI and wrapper integration. Runtime/Drive/durability acceptance remains incomplete.
+
+### Aggregate inspected-size budget (2026-10-26)
+
+`maximum_total_artifact_bytes` adds an independent optional positive exact integer bound. Invalid values use `artifact_read_limit_invalid` before filesystem I/O. A fresh budget belongs to one validator invocation. Before each payload open, the file's inspected size is admitted against the remaining budget; an excess returns `artifact_total_read_limit_exceeded`, with no payload open for that file and no verified artifact subset. The report, manifest, evidence and all schemas share this budget. Every final read-set reread is charged again; accounting is not deduplicated by path or reset at the final phase. A stable six-file validation therefore admits twice the sum of those file sizes. Later calls start with a fresh budget after either success or rejection.
+
+The existing per-file limit applies independently and is checked first. None imposes no aggregate caller ceiling. The CLI exposes `--maximum-total-artifact-bytes`, preserving fixed JSON rejection/exit 2. The report wrapper validates and forwards the option, while its surrounding manifest directory reads remain governed by their separate controls.
+
+This measures admitted inspected sizes, not physical disk I/O, cache traffic or total memory. The existing growth probe may read one byte beyond the admitted initial size before rejecting the invocation as changed; a failed invocation stops without retrying or refunding reservations. JSON complexity, read latency, root/FS qualification, atomicity/ABA and runtime authorization remain outside this control. No default production limit, schema change or retention policy is selected. The same synthetic suites cover exact aggregate boundaries, schema/pre-open rejection, final-phase accounting, independent invocations, both limits together and CLI/wrapper forwarding.
+
 ## 1. Design principles
 
 1. Preserve the approved manifest v1 field set and its strict validation rules. Do not add period-summary or unassigned-error fields to that manifest.

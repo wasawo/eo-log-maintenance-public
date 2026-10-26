@@ -1,12 +1,215 @@
 # 現在の引き継ぎ
 
-更新日: 2026-10-26（日本時間）
+更新日: 2026-10-27（日本時間）
 
 恒久ルール: [AGENTS.md](../../AGENTS.md)。旧記録: [アーカイブ](archive/pre-agents-history.md)。
 正本は Public の `wasawo/eo-log-maintenance-public`。元リポジトリは Private のまま。
 この文書の状態は記録コミット時点。実際のmain/PR/CIは作業開始時に照合する。
 
 ## 最新基準と今回の作業
+
+### 累積PR作成・マージ承認と統合検証（2026-10-27）
+
+- 利用者が累積コミットをまとめたPR作成・マージを明示指示。`898f4ff`までの実装28コミット（42 files）と本記録を同じPRへまとめ、最新HEADのValidate/Package Validation両成功を確認後squash mergeする。branchは`codex/manifest-entry-bounds`、取得・照合済み正本mainは`6e9ad82d8ae11146041b5eba0ab6b94e21c5cad8`（PR #44）。本記録時点は未push/未PR/未マージ。結果のPR/merge SHAとCIはGitHub実状態・本チャットの最終報告を照合する。
+- 範囲：manifest/report/marker/source/stagingの読取・件数・bytes予算、Drive page/file/hash/download plan予算とlocal入口接続、内部比較/要約の共通検査、重複scan/祖先identity検査、JSON解析拒否と非有限数値・schema外部取得禁止、marker producer/consumer文法・Mapping/buffer固定、bounded write/比較とshort write/close失敗理由の保全。固定本番上限・新schema/C-02/provider契約は選ばず、実行認可・cleanup/PC-B archive能力を追加しない。レビューpackage集合は50 filesのまま。
+- 累積統合検証：Python 3.11.9（CI 3.12）で`python -B -m unittest discover -s tests -p test_*.py`の870件中868成功・既存symlink作成不可2skip。PATH上PowerShell 7.6.7を版確認し、tests内PS bridgeを含むPython suiteが成功。`pwsh -NoLogo -NoProfile -File tests/Test-ReleasePackage.ps1`で両role package回帰成功。累積変更8 Markdownの相対リンク160件欠落0、`git diff --check origin/main...HEAD`成功。PS/schema/CI定義に変更なし。root自己点検のみ、独立レビューなし。過去の単位別test修正/再実行は各節へ保持し、本統合suiteは全件再実行した。
+- マージ後は次の実装を始めず本作業を終了する。以後の実装は最新mainから新しい作業branchを作成し、マージ済みbranchを再利用しない。正式runtime/SDK/credential/C-02、metadata-first/event/writer/CAS/receipt、真正なroot/FS/owner/clock/AC/session/account、現在性/ABA・電源断・両PC/Tier B/C/runtime受け入れは未完。helper/CI/package成功を配布/本番適用/削除/Archiveの許可やP0完了へ変換しない。
+
+### 最新manifest schemaの外部参照取得を禁止（2026-10-27）
+
+- 利用者の次実装指示を受け、基準`2145396`、クリーンな同branch `codex/manifest-entry-bounds`で[manifest schemaのlocal参照制約](../design/latest-manifest-selection.md#local-only-schema-references-2026-10-27)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- selectorのschema全treeで`$ref` / `$dynamicRef`をlocal fragment文字列に限定し、非local/不正値は既存schema-unavailable理由で拒否。validatorのRegistryも全resource retrievalを拒否し、外部取得fallbackを提供しない。既存report builderのlocal参照方針へ整合し、正常なrepo fragment/format/候補検査を維持する。破損local参照は既存candidate-invalid、invalid schemaは既存schema-unavailable、URL非echo/候補非変更。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_latest_manifest_selection test_manifest_directory_reader test_manifest_reader_bounds test_manifest_report_selection test_manifest_recovery_integration test_owned_publication_integration test_aggregation_report_builder test_completion_wait_checkpoint`の計133件全成功・skipなし。新規3件を既存CI登録済みsuiteへ追加し、HTTP/file/相対/不正参照・未使用defs・破損local/invalid schemaをsocket非呼出しで拒否し、directory経由のbytes保全を確認。referencingは既存jsonschema依存/既存builder使用分で追加依存なし。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- schema真正性/読取資源上限・provenance/現在性/同時snapshot/ABA・root/FS/provider資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### 最新manifest選択のbytes派生型を実bufferで解析（2026-10-27）
+
+- 利用者の次実装指示を受け、基準`4cbfc0b`、クリーンな同branch `codex/manifest-entry-bounds`で[manifest候補の実bytes解析](../design/latest-manifest-selection.md#actual-bytes-for-subclass-candidate-content-2026-10-27)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。作業中の利用者environment更新に合わせ本記録は日本時間10月27日付。
+- pure selectorでbytes派生型のcontentを実buffer由来のplain bytesへ固定してUTF-8/JSON解析する。独自decodeで不正bytesを正常JSONへ差し替える余地を防ぎ、実buffer正常の派生型は受理する。通常exact bytes/非bytesの既存拒否、入力object保全、全候補のschema/identity/time検査・非fallbackを維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_latest_manifest_selection test_manifest_directory_reader test_manifest_reader_bounds test_manifest_report_selection test_manifest_recovery_integration test_owned_publication_integration`の計94件全成功・skipなし。新規3件を既存CI登録済みsuiteへ追加し、不正実bufferの拒否、正常bufferと独自decode/変換/lenの非使用、新しい成功候補があっても古い不正候補を両順序で拒否することと入力保全を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 派生型buffer copyのmemory上限を追加せず、provenance/現在性/同時snapshot/ABA・root/FS/provider資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### 公開payloadのbytes派生型を実bufferへ固定（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`3f72d25`、クリーンな同branch `codex/manifest-entry-bounds`で[公開bytesの統一](../validation/lock-recovery-acceptance-gate.md#plain-bytes-for-publication-comparisons-2026-10-26)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 単一/集合publisherで受理済みbytes派生型をmemoryviewの実bufferからplain immutable bytesへ固定し、hash/書込/比較へ同じ内容を使う。独自len/slice/__bytes__の不一致で別の既存内容を同一扱いする余地を防ぐ。通常exact bytesは追加コピーせず、bytearray/memoryview等の非bytes拒否・caller object非変更・既存no-overwrite/marker-lastを維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_atomic_artifact_publication test_artifact_set_publication test_crash_publication_harness test_internal_publication_crash test_terminal_bundle_integration test_owned_publication_integration`の計73件中72成功・既存symlink作成不可1skip。新規4件を既存CI登録済みsuiteへ追加し、独自len/slice/変換を持つbytes派生型の実buffer公開/同一再公開・競合保全・plain bytesでのhashとmarker読戻しを確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 派生型の固定copyに必要なmemory上限は設けない。provider真正性/同時snapshot/ABA・root/FS/owner資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### report参照JSONの解析失敗・非有限数値を固定拒否（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`d35cbbb`、クリーンな同branch `codex/manifest-entry-bounds`で[参照JSON解析拒否](../design/aggregation-report-v1-proposal.md#fixed-json-parse-failures-in-referenced-inputs-2026-10-26)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- report/manifest/B2/3 schema共通JSON readerで解析ValueError/RecursionErrorを既存`malformed_json`へ変換し、深いJSONによる例外の外部逸脱を防ぐ。float tokenの指数overflow等が非有限になる場合は既存`invalid_json_constant`で拒否し、builderの有限float境界へ整合。有限小数の型・元bytes・schema/意味論検査・読取上限は維持する。CLIはJSON/exit 2、manifest-report wrapperは既存固定拒否へ接続。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_read_stability test_aggregation_referenced_artifacts test_manifest_report_selection test_manifest_reader_bounds test_terminal_bundle_integration test_aggregation_report_builder.AggregationReportBuilderTests.test_existing_referenced_artifact_validator_accepts_generated_fixture`の計79件全成功・skipなし。新規5件を既存CI登録済みsuiteへ追加し、全6入力の過度な入れ子/非有限数値・bytes保全・有限小数・CLI非tracebackとwrapper拒否を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- JSON最大depth/複雑度の本番値や新schema制約を選ばず、parser資源上限・真正性/現在性/同時snapshot/ABA・root/FS/provider資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### 既存staging payloadの明示bytes上限（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`0b62ef5`、クリーンな同branch `codex/manifest-entry-bounds`で[staging payload読取上限](../design/source-inventory-revalidation.md#caller-selected-staging-payload-read-bounds-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 単一/一括staging読取とstaging/Drive比較にoptional `maximum_staging_file_bytes` / `maximum_total_staging_bytes`を追加。不正値はplan再構成前、選択した凍結targetのfile別/合計size超過はroot I/O・payload hash・Drive比較前に既存SourceRevalidationErrorの固定理由で全体拒否。単一/接続入口から同じ上限を一括readerへ渡す。予算内は既存exact再読取・順序・全非認可を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_initial_staging_copy_batch test_initial_staging_copy_observation test_staged_drive_content_observation test_upload_staging_integration test_source_hash_identity test_initial_inventory_observation test_initial_inventory_summary`の計72件全成功・skipなし。新規5件を既存CI登録済みsuiteへ追加し、file/合計境界・空選択・不正値・全読取前拒否・上限伝播・bytes保全を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- Noneではcaller上限なし。非選択file・plan/B2解析memory/metadata I/O/全memoryや実容量予約の上限ではなく、増大検知で初期size+1 byteを読み得る。固定本番値/新schema/copy実行を採用せず、provider真正性/同時snapshot/ABA・root/FS/owner資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### 残存staging観測のcaller指定entry上限（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`b3c035c`、クリーンな同branch `codex/manifest-entry-bounds`で[残存staging entry上限](../design/staging-residual-observation.md#caller-selected-entry-limit-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- public観測と共通snapshotにoptional `maximum_entries`を追加。不正値はroot I/O前にheld/固定拒否、初回/最終scanとも最初の超過entryを保持/sort/metadata検査する前に停止しscanを閉じる。初回未成立は確定件数なし、最終超過は初回件数/warningを保持したheldとする。既存不完全列挙・duplicate/reparse/chain検査と全非認可を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_staging_residual_observation test_source_enumeration_stability test_source_inventory_reparse test_source_inventory_revalidation test_initial_staging_copy_batch test_staged_drive_content_observation test_initial_inventory_observation`の計70件全成功・skipなし。新規5件を既存CI登録済みsuiteへ追加し、境界/不正値非I/O/早期停止とcontext closure/最終件数・bytes保全/部分失敗を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 固定本番上限/保持・cleanup/source全体の新方針を選ばず、Noneではcaller上限なし。名前長/列挙遅延/全memory/真正性・現在性/同時snapshot/ABA・root/FS/provider資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### manifest/成果物集合readerのexact同名重複拒否（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`dc00404`、クリーンな同branch `codex/manifest-entry-bounds`で[manifest scan](../design/latest-manifest-selection.md#duplicate-entries-in-directory-observations-2026-10-26)と[成果物集合scan](../validation/lock-recovery-acceptance-gate.md#duplicate-artifact-directory-entries-2026-10-26)の重複拒否を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 両readerのscanでexact同名をsignature辞書へ上書きする前に既存directory-changed固定理由で拒否。manifestの前後2scan、集合の初回/再分類後/再読取後の3scanすべてに適用する。dedupやcasefold/新しいalias方針は採用せず、既存件数/bytes上限・文法/内容/marker/非fallback検査は維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_manifest_directory_reader test_manifest_reader_bounds test_manifest_report_selection test_manifest_recovery_integration test_artifact_set_directory_verification test_artifact_directory_reparse test_terminal_bundle_integration test_owned_publication_integration`の計102件中101成功・既存symlink作成不可1skip。新規3件を既存CI登録済みsuiteへ追加。自作tempのentryをscandir/iterdir adapterで重複供給し、全scan段階の拒否/bytes保全、両PC相当のbundle/prior保全・owner解放を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 検出可能な曖昧列挙を拒否するもので、native列挙真正性/同時snapshot/ABA・root/FS/provider資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### 共通directory snapshotのexact同名重複拒否（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`08d2d1a`、クリーンな同branch `codex/manifest-entry-bounds`で[列挙snapshotの重複拒否](../design/source-inventory-revalidation.md#duplicate-names-in-shared-enumeration-snapshots-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `_enumeration_snapshot`内でexact同名entryをidentity辞書へ上書きする前に既存固定directory-changed理由で拒否。source builderの初回scan失敗はpayload非読取の不完全coverage、最終scan失敗は既存target保全の不完全coverageへ接続する。残存stagingは初回の未確定件数を推計せずheld、最終失敗は初回件数/warningを保持したheld。casefold/dedup/新しい名前方針は採用しない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_source_enumeration_stability test_staging_residual_observation test_source_hash_identity test_source_inventory_revalidation test_source_inventory_reparse test_initial_staging_copy_batch test_staged_drive_content_observation test_initial_inventory_observation`の計77件全成功・skipなし。新規3件を既存CI登録済みsuiteへ追加。自作tempのDirEntryをscandir adapterで重複供給し、共通層の拒否・source初回/最終失敗・残存staging heldの件数/bytes保全を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 検出可能な曖昧列挙を拒否するもので、列挙真正性/同時snapshot/ABA・root/FS/provider資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### source hash reader内の祖先identity前後照合（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`3c1ef93`、クリーンな同branch `codex/manifest-entry-bounds`で[source hash祖先binding](../design/source-inventory-revalidation.md#ancestor-binding-inside-the-source-hash-reader-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `_hash_stable_file`でparent絶対pathから全祖先chainをfile読取前/最終path検査後に比較し、不一致を既存固定mutation理由で拒否。chain取得OSErrorも既存unavailable理由へ変換する。外側の列挙/batch検査に依存せず、単体利用でも同file identityを使うparent置換を検出。既存reparse/file/handle/size/mtime/hash/期待size/読取上限とbytes保全は維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_source_hash_identity test_source_inventory_reparse test_source_enumeration_stability test_source_inventory_revalidation test_initial_staging_copy_observation test_initial_staging_copy_batch test_staged_drive_content_observation test_initial_inventory_observation`の計74件全成功・skipなし。新規3件を既存CI登録済みsuiteへ追加。自作tempでparent rename→新directory→同identity hardlinkを実行し拒否/両path bytes保全を確認、上位祖先変化/初回・最終chain取得不能も確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 前後metadata検査でありnamespace lease/途中置換復元・ABA/同時snapshot/対象volume受け入れ・root/ACL/FS/owner・runtimeを証明しない。source hardlinkの新方針やstaging単一link制約を変更せず、実Drive/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### 初期inventory要約の比較検査を観測入口と統一（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`aafe8ff`、クリーンな同branch `codex/manifest-entry-bounds`で[件数要約](../design/initial-inventory-observation.md#件数のみの内部要約)の比較検査を共通化。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- file別のpure比較validatorを分離してbatch検査とsummaryで再利用し、要約独自のstatus/ID/flag検査の重複を解消。global/file別reasonは非空/NULなしexact stringを要求。不正値は既存固定summary-invalidで拒否。有効なprivate reasonの文言を出力・件数へ反映せず、既存B2/選択/対象/順序検査・全false flagsと歴史要約の非再観測境界を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_initial_inventory_summary test_initial_inventory_observation test_staged_drive_content_observation test_drive_comparison_batch test_planned_drive_comparison test_content_download_plan test_comparison_source_batch`の計67件全成功・skipなし。新規3件を既存CI登録済みsuiteへ追加し、global/file reason形状/内包全flag拒否、pure非I/O、有効private reasonの非転記/件数不変を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- reason enumや運用状態を新設せず、構造検査を超える文言真正性/現在性・provider/ID出所・root/FS/owner/ABA・runtime受け入れやUpload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### local観測入口の内部比較結果検査を共通化（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`4f9984b`、クリーンな同branch `codex/manifest-entry-bounds`で[内部比較出力の共通検査](../design/source-inventory-revalidation.md#internal-comparison-output-validation-2026-10-26)を実装。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- staging/Drive比較と初期inventory入口で共通pure validatorを使用。batch/比較exact型、results tuple、既存status/非空reason、全may_*exact False、held/results空、candidate ID有無/型を検査し、不整合は入口別の既存固定result-invalid理由で例外にする。初期inventoryの件数だけの検査から、不正batch/内包flagsやheldなのに結果ありを受け入れない境界へ強化。既存の選択件数・順序binding/全非認可・正常候補/held混在/空選択は維持。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_drive_comparison_batch test_staged_drive_content_observation test_initial_inventory_observation test_initial_inventory_summary test_planned_drive_comparison test_content_download_plan test_comparison_source_batch test_initial_staging_copy_batch`の計72件全成功・skipなし。新規3件を既存CI登録済みsuiteへ追加。共通34不正variantのpure検査と両入口での固定拒否/local bytes保全を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 構造整合の検査であり新状態・provider真正性/現在性・ID出所・root/FS/owner/ABA・runtime受け入れやUpload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### download plan予算をlocal観測入口へ接続（2026-10-26）
+
+- 前単位の検証/文書更新中に利用者の追加継続指示を受けたため、前単位を`129e752`へコミット後、クリーンな同branch `codex/manifest-entry-bounds`で[local観測入口への予算接続](../design/source-inventory-revalidation.md#download-plan-output-budgets-at-local-entrypoints-2026-10-26)を実装。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- staging/Drive比較と初期inventory入口にoptional `maximum_downloads` / `maximum_total_download_bytes`を追加。planと共通のpure型検査で不正値をlocal I/O前に拒否し、completed-set比較へ上限を渡す。超過時はcopy tupleまたは元B2/選択pathを保全したheld・比較なし、予算内は毎回local再読取後に従来の結果/順序/全false flagsを維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_staged_drive_content_observation test_initial_inventory_observation test_initial_inventory_summary test_content_download_plan test_planned_drive_comparison test_comparison_source_batch test_initial_staging_copy_batch`の計62件全成功・skipなし。新規6件を既存CI登録済みsuiteへ追加し、exact境界/不正値のlocal非読取/超過時の証拠保全・非認可を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- download計画の出力予算で、local読取量/件数/staging容量/全memoryの制限や新しい本番値は採用しない。正式SDK/C-02/provider真正性・root/FS/owner/現在性/ABA・runtime受け入れやUpload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### download planの件数・合計bytes予算（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`268a0ff`、クリーンな同branch `codex/manifest-entry-bounds`で[download plan出力予算](../design/drive-content-comparison.md#caller-selected-download-plan-output-budgets-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- plan/completed-set比較の両入口にoptional `maximum_downloads` / `maximum_total_download_bytes`を追加。不正値はlisting検査前にheld。不足対象をIDで重複排除した件数/期待bytes合計を全件検査し、超過時はrequirement構築/sort前に全体held・requirementsなし。比較側の再導出にも同上限を渡し、完了観測から上限を迂回しない。予算内の既存決定的順序・exact比較・全非認可flagsを維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_content_download_plan test_planned_drive_comparison test_download_hash_observation test_drive_listing_observation test_drive_comparison_batch test_comparison_source_batch test_download_staging_integration test_staged_drive_content_observation`の計76件全成功・skipなし。新規6件を既存CI登録済みsuiteへ追加し、重複ID一回計上/境界/不正値/超過時requirement非構築/0件・metadata不備/比較再適用とsource・staging接続を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 出力予算であり既存listing/source/index/不足候補辞書のmemory/探索時間上限ではない。予算はplanへ保存する権限ではなく、後続callerが同じ上限を明示する。固定本番値/新schema/C-02/実SDK方針を採用せず、provider真正性/現在性・正式runtimeやUpload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### download hash観測のcaller指定bytes上限（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`357a3ff`、クリーンな同branch `codex/manifest-entry-bounds`で[download bytes上限](../design/drive-content-comparison.md#caller-selected-download-byte-bounds-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `hash_downloaded_content`にoptional `maximum_download_bytes` / `maximum_chunk_bytes`を追加。不正値/期待download size超過はiterator取得/hash生成前、chunk超過はhash更新前に固定理由で全体拒否。既存の型/非空/完了・期待size exact照合・終端確認を維持し、chunkの分割/切詰め/部分観測化やcaller streamのclose/retryを行わない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_download_hash_observation test_drive_listing_observation test_drive_content_comparison test_content_download_plan test_planned_drive_comparison test_download_staging_integration test_drive_comparison_batch`の計64件全成功・skipなし。新規5件を既存CI登録済みsuiteへ追加し、空/分割payload境界、各段階の消費/生成/更新前拒否、caller所有境界、short/overlong/終端例外と非認可比較接続を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 固定本番値/新schema/C-02 field/実SDK方針を採用しない。生成済みchunkのmemory/iterator遅延/真正なID-stream bindingを保証せず、正式SDK/credential・root/FS/owner/ABA・実Drive/runtime受け入れやUpload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### Drive page/file件数の明示上限（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`a19cb92`、クリーンな同branch `codex/manifest-entry-bounds`で[Drive page集約のcaller上限](../design/drive-content-comparison.md#page集約のcaller指定件数上限2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `collect_drive_listing`にoptional `maximum_pages` / `maximum_files`を追加。I/Oを持たないpure入力集約で、不正値はiterator取得前、nonterminalのpage上限到達は次page取得前、file合計超過は当該pageのfile検査/保持前に固定理由で全体拒否する。terminal後のexhaustion/trailer/例外検査、既存folder/token/ID検査・順序を維持し、部分成功・caller iteratorのclose/retryは行わない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_drive_listing_observation test_download_hash_observation test_drive_content_comparison test_drive_comparison_batch test_content_download_plan test_planned_drive_comparison test_initial_inventory_observation`の初回60件は59成功・新規接続testの期待status誤り1fail・skipなし。既存契約`comparison_candidate`へtest期待値を修正し、`python -B -m unittest test_drive_listing_observation.DriveListingObservationTests.test_bounded_listing_still_connects_download_hash_to_non_authorizing_comparison -v`の該当1件成功。製品codeは初回後不変、固有60件の最終結果は全成功・skipなし。新規6件を既存CI登録済みsuiteへ追加。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 固定本番件数/新schema/C-02 field/実API方針を採用しない。生成済みpageのmemory/名前長/token長/iterator遅延や全memory上限ではない。実page真正性/現在性・正式SDK/credential・root/FS/owner/ABA・実Drive/runtime受け入れやUpload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### short writeとclose失敗が重なった場合の理由保全（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`dd620d9`、クリーンな同branch `codex/manifest-entry-bounds`で[一次書込失敗理由の保全](../validation/lock-recovery-acceptance-gate.md#primary-write-failure-survives-stream-close-failure-2026-10-26)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 不完全writeで生成した固定errorを保持し、その後stream closeがOSErrorを出しても`artifact_write_incomplete`を維持する。集合publisherへ同理由を伝播し、先行公開fileを保持・marker非公開。個別write/flush/fsync/close OSErrorの既存`artifact_publish_failed`とno-linkを回帰確認。tempの所有identity/完全bytes/祖先検査に基づく従来cleanup境界を変えず、未検証tempは保全する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_atomic_artifact_publication test_artifact_set_publication test_crash_publication_harness test_internal_publication_crash test_terminal_bundle_integration test_owned_publication_integration`の計68件中67成功・既存symlink作成不可1skip。新規3件を既存CI登録済みsuiteへ追加し、単一/集合の二重失敗と個別4段階の失敗を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 新たなcleanup/retry/修復権限は付与しない。正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### pure classifierのmapping検査と分類を同じコピーへ統一（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`9bbaea5`、クリーンな同branch `codex/manifest-entry-bounds`で[classifierコピー検査](../validation/lock-recovery-acceptance-gate.md#classifier-validates-the-copied-mappings-2026-10-26)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- expected/published/staged/marker/marker hash Mappingをplain dictへコピーし、そのコピーを既存文法・集合・内容検査と分類に使う。コピー失敗は既存入力別blocked理由へ変換し、例外詳細を出さない。元Mappingのitemsでは非空に見えてコピーが空になる場合に、空expected/marker集合でcommittedへ進む不一致を防ぐ。valid dict/読取専用Mappingの状態・flags・transaction exact比較は維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_set_recovery test_artifact_set_directory_verification test_artifact_set_publication test_terminal_bundle_integration test_owned_publication_integration test_artifact_directory_reparse`の計81件中80成功・既存symlink作成不可1skip。新規4件を既存CI登録済みsuiteへ追加し、5種入力のiteration/partial/item失敗、見掛けと異なる空コピー、valid MappingProxyTypeのcommitted/readyを確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 独自Mappingの検査対象をコピーへ統一する入力厳格化。コピー中の外部変更の原子的snapshotやcaller真正性は保証しない。正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### markerのstrict JSONと欠落区別（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`96708e9`、クリーンな同branch `codex/manifest-entry-bounds`で[存在するmarker JSONの拒否境界](../validation/lock-recovery-acceptance-gate.md#present-marker-json-is-distinct-from-an-absent-marker-2026-10-26)を修正。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- directory verifierは存在するmarkerのrootをobject必須とし、nullを欠落扱いにしない。非標準NaN/Infinity/-Infinityを全depthで拒否、既存duplicate key検査を維持し、解析RecursionErrorも固定`commit_marker_json_invalid`へ変換する。真のmarker欠落とobjectのshape/version/transaction/hash分類は既存のまま。原本を修復/削除せず、別集合へのfallbackや成功補完はしない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_set_directory_verification test_artifact_set_recovery test_artifact_directory_reparse test_terminal_bundle_integration test_owned_publication_integration test_artifact_set_publication`の計77件中76成功・既存symlink作成不可1skip。新規5件を既存CI登録済みsuiteへ追加。root型/非標準定数/nested duplicate/過度な入れ子と、両PC相当の拒否時bundle/prior保全・owner解放を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 不正markerの拒否厳格化であり、JSON最大depth/複雑度の新しい本番値を選ばない。parser資源上限・正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### 集合公開payload mappingのコピー検査（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`5fe9e76`、クリーンな同branch `codex/manifest-entry-bounds`で[payload mappingコピー検査](../validation/lock-recovery-acceptance-gate.md#payload-mapping-snapshot-before-publication-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 集合publisherは元Mappingのtruthinessではなくplain dictへコピーした内容を検査。コピー例外と実体が空の場合は固定`artifact_set_empty_or_invalid`で全publish前に拒否し、部分集合を作らず既存partialを保持する。同じコピーを全件name/bytes検査・hash・順序付き公開・markerへ使い、公開中の元mapping変更を取り込まない。独自mapping例外詳細は非echo。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_set_publication test_atomic_artifact_publication test_crash_publication_harness test_internal_publication_crash test_terminal_bundle_integration test_owned_publication_integration`の初回64件は62成功・fixture仮定誤り1fail・既存symlink作成不可1skip。dictコピーが元Mappingのlenを呼ぶという誤った仮定を、実際にlen非依存で有効copyできる正例へ修正し、`python -B -m unittest test_artifact_set_publication.ArtifactSetPublicationTests.test_mapping_copy_failures_reject_before_publication_without_private_details -v`の該当1件成功。製品コードは初回検証後変更なし。固有64件の最終結果は63成功/1skip。新規4件を既存CI登録済みsuiteへ追加。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- コピー中に外部変更される独自mappingの原子的snapshotやmemory上限/caller真正性は保証しない。正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### temp公開書込みの件数検証（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`77ece88`、クリーンな同branch `codex/manifest-entry-bounds`で[temp書込み件数検証](../validation/lock-recovery-acceptance-gate.md#exact-temporary-file-write-counts-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 単一file公開を最大1,048,576 byte/chunkのmemoryview書込みへ変更。write返却値はexact intかつchunk長一致のみ許可し、short/zero/過大/負/非int/boolは固定`artifact_write_incomplete`で停止。再試行/明示flush・fsync/linkへ進まず部分tempを保全する。closeによるbuffer flushは起こり得る。正常/空payloadのflush/fsync/読戻し/identity/祖先検査は維持する。集合の後続file失敗は固定理由を伝播し、先行公開成果物を保全してmarker非公開とする。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_atomic_artifact_publication test_artifact_set_publication test_crash_publication_harness test_internal_publication_crash test_terminal_bundle_integration test_owned_publication_integration`の計60件中59成功・既存symlink作成不可1skip。新規4件を既存CI登録済みsuiteへ追加し、multichunk/不正返却値/空payload/2件目のshort writeを確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- caller payloadのmemory上限や正式write provider/永続run契約を追加しない。short write後のtempは未検証のまま保全しcleanup/retry/修復しない。正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### 公開先basenameの全件事前検査（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`af78bcc`、クリーンな同branch `codex/manifest-entry-bounds`で[公開先basenameの事前検査](../validation/lock-recovery-acceptance-gate.md#destination-basenames-before-publication-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 集合publisherの全件payload/marker検査に、既存単一file側の末尾空白/dot禁止を反映。不正な後続artifact/marker名を全publish前に拒否し、入力不備だけによる先行fileのpartial公開を防ぐ。単一file側の既存basename検査もparent I/O前へ移動。既存partial集合の保全・valid fileの順序・同一bytes再公開・no-overwriteは維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_atomic_artifact_publication test_artifact_set_publication test_crash_publication_harness test_internal_publication_crash test_terminal_bundle_integration test_owned_publication_integration`の計56件中55成功・既存symlink作成不可1skip。新規4件を既存CI登録済みsuiteへ追加。不正名の全publish非呼出し・既存partial保全・単一fileのparent非検査/temp非生成を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 集合側の入力厳格化と単一file側の拒否優先順位変更。Windows namespace/alias全体の新方針や自動cleanup/回復は採用しない。正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### 単一file公開比較を期待payload長で制限（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`72995bd`、クリーンな同branch `codex/manifest-entry-bounds`で[期待bytesによる比較上限](../validation/lock-recovery-acceptance-gate.md#publication-comparisons-bounded-by-expected-bytes-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `AtomicArtifactPublication._same_bytes`でregular fileの初期sizeが期待payload長と異なる場合はopenせず不一致を返す。既存destinationは従来のconflictでtempも生成しない。初期size一致時も最大1,048,576 byte/chunk・期待長+1 byteへ制限し、増大は固定変更理由で停止。既存handle/path/祖先/内容検査・staging/final/cleanupの保全境界を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_atomic_artifact_publication test_artifact_set_publication test_crash_publication_harness test_internal_publication_crash test_terminal_bundle_integration test_owned_publication_integration test_artifact_read_stability`の計73件中72成功・既存symlink作成不可1skip。新規4件を既存CI登録済みsuiteへ追加し、size不一致の非open/非生成・空/複数chunk同一再公開・読取中増大・open前変化を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 既知の期待bytes長を使う拒否側の制限であり、新しい本番上限やschema制約は採用しない。初期size競合は本文検証を省略するが、同一判定や公開許可を返さない。caller payloadのmemory/読取遅延・正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### marker producer/consumerのtransaction文法を一致（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`a62f2cb`、クリーンな同branch `codex/manifest-entry-bounds`で[transaction文法共通化](../validation/lock-recovery-acceptance-gate.md#publisher-and-classifier-transaction-grammar-2026-10-26)を実装。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- generic UUID parserがnil/version範囲外/non-RFC variantを公開でき、既存classifierではcommittedにできない不一致を修正。既存consumerのversion 1〜8/RFC variant/hyphenated文法をpure共通関数へ抽出しpublisherも再利用、不正値はpayload検査・全publish呼出し前に固定理由で拒否する。大小文字の受入れ・markerの元綴り・期待transactionのexact比較を維持。新しい文法選択や既存不正markerの修復は行わない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_set_publication test_artifact_set_recovery test_artifact_set_directory_verification test_terminal_bundle_integration test_owned_publication_integration test_crash_publication_harness test_internal_publication_crash`の計73件中72成功・既存symlink作成不可1skip。新規3件を既存CI登録済みsuiteへ追加し、64通りのversion/variant/caseを実file公開→directory verifierで読戻し。publisher/recoveryはいずれも既存両role package内でfile集合50件は不変、PS/schema/package回帰を重複実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- producerの不正入力を既存consumer契約へ厳格化した互換性変更。正式transaction protocol/provider・caller真正性・receipt/owner/root/FS/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### 成果物集合のcaller期待値をI/O前に検査（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`4a12761`、クリーンな同branch `codex/manifest-entry-bounds`で[期待値の事前検査](../validation/lock-recovery-acceptance-gate.md#artifact-set-expectations-before-filesystem-access-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `verify_published_artifact_set`の期待hash mappingコピーをroot/path検査前へ移動し、既存pure classifierのname/hash/transaction文法で事前検査する。不正文法は既存blocked decision、非mapping/空/marker名衝突/コピー失敗は固定directory errorで、I/O前に拒否する。独自mapping例外の内容は非echo。valid入力は事前分類結果を捨て、実bytes/marker/再読取・再列挙による従来の分類を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_set_directory_verification test_artifact_set_recovery test_artifact_directory_reparse test_terminal_bundle_integration test_owned_publication_integration test_artifact_read_stability`の計76件中75成功・既存symlink作成不可1skip。新規5件を既存CI登録済みsuiteへ追加し、既存mutation injection2件は実marker分類時に発火するよう追従。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- caller不備はroot利用不能より先に拒否する検査順序の変更。最初のroot検査中の元mapping変更はコピーへ影響しないが、copy中の外部変更に対する原子的snapshotやcaller真正性は保証しない。正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### marker付き成果物集合の読取上限（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`61091e7`、クリーンな同branch `codex/manifest-entry-bounds`で[集合読取上限](../validation/lock-recovery-acceptance-gate.md#caller-selected-artifact-set-read-bounds-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `verify_published_artifact_set`へoptional file別`maximum_artifact_bytes`/初期集合size合計`maximum_total_bytes`を追加。不正値はI/O前、markerを含む全観測fileのsize超過は最初のpayload open前に拒否する。partial/marker欠落でもskipしない。全読取を最大65,536 byte/chunk・初期size+1に変更し増大停止、既存signature/hash/marker/transaction/最終再読取・再列挙を維持する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_set_directory_verification test_artifact_directory_reparse test_terminal_bundle_integration test_owned_publication_integration test_artifact_read_stability`の計58件中57成功・既存symlink作成不可1skip。新規7件を既存CI登録済みsuiteへ追加。新規integrationの例外型を専用型へ厳密化後、該当1件を再実行して成功。両PC相当の候補bundle前後観測へ指定上限を渡し、超過時も元bundle/priorを保全しownerを解放する。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 合計は初期集合sizeで、validatorの累積読取予算とは別。最終再読取のI/Oを再計上せず、caller mapping件数/JSON複雑度/全memory/遅延も制限しない。Noneではcaller上限なし、固定本番値/保持方針/新schema制約を採用しない。分類成功はsnapshot観測であり正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可ではない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
+### report参照validatorの合計読取size予算（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`6af2f9b`、クリーンな同branch `codex/manifest-entry-bounds`で[合計検査size予算](../design/aggregation-report-v1-proposal.md#aggregate-inspected-size-budget-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `maximum_total_artifact_bytes`をvalidator/CLI/report wrapperへ接続。不正値はI/O前に拒否し、呼出しごとに新予算を生成。report/manifest/B2証拠/3 schemaで共有し、各open前に初期sizeを計上する。最終read-set再読取も毎回計上、残予算不足は固定理由で全体拒否する。file別上限・signature/祖先/hash/意味論検査は維持。周囲のmanifest directory読取は別予算。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_read_stability test_aggregation_referenced_artifacts test_manifest_report_selection test_manifest_reader_bounds test_terminal_bundle_integration test_aggregation_report_builder.AggregationReportBuilderTests.test_existing_referenced_artifact_validator_accepts_generated_fixture`の計71件成功・skipなし。新規6件＋既存の型検査/CLI検査を拡張し、既存CI登録済みsuiteへ含めた。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。変更文書リンク/差分を確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- 予算は受け入れた初期検査sizeの合計であり物理I/O量/全memory制限ではない。既存の増大検知で追加1 byteを読み得るが、その呼出しは変更として停止する。Noneではcaller合計上限なし、固定本番値/新schema制約/保持方針は選ばない。JSON複雑度/遅延/実root/FS/owner/clock/現在性/ABA・正式writer/provider・実Drive/runtime受け入れは未実証。次は同branchで既承認の独立範囲を選び、未決provider/C-02/資源方針を推測しない。
+
+### report参照validatorのfile別bytes上限（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`7c1d540`、クリーンな同branch `codex/manifest-entry-bounds`で[report参照読取の明示上限](../design/aggregation-report-v1-proposal.md#caller-selected-local-read-bounds-2026-10-26)を実装。公開基準mainは前単位確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `validate_referenced_artifacts`にoptional `maximum_artifact_bytes`を追加。I/O前に厳密型検査し、report/manifest/B2証拠/3 schemaの各fileについて初期size超過をopen前に拒否、最終read-set再読取にも同上限を適用する。全読取を最大65,536 byte/chunk・初期size+1 byteに変更し増大時停止。既存signature/祖先/hash/意味論再導出検査を維持。CLI `--maximum-artifact-bytes`とreport付きmanifest readerへ接続し、wrapperの不正値もmanifest I/O前に拒否する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_read_stability test_aggregation_referenced_artifacts test_manifest_report_selection test_manifest_reader_bounds -v`の56件、`python -B -m unittest test_terminal_bundle_integration -v`の8件、`python -B -m unittest test_aggregation_report_builder.AggregationReportBuilderTests.test_existing_referenced_artifact_validator_accepts_generated_fixture -v`の1件、計65件成功・skipなし。新規10件を既存CI登録済みsuiteへ追加。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。変更文書リンク/差分を確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- Noneはcaller上限なし、固定本番上限/新schema制約/保持方針は選ばない。file別上限であり合計I/O/memory/JSON複雑度/実root/FS/owner/clock/現在性/ABA・正式writer/provider・実Drive/runtime受け入れを保証しない。周囲のmanifest directory観測には従来のcandidate/total bytes・entry上限を別途指定する。次は既承認の独立範囲を同branchで選び、未決provider/C-02/資源方針を推測しない。
+
+### #002からの継続・manifest列挙件数上限（2026-10-26）
+
+- 利用者の継続指示を受け、GitHubのmainとローカルmainが`6e9ad82d8ae11146041b5eba0ab6b94e21c5cad8`で一致し、[PR #44](https://github.com/wasawo/eo-log-maintenance-public/pull/44)がマージ済み、作業ツリーがクリーンであることを確認した。PR #44本文にはPR/mainのValidate・Package Validation成功記録があるが、本単位では過去CIを再実行していない。新branch `codex/manifest-entry-bounds`をmainから作成し、upstreamは設定していない。下の「本セッション終了」は前セッションの記録であり、今回の継続指示で新しい実装1単位を開始した。
+- [manifest列挙件数の明示上限](../design/latest-manifest-selection.md#explicit-entry-budget-for-directory-observations-2026-10-26)を既存readerとreport wrapperへ追加。optional `maximum_entries`をI/O前に厳密型検査し、初回/最終列挙とも全entryを数え、最初の超過で名前保持・payload読取前に全体拒否する。別period/旧run/不正entryをskipせず、既存bytes上限と非fallback検査を維持する。固定本番値・保持/cleanup方針・schema制約は決めない。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'; python -B -m unittest test_manifest_reader_bounds test_manifest_directory_reader test_manifest_report_selection test_manifest_recovery_integration -v`を実行。bounds13件（新規6件＋既存7件の型検査/forwarding拡張）、directory19件、report10件、recovery7件の計49件成功・skipなし。既存CI登録済みsuiteを拡張し、新CIは未実行。PS/schema/配布file集合50件は不変で無関係な検証を再実行しない。文書相対リンク/差分を確認しroot自己点検のみ、独立レビューなし。この記録を含むローカルコミットで区切り、次の指示を待つ。未push・新PRなし。
+- 件数上限はOS列挙時間/名前長/JSON複雑度/全memory/report・evidenceの読取上限ではない。root/FS/owner/clock/現在性/ABA・正式writer/provider・実Drive/runtime受け入れは未実証。次は既承認の独立範囲を同branchで選び、未決C-02/provider/資源方針を推測しない。PR作成は利用者指示時のみ。
 
 ### 累積PR承認と本セッションの終了範囲（2026-10-26）
 

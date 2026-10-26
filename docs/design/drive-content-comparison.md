@@ -32,6 +32,24 @@ next_token=nullの終端pageがちょうど1件あり、その後にpageも例�
 
 collectorはfile/network APIを直接呼ばず、page提供側のI/O・timeout・件数/時間予算・resource解放はcaller/providerに残る。途中例外は固定reasonへ置換し、token/IDやraw例外を診断へ出さない。部分観測は返さず、callerの元pageを変更/closeしない。[合成page試験](../../tests/test_drive_listing_observation.py)は空/複数/空中間page、token切断/循環、folder/成功不明、ID重複、終端後page/例外、実bytes hash fallbackと複数内容一致の保留までを接続する。
 
+## Caller-selected download byte bounds (2026-10-26)
+
+`hash_downloaded_content`はoptional `maximum_download_bytes` / `maximum_chunk_bytes`を受け取り、Noneまたは正のexact intのみ許す。不正値はiterator取得/hash生成前に`download_limit_invalid`、期待sizeがdownload上限を超える場合は同じく消費前に`download_limit_exceeded`で拒否する。Noneでは当該caller上限なし、固定本番値やschema/SDK方式は選ばない。空fileは従来どおり0 chunkで表す。
+
+chunkの型/非空検査後、その長さが明示chunk上限を超える場合はhash更新前に`download_chunk_limit_exceeded`で停止する。超過chunkを切り詰めたり分割して受け入れたりせず、部分観測も返さない。期待sizeとのexact一致、終端までの正常消費・完了確認は別に必須であり、short/overlong/終端後例外を上限内だからと成功にしない。caller所有streamのclose/retryは行わない。
+
+これはhelperがhashへ受け入れるbytesの制限であり、callerが既に生成したchunkのmemory、iterator/nextのblock時間、download ID/streamの真正なbindingや実SDK資格を保証しない。既存比較の非認可flagsを維持する。[download試験](../../tests/test_download_hash_observation.py)で空/分割payloadのexact境界、不正上限/期待size超過の非iter・非hash、chunk超過の非hash更新/非trailer消費/非close、従来size/終端検査と比較接続を確認する。
+
+## page集約のcaller指定件数上限（2026-10-26）
+
+`collect_drive_listing`はoptional `maximum_pages` / `maximum_files`を受け取り、Noneまたは正のexact intのみ許す。不正値はiterator取得前に固定`listing_limit_invalid`で拒否し、固定本番値・C-02 field/schema・API方針は採用しない。Noneでは当該caller上限なし。
+
+page数は空pageも数える。上限件数目のpageがnonterminalなら、完全列挙をその予算内で成立させられないため`listing_page_limit_exceeded`で次page取得前に停止する。上限件数目がterminalでも従来どおりiteratorの終端を確認し、trailer pageは`listing_after_terminal`、trailing例外は`listing_read_failed`で拒否する。件数上限を完了証拠や打切り成功にしない。
+
+file上限は全pageのfile件数合計で、page header/token検査後、そのpageのfileを検査・保持する前に合計超過を`listing_file_limit_exceeded`で拒否する。部分観測を返さず、超過fileのskip/dedup/fallbackは行わない。caller所有iteratorをclose/retryせず、transport・後始末はcallerが担う。既存folder/token/ID重複/終端検査と観測順序は維持する。
+
+これらは保持するpage連鎖/file件数に対する資源制限で、callerが生成済みのpage/tupleのmemory、file名/token長、iterator取得/nextの遅延や全memoryを制限しない。実SDK・page真正性/現在性・同時snapshot・runtime資格の証明ではなく、比較結果の全may_*falseを維持する。[page試験](../../tests/test_drive_listing_observation.py)で境界値、不正値の非iter、空中間page、次page非取得/非close、file事前検査、終端後失敗、download hashからの比較接続を確認する。
+
 ## PC-Aの凍結B2とsource再観測への接続
 
 [SourceInventoryRevalidation.py](../../Common/SourceInventoryRevalidation.py)の`revalidate_comparison_source`は比較元の明示信頼確認、PC-Aのexact B2 bytesと独立log/run/root/scope/reference date/現在時計、対象relative pathを要求する。B2のschema/digest/inventory不変条件を検査し、canonical相対pathで一意のeligible targetを選ぶ。PC-BのB2や対象不在・不正文法はsourceを読む前に拒否する。同名でも別pathのtargetを推測して選ばない。
@@ -81,6 +99,16 @@ DownloadRequirementはfile IDと期待sizeを保持する内部データで、IP
 必要観測があればstatus=requires_download_observations、不要ならcomparison_inputs_available、共通不備はheldとする。全結果のmay_download/may_restore/may_report_sync_success/may_archiveはfalse。空sourceやrequirement0件をno_work/同期成功へ変換せず、既存比較で結果を判定する。計画は完了download hash・現在のfile存在/内容・実行権限の代わりにならず、同じ保存済み計画から送信を認可しない。
 
 [計画試験](../../tests/test_content_download_plan.py)はSHAの信頼/欠落、不要downloadの除外、不明metadataの保留、共有IDの一意化/安定順序、空sourceと全may_*false、計画→合成download bytes/hash→再列挙→一括比較を扱う。[source batch接続](../../tests/test_comparison_source_batch.py)も実source再観測からrequirement計画を経由する。実SDK/認証・取得時のID/完了/size binding・使用点資格は未実装gateのまま。
+
+## Caller-selected download-plan output budgets (2026-10-26)
+
+`plan_content_downloads`と`compare_planned_drive_contents`はoptional `maximum_downloads` / `maximum_total_download_bytes`を受け取る。Noneまたは正のexact intのみ許し、不正値は既存のsource trust/type検査後、listing検査前に`comparison_download_limit_invalid`でheldとする。Noneでは当該caller上限なし、固定本番値・C-02/schema・実取得方針は採用しない。
+
+完全listingとsourceから不足hash対象を集めた後、file IDごとに重複排除した件数・期待sizeの合計を検査する。超過は`comparison_download_count_limit_exceeded` / `comparison_download_bytes_limit_exceeded`で全体held、requirementsは空で、requirement objectの構築/出力順序sort前に停止する。候補をskipした部分計画や不足対象の成功補完は行わない。予算内では従来の決定的ID順・exact sizeと全may_*falseを維持し、0件をno_work/同期成功にしない。
+
+比較側はcallerが渡した同じ上限で計画を毎回再導出し、超過/不正値なら完了集合比較前にbatch全体heldとする。予算はplan自体に保存される認可ではなく、未指定の後続呼出しへ自動伝播しない。周囲のpage/file件数上限、個別hashのdownload/chunk上限とは独立である。
+
+これはrequirements出力の資源予算で、既存listing/sourceの保持・index/不足候補dictionary・探索時間/全memoryの制限ではない。source trust/metadata不備は従来どおり保留し、実API/SDK/credential・providerの真正性/現在性やdownload/Archive権限を証明しない。[計画試験](../../tests/test_content_download_plan.py)と[比較接続試験](../../tests/test_planned_drive_comparison.py)で重複IDの一回計上、exact境界、不正値のlisting非検査、超過時のrequirement非構築、0件/未知metadataと比較側への再適用を確認する。
 
 ## 計画と完了download集合の整合検査
 

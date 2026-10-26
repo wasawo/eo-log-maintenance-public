@@ -11,6 +11,40 @@ from test_aggregation_report_builder import SCHEMAS
 
 
 class InitialInventorySummaryTests(unittest.TestCase):
+    def test_invalid_global_reason_shape_is_not_summarized(self):
+        raw, paths, drive = self.seed()
+        for observed in (self.observe(raw, paths, drive), self.observe(raw, paths, drive, downloads=())):
+            for reason in (None, True, 1, "", "bad\x00reason", b"reason"):
+                with self.subTest(status=observed.status, reason=reason), patch(
+                        "builtins.open", side_effect=AssertionError("unexpected I/O")):
+                    with self.assertRaisesRegex(check.SourceRevalidationError, "^initial_inventory_summary_invalid$"):
+                        self.summary(replace(observed, reason_code=reason))
+
+    def test_file_reason_shape_and_all_inner_permissions_use_shared_comparison_validation(self):
+        raw, paths, drive = self.seed()
+        observed = self.observe(raw, paths, drive)
+        original = observed.files[0].comparison
+        invalid = [replace(original, reason_code=reason) for reason in (None, True, 1, "", "bad\x00reason")]
+        for flag in ("may_restore", "may_report_sync_success", "may_archive"):
+            for value in (True, 0, None):
+                result = replace(original)
+                object.__setattr__(result, flag, value)
+                invalid.append(result)
+        for index, comparison in enumerate(invalid):
+            bad = replace(observed, files=(replace(observed.files[0], comparison=comparison), observed.files[1]))
+            with self.subTest(index=index), patch("builtins.open", side_effect=AssertionError("unexpected I/O")):
+                with self.assertRaisesRegex(check.SourceRevalidationError, "^initial_inventory_summary_invalid$"):
+                    self.summary(bad)
+
+    def test_valid_private_reason_text_does_not_change_or_leak_into_summary(self):
+        raw, paths, drive = self.seed(second=False)
+        observed = self.observe(raw, paths, drive)
+        private = "synthetic private reason with spaces and Unicode 合成"
+        changed = replace(observed, reason_code=private,
+            files=tuple(replace(item, comparison=replace(item.comparison, reason_code=private)) for item in observed.files))
+        self.assertEqual(self.summary(observed), self.summary(changed))
+        self.assertNotIn(private, json.dumps(asdict(self.summary(changed)), ensure_ascii=False))
+
     setUp = fixture.InitialInventoryObservationTests.setUp
     cleanup = fixture.InitialInventoryObservationTests.cleanup
     plan_context = fixture.InitialInventoryObservationTests.plan_context

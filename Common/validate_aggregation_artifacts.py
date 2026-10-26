@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import stat
@@ -72,7 +73,20 @@ def _directory_chain(directory):
     return tuple(chain)
 
 
-def _stable_bytes(path):
+class _ArtifactReadBudget:
+    """Invocation-local inspected sizes; a growth probe may read one extra byte."""
+
+    def __init__(self, maximum_bytes):
+        self.maximum_bytes = maximum_bytes
+        self.admitted_bytes = 0
+
+    def admit(self, size):
+        if self.maximum_bytes is not None and self.admitted_bytes + size > self.maximum_bytes:
+            raise ArtifactValidationError("artifact_total_read_limit_exceeded")
+        self.admitted_bytes += size
+
+
+def _stable_bytes(path, maximum_bytes=None, budget=None):
     """Point-in-time path/handle binding, not an atomic namespace snapshot."""
     try:
         chain = _directory_chain(path.parent)
@@ -81,12 +95,25 @@ def _stable_bytes(path):
             raise ArtifactValidationError("reparse_point_not_allowed")
         if not stat.S_ISREG(before.st_mode):
             raise ArtifactValidationError("artifact_not_file")
+        if maximum_bytes is not None and before.st_size > maximum_bytes:
+            raise ArtifactValidationError("artifact_read_limit_exceeded")
+        if budget is not None:
+            budget.admit(before.st_size)
         expected = _signature(before)
         with path.open("rb") as stream:
             opened = os.fstat(stream.fileno())
             if not stat.S_ISREG(opened.st_mode) or _signature(opened) != expected:
                 raise ArtifactValidationError("artifact_changed_during_read")
-            raw = stream.read()
+            blocks, count = [], 0
+            while True:
+                block = stream.read(min(65536, before.st_size-count+1))
+                if not block:
+                    break
+                count += len(block)
+                if count > before.st_size:
+                    raise ArtifactValidationError("artifact_changed_during_read")
+                blocks.append(block)
+            raw = b"".join(blocks)
             finished = os.fstat(stream.fileno())
         after = path.lstat()
         if (_reparse(after) or not stat.S_ISREG(after.st_mode) or _signature(finished) != expected
@@ -98,8 +125,15 @@ def _stable_bytes(path):
         raise ArtifactValidationError("artifact_unavailable") from exc
 
 
-def _read_json_bytes(path: Path, snapshots=None) -> tuple[bytes, Any]:
-    snapshot = _stable_bytes(path)
+def _finite_json_float(value):
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ArtifactValidationError("invalid_json_constant")
+    return parsed
+
+
+def _read_json_bytes(path: Path, snapshots=None, maximum_bytes=None, budget=None) -> tuple[bytes, Any]:
+    snapshot = _stable_bytes(path, maximum_bytes, budget)
     raw = snapshot[0]
     if snapshots is not None:
         if path in snapshots and snapshots[path] != snapshot:
@@ -109,11 +143,12 @@ def _read_json_bytes(path: Path, snapshots=None) -> tuple[bytes, Any]:
         value = json.loads(
             raw.decode("utf-8-sig"),
             object_pairs_hook=_reject_duplicate_keys,
+            parse_float=_finite_json_float,
             parse_constant=lambda _value: (_ for _ in ()).throw(
                 ArtifactValidationError("invalid_json_constant")
             ),
         )
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+    except (UnicodeDecodeError, ValueError, RecursionError) as exc:
         raise ArtifactValidationError("malformed_json") from exc
     except ArtifactValidationError:
         raise
@@ -155,9 +190,9 @@ def _safe_artifact_path(root: Path, relative_path: Any) -> Path:
     return candidate
 
 
-def _validate_schema(value: dict[str, Any], schema_path: Path, name: str, snapshots):
+def _validate_schema(value: dict[str, Any], schema_path: Path, name: str, snapshots, maximum_bytes=None, budget=None):
     try:
-        _, schema = _read_json_bytes(schema_path, snapshots)
+        _, schema = _read_json_bytes(schema_path, snapshots, maximum_bytes, budget)
         errors = sorted(
             _validator(schema).iter_errors(value),
             key=lambda error: list(map(str, error.absolute_path)),
@@ -176,23 +211,30 @@ def validate_referenced_artifacts(
     report_path: str | Path,
     contracts_path: str | Path,
     *, expected_manifest_bytes: bytes | None = None, expected_manifest_path: str | None = None,
+    maximum_artifact_bytes: int | None = None,
+    maximum_total_artifact_bytes: int | None = None,
 ) -> dict[str, Any]:
     """Validate report and exact referenced artifact bytes, then bind identity fields."""
     try:
+        if any(value is not None and (type(value) is not int or value < 1)
+               for value in (maximum_artifact_bytes, maximum_total_artifact_bytes)):
+            raise ArtifactValidationError("artifact_read_limit_invalid")
         if ((expected_manifest_bytes is None) != (expected_manifest_path is None)
                 or (expected_manifest_bytes is not None and
                     (type(expected_manifest_bytes) is not bytes or type(expected_manifest_path) is not str))):
             raise ArtifactValidationError("expected_manifest_binding_invalid")
         snapshots = {}
+        budget = _ArtifactReadBudget(maximum_total_artifact_bytes)
         root = Path(root_path).absolute()
         root_chain = _directory_chain(root)
         if not root.is_dir():
             raise ArtifactValidationError("trusted_root_not_directory")
         report_file = Path(report_path).absolute()
-        _, report = _read_json_bytes(report_file, snapshots)
+        _, report = _read_json_bytes(report_file, snapshots, maximum_artifact_bytes, budget)
         contracts = Path(contracts_path).absolute()
         contracts_chain = _directory_chain(contracts)
-        report_schema = _validate_schema(report, contracts / "aggregation-report-v1.schema.json", "report", snapshots)
+        report_schema = _validate_schema(report, contracts / "aggregation-report-v1.schema.json", "report", snapshots,
+            maximum_artifact_bytes, budget)
         if expected_manifest_path is not None and report["manifest_ref"]["path"] != expected_manifest_path:
             raise ArtifactValidationError("selected_manifest_reference_mismatch")
         identity = {key: report[key] for key in ("run_id", "pc_id", "log_type")}
@@ -208,13 +250,13 @@ def validate_referenced_artifacts(
             if ref["schema_version"] != 1:
                 raise ArtifactValidationError(f"unsupported_reference_schema_version:{name}")
             artifact_path = _safe_artifact_path(root, ref["path"])
-            raw, artifact = _read_json_bytes(artifact_path, snapshots)
+            raw, artifact = _read_json_bytes(artifact_path, snapshots, maximum_artifact_bytes, budget)
             if name == "manifest_ref" and expected_manifest_bytes is not None and raw != expected_manifest_bytes:
                 raise ArtifactValidationError("selected_manifest_bytes_mismatch")
             actual_digest = hashlib.sha256(raw).hexdigest()
             if actual_digest != ref["sha256"]:
                 raise ArtifactValidationError(f"sha256_mismatch:{name}")
-            schemas[name] = _validate_schema(artifact, contracts / schema_name, name, snapshots)
+            schemas[name] = _validate_schema(artifact, contracts / schema_name, name, snapshots, maximum_artifact_bytes, budget)
             if artifact[version_field] != ref["schema_version"]:
                 raise ArtifactValidationError(f"schema_version_mismatch:{name}")
             for key, expected in identity.items():
@@ -262,7 +304,7 @@ def validate_referenced_artifacts(
         if _directory_chain(root) != root_chain or _directory_chain(contracts) != contracts_chain:
             raise ArtifactValidationError("artifact_read_set_changed")
         for path, snapshot in snapshots.items():
-            if _stable_bytes(path) != snapshot:
+            if _stable_bytes(path, maximum_artifact_bytes, budget) != snapshot:
                 raise ArtifactValidationError("artifact_read_set_changed")
         return {"status": "verified", "reason_code": "all_references_verified", "artifacts": checked}
     except ArtifactValidationError as exc:
@@ -277,8 +319,14 @@ def main() -> int:
     parser.add_argument("--root", required=True, help="trusted maintenance root")
     parser.add_argument("--report", required=True, help="derived aggregation report JSON")
     parser.add_argument("--contracts", required=True, help="directory containing v1 JSON schemas")
+    parser.add_argument("--maximum-artifact-bytes", type=int,
+        help="optional positive per-file byte bound, including report and schemas")
+    parser.add_argument("--maximum-total-artifact-bytes", type=int,
+        help="optional positive sum of inspected sizes across reads, including final rereads")
     args = parser.parse_args()
-    result = validate_referenced_artifacts(args.root, args.report, args.contracts)
+    result = validate_referenced_artifacts(args.root, args.report, args.contracts,
+        maximum_artifact_bytes=args.maximum_artifact_bytes,
+        maximum_total_artifact_bytes=args.maximum_total_artifact_bytes)
     print(json.dumps(result, separators=(",", ":"), sort_keys=True))
     return 0 if result["status"] == "verified" else 2
 

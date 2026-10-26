@@ -8,6 +8,33 @@ import test_initial_source_integration as fixture
 
 
 class InitialStagingBatchTests(unittest.TestCase):
+    def test_explicit_staging_byte_limits_preserve_order_and_exact_empty_selection(self):
+        self.seed()
+        self.assertEqual(self.observe(), self.observe(maximum_staging_file_bytes=6, maximum_total_staging_bytes=11))
+        self.assertEqual((), self.observe((), maximum_staging_file_bytes=1, maximum_total_staging_bytes=1))
+
+    def test_staging_byte_limit_excess_rejects_before_root_io_or_payload_hash(self):
+        self.seed()
+        before = {p: p.read_bytes() for p in self.destinations}
+        for limits, reason in ((dict(maximum_staging_file_bytes=5), "staging_copy_file_limit_exceeded"),
+                (dict(maximum_total_staging_bytes=10), "staging_copy_total_limit_exceeded")):
+            with self.subTest(limits=limits), patch.object(check, "_source_chain") as root, \
+                    patch.object(check, "_hash_stable_file") as read:
+                with self.assertRaisesRegex(check.SourceRevalidationError, "^"+reason+"$"):
+                    self.observe(**limits)
+                root.assert_not_called()
+                read.assert_not_called()
+            self.assertEqual(before, {p: p.read_bytes() for p in self.destinations})
+
+    def test_invalid_staging_limits_reject_before_plan_reconstruction(self):
+        self.seed()
+        for key in ("maximum_staging_file_bytes", "maximum_total_staging_bytes"):
+            for value in (True, False, 0, -1, 1.5, "100"):
+                with self.subTest(key=key, value=value), patch.object(check, "prepare_initial_manifest") as prepare:
+                    with self.assertRaisesRegex(check.SourceRevalidationError, "^staging_copy_limit_invalid$"):
+                        self.observe(**{key: value})
+                    prepare.assert_not_called()
+
     setUp = fixture.InitialSourceIntegrationTests.setUp
     cleanup = fixture.InitialSourceIntegrationTests.cleanup
     build = fixture.InitialSourceIntegrationTests.build
@@ -28,9 +55,9 @@ class InitialStagingBatchTests(unittest.TestCase):
         for destination, payload in zip(self.destinations, (b"first", b"second")):
             destination.write_bytes(payload)
 
-    def observe(self, allocations=None):
+    def observe(self, allocations=None, **limits):
         return check.observe_initial_staging_copies(self.candidate, self.plan,
-            allocations=self.allocations if allocations is None else allocations, **self.context)
+            allocations=self.allocations if allocations is None else allocations, **self.context, **limits)
 
     def test_explicit_order_exact_binding_and_once_only_plan_reconstruction(self):
         self.seed(pc="PC-B", log="ErrorReport")
