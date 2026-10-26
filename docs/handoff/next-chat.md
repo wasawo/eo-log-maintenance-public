@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+### 一括Drive比較の呼出し内再利用と一致ID保有量削減（2026-10-27）
+
+- 利用者の次実装指示を受け、cleanな`d0907f6`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。
+- [呼出し内の比較再利用](../design/drive-content-comparison.md#repeated-comparison-values-within-one-call-2026-10-27)を通常一括前後比較と計画完了集合比較へ接続。共通観測/plan/download検査後、filename/size/SHA-256の同一条件だけを呼出し内で1回比較し、全source slotと指定順を保持する。異なる条件は分離し、他呼出しへ結果を持ち越さない。単一比較の全一致IDリストは件数+候補ID1件へ置換し、2件一致後も後続の不明/不一致を検査する。既存status/reason/全may_*falseは維持。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_drive_content_comparison test_drive_comparison_batch test_drive_comparison_reobservation test_content_download_plan test_planned_drive_comparison test_drive_listing_observation test_download_hash_observation test_comparison_source_revalidation test_comparison_source_batch test_initial_inventory_observation test_initial_inventory_summary test_staged_drive_content_observation test_download_staging_integration`の137件全成功・skipなし。既存CI登録suiteへ新規5件を追加し、両一括入口の400 source/4条件の実比較回数、全slot/順序/flags、後続download変更・欠落/重複の再検査、40一致後の不明metadata/hash/不一致reason保全を確認した。変更2文書の相対リンク119件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
+- EOLM-SYN-007/008・OSD-01の候補/保留境界を維持する改善。条件がすべて異なる場合の比較走査量・呼出し内辞書/全memory・時間は制限しない。固定本番値・schema/C-02/SDK/配布集合の変更・実行認可は追加しない。provider真正性/現在性/ABA・正式runtime/実Drive・電源断/Tier B/C受け入れや要件全体/P0閉鎖は未実証。実ログ/本番Driveは使わない。
+- この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。以後も同branchで承認済みhelperと未決runtime契約の境界を確認して次単位を選び、PR作成/mergeは別途指示された範囲で行う。
+
 ### download計画の同名候補走査と予算事前検査（2026-10-27）
 
 - 利用者の次実装指示を受け、cleanな`29448da`・同branch `codex/source-inventory-budgets`から継続。main基準は前確認の`0d4945260067a86aaf8beb5ae792a4108b0091f9`（PR #45）。今回GitHub状態の再取得・branch切替・push/PRなし。

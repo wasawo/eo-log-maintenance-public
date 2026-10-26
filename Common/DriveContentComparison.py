@@ -320,7 +320,8 @@ def _compare_source(source, by_name, downloaded):
     def held(reason):
         return ContentComparison("held", reason)
 
-    matches = []
+    match_count = 0
+    candidate_id = None
     for item in by_name.get(source.filename, ()):
         if item.size_bytes is None:
             return held("comparison_metadata_unavailable")
@@ -335,10 +336,24 @@ def _compare_source(source, by_name, downloaded):
         if digest is None:
             return held("comparison_hash_unavailable")
         if digest == source.sha256:
-            matches.append(item.file_id)
-    if len(matches) != 1:
-        return held("comparison_no_match" if not matches else "comparison_multiple_matches")
-    return ContentComparison("comparison_candidate", "comparison_unique_content_match", matches[0])
+            match_count += 1
+            candidate_id = item.file_id
+    if match_count != 1:
+        return held("comparison_no_match" if not match_count else "comparison_multiple_matches")
+    return ContentComparison("comparison_candidate", "comparison_unique_content_match", candidate_id)
+
+
+def _compare_sources(sources, by_name, downloaded):
+    # Reuse only within this invocation's already-validated observations.
+    # Keep one output slot per source, including repeated values/local paths.
+    comparisons = {}
+    results = []
+    for source in sources:
+        key = (source.filename, source.size_bytes, source.sha256)
+        if key not in comparisons:
+            comparisons[key] = _compare_source(source, by_name, downloaded)
+        results.append(comparisons[key])
+    return tuple(results)
 
 
 def compare_drive_content(source, files, *, source_trusted, expected_folder_id,
@@ -392,7 +407,7 @@ def compare_reobserved_drive_contents(sources, before, after, *, source_trusted,
 
     Global input/listing failure returns no partial results. Per-source held
     results remain held, and compared never means sync success or no_work.
-    No API re-query, provenance/freshness proof, cache or receipt is provided.
+    No API re-query, provenance/freshness proof, cross-call cache or receipt is provided.
     """
     def held(reason):
         return ContentComparisonBatch("held", reason)
@@ -408,7 +423,7 @@ def compare_reobserved_drive_contents(sources, before, after, *, source_trusted,
         downloaded = _index_downloads(downloads, by_id)
         by_name = _group_files(by_id)
         return ContentComparisonBatch("compared", "comparison_batch_observations_consistent",
-            tuple(_compare_source(source, by_name, downloaded) for source in sources))
+            _compare_sources(sources, by_name, downloaded))
     except _ComparisonInputError as exc:
         return held(str(exc))
 
@@ -533,6 +548,6 @@ def compare_planned_drive_contents(sources, before, after, plan, *, source_trust
             return held("comparison_download_size_mismatch")
         by_name = _group_files(by_id)
         return ContentComparisonBatch("compared", "comparison_planned_observations_consistent",
-            tuple(_compare_source(source, by_name, downloaded) for source in sources))
+            _compare_sources(sources, by_name, downloaded))
     except _ComparisonInputError as exc:
         return held(str(exc))

@@ -82,6 +82,14 @@ file上限は全pageのfile件数合計で、page header/token検査後、その
 
 ## 共通Drive観測による複数sourceの比較
 
+### Repeated comparison values within one call (2026-10-27)
+
+`compare_reobserved_drive_contents`と`compare_planned_drive_contents`は共通観測・download集合の検査後、同じfilename/size/SHA-256を持つsourceの比較結果を1呼出し内だけで再利用する。異なるfieldは別の比較条件とし、結果tupleは重複も含めcaller指定の全slot・順序を保持する。共有結果はimmutableな観測であり、local pathの同一性や出所・実行権限を示さない。
+
+再利用辞書は呼出しごとに新規作成し、他run/次の呼出しへ持ち越さない。前後列挙の完全性/不変性とdownload集合・planの再導出/完了検査を省略しない。空選択も共通入力を検査する。比較条件がすべて異なる場合の走査量・全memory/時間には上限を設けず、最大で異なる比較条件数分の結果辞書を持つ。
+
+単一sourceの比較は一致件数と候補ID1件だけを保持し、複数一致の全IDリストは作らない。2件目で早期確定せず、後続候補のsize/hash不明やdownload不一致を引き続き検査し、従来のreason優先順位を維持する。既存のcandidate/heldと全may_*falseは不変で、provider真正性/現在性・同時snapshot/ABA・runtime受け入れは証明しない。
+
 `compare_reobserved_drive_contents`はComparisonSourceの明示tupleを受け、前後の列挙集合を1回ずつ検査し、共通download集合を1回検査する。名前別indexを作り、各sourceの同名候補だけを既存name/size/hash規則で比較する。全fileをsource数だけ再検査せず、結果tupleはcaller指定順を保持する。単一sourceの前後比較APIは1要素batchへ委譲し、直接比較APIも同じ検査/比較部品を使う。
 
 ContentComparisonBatchの`status=compared`は共通入力の検査と比較処理が完了したことだけを表す。各結果のheld/candidateは独立に保持し、全件同期成功やaggregate reportを生成しない。共通の型/信頼/folder/列挙変化/download ID不備はbatch全体をheldとし、部分結果は返さない。file固有のhash不明・不一致・0/複数一致は各ContentComparisonのheldに残す。全結果とbatchのmay_*はfalseである。

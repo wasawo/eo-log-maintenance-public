@@ -50,6 +50,35 @@ def compare(sources, before=None, after=None, **changes):
 
 
 class DriveComparisonBatchTests(unittest.TestCase):
+    def test_repeated_values_compare_once_while_preserving_all_ordered_slots(self):
+        unique = (SOURCE, replace(SOURCE, size_bytes=10), replace(SOURCE, sha256="0"*64),
+                  replace(SOURCE, filename="missing.txt"))
+        sources = unique * 100
+        observed = listing()
+        expected = tuple(check.compare_drive_content(source, observed.files, source_trusted=True,
+            expected_folder_id=FOLDER, observed_folder_id=FOLDER, enumeration_completed=True) for source in unique)
+        with patch.object(check, "_compare_source", wraps=check._compare_source) as compared:
+            result = compare(sources, observed, observed)
+        self.assertEqual(expected * 100, result.results)
+        self.assertEqual(len(unique), compared.call_count)
+        for item in (result, *result.results):
+            self.assertFalse(item.may_restore or item.may_report_sync_success or item.may_archive)
+
+    def test_reuse_never_survives_an_invocation_or_skips_download_validation(self):
+        observed = listing((replace(FILE, sha256=None, sha256_trusted=False),))
+        good = check.hash_downloaded_content(FILE.file_id, (b"synthetic",), expected_size_bytes=9,
+            download_completed=True)
+        sources = (SOURCE,) * 10
+        first = compare(sources, observed, observed, downloads=(good,))
+        different = replace(good, sha256="0"*64)
+        second = compare(sources, observed, observed, downloads=(different,))
+        self.assertEqual(("comparison_unique_content_match",) * 10, tuple(x.reason_code for x in first.results))
+        self.assertEqual(("comparison_no_match",) * 10, tuple(x.reason_code for x in second.results))
+        with patch.object(check, "_compare_source") as compared:
+            invalid = compare(sources, observed, observed, downloads=(good, good))
+            self.assert_global_hold(invalid, "comparison_download_unbound")
+            compared.assert_not_called()
+
     def test_internal_batch_validator_rejects_malformed_outputs_and_retains_valid_states(self):
         candidate = check.ContentComparison("comparison_candidate", "synthetic", FILE.file_id)
         held = check.ContentComparison("held", "synthetic")
