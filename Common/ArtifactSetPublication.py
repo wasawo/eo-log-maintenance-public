@@ -29,7 +29,13 @@ def _digest(data: bytes) -> str:
 
 
 def _validate_payloads(artifacts: Mapping[str, bytes], marker_name: str) -> dict[str, bytes]:
-    if not isinstance(artifacts, Mapping) or not artifacts:
+    if not isinstance(artifacts, Mapping):
+        raise ArtifactSetPublicationError("artifact_set_empty_or_invalid")
+    try:
+        copied = dict(artifacts)
+    except Exception:
+        raise ArtifactSetPublicationError("artifact_set_empty_or_invalid") from None
+    if not copied:
         raise ArtifactSetPublicationError("artifact_set_empty_or_invalid")
     if not isinstance(marker_name, str) or not marker_name or marker_name.startswith("."):
         raise ArtifactSetPublicationError("commit_marker_name_invalid")
@@ -37,8 +43,7 @@ def _validate_payloads(artifacts: Mapping[str, bytes], marker_name: str) -> dict
             or "\x00" in marker_name or marker_name.endswith((" ", "."))):
         raise ArtifactSetPublicationError("commit_marker_name_invalid")
 
-    copied: dict[str, bytes] = {}
-    for name, payload in artifacts.items():
+    for name, payload in copied.items():
         if (
             not isinstance(name, str)
             or not name
@@ -53,7 +58,6 @@ def _validate_payloads(artifacts: Mapping[str, bytes], marker_name: str) -> dict
             raise ArtifactSetPublicationError("artifact_name_invalid")
         if not isinstance(payload, bytes):
             raise ArtifactSetPublicationError("artifact_bytes_required")
-        copied[name] = payload
     return copied
 
 

@@ -99,6 +99,12 @@ The isolated `Common/ArtifactSetPublication.py` composes the single-file no-over
 - This helper is not yet approved for official entry-point integration, Drive interaction, manifest lifecycle mutation, archive, or deletion. Cross-process crash/concurrency acceptance and target-filesystem behavior remain required.
 
 
+### Payload mapping snapshot before publication (2026-10-26)
+
+The artifact-set publisher first copies a Mapping into a plain dictionary, rejects an empty copied set, and then validates every copied name and payload before hashing or publication. Failures while copying keys/items are suppressed behind fixed `artifact_set_empty_or_invalid`; no artifacts or marker are published and any existing partial set is preserved. A caller's truthiness/length declaration cannot substitute for actual copied content, so a nonempty declaration with no enumerated entries cannot produce an empty marker. Invalid marker/name/payload checks remain required after copying.
+
+The same copied bytes supply hashes, ordered artifact writes and the marker. Later mutation of the source mapping cannot replace them. This is not an atomic snapshot of a concurrently mutated custom mapping, a memory bound or caller-authenticity proof. Tests cover iteration/partial-copy/item failures, empty copied content despite a positive length declaration, a valid copy independent of an unusable length declaration, mutation during the first actual publication and preservation of an existing partial set. Formal provider/runtime and durability gates remain unchanged.
+
 ### Exact temporary-file write counts (2026-10-26)
 
 The single-file publisher writes its immutable payload in chunks of at most 1,048,576 bytes using memoryview slices. Every `write` result must be an exact integer equal to that chunk's length; short/zero/negative/oversized counts, bool, None or other types reject with fixed `artifact_write_incomplete`. The helper does not retry a partial write, explicitly flush/fsync it, or link it to the destination. Stream close may flush buffered data, so partial/unverified temp files remain preserved; they are not automatically repaired or removed. Existing readback, identity and parent checks remain required after complete writes. Empty payloads still flush, fsync and pass readback before publication.

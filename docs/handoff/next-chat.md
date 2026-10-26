@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### 集合公開payload mappingのコピー検査（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`5fe9e76`、クリーンな同branch `codex/manifest-entry-bounds`で[payload mappingコピー検査](../validation/lock-recovery-acceptance-gate.md#payload-mapping-snapshot-before-publication-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 集合publisherは元Mappingのtruthinessではなくplain dictへコピーした内容を検査。コピー例外と実体が空の場合は固定`artifact_set_empty_or_invalid`で全publish前に拒否し、部分集合を作らず既存partialを保持する。同じコピーを全件name/bytes検査・hash・順序付き公開・markerへ使い、公開中の元mapping変更を取り込まない。独自mapping例外詳細は非echo。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_set_publication test_atomic_artifact_publication test_crash_publication_harness test_internal_publication_crash test_terminal_bundle_integration test_owned_publication_integration`の初回64件は62成功・fixture仮定誤り1fail・既存symlink作成不可1skip。dictコピーが元Mappingのlenを呼ぶという誤った仮定を、実際にlen非依存で有効copyできる正例へ修正し、`python -B -m unittest test_artifact_set_publication.ArtifactSetPublicationTests.test_mapping_copy_failures_reject_before_publication_without_private_details -v`の該当1件成功。製品コードは初回検証後変更なし。固有64件の最終結果は63成功/1skip。新規4件を既存CI登録済みsuiteへ追加。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- コピー中に外部変更される独自mappingの原子的snapshotやmemory上限/caller真正性は保証しない。正式writer/receipt・root/FS/owner/現在性/ABA・電源断/実Drive/runtime受け入れやArchive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
+
 ### temp公開書込みの件数検証（2026-10-26）
 
 - 利用者の次実装指示を受け、基準`77ece88`、クリーンな同branch `codex/manifest-entry-bounds`で[temp書込み件数検証](../validation/lock-recovery-acceptance-gate.md#exact-temporary-file-write-counts-2026-10-26)を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。

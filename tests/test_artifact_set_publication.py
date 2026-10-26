@@ -53,6 +53,76 @@ class ArtifactSetPublicationTests(unittest.TestCase):
     def expected_hashes(self):
         return {name: hashlib.sha256(data).hexdigest() for name, data in self.payloads.items()}
 
+    def test_mapping_copy_failures_reject_before_publication_without_private_details(self):
+        from collections.abc import Mapping
+        class BrokenMap(Mapping):
+            def __init__(self, phase): self.phase = phase
+            def __len__(self):
+                if self.phase == "length": raise RuntimeError("synthetic private length detail")
+                return 2
+            def __iter__(self):
+                if self.phase == "iteration": raise RuntimeError("synthetic private iteration detail")
+                yield "a-valid.json"
+                if self.phase == "partial": raise RuntimeError("synthetic private partial detail")
+                yield "z-valid.json"
+            def __getitem__(self, key):
+                if self.phase == "item": raise RuntimeError("synthetic private item detail")
+                return b"synthetic"
+        for phase in ("iteration", "partial", "item"):
+            with self.subTest(phase=phase), patch.object(atomic, "publish_bytes_no_overwrite") as publish:
+                with self.assertRaisesRegex(ArtifactSetPublicationError, "^artifact_set_empty_or_invalid$"):
+                    publish_artifact_set_marker_last(str(self.root), BrokenMap(phase), transaction_id=self.transaction_id)
+                publish.assert_not_called()
+            self.assertEqual([], list(self.root.iterdir()))
+        # dict copies this Mapping from its keys/items without consulting len;
+        # an unreliable length declaration must not replace actual contents.
+        publish_artifact_set_marker_last(str(self.root), BrokenMap("length"), transaction_id=self.transaction_id)
+        expected = {name: hashlib.sha256(b"synthetic").hexdigest() for name in ("a-valid.json", "z-valid.json")}
+        self.assertTrue(verify_published_artifact_set(self.root, expected,
+            expected_transaction_id=self.transaction_id).may_report_committed)
+
+    def test_empty_snapshot_cannot_become_an_empty_commit_marker(self):
+        from collections.abc import Mapping
+        class EmptyMap(Mapping):
+            def __len__(self): return 1  # Caller declaration is not the copied content.
+            def __iter__(self): return iter(())
+            def __getitem__(self, key): raise KeyError(key)
+        with patch.object(atomic, "publish_bytes_no_overwrite") as publish:
+            with self.assertRaisesRegex(ArtifactSetPublicationError, "^artifact_set_empty_or_invalid$"):
+                publish_artifact_set_marker_last(str(self.root), EmptyMap(), transaction_id=self.transaction_id)
+            publish.assert_not_called()
+        self.assertEqual([], list(self.root.iterdir()))
+
+    def test_source_mapping_mutation_during_first_publish_does_not_change_payloads_or_marker(self):
+        original = dict(self.payloads)
+        expected = self.expected_hashes()
+        real_publish = atomic.publish_bytes_no_overwrite
+        calls = []
+        def changed(destination, data):
+            calls.append(Path(destination).name)
+            self.payloads.clear()
+            self.payloads["unexpected.json"] = b"synthetic mutation"
+            return real_publish(destination, data)
+        with patch.object(atomic, "publish_bytes_no_overwrite", side_effect=changed):
+            publish_artifact_set_marker_last(str(self.root), self.payloads, transaction_id=self.transaction_id)
+        self.assertEqual(["manifest.json", "report.json", "commit-marker.json"], calls)
+        for name, data in original.items(): self.assertEqual(data, (self.root/name).read_bytes())
+        self.assertFalse((self.root/"unexpected.json").exists())
+        self.assertTrue(verify_published_artifact_set(self.root, expected,
+            expected_transaction_id=self.transaction_id).may_report_committed)
+
+    def test_mapping_copy_failure_preserves_existing_partial_set(self):
+        from collections.abc import Mapping
+        class BrokenMap(Mapping):
+            def __len__(self): return 1
+            def __iter__(self): raise RuntimeError("synthetic private detail")
+            def __getitem__(self, key): raise KeyError(key)
+        (self.root/"manifest.json").write_bytes(b"synthetic prior")
+        before = {p: p.read_bytes() for p in self.root.iterdir()}
+        with self.assertRaisesRegex(ArtifactSetPublicationError, "^artifact_set_empty_or_invalid$"):
+            publish_artifact_set_marker_last(str(self.root), BrokenMap(), transaction_id=self.transaction_id)
+        self.assertEqual(before, {p: p.read_bytes() for p in self.root.iterdir()})
+
     def test_second_artifact_short_write_preserves_first_and_never_publishes_marker(self):
         real_fdopen = atomic.os.fdopen
         opened_count = []
