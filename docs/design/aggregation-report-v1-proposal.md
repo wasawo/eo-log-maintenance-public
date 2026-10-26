@@ -10,6 +10,16 @@
 - G1 generated-UTC derivation approved 2026-10-24: use the later original finish-UTC string from exact manifest/B2 inputs, choosing the manifest spelling for equal instants. The [selected-policy record](../decisions/selected-policy-decisions-20261024.md#3-g1の確定規則) is authoritative; builder/reference-validator follow-up is implemented with synthetic tests; formal publication/regeneration acceptance remains incomplete.
 - Approved inventory digest direction (2026-10-21): A2 versioned length-prefixed records; exact contract and reference vectors are recorded in `docs/decisions/aggregation-inventory-integrity-options.md`. B2 immutable run-input evidence, embedded inventory, exhaustive count reconciliation, and canonical evidence digest rules are approved and specified in `docs/design/run-input-evidence-v1-proposal.md` and `docs/decisions/aggregation-inventory-integrity-options.md`.
 
+## Caller-selected local read bounds (2026-10-26)
+
+`validate_referenced_artifacts` accepts optional `maximum_artifact_bytes`, a positive exact integer or None. Invalid values (including bool) return fixed reason `artifact_read_limit_invalid` before filesystem I/O. None selects no caller size ceiling. No production ceiling, schema constraint or retention policy is chosen. The CLI exposes the same control as `--maximum-artifact-bytes`; a rejected validation retains JSON output and exit code 2.
+
+The bound applies independently to the report, referenced manifest and B2 evidence, and all three schema files, including final read-set verification. Each input's inspected size is checked before its payload opens; excess returns `artifact_read_limit_exceeded`. Reads always use chunks of at most 65,536 bytes and stop after the inspected size plus one byte. Observed growth returns `artifact_changed_during_read`, including when no caller ceiling was supplied. Existing path/handle/ancestor signatures, exact-byte hashes, semantic rederivation and final read-set comparisons remain required. A resource failure rejects the entire result with no verified artifact subset and no content/path disclosure.
+
+`read_latest_manifest_with_report` forwards this option to the report validator and rejects invalid values before manifest I/O. Its separate manifest candidate/total-byte and directory-entry limits continue to govern the surrounding directory observations; `maximum_artifact_bytes` does not replace those limits.
+
+This per-file control is not an aggregate I/O/memory/JSON-complexity budget, root/FS qualification, an atomic snapshot, ABA protection or runtime authorization. Synthetic tests in [read stability](../../tests/test_artifact_read_stability.py) and [report selection](../../tests/test_manifest_report_selection.py) cover each input, exact ceilings, pre-open rejection, growing streams, final rereads, CLI and wrapper integration. Runtime/Drive/durability acceptance remains incomplete.
+
 ## 1. Design principles
 
 1. Preserve the approved manifest v1 field set and its strict validation rules. Do not add period-summary or unassigned-error fields to that manifest.

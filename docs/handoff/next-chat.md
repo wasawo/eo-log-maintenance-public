@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### report参照validatorのfile別bytes上限（2026-10-26）
+
+- 利用者の次実装指示を受け、基準`7c1d540`、クリーンな同branch `codex/manifest-entry-bounds`で[report参照読取の明示上限](../design/aggregation-report-v1-proposal.md#caller-selected-local-read-bounds-2026-10-26)を実装。公開基準mainは前単位確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- `validate_referenced_artifacts`にoptional `maximum_artifact_bytes`を追加。I/O前に厳密型検査し、report/manifest/B2証拠/3 schemaの各fileについて初期size超過をopen前に拒否、最終read-set再読取にも同上限を適用する。全読取を最大65,536 byte/chunk・初期size+1 byteに変更し増大時停止。既存signature/祖先/hash/意味論再導出検査を維持。CLI `--maximum-artifact-bytes`とreport付きmanifest readerへ接続し、wrapperの不正値もmanifest I/O前に拒否する。
+- Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_artifact_read_stability test_aggregation_referenced_artifacts test_manifest_report_selection test_manifest_reader_bounds -v`の56件、`python -B -m unittest test_terminal_bundle_integration -v`の8件、`python -B -m unittest test_aggregation_report_builder.AggregationReportBuilderTests.test_existing_referenced_artifact_validator_accepts_generated_fixture -v`の1件、計65件成功・skipなし。新規10件を既存CI登録済みsuiteへ追加。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。変更文書リンク/差分を確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
+- Noneはcaller上限なし、固定本番上限/新schema制約/保持方針は選ばない。file別上限であり合計I/O/memory/JSON複雑度/実root/FS/owner/clock/現在性/ABA・正式writer/provider・実Drive/runtime受け入れを保証しない。周囲のmanifest directory観測には従来のcandidate/total bytes・entry上限を別途指定する。次は既承認の独立範囲を同branchで選び、未決provider/C-02/資源方針を推測しない。
+
 ### #002からの継続・manifest列挙件数上限（2026-10-26）
 
 - 利用者の継続指示を受け、GitHubのmainとローカルmainが`6e9ad82d8ae11146041b5eba0ab6b94e21c5cad8`で一致し、[PR #44](https://github.com/wasawo/eo-log-maintenance-public/pull/44)がマージ済み、作業ツリーがクリーンであることを確認した。PR #44本文にはPR/mainのValidate・Package Validation成功記録があるが、本単位では過去CIを再実行していない。新branch `codex/manifest-entry-bounds`をmainから作成し、upstreamは設定していない。下の「本セッション終了」は前セッションの記録であり、今回の継続指示で新しい実装1単位を開始した。

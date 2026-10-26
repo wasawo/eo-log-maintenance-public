@@ -76,6 +76,24 @@ class ManifestReportSelectionTests(unittest.TestCase):
                     self.assertEqual(hashlib.sha256(source.content).hexdigest(), selected.sha256)
                     self.assertEqual(before, {p: p.read_bytes() for p in self.root.rglob("*.json")})
 
+    def test_artifact_byte_limit_reaches_report_validator(self):
+        source = self.install()
+        with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^selected_manifest_report_invalid$"):
+            self.read(source, maximum_artifact_bytes=1)
+        maximum = max([source.report_path.stat().st_size,
+            *(p.stat().st_size for p in self.root.rglob("*.json")),
+            *((ROOT/"contracts"/name).stat().st_size for name in (
+                "aggregation-report-v1.schema.json", "manifest-v1.schema.json", "run-input-evidence-v1.schema.json"))])
+        self.assertEqual(source.content, self.read(source, maximum_artifact_bytes=maximum).content)
+
+    def test_invalid_artifact_limit_rejects_before_manifest_io(self):
+        source = self.install()
+        for value in (True, False, 0, -1, 1.5, "4096"):
+            with self.subTest(value=value), patch.object(reader, "read_latest_manifest") as observe:
+                with self.assertRaisesRegex(reader.ManifestDirectoryReadError, "^manifest_read_limit_invalid$"):
+                    self.read(source, maximum_artifact_bytes=value)
+                observe.assert_not_called()
+
     def test_newer_success_does_not_reuse_old_report(self):
         source = self.install()
         self.install(offset=1)

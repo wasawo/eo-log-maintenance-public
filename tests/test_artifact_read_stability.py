@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -135,6 +136,136 @@ class ArtifactReadStabilityTests(unittest.TestCase):
                                  "reparse_point_not_allowed")
         finally:
             os.rmdir(alias)  # Remove only the link; never recurse through it.
+
+
+class ArtifactReadBoundsTests(unittest.TestCase):
+    setUp = ArtifactReadStabilityTests.setUp
+    write_report = ArtifactReadStabilityTests.write_report
+    install_terminal_plan = referenced_fixture.ReferencedArtifactValidationTests.install_terminal_plan
+    assert_rejected = ArtifactReadStabilityTests.assert_rejected
+
+    def seed(self):
+        self.install_terminal_plan(())
+        return [self.report_path, self.root/"_maintenance/manifests/PC-A/manifest.json",
+            self.root/"_maintenance/run-input-evidence/PC-A/evidence.json",
+            *sorted(self.contracts.glob("*.json"))]
+
+    def validate(self, **changes):
+        return validator.validate_referenced_artifacts(self.root, self.report_path, self.contracts, **changes)
+
+    def test_exact_maximum_accepts_all_artifacts_and_schemas_without_mutation(self):
+        paths = self.seed()
+        originals = {path: path.read_bytes() for path in paths}
+        expected = self.validate()
+        self.assertEqual("verified", expected["status"])
+        self.assertEqual(expected, self.validate(maximum_artifact_bytes=max(map(len, originals.values()))))
+        self.assertEqual(originals, {path: path.read_bytes() for path in paths})
+
+    def test_invalid_limits_reject_before_root_io(self):
+        for value in (True, False, 0, -1, 1.5, "4096"):
+            with self.subTest(value=value), patch.object(validator, "_directory_chain") as chain:
+                self.assert_rejected(self.validate(maximum_artifact_bytes=value), "artifact_read_limit_invalid")
+                chain.assert_not_called()
+
+    def test_each_oversized_input_rejects_before_its_payload_open(self):
+        paths = self.seed()
+        ceiling = max(path.stat().st_size for path in paths)
+        real_open = Path.open
+        for target in paths:
+            original = target.read_bytes()
+            target.write_bytes(original + b" "*(ceiling+1-len(original)))
+            def guarded(path, *args, **kwargs):
+                if path == target:
+                    raise AssertionError("oversize payload must not open")
+                return real_open(path, *args, **kwargs)
+            with self.subTest(target=target.name), patch.object(Path, "open", guarded):
+                self.assert_rejected(self.validate(maximum_artifact_bytes=ceiling), "artifact_read_limit_exceeded")
+            self.assertEqual(ceiling+1, target.stat().st_size)
+            target.write_bytes(original)
+
+    def test_final_read_set_recheck_enforces_the_same_limit(self):
+        paths = self.seed()
+        ceiling = max(path.stat().st_size for path in paths)
+        real_derive = validator.derive_aggregation_report
+        def grow(*args, **kwargs):
+            result = real_derive(*args, **kwargs)
+            original = self.report_path.read_bytes()
+            self.report_path.write_bytes(original+b" "*(ceiling+1-len(original)))
+            return result
+        with patch.object(validator, "derive_aggregation_report", side_effect=grow):
+            self.assert_rejected(self.validate(maximum_artifact_bytes=ceiling), "artifact_read_limit_exceeded")
+        self.assertEqual(ceiling+1, self.report_path.stat().st_size)
+
+    def test_growth_during_stream_read_stops_at_initial_size_plus_one(self):
+        self.report_path.write_bytes(b"x"*70000)
+        real_open = Path.open
+        consumed, requests = [], []
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args): self.stream.close()
+            def fileno(self): return self.stream.fileno()
+            def read(self, size):
+                requests.append(size)
+                block = self.stream.read(size)
+                consumed.append(len(block))
+                if len(requests) == 1:
+                    with real_open(self_path, "ab") as writer: writer.write(b"y"*70000)
+                return block
+        self_path = self.report_path
+        def opened(path, *args, **kwargs): return Stream(real_open(path, *args, **kwargs))
+        with patch.object(Path, "open", opened):
+            with self.assertRaisesRegex(validator.ArtifactValidationError, "^artifact_changed_during_read$"):
+                validator._stable_bytes(self.report_path, 70000)
+        self.assertEqual(70001, sum(consumed))
+        self.assertTrue(all(0 < size <= 65536 for size in requests))
+        self.assertEqual(140000, self.report_path.stat().st_size)
+
+    def test_growth_before_open_rejects_handle_without_reading(self):
+        self.seed()
+        real_open = Path.open
+        target = self.report_path
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args): self.stream.close()
+            def fileno(self): return self.stream.fileno()
+            def read(self, *_): raise AssertionError("changed handle cannot read")
+        def opened(path, *args, **kwargs):
+            if path == target:
+                with real_open(path, "ab") as writer: writer.write(b" ")
+                return Stream(real_open(path, *args, **kwargs))
+            return real_open(path, *args, **kwargs)
+        with patch.object(Path, "open", opened):
+            self.assert_rejected(self.validate(), "artifact_changed_during_read")
+
+    def test_default_reads_are_chunked_and_preserve_exact_bytes(self):
+        payload = b"x"*131073
+        self.report_path.write_bytes(payload)
+        real_open = Path.open
+        requests = []
+        class Stream:
+            def __init__(self, stream): self.stream = stream
+            def __enter__(self): return self
+            def __exit__(self, *args): self.stream.close()
+            def fileno(self): return self.stream.fileno()
+            def read(self, size):
+                requests.append(size)
+                return self.stream.read(size)
+        def opened(path, *args, **kwargs): return Stream(real_open(path, *args, **kwargs))
+        with patch.object(Path, "open", opened):
+            self.assertEqual(payload, validator._stable_bytes(self.report_path)[0])
+        self.assertTrue(all(0 < size <= 65536 for size in requests))
+        self.assertGreater(len(requests), 2)
+
+    def test_cli_limit_returns_fixed_rejection_and_exit_two(self):
+        self.seed()
+        result = subprocess.run([sys.executable, "-B", str(Path(validator.__file__)),
+            "--root", str(self.root), "--report", str(self.report_path), "--contracts", str(self.contracts),
+            "--maximum-artifact-bytes", "1"], capture_output=True, text=True, check=False)
+        self.assertEqual(2, result.returncode)
+        self.assert_rejected(json.loads(result.stdout), "artifact_read_limit_exceeded")
+        self.assertEqual("", result.stderr)
 
 
 if __name__ == "__main__": unittest.main()
