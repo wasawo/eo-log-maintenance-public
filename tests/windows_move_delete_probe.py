@@ -1,8 +1,10 @@
 """TEST ONLY: verify/copy-record/handle-delete in a fresh synthetic temp root.
 
-No caller-selected path, production provider, or restart recovery is exposed.
+No caller-selected path or production provider is exposed. Optional v1 records
+support a separate test-only cold observer, not production restart recovery.
 """
 from contextlib import contextmanager
+from datetime import datetime, timezone
 import ctypes
 import hashlib
 import json
@@ -19,13 +21,37 @@ class MoveDeleteProbeError(RuntimeError):
 
 
 class DisposableMoveDeleteProbe:
-    _NAMES = frozenset(("source.bin", "destination.bin", "replacement.bin", "prepared.json", "result.json", "reconciled.json"))
+    _NAMES = frozenset(("source.bin", "destination.bin", "replacement.bin", "prepared.json", "result.json", "reconciled.json", "fixture.json"))
 
-    def __init__(self, content=b"synthetic log"):
+    def __init__(self, content=b"synthetic log", *, journal=False):
         if os.name != "nt":
             raise MoveDeleteProbeError("probe_windows_required")
         if type(content) is not bytes or len(content) > 1024 * 1024:
             raise MoveDeleteProbeError("probe_content_invalid")
+        self._initialize_api()
+        self._parent = Path(tempfile.gettempdir()).resolve(strict=True)
+        self._root = Path(tempfile.mkdtemp(prefix="eolm-move-delete-", dir=self._parent))
+        self._nonce = uuid4().hex.encode("ascii")
+        self._chain = self._directory_chain()
+        self._reader = None
+        self._prepared_bytes = None
+        self._journal_enabled = journal
+        self._journal_prepared = None
+        (self._root / ".probe-owner").write_bytes(self._nonce)
+        if journal:
+            (self._root / "journal").mkdir()
+        for name in ("source.bin", "destination.bin"):
+            with (self._root / name).open("xb") as stream:
+                stream.write(content)
+        self._baseline = hashlib.sha256(content).hexdigest()
+        self._size = len(content)
+        with self._handle("source.bin") as handle:
+            self._source_id = self._info(handle)[0]
+        with self._handle("destination.bin") as handle:
+            self._destination_id = self._info(handle)[0]
+
+    def _initialize_api(self):
+        """Native declarations only; reused by the read-only cold observer."""
         from ctypes import wintypes as w
         self._api = ctypes.WinDLL("kernel32", use_last_error=True)
         for name, args, result in (
@@ -50,22 +76,6 @@ class DisposableMoveDeleteProbe:
             _fields_ = [("FileAttributes", w.DWORD), ("ReparseTag", w.DWORD)]
 
         self._structures = (FileIdInfo, StandardInfo, AttributeInfo)
-        self._parent = Path(tempfile.gettempdir()).resolve(strict=True)
-        self._root = Path(tempfile.mkdtemp(prefix="eolm-move-delete-", dir=self._parent))
-        self._nonce = uuid4().hex.encode("ascii")
-        self._chain = self._directory_chain()
-        self._reader = None
-        self._prepared_bytes = None
-        (self._root / ".probe-owner").write_bytes(self._nonce)
-        for name in ("source.bin", "destination.bin"):
-            with (self._root / name).open("xb") as stream:
-                stream.write(content)
-        self._baseline = hashlib.sha256(content).hexdigest()
-        self._size = len(content)
-        with self._handle("source.bin") as handle:
-            self._source_id = self._info(handle)[0]
-        with self._handle("destination.bin") as handle:
-            self._destination_id = self._info(handle)[0]
 
     def _directory_chain(self):
         chain = []
@@ -171,8 +181,45 @@ class DisposableMoveDeleteProbe:
         self._close(handle)
         return True, 0
 
+    def _save_journal_prepared(self):
+        from Common.MoveJournal import encode_move_record, save_move_record
+        baseline = dict(size=self._size, sha256=self._baseline)
+        source = dict(kind='local', machine_id='PC-A', root_key='battleLogLocal', relative_path='source.bin',
+                      identity=dict(volume_serial=f'{self._source_id[0]:016x}', file_id=self._source_id[1]))
+        destination = dict(kind='cloud', root_key='battleLogDrive', file_id='synthetic-cloud-object',
+                           parent_id='synthetic-parent', name='source.bin', version='1')
+        value = dict(record_version=1, record_id=str(uuid4()), run_id=str(uuid4()), move_id=str(uuid4()),
+                     attempt_id=str(uuid4()), event_kind='prepared', route='local_to_cloud', machine_id='PC-A',
+                     log_type='BattleLog', observed_at_utc=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                     recorded_at_utc=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                     prior_record_refs=[], event_data=dict(source=source, destination=destination, copy_content=baseline,
+                     destination_content=baseline, reused=False, destination_method='drive_download'))
+        raw = encode_move_record(value)
+        save_move_record(self._root / 'journal', raw)
+        self._write_record('fixture.json', dict(kind='cold-move-fixture-v1', prepared_id=value['record_id'],
+            prepared_sha256=hashlib.sha256(raw).hexdigest(), destination_id=self._destination_id,
+            root_chain=self._chain))
+        self._journal_prepared = value
+
+    def _save_journal_result(self, result):
+        from Common.MoveJournal import encode_move_record, save_move_record
+        p = self._journal_prepared
+        raw = (self._root / 'journal' / (p['record_id'] + '.json')).read_bytes()
+        value = dict(p, record_id=str(uuid4()), event_kind='deletion_result',
+                     observed_at_utc=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+                     recorded_at_utc=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'), prior_record_refs=[
+            dict(record_id=p['record_id'], path=p['record_id']+'.json', sha256=hashlib.sha256(raw).hexdigest())])
+        complete = result['status'] == 'completed'
+        value['event_data'] = dict(source=p['event_data']['source'], destination=p['event_data']['destination'],
+            source_before_delete=p['event_data']['copy_content'], destination_current=p['event_data']['copy_content'],
+            source_method='windows_handle', destination_method='drive_download', request_outcome='succeeded',
+            source_after_delete='absent' if complete else 'unknown', source_after_method='windows_lookup' if complete else 'unavailable',
+            decision='completed' if complete else 'unknown', completion_basis='delete_confirmed' if complete else 'none',
+            reason_code='delete_confirmed' if complete else 'delete_pending')
+        save_move_record(self._root / 'journal', encode_move_record(value))
+
     def run(self, *, fault=None, keep_reader=False):
-        if fault not in (None, "source_changed", "source_replaced", "destination_changed", "destination_replaced", "record_failed", "result_record_failed"):
+        if fault not in (None, "source_changed", "source_replaced", "destination_changed", "destination_replaced", "record_failed", "result_record_failed", "after_prepare"):
             raise MoveDeleteProbeError("probe_fault_invalid")
         if fault == "source_changed":
             self._path("source.bin").write_bytes(b"changed")
@@ -200,8 +247,12 @@ class DisposableMoveDeleteProbe:
                             "destination_id": self._destination_id, "size": self._size, "sha256": self._baseline}
                 try:
                     self._prepared_bytes = self._write_record("prepared.json", prepared)
-                except (OSError, MoveDeleteProbeError):
+                    if self._journal_enabled:
+                        self._save_journal_prepared()
+                except (OSError, ValueError, MoveDeleteProbeError):
                     return {"status": "retained", "reason": "record_failed"}
+                if fault == 'after_prepare':
+                    return {"status": "retained", "reason": "interrupted_before_delete"}
                 writer, writer_error = self.competing_open(0x40000000)
                 deleter, delete_error = self.competing_open(0x10000)
                 if writer or deleter or writer_error != 32 or delete_error != 32:
@@ -223,7 +274,9 @@ class DisposableMoveDeleteProbe:
                       "write_open_blocked": True, "delete_open_blocked": True}
             try:
                 self._write_record("result.json", result)
-            except (OSError, MoveDeleteProbeError):
+                if self._journal_enabled:
+                    self._save_journal_result(result)
+            except (OSError, ValueError, MoveDeleteProbeError):
                 return {"status": "unknown", "reason": "result_record_failed"}
             return result
 

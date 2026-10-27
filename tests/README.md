@@ -1,5 +1,7 @@
 # テスト計画
 
+`test_cold_move_reconciliation.py`はWindows probeの保存記録を別プロセスが読み、現在の合成元/保存先を実APIで再観測して照合記録へつなぐ。元削除を再送せず、Driveはローカルファイルによる模擬providerだけを使う。[接続方法と未実証範囲](../docs/design/cold-move-reconciliation.md)を参照。
+
 `test_move_journal.py`は両経路の移動記録v1を合成一時領域へ保存し、参照digest、役割/対象/判定、破損・欠落、試行矛盾、別プロセスからの読戻しと別照合記録の保存を検証する。観測値は模擬adapterの合成値であり、実Drive/削除認可/別プロセスでの実FS回復ではない。[記録契約と限界](../docs/design/move-record-v1.md)を参照。
 
 `test_windows_move_delete_probe.py`は自作OS-temp内の合成元/保存先だけを使い、Windowsの同一ハンドル確認・直接削除と、削除前記録の実保存/読戻し・pending・結果不明照合を接続する。caller指定pathを受けず、実運用providerや別プロセス回復は提供しない。[試験範囲と限界](../docs/design/windows-move-delete-probe.md)を参照。

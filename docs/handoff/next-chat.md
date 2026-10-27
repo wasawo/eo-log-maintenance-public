@@ -6,11 +6,25 @@
 
 ## 現在地
 
-- 作業branch: `codex/manual-move-preflight`。今回開始HEADは`8ab0e92`、作業ツリーはクリーン。PR #47のmain `36550ab`から作成した同じブランチへ継続して蓄積する。PR #47のmain Validate/Package Validationは前回成功を確認済み。今回もローカルコミットまでとし、新たなpush/PR/mergeは利用者の指示を待つ。
+- 作業branch: `codex/manual-move-preflight`。今回開始HEADは`bc9b5f5`、作業ツリーはクリーン。PR #47のmain `36550ab`から作成した同じブランチへ継続して蓄積する。PR #47のmain Validate/Package Validationは前回成功を確認済み。今回もローカルコミットまでとし、新たなpush/PR/mergeは利用者の指示を待つ。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
-## 今回の移動記録v1・別プロセス読戻し
+## 今回の別プロセスによる現在状態の再観測
+
+[隔離再観測試験](../design/cold-move-reconciliation.md)を追加した。Windows probeの`journal=True`でv1 preparedを元削除より前に保存・読戻しし、削除結果が記録できない場合やpendingの場合を作る。子プロセスへは自作rootと所有marker照合用nonceだけを渡し、現在の元/保存先の観測結果や親のメモリ上の内容基準は渡さない。
+
+子プロセス自身がディスク上の記録とfixture対応を検査し、元の現在存在/実体IDと保存先の現在ID/size/hashをWin32 APIで読み直す。保存先のguardを保持したまま照合記録を別run/attemptで非上書き保存し、旧結果不明記録を変更しない。現在の観測時刻を取得し、前回の観測時刻も流用しない。元が残る場合は未完了、共有違反等は不明とし、回復で元削除を再送しない。
+
+cloud保存先は固定IDをローカル合成ファイルへ対応付けた模擬providerであり、実Driveを観測したものではない。workerはOS-temp直下の自作prefix/marker/root identityに限定され、任意の実運用pathを受け付けない。readonly observerではWRITE/DELETE openとdisposition誤呼出しも拒否するが、任意native codeのsecurity sandboxではない。実運用ACL/所有排他、名前空間保護、memory mapping、電源断、正式入口・PowerShell制御・経路間照合と件数集計は未完。
+
+Python 3.11.9/Windowsで新規6試験と変更した既存probeの9回帰が成功（skipなし）。sandbox外実行も合成一時領域だけを対象とした。Common/契約/配布対象の変更はなく、それらの成功済み試験は無関係に繰り返していない。CIにはPython 3.12/Windowsの専用ステップを追加したが、リモートCI・独立レビュー・runtime受け入れは未実施。
+
+Python構文解析3ファイル、文書98件の相対リンク972件・見出し参照112件と`git diff --check`も成功した。今回の文書検証はリンク・記述整合・差分の確認で、markdownlintは再実行していない。
+
+文書の「同一probe内照合のみ」「別プロセスの観測値は合成入力」という説明は、それぞれ旧メソッド・記録層単独試験の範囲として保持し、今回の実ファイル再観測を別の接続として追記した。文書と既存コードの新たな実装規約不一致は見つかっていない。T0/T1/AC全体は未完のまま。
+
+## 前回の移動記録v1・別プロセス読戻し
 
 [移動記録v1](../design/move-record-v1.md)として、独立schema、`Common/MoveJournal.py`、合成の保存/読戻し・別プロセス試験を追加した。既存の非上書き公開を再利用し、prepared/deletion_result/reconciliationを別のUUIDファイルへ保存する。元/保存先・経路/PC/ログ種別・move/run/attemptと、先行記録のexact bytesのSHA-256を照合する。要求成功と除去確認、削除確認と照合完了を分離し、観測不足のunknownを記録できる。記録自体を削除認可にはしない。
 
