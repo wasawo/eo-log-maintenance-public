@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### 記録形式・状態・削除応答の契約候補を整理（2026-10-27）
+
+- cleanな同branch `docs/requirements-design-task-review`、基準`8610e5b`から継続。利用者の次の整理指示を受け、[詳細設計](../design/move-source-destination-verification.md)§14〜18へ不変のJSONイベント/情報群/状態/adapter応答の候補を追記。[再確認台帳](../development/requirements-design-task-review-20261027.md)§2.13、初回移動計画、開発参照表へ接続した。
+- 要求の成否・元存在・保存先内容・移動結果・完了根拠を分離する案。現manifest v1/IPC 1.0の意味を変えず、schema/コード変更なし。公式エラー仕様のDrive 404は不存在/読取権限なしの両方を含むため、単独でQ11の不在確認にしない。
+- **Q12提示・回答待ち**: ごみ箱内も容量に算入する公式情報を踏まえ、両経路の元はQ5/役割条件を満たした対象だけ直接削除するか。未回答の間は方式を採用済みとしない。次は回答反映、正確な型/版・実API/FSの不在/版固定保証・経路間照合を整理する。T0/実装再開は未完、実データ操作なし。
+- 変更5文書の相対リンク200件の参照先欠落0、`git diff --check`成功。JSON外形/状態候補と現schemaの分離、404/権限不足の非完了、Q12未回答の方式非採用を自己点検した。文書のみのため無関係な全suiteは実行していない。root自己点検のみ、独立レビューなし。同branchへローカルコミットを蓄積し、PRはまとめる。今回push/PR/mergeなし。
+
 ### 削除前後の記録と照合による完了を整理（2026-10-27）
 
 - cleanな同branch `docs/requirements-design-task-review`、基準`8f35128`から継続。利用者の次の整理指示を受け、[詳細設計](../design/move-source-destination-verification.md)§9〜13へ必要記録・操作順・照合表・試験案を追加。[再確認台帳](../development/requirements-design-task-review-20261027.md)§2.12、AC-08、実装計画、開発参照表へ接続した。

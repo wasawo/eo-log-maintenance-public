@@ -10,6 +10,8 @@
 
 同設計§9〜13は削除前後の記録と結果不明の照合案。Q11の条件を満たす照合完了と、削除要求の成功確認は区別する。記録だけを再削除の許可にせず、現v1 schemaや旧履歴も暗黙に更新しない。
 
+同設計§14〜18は移動記録のJSONイベント/状態/adapter応答の契約候補。元の不在と権限不足を同一視せず、Drive 404だけでQ11完了にしない。削除方式はQ12確認中で、現schemaや4操作は変更していない。
+
 | 変更対象 | 読む文書・実体 | 維持する条件 |
 | --- | --- | --- |
 | 全体・未完了 | [現行handoff](../handoff/next-chat.md)、[初回配布棚卸し](../status/first-release-readiness-20261024.md)、[実装計画](implementation-workflow.md)、[要件台帳](../requirements/requirements-traceability.md)、[P0台帳](../requirements/p0-gap-register.md) | 記録より実ファイル・実Git状態を優先し、実装済みhelperと正式runtime完成を区別 |
