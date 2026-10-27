@@ -1,26 +1,24 @@
 ---
 name: eolm-validation
-description: eo-log-maintenance-publicの変更に応じたローカル検証を選び、結果・スキップ・受け入れ限界を記録する。コード・設定・契約・配布物・文書の変更検証とroot自身の差分確認で使用する。
+description: Validate eo-log-maintenance-public code, config, contracts, packages, or docs; review root's diff and report results, skips, and acceptance limits.
 ---
 
-# 変更に応じた検証
+# Change-scoped validation
 
-リポジトリルートを基準に実行する。共通規則は [AGENTS.md](../../../AGENTS.md)、対象仕様は [参照表](../../../docs/development/development-guide.md) を確認する。
+Run from repo root under [AGENTS.md](../../../AGENTS.md); select specs via [spec map](../../../docs/development/development-guide.md). Root works alone; self-check is not independent review. Record whether independent review occurred.
 
-rootが単独で検証・差分確認を行う。サブエージェントの新規作成・再利用・別AIタスクへの委譲は行わない。rootの自己点検を独立レビューと表記せず、独立確認の実施有無は事実どおり記録する。
-
-1. 差分と対象要件から検証範囲を選ぶ。コマンドの正本は [.github/workflows/validate.yml](../../../.github/workflows/validate.yml) と [package-validation.yml](../../../.github/workflows/package-validation.yml)。
-2. 文書だけならリンク・記述整合・`git diff --check` を確認する。無関係な全テストを実行したり、文言に一致するだけのテストを追加したりしない。
-3. コード・schema変更は対応する既存テスト、配布変更は役割別package回帰を実行する。PowerShellは固定版7.6.7。PythonはCI定義の版を基準としローカルとの差を記録する。依存は `requirements-test.txt` / `requirements-runtime.txt`、構文解析・PSScriptAnalyzerの手順はCI定義に従う。
+1. Scope checks to the diff/requirements. Authoritative commands: [Validate](../../../.github/workflows/validate.yml) and [Package Validation](../../../.github/workflows/package-validation.yml).
+2. Docs-only: check links, consistency, and `git diff --check`; no unrelated suites or wording-matching tests.
+3. Code/schema: relevant existing tests. Packaging: role-specific package regression. Use PowerShell 7.6.7; Python per CI, recording local differences. Dependencies: `requirements-test.txt` / `requirements-runtime.txt`. Follow CI for parsing/PSScriptAnalyzer.
 
 ```powershell
 python -m unittest discover -s tests -p "test_*.py"
 pwsh -NoProfile -File tests/Test-ReleasePackage.ps1
-# 対象に応じて tests/Test-*.ps1 の個別検証を選ぶ
+# Select individual tests/Test-*.ps1 as applicable.
 git diff --check
 ```
 
-4. 実ログ・実設定・本番Driveへ接続しない。合成データ・模擬API・固定日時・隔離領域を使う。対象volume検証は [対象FS受け入れ計画](../../../docs/validation/target-filesystem-acceptance.md) の前提と明示承認を確認する。
-5. コマンド、対象SHAまたは未コミット差分、環境、成功/失敗、skipと理由、未実施を報告する。失敗を直した後は影響範囲を再検証し、新しい根拠がなければ同じ成功検査を繰り返さない。
+4. No real logs/configs or production Drive. Use synthetic data, mock APIs, fixed dates, and isolated areas. Target-volume validation requires the [FS acceptance plan](../../../docs/validation/target-filesystem-acceptance.md) prerequisites and explicit approval.
+5. Report commands, SHA or uncommitted diff, environment, results, skips/reasons, and unrun checks. After fixes, recheck affected scope; do not repeat successful checks without new grounds.
 
-単体・schema・package・CI成功は実運用受け入れではない。合成/実環境、Tier B/C、クラッシュ/電源断、ローカル可視性/クラウド内容検証を区別する。CI確認・マージ手順が必要な場合だけ [eolm-pr-handoff](../eolm-pr-handoff/SKILL.md) を読む。
+Unit/schema/package/CI success is not operational acceptance. Distinguish synthetic/live, Tier B/C, crash/power loss, and local visibility/cloud content verification. Read [eolm-pr-handoff](../eolm-pr-handoff/SKILL.md) only for CI/merge procedures.
