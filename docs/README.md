@@ -2,6 +2,16 @@
 
 利用者向け概要は [README](../README.md)、Codexの開始規則は [AGENTS.md](../AGENTS.md)、現在地は [handoff](handoff/next-chat.md)。必要な分野だけを開き、全仕様・全履歴を開始時に一括読込しない。
 
+## 現行の正式文書
+
+| 文書 | 読む目的 |
+| --- | --- |
+| [要件定義書](requirements/log-move-requirements.md) | 完成範囲、対象/役割、配置、削除、競合/再実行、Q1〜Q12の承認記録 |
+| [設計書](design/log-move-design.md) | 構成、両移動フロー、元/保存先識別、確認・記録・照合、方式候補と未決 |
+| [受け入れ条件・実装計画](development/implementation-workflow.md) | AC-01〜12、T0〜T5、既存要件対応、残る詳細契約、文書整理の移行表 |
+
+要件の確定と、設計内の具体方式の未決を区別する。正式文書化は実装/受け入れ完了や本番操作の指示ではない。以下の個別契約・既存helper説明・監査は根拠資料として必要なときに参照する。
+
 ## 全体配置
 
 ```text
@@ -33,24 +43,22 @@ docs/
 
 ## 探し方と配置ルール
 
-- 初回移動の完成判定・作業順を確認する: [受け入れ条件と実装計画案](development/initial-move-delivery-plan-20261027.md)。Q1〜Q10からの整理で、試験/実装再開は未実施。
+- 初回移動の完成判定・作業順を確認する: 上の正式文書3本から対象を選ぶ。runtime試験/実装再開は未実施。
 - 実装を始める: [詳細仕様への参照表](development/development-guide.md) → 対象の要件・承認記録・仕様・テストを確認する。
 - 単独で作業する: [root単独運用](development/agent-workflow.md)。サブエージェントの新規作成・再利用・別AIタスクへの委譲は行わない。旧定義は [失効した履歴](development/archive/README.md) として保全する。
 - 検証する: [検証スキル](../.agents/skills/eolm-validation/SKILL.md)、[tests案内](../tests/README.md)。Git/CI/引き継ぎは [対応スキル](../.agents/skills/eolm-pr-handoff/SKILL.md)。
 - 実装を探す: [Common案内](../Common/README.md)、[scripts案内](../scripts/README.md)、[schema](../contracts/)、[設定例](../Config/)。
 - 文書の配置は用途で決める。`proposal` / `options` を含むファイルにも承認済み部分があるため、ディレクトリ名やファイル名だけで承認状態を判定しない。本文の適用範囲と承認記録を確認する。
-- 履歴は削除しない。過去のCI・PRリンクや当時の状態を現行の指示/証明として実行しない。現在地はhandoff、日付付き棚卸しはその確認時点の記録。
+- 正式文書へ内容・承認根拠を移した重複作業文書は、利用者の整理指示に基づき削除し、移行先とGit基準を記録する。既存実装の契約・検証根拠・まだ判断に必要な承認履歴は保持する。過去の状態を現行指示/証明として実行しない。
 - 新しい文書は該当分類へ置き、この索引と参照元を同じ変更で更新する。相対リンクは参照元ファイル基準、バッククォート内の `docs/...` はリポジトリルート基準とする。
 - `Common/`、`Config/`、`contracts/`、`scripts/`、`tests/` はimport・CI・役割別配布の契約に関わる。今回その配置・allowlist・安全条件は変更しない。Codex検出用ディレクトリと `docs/handoff/next-chat.md` の入口も固定する。
 
-## 文書一覧
+## 個別契約・開発手順・根拠資料
 
 ### 開発手順・単独運用
 
-- [要件・設計・タスクの再確認（2026-10-27）](development/requirements-design-task-review-20261027.md): 利用者との壁打ち記録。完成像から見直し、合意済み/提案/未決を区別して既存仕様・タスクへ反映する。
 - [root単独運用](development/agent-workflow.md)
 - [開発時の詳細仕様・手順の参照表](development/development-guide.md)
-- [Implementation Workflow: ElectronicObserver Log Maintenance](development/implementation-workflow.md)
 
 ### 要件・P0残課題・未決定事項
 

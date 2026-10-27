@@ -126,7 +126,7 @@ The example configuration files are reference templates only. They may contain e
 - Do not replace `Config/PC-A.json` or `Config/PC-B.json` during package extraction or update.
 - Updating a template must not silently change the active runtime configuration.
 - The selected approach is a separate explicit migration procedure/command, with source/target version, backup, diff and explicit confirmation before execution. Normal updates preserve active configuration. Concrete migration mappings and any live migration require their own review/authorization; no automatic migration is implied.
-- PC-A example config retains `allowArchive: false`; operational archive requires explicit PC-A true plus current per-file checks. PC-B omits `allowArchive`. No generic `allowDelete` override is adopted. Under the [2026-10-27 move policy](../development/requirements-design-task-review-20261027.md), each PC may delete only its verified eligible local move sources, and only A may delete cloud sources after verified archival. Current templates/schema and package tests are unchanged; new runtime/interface/package acceptance remains pending.
+- PC-A example config retains `allowArchive: false`; operational archive requires explicit PC-A true plus current per-file checks. PC-B omits `allowArchive`. No generic `allowDelete` override is adopted. Under the [2026-10-27 move policy](../requirements/log-move-requirements.md), each PC may delete only its verified eligible local move sources, and only A may delete cloud sources after verified archival. Current templates/schema and package tests are unchanged; new runtime/interface/package acceptance remains pending.
 
 ## 7. Validation and release gates
 

@@ -148,7 +148,7 @@ requirement0件でも再導出/列挙/空download集合の整合を検査し、�
 
 ## 衝突時PC suffixの命名観測
 
-`observe_pc_suffixed_name`は[承認済み衝突命名規則](../development/implementation-workflow.md#24-collision-and-duplicate-handling)に基づき、独立指定のPC-A/PC-Bとlog種別、元source basenameから、拡張子直前へ_PCA/_PCBを付けたDrive側の候補名を返す。入力には既存source filename文法/実在日付と、dummy rootでの既存C-01/L1字句検査を使う。basenameのpath separatorや不正UTF-8は拒否し、実root/FSを読まない。
+`observe_pc_suffixed_name`は[承認済み衝突命名規則](../requirements/log-move-requirements.md#5-同名ファイル)に基づき、独立指定のPC-A/PC-Bとlog種別、元source basenameから、拡張子直前へ_PCA/_PCBを付けたDrive側の候補名を返す。入力には既存source filename文法/実在日付と、dummy rootでの既存C-01/L1字句検査を使う。basenameのpath separatorや不正UTF-8は拒否し、実root/FSを読まない。
 
 immutable観測は元名・候補名・指定PC/logを保持し、Unicode正規化/case変換/trimや元名のsuffix除去をしない。既にsuffix文字列があるBattleLog名も元sourceの文字列として保持し、その末尾extension直前へ要求suffixを付ける。suffix文字列を出所確認に使わず、同じ元名への反復は同じ候補を返す。未知PC/logや不正文法は固定reasonで拒否し、元名を例外/reprへ出さない。
 

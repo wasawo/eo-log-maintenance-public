@@ -6,9 +6,9 @@ ElectronicObserver の BattleLog / ErrorReport を、Windows PC-A と PC-B 間�
 
 ファイルの配置と分野別文書は [リポジトリ構成・文書索引](docs/README.md) を参照してください。
 
-> **2026-10-27 要件再確認中:** 初回完成は、手動で両移動経路を元削除まで通すことです。削除条件は「保存先の内容一致」と「削除直前の元ログがコピー時から変わっていないこと」の両方。確認不能なら元を残します。合意は[再確認台帳](docs/development/requirements-design-task-review-20261027.md)、完成判定と作業順案は[初回移動計画](docs/development/initial-move-delivery-plan-20261027.md)を参照してください。詳細契約の確定とコード実装の再開は未完です。
+> **2026-10-27 正式文書へ統合:** [要件定義書](docs/requirements/log-move-requirements.md)・[設計書](docs/design/log-move-design.md)・[受け入れ条件/実装計画](docs/development/implementation-workflow.md)を現行の入口としました。初回完成は両移動経路の確認済み元の直接削除まで。具体方式の未決と実装/受け入れ未完は文書内で区別しています。
 
-> **現在の段階:** 既存実装は安全基盤・検証補助処理が中心で、現在は文書を見直しています。正式な同期／アーカイブ入口と削除経路は未完成、P0受け入れも未完了です。元削除を含む要件への更新は実装済み・本番適用可能を意味しません。判定基準は[実装計画](docs/development/implementation-workflow.md) §4と[P0台帳](docs/requirements/p0-gap-register.md)を参照してください。
+> **現在の段階:** 既存実装は安全基盤・検証補助処理が中心で、現在は文書/詳細契約を整備しています。正式な同期／アーカイブ入口と削除経路は未完成、P0受け入れも未完了です。判定基準は[実装計画](docs/development/implementation-workflow.md) §2と[P0台帳](docs/requirements/p0-gap-register.md)を参照してください。正式文書化は本番適用の許可ではありません。
 
 2026-10-24時点の[実装棚卸しと初回配布までの作業順序](docs/status/first-release-readiness-20261024.md)、[選択済みの仕様と残る詳細](docs/decisions/selected-policy-decisions-20261024.md)を参照してください。レビュー用ZIPを生成できることと、本番導入できることは別です。
 

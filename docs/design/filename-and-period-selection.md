@@ -1,8 +1,8 @@
-﻿# Filename and Period Selection Specification
+# Filename and Period Selection Specification
 
 ## 1. Purpose
 
-2026-10-27 revision: Q1–Q10 and the flattening instruction in the [review ledger](../development/requirements-design-task-review-20261027.md) supersede copy-only archive and both-PC completion waiting. Filename/date rules are retained; implementation and deletion verification contracts remain pending.
+2026-10-27 revision: Q1–Q10 and the flattening instruction in the [review ledger](../requirements/log-move-requirements.md) supersede copy-only archive and both-PC completion waiting. Filename/date rules are retained; implementation and deletion verification contracts remain pending.
 
 Define deterministic filename validation and date-based eligibility rules
 for ElectronicObserver BattleLog and ErrorReport files.

@@ -1,302 +1,118 @@
-# Implementation Workflow: ElectronicObserver Log Maintenance
+# ログ移動システム 受け入れ条件・実装計画
 
-Historical implementation inventory and dependency order: [2026-10-24 readiness review](../status/first-release-readiness-20261024.md). The current scope/order proposal follows the 2026-10-27 review below. This plan does not itself establish completion or production authorization.
+文書版: 1.0 / 更新日: 2026-10-27（日本時間）
+要件の正本: [要件定義書](../requirements/log-move-requirements.md)。構成/確認/記録の正本: [設計書](../design/log-move-design.md)。
+位置付け: 再整理後の正式な計画文書。以下の作業順は現時点の実装計画で、未決の方式を決定済みにしない。実装再開指示・実データ操作の認可は含まない。
+確認基準: main `27e99fec`（PR #46）、正式化開始branch `docs/requirements-design-task-review` / HEAD `c709558`。
 
-2026-10-27: [初回ログ移動の受け入れ条件・実装順案](initial-move-delivery-plan-20261027.md)にQ1〜Q10と平坦化の合意を整理した。本書の役割/保持/削除/phase/受け入れ条件を合意へ整合した。現行の作業順案は同計画T0〜T5で、以下のphaseは分野別作業の参照。初回完成は両経路の元削除まで。具体的な削除・記録・IPC等の詳細契約と実装再開指示は未完。
+## 1. 完成と現在地
 
-2026-10-27から[要件・設計・タスクを再確認中](requirements-design-task-review-20261027.md)。AGENTSの該当境界は利用者の明示承認を受け限定改訂済み。本書は要件の整合であり、実装/実データ操作の開始指示ではない。
+初回完成は、A/Bの端末→クラウドとクラウド→A archiveの両経路を、Q5と役割制限の下で元の直接削除まで通し、通常再実行・結果表示を含めて使えること。コピーだけ/片方の経路だけを完成としない。配置期間・平坦化・競合・Q11/Q12の意味は要件定義書を参照する。
 
+正式入口・新しい元削除経路・実Drive接続とruntime受け入れは未完。現在の作業はT0の文書/詳細契約整理。既存の単体/schema/package/CI成功は両経路の完成証拠ではない。ACは全て未実行。
 
-- Status: Proposed implementation plan
-- Repository: `wasawo/eo-log-maintenance-public`
-- Canonical source: GitHub
-- Runtime deployment: Manual download/review on each PC
-- Last updated: 2026-10-18
+## 2. 一連の受け入れ条件
 
-## 1. Purpose
+以下のACは本計画内の試験シナリオ識別子であり、恒久の要件IDを新設/置換しない。固定日時と合成ログ、隔離領域、模擬Driveでまず検証し、実環境の受け入れとは区別する。日時境界の判定方式・タイムゾーンは既存仕様と照合し、未決ならT0で確定する。
 
-Implement safe synchronization, verification, retention, and archival for ElectronicObserver BattleLog and ErrorReport files on PC-A and PC-B. This workflow covers both the initial catch-up of existing Drive data and ongoing manual/scheduled operation. Initial inventory/restoration is a separate, non-operational workflow; it is not treated as a successful sync or archive eligibility proof.
+| ID | 操作・条件 | 確認する結果 | 合意 |
+| --- | --- | --- | --- |
+| AC-01 | 2026年10月としてA/Bで端末→クラウドを起動 | 9月以前のBattleLogと2025年以前のErrorReportを転送し、確認できた元を削除。10月BattleLog/2026年ErrorReportは残る | Q1/Q2/Q5/Q6 |
+| AC-02 | 同時点でAのarchiveを起動 | クラウドの2025年以前BattleLog/2024年以前ErrorReportをAへ移し、確認できたクラウド元を削除。2026年1〜9月BattleLog/2025年ErrorReportは残る | Q1/Q2/Q5 |
+| AC-03 | B未実行のままA archive、その後Bから古い分を転送して再度A archive | 既存分を先に移せる。Bの遅着分も次回移せる。両PCの期間完了を待たない | Q3/Q6 |
+| AC-04 | 元の異なるサブフォルダに対象ログを置く | 保存先はログ種別ごとの共通フォルダ直下。元階層/PC別/新しい年別階層を増やさず、元を個別識別できる | Q7/平坦化指示 |
+| AC-05 | 複数元に同名同内容を置く。別ケースで同名異内容を置く | 同内容は保存先を再利用し、元ごとに確認して削除。異内容は元を保持して競合表示。自動改名/上書き/結合しない | Q4/Q5/Q8 |
+| AC-06 | コピー失敗、保存先不一致、元変更、比較不能をそれぞれ注入 | 当該元を削除せず理由を示す。独立した正常ファイルは元削除まで進む。共通前提が壊れた場合は依存する処理を停止 | Q4/Q5 |
+| AC-07 | コピー成功後に元削除を失敗させ、同じ操作を再実行 | 内容を再確認して保存先を再利用し、元削除まで完了できる。元が変わっていれば削除しない | Q5/Q8/Q9 |
+| AC-08 | コピーまたは削除の応答を失わせる | 盲目的に再送せず現状と対応記録を照合。削除結果不明後、有効な元/保存先・内容の対応記録、元の確実な不在、保存先一致がそろえば照合による移動完了。権限不足や根拠不足は結果不明のまま | Q5/Q9/Q11 |
+| AC-09 | 正常な対象0件、不正名、列挙失敗、前回結果不明を別々に入力 | 正常な対象なしと未完了を区別。不正名や取得失敗を黙って除外しない | Q4/Q9、既存FIL仕様 |
+| AC-10 | 一部競合/削除失敗を含めて処理を終了 | 概要とローカル詳細レポートで元/保存先・理由・次の行動を確認できる。完了件数はコピー数でなく元削除済みの元件数 | Q4/Q10 |
+| AC-11 | Bからarchive/クラウド元削除を試みる。期間外/異なる元を削除対象に混ぜる | Bのarchive/クラウド削除を拒否し、自端末の適格な移動元だけを扱う。汎用の無条件削除を提供しない | Q2/Q5、AGENTS |
+| AC-12 | 強制終了後の残存lock/実行中記録、レポート保存失敗、空き容量不足を入力 | 勝手なlock解除/過去成功化をしない。移動済みと記録失敗を区別する。失敗箇所と元保全を確認する | Q9/Q10、既存復旧/容量仕様 |
 
-## 2. Fixed requirements
+完了判定には保存先の最終内容と元の有無、個別結果の一致を確認する。月末/年末・1月・うるう日も固定日時の境界ケースとして期間選択を確認する。一致したhelper戻り値や試験件数だけで移動成功としない。AC-08の記録/照合方法、AC-12の回復連携等はまだ設計が必要であり、表の存在は実証ではない。
 
-### 2.1 Roles
+## 3. 利用シナリオに沿う実装順
 
-- **PC-A**: Moves its own eligible logs to the cloud, and moves eligible cloud logs to its archive. Each route includes destination-content verification, source-unchanged verification immediately before deletion, and deletion of only the verified source. Records and failure handling remain required; implementation is pending.
-- **PC-B**: Moves its own eligible logs to the cloud, including deletion of only its verified local sources under Q5. It must never archive or delete cloud sources. Do not package or install an archive entry point for PC-B.
-- **Google Drive for desktop shared log location**: Common destination for both PCs' logs and shared maintenance manifests.
-- **GitHub**: Canonical source for scripts and documentation.
-- **Google Drive distribution folder**: Approved release package destination, separate from the log collection folder. Distribution is one-way from GitHub to Drive. PC updates remain manual.
-
-### 2.2 Paths
-
-Both PC configurations require maintenanceLocal for that PC's authoritative local maintenance artifacts. Keep it disjoint from runtime, source, Drive and archive roots. See configuration-local-root.md for the approved field and template/runtime evidence boundary.
-
-All paths and distribution folder URLs below are non-operational public examples. Keep actual values in private operator configuration. The distribution-folder placeholder is not a usable folder ID.
-
-Installation requirement: deployment creates the target PC's active `Config/PC-A.json` or `Config/PC-B.json` from its example only when absent; the operator manually enters actual paths without copying or renaming files. Preserve existing active configuration on updates. Role fields and safe capability defaults remain template-defined. This installer/configuration flow is not implemented yet; it does not authorize runtime deployment or alter release approval gates.
-
-PC-A local sources:
-- BattleLog: `C:\\Example\\PCA\\Source\\BattleLog`
-- ErrorReport: `C:\\Example\\PCA\\Source\\ErrorReport`
-- Runtime root: `C:\\Example\\PCA\\Runtime\\`
-- BattleLog archive: `C:\\Example\\PCA\\Archive\\BattleLog`
-- ErrorReport archive: `C:\\Example\\PCA\\Archive\\ErrorReport`
-
-PC-B local sources:
-- BattleLog: `C:\\Example\\PCB\\Source\\BattleLog`
-- ErrorReport: `C:\\Example\\PCB\\Source\\ErrorReport`
-- Runtime root: `C:\\Example\\PCB\\Runtime\\`
-
-Shared log destinations:
-- BattleLog: `G:\\ExampleDrive\\SharedLogs\\BattleLog`
-- ErrorReport: `G:\\ExampleDrive\\SharedLogs\\ErrorReport`
-- Manifests/state: `G:\\ExampleDrive\\SharedLogs\\_maintenance\\`
-
-Distribution folder supplied by the operator:
-- `https://drive.google.com/drive/folders/<EXAMPLE_DISTRIBUTION_FOLDER_ID>`
-- This folder is for script packages, not operational log files.
-
-### 2.3 Retention and eligible periods
-
-Period selection is based on the date encoded in the filename. `LastWriteTime` must never be used as a fallback. Verified metadata may corroborate Drive identity/content, but it must not override filename-derived period eligibility.
-
-- BattleLog synchronization: all eligible periods **up to and including the previous month**.
-- ErrorReport synchronization: all eligible periods **up to and including the previous year**.
-- PC-A BattleLog archive: periods **in the previous year and earlier**.
-- PC-A ErrorReport archive: periods **up to and including two years before the current year**.
-- Current-month BattleLog and current-year ErrorReport remain on the source PC.
-- Steady state: Drive retains the current year's BattleLog before the current month and the previous year's ErrorReport; PC-A archive retains older eligible periods.
-- A failed/leftover older period must be eligible for retry on the next run. Do not process only one month/year and leave older backlog stranded.
-
-Example for a run in October 2026:
-- Sync BattleLog dated September 2026 and earlier.
-- Sync ErrorReport from 2025 and earlier.
-- Archive BattleLog from December 2025 and earlier.
-- Archive ErrorReport from 2024 and earlier.
-
-If no eligible files exist, report a successful skip for that category/period. A verification failure is an error, not a skip.
-
-### 2.4 Collision and duplicate handling
-
-- Keep the existing shared folder layout; do not add PC-A/PC-B subfolders to the log destination.
-- Use SHA-256 to compare file contents.
-- 2026-10-27 Q8: [confirmed collision policy](requirements-design-task-review-20261027.md#27-同名ファイルの扱いq8回答2026-10-27) applies to both move routes, including collisions caused by flattening source subfolders. These requirements do not authorize implementation resumption or production operations.
-- If a same-name destination file has verified identical content, reuse that destination and avoid unnecessary re-copying. Verify both Q5 deletion conditions for each individual source before deleting it; matching a destination is not by itself a completed move.
-- If same-name files have different contents, leave the existing destination unchanged, preserve the source, and report a conflict for that file. Continue unrelated files where safe. Do not automatically add `_PCA`/`_PCB`, rename existing files, overwrite, or merge contents. This replaces the earlier automatic suffix policy for initial completion.
-- If content equality or destination identity cannot be established, preserve the source and report the unresolved reason. Manual conflict resolution and simultaneous-publication details remain to be designed.
-- For inventory/reconciliation, a same-content comparison candidate requires matching name, size, and SHA-256 against a trusted comparison source, with exactly one candidate in a completely enumerated target Drive folder. A match is not proof of provenance and does not itself authorize restore, sync-success classification, or archive; see the approved OSD-01 decision in `docs/requirements/p0-open-specification-decisions.md`.
-- Existing suffixed files are not automatically renamed or removed under this revision.
-- Verify copied files with SHA-256 and record source name, final name, source PC, size, checksum, period, and result in the manifest.
-- 2026-10-27 Q9: after ordinary per-file failures or source-deletion failures, the operator reruns the same move operation; a separate retry command is not required. Re-evaluate current sources and destinations, reuse verified identical content, and verify both Q5 conditions per source before deletion. Keep conflicts and unverifiable items unresolved in the results. Unknown outcomes require reconciliation; crash-left locks and ownership records remain subject to the separate explicit-recovery design. See [rerun policy](requirements-design-task-review-20261027.md). Result reconciliation and deletion API details remain to be designed; this is not implementation or production authorization.
-- 2026-10-27 Q10: initial conflict support consists of an on-screen summary, a local detailed report identifying the comparison targets and reasons, operator judgment, and the ordinary move rerun after resolution. Dedicated comparison/resolution tooling is a later candidate; automatic conflict resolution is excluded. See [confirmed support scope](requirements-design-task-review-20261027.md). Report format, retention, status mapping, and manual preservation procedures remain detailed-design work; this scope decision does not establish implementation or production readiness.
-- 2026-10-27 Q11: an unknown deletion outcome may become reconciled move completion only with valid source/destination/content binding records, confirmed absence of that source, and current matching destination content. Do not claim the prior deletion request succeeded, blindly retry deletion, treat access failure as absence, or rewrite old history. See the [record/reconciliation design proposal](../design/move-source-destination-verification.md). Record format, absence evidence, state/IPC and cross-route reconciliation remain to be specified; no implementation or real-data operation is authorized.
-
-### 2.5 Deletion and cloud confirmation
-
-- Q1/Q2/Q5: initial completion includes local-source deletion after both destination-content equality and source unchanged since copying are verified. Otherwise preserve that source. This requirement is not implementation-resumption or production-operation authorization.
-- A file's presence in the Google Drive for desktop local folder alone is not proof of completed cloud upload.
-- Preferred approach: Google Drive API query of the actual cloud file listing and metadata/checksum where available; compare the cloud file identity/name, size, and SHA-256 with the local source.
-- If a cloud SHA-256 is unavailable, download the file through the Drive API and compute SHA-256 locally. Metadata-only name/size matching is insufficient. If API download/verification fails, identity is ambiguous, or size/hash mismatches, fail closed and retain the source; mark the period incomplete.
-- Candidate enumeration must cover the intended target folder and complete all pagination successfully. API errors, incomplete pagination, insufficient access, or uncertain query scope must never be interpreted as confirmed zero/one candidates; hold and fail closed.
-- For the separate initial-inventory workflow, the comparison source must be a confirmed, trusted PC-A backup/source record. Operational moves require their own current source/destination binding; do not impose a PC-A-only comparison source on PC-B's own transfer. Candidate identity and move completion are separate facts.
-- API authentication, scopes, and the ability to access the supplied My Drive folder must be configured and tested before production validation.
-- Q3/Q4: PC-A processes eligible files currently in the cloud without waiting for both PCs' period-completion manifests. Late arrivals are handled on a later run. Verify each current cloud source and archive destination independently.
-- Q2/Q5: archive completion includes deleting only the verified cloud source after archive-content equality and source unchanged since copying are confirmed. Unknown, changed, or mismatched items retain their sources. Exact verification/deletion APIs and persistence contracts remain to be designed.
-- Deletion is limited to these two move routes and per-source Q5 conditions. Generic or unconditional deletion is not adopted. During this document review no deletion code/schema is added; real-data deletion requires a separate concrete instruction under AGENTS.
-- 2026-10-27 Q12: both routes directly delete only the verified eligible source file without moving it to a recycle bin/trash. Trash placement or disappearance from the source folder alone is not completed source deletion, including Q11 reconciliation. Do not empty trash, recursively delete folders or clean unrelated data. This confirms policy only; API/FS identity binding, response/absence contracts and implementation resumption remain pending.
-
-### 2.6 Invocation
-
-- Manual and scheduled runs use the same processing code; no separate initial-migration code path.
-- Manual sync and manual archive entry points are provided where allowed.
-- Scheduled tasks call the same entry points or script functions with equivalent parameters.
-- The run computes all eligible backlog periods automatically.
-- PC-B has no archive entry point or cloud-source deletion capability; only its own eligible local sources may be deleted as part of a verified move.
-- Scripts run from each PC's local runtime root, not directly from Drive.
-- GitHub changes are reviewed and tested, a release package is synchronized to the separate Drive distribution folder, then each PC is updated manually.
-
-## 3. Runtime layout
-
-PC-A:
-```text
-C:\\Example\\PCA\\Runtime\\
-├── VERSION
-├── Config\\PC-A.json
-├── Common\\LogFunctions.ps1
-├── SyncLogs.ps1
-├── ArchiveLogs.ps1
-├── Run_Log_Sync.bat
-├── Run_Log_Archive.bat
-└── logs\\
-```
-
-PC-B:
-```text
-C:\\Example\\PCB\\Runtime\\
-├── VERSION
-├── Config\\PC-B.json
-├── Common\\LogFunctions.ps1
-├── SyncLogs.ps1
-├── Run_Log_Sync.bat
-└── logs\\
-```
-
-## 4. P0 readiness and acceptance gate
-
-The implementation phases below are a proposed delivery sequence, not evidence that implementation may proceed or that a phase has been accepted. Before declaring Phase 1 ready to exit or beginning operational rollout, the maintainer must review `docs/requirements/p0-gap-register.md`, `docs/requirements/p0-open-specification-decisions.md`, `docs/validation/requirements-source-audit.md`, and `docs/validation/p0-source-test-inventory.md` together.
-
-P0 is **not accepted** while any P0 item is open, any required design decision is blocked/unapproved, or required runtime evidence is absent. The acceptance review must record each P0-001–P0-012 item as `complete`, `blocked` (with decision/prerequisite), or `incomplete` (with evidence gap); a documentation-only change cannot satisfy a runtime acceptance criterion. At minimum, the review must verify:
-
-1. Source clauses are mapped to stable requirement IDs, implementation targets, executable tests, and exact CI/runtime evidence; unmapped or partial clauses have an explicit disposition (P0-010).
-2. PowerShell 7.6.7 is enforced on every official entry point before file processing; official entry points and launch methods are identified (P0-001–003).
-3. PowerShell/Python contract decisions are approved and contract/schema/semantic tests cover the agreed behavior (P0-005).
-4. Release-package readiness and PC-specific allowlists match the approved official entry points; the legacy prototype alone cannot make a package deployable (P0-006, P0-009).
-5. Existing helper/schema/package tests are not counted as end-to-end runtime evidence. Sync, cloud verification, manifest, archive, IPC, recovery, and Dry Run claims require executable tests at the relevant boundary (P0-004, P0-007–008).
-6. P0 acceptance criteria are consistent across this workflow, `README.md`, the decision register, and the P0 gap register (P0-011).
-7. Both move routes complete only after destination equality and source unchanged since copying are verified and that exact source is deleted. Tests prove retention on uncertainty, PC-B cloud-delete/archive refusal, and rejection of unrelated/period-ineligible sources across code/config/contracts/package/runtime (P0-012). Existing no-delete schema/package tests remain evidence of their current interfaces only.
-8. All unresolved OSD items remain explicit blockers for the phase/function they govern. A proposal or static audit does not constitute operator approval.
-
-**Gate result for the current repository:** not accepted. The maintainer selected the policy directions recorded in the [2026-10-24 decision ledger](../decisions/selected-policy-decisions-20261024.md), including OSD-02/03/04, but detailed C-02 result fields, credential/provider and distribution controls remain open. Official sync/archive entry points and runtime orchestration are absent. This checklist is a future acceptance gate, not a claim that P0 has passed. Do not use real credentials, real logs, production paths, or real Google Drive operations to fill evidence gaps without a separately approved test plan. Current dependency order is in the [first-release readiness inventory](../status/first-release-readiness-20261024.md).
-
-## 5. Implementation phases
-
-### Phase 0 — Baseline and decisions
-
-1. Keep this plan and the README aligned with the fixed requirements.
-2. Inspect the existing prototype only as a behavior reference; do not transplant it as a finished design.
-3. Confirm actual filename patterns for BattleLog and ErrorReport, including date parsing, extensions, and any filename exceptions.
-4. Retain the selected OAuth/principal/scope direction. The current four-operation interface does not support cloud-source deletion. Design and separately qualify the additional role-limited operation, required scope/provider behavior and cross-PC visibility; do not widen scope automatically.
-5. Define manifest schema/version and rules for proving the origin of a pre-existing unmarked file.
-6. Confirm whether the Drive API returns SHA-256 checksums for the relevant file types; define a fail-closed fallback when not available.
-
-Exit criteria: filename/period rules and role-limited move contracts are coherent with Q1–Q10. New deletion/verification/result fields, persistence and provider/credential details are closed before their dependent implementation. Existing manifest transitions do not express deletion completion. Scheduler setup is later work, not a prerequisite for manual movement.
-
-### Phase 1 — Common functions and configuration
-
-Implement `Common/LogFunctions.ps1` and validate configuration:
-- Load and validate the active PC configuration and role.
-- Parse log dates/periods and select all eligible backlog files.
-- Calculate SHA-256, compare files, and verify copied content.
-- Create/read/version-check manifests and reject malformed or mismatched manifests.
-- Produce structured logs and consistent exit codes.
-- Provide safe path construction and prevent path traversal or accidental source/destination overlap.
-- Add Dry Run that performs no upload, final download placement, archive placement, local-source deletion, or Drive deletion. Normal execution is subject to the two-route/Q5 source-deletion conditions; Dry Run never grants those effects.
-
-Exit criteria: unit tests cover period boundaries, filename exceptions, configuration validation, manifest validation, hashing, and error handling.
-
-### Phase 2 — Synchronization implementation
-
-Implement `scripts/SyncLogs.ps1` and `Run_Log_Sync.bat`:
-1. Identify the machine from validated configuration.
-2. Enumerate all eligible BattleLog and ErrorReport files, including older backlog.
-3. Flatten eligible files into the shared log-type destination by basename. Reuse verified identical content; preserve and report differing/ambiguous items without automatic renaming.
-4. Copy to a temporary/staging destination where practical, verify the copied content, and then finalize without overwriting unrelated files.
-5. Query Google Drive API to confirm the actual cloud-side file and its content metadata/checksum.
-6. Confirm the exact local source is unchanged since copying immediately before deletion, and delete only that source after destination-content equality is confirmed. Retain changed/mismatched/unverifiable sources; deletion failure is not completed movement.
-7. Write a manifest with per-file status and period-level completion status.
-8. Treat no eligible files as a successful skip; treat failed checks as errors and preserve source files.
-
-PC-B build/runtime must not contain or expose archive or cloud-source deletion; it may delete only its own eligible verified move sources.
-
-Exit criteria: automated tests cover normal copy, already-present identical file with per-source verification, conflicting same-name file preservation without automatic renaming, ambiguous destination, partial copy, cloud API failure, checksum mismatch, retry after failure, and no eligible files.
-
-### Phase 3 — Archive implementation (PC-A only)
-
-Implement `scripts/ArchiveLogs.ps1` and `Run_Log_Archive.bat`:
-1. Enumerate all eligible Drive backlog periods for archival.
-2. Bind each current cloud source to its intended archive destination and validate the records required for that file.
-3. Re-query and verify current cloud identity/content. Do not wait for either PC's period-completion manifest; late arrivals are handled on a subsequent run.
-4. Copy eligible Drive files to the configured PC-A archive destination without overwriting different content.
-5. Verify archive content with SHA-256 and ensure all files for the selected operation are accounted for.
-6. Verify the cloud source is unchanged since copying immediately before deletion, then delete only that source after archive-content equality is confirmed. Retain unknown/mismatched/changed sources and record deletion failures separately.
-7. Record archive outcome and verification results in an archive status manifest.
-8. If evidence needed for that file is invalid, source identity is ambiguous, API access is unavailable, or verification fails, preserve the affected source and destination and report the reason. Independent files may complete; another PC's failed/missing period record alone is not a blocker.
-
-Exit criteria: PC-A archive moves complete through cloud-source deletion, failure cases retain their sources, B absence/late arrivals and normal rerun are tested, and PC-B cannot execute archive/cloud-source deletion.
-
-### Phase 4 — Recovery and idempotency tests
-
-Test the same scripts against a seeded test directory and mock Drive API responses:
-- Initial catch-up of the currently uploaded historical logs.
-- Multiple old periods left behind after earlier failures.
-- Re-running after partial completion.
-- Identical files and differing same-name files from both PCs.
-- Existing unmarked Drive files with and without trustworthy source manifests.
-- Missing/invalid manifests and stale API metadata.
-- Process interruption between copy, verification, deletion and result update; rerun must reconcile state, then delete only a source satisfying current Q5 conditions. Crash-left ownership problems require explicit recovery.
-- Drive API quota, network, permission, and transient failures.
-- Boundary dates around month/year rollover and leap day where relevant.
-
-Exit criteria: re-running is safe and does not duplicate, overwrite, or delete unverified data.
-
-### Phase 5 — Packaging and repository CI
-
-Update the release allowlist and tests:
-- Include `SyncLogs.ps1`, `ArchiveLogs.ps1`, `Common/LogFunctions.ps1`, runtime BAT files, safe example configs, VERSION, README, and CHANGELOG.
-- Do not package active PC-specific configurations, secrets, operational logs, runtime manifests, tests, or repository-only automation.
-- Require PowerShell parsing/static analysis and behavioral tests in CI.
-- Correct `docs/release/distribution-design.md`: the usable entry point is `SyncLogs.ps1` plus PC-A-only `ArchiveLogs.ps1`, not the old `ArchiveAndUploadLogs.ps1` prototype.
-- Keep package publication separate from log synchronization and deletion.
-
-Exit criteria: a release package passes allowlist/exclusion tests and contains all required runtime files, with no deployable marker or secrets.
-
-### Phase 6 — Google Drive distribution
-
-Use the separate distribution folder:
-`https://drive.google.com/drive/folders/<EXAMPLE_DISTRIBUTION_FOLDER_ID>`
-
-1. Build a versioned package from a reviewed GitHub release.
-2. Verify package SHA-256 before upload.
-3. Upload package and checksum; confirm the cloud-side artifacts.
-4. Update `latest.json` only after successful upload and verification.
-5. Keep PC deployment manual: download, verify, inspect diff, preserve active config, then apply by operator approval.
-6. Never let distribution failure trigger or bypass log deletion.
-
-Exit criteria: release can be uploaded and retrieved without exposing credentials, and a failed upload leaves the previous release pointer unchanged.
-
-### Phase 7 — Dry-run and controlled rollout
-
-1. Install the same reviewed package manually on PC-A and PC-B, preserving their active configs.
-2. Run sync dry-run on both PCs and inspect candidate periods, names, hashes, manifests, and proposed actions.
-3. Run synthetic/isolated movement tests and verify cloud-side API behavior only under a separately approved limited environment plan.
-4. Confirm each move's required records can be read and validated without treating report availability as deletion authority.
-5. Run PC-A archive Dry Run; verify PC-B cannot archive and that B's missing period manifest alone does not block current eligible files.
-6. Review initial catch-up scope, including existing Drive files from September 2026 and earlier BattleLog and 2025 and earlier ErrorReport.
-7. Confirm source deletion is limited to the two routes/Q5/roles, unknown items retain sources, and Dry Run has no effects. Real-data deletion/deployment requires a separate concrete instruction; synthetic acceptance is not production permission.
-
-Exit criteria: operator signs off on dry-run reports, recovery tests, and archive safety gates.
-
-### Phase 8 — Scheduled operation
-
-After controlled rollout:
-- Configure PC-A and PC-B scheduled sync runs.
-- Configure PC-A scheduled archive runs only.
-- Use the same code path as manual execution.
-- Prevent overlapping runs with a lock/lease and stale-lock recovery policy.
-- Log each run and surface failures; do not silently treat errors as skips.
-- Review retention and failures periodically.
-- Keep a documented manual run path for recovery and troubleshooting.
-
-Exit criteria: repeated scheduled runs complete safely, retries recover prior failures, and failures remain visible.
-
-## 6. Required deliverables
-
-- Updated `README.md`, `docs/release/distribution-design.md`, and this workflow.
-- `Common/LogFunctions.ps1`.
-- `scripts/SyncLogs.ps1` and `scripts/ArchiveLogs.ps1`.
-- PC-specific manual entry points and safe example configs.
-- Manifest schema and sample non-operational fixtures.
-- Automated tests for all safety gates and failure cases.
-- Release-package CI updates.
-- Google Drive API authentication and cloud verification documentation.
-- PC installation, manual operation, scheduling, recovery, and rollback instructions.
-
-## 7. Non-negotiable safety gates
-
-- Fail closed on uncertain cloud status, missing or invalid manifests, checksum mismatch, ambiguous source attribution, or incomplete archive verification.
-- Never overwrite a different file to resolve a collision.
-- Never delete source or Drive data merely because a local Drive sync folder lists a file.
-- PC-B never archives or deletes cloud sources. Each PC deletes only its own verified eligible local sources; only PC-A deletes cloud sources after verified archive placement.
-- Manual and scheduled execution share the same logic and safety checks.
-- Initial catch-up is handled by normal manual execution over all eligible backlog periods.
-- Require both destination-content equality and source unchanged since copying immediately before any move-source deletion. Preserve failed/unknown items; retain independent file completion. Detailed contracts and an implementation-resumption instruction are still required before coding; production operations require their own concrete instruction.
+| 順序 | タスクと成果 | 主な変更対象/既存資産 | 完了の区切り・依存 |
+| --- | --- | --- | --- |
+| T0 | 合意を正本仕様へ反映し、2経路の契約を閉じる | 本書§4/5の差分。元/保存先identity・平坦化・Q5確認・削除結果・個別状態・記録・IPC/権限/配布 | 削除禁止/両PC待機/自動suffixの矛盾を解消し、ACごとの入口・期待結果・必要な詳細判断を追える。新helper実装へ逸れない |
+| T1 | 正式入口と対象選択から模擬移動までをつなぐ | 設定/期間/列挙/ステージング/排他の既存資産、正式Sync/Archive入口と模擬adapter | 隔離データで両役割の対象・平坦化・役割拒否を一連で確認。模擬接続を実Drive完成と扱わない。T0/実装再開指示に依存 |
+| T2 | A/Bの端末→クラウド移動を元削除まで通す | 実Drive adapterの契約実装、upload/現在内容確認、自端末の元不変確認/限定削除、永続記録 | AC-01/04/05/06/07/11をこの経路で通す。mockによる接続試験と実API/環境の未確認を明示。T1に依存 |
+| T3 | クラウド→A archiveをクラウド元削除まで通す | 現在Drive列挙/download、Aへの保存/読戻し確認、クラウド元不変確認/限定削除、記録 | AC-02/03/04/05/06/07/11をこの経路で通す。B待機を復活させない。共通契約/記録をT2から再利用 |
+| T4 | 両経路の再実行・結果不明照合・概要/レポートを統合 | 個別結果と履歴の対応、現在状態照合、既存retry/復旧資産、ローカル詳細レポート | AC-03/07/08/09/10/12を両経路で確認。通常失敗は同じ操作で残りを処理。専用競合解消ツールを追加しない。T2/T3に依存 |
+| T5 | 初回完成の一連試験と役割別配布/導入を検証する | 最終package allowlist/設定保持、AC-01〜12、既存CI/対象FS・runtime受け入れ計画 | 合成試験、配布試験、実環境受け入れの結果を分離して不足を記録。helper/CI成功だけで初回の運用可能を宣言しない。T4と必要な環境判断に依存 |
+| 後続 | 定期実行を手動と同じ移動処理へ接続する | scheduler/電源条件等の既存設計を再照合 | 初回の両経路と再実行が成立してから扱う。専用比較/解消ツールは別の後続候補 |
+
+T4の結果表示まで何も出さない意味ではない。T1から最小の個別結果を持ち、T2/T3の必要な検証/記録/失敗処理は各タスクに含める。T4は両経路・複数回実行をまたぐ完成の区切り。実装は機能に必要な契約・コード・試験を同じ単位にまとめ、無関係な資源制限helperを独立して増やす順序にしない。
+
+各タスクは仕様根拠・未決・対象ファイル・実行した検証・残る受け入れ限界を同じ文書/PRに記録する。作業順はこの計画で管理し、利用者の要件回答から未決の技術方式の採用まで推測しない。
+
+## 4. 既存要件・正本への対応
+
+2026-10-27の[要件と承認記録](../requirements/log-move-requirements.md#承認記録)に基づき、要件台帳13行/P0-012とREADME/主要設計/計画/試験期待を更新した。copy-only/両PC待機/自動suffixの変更方針は現行本文へ反映済み。新しい削除・状態・IPC・記録の詳細契約は引き続きT0の残件。既存IDを維持し、実装/受け入れを完了へ昇格していない。
+
+既存IDは変更/再利用せず、改訂履歴と試験条件を更新する。下表は対象の棚卸しであり、要件台帳の全行監査や実装状態の更新済み宣言ではない。
+
+| 既存項目 | 今回の扱い | 対応AC/タスク |
+| --- | --- | --- |
+| EOLM-FIL-001〜010 | 名前/日付/全過去分/エラー可視化を維持。期間対象をQ1の3層配置へ接続 | AC-01/02/09、T1〜T5 |
+| EOLM-SYN-001、EOLM-ARC-003 | Q5成立時に各経路の元を削除して完了へ要件改訂済み。実行/削除契約は未完 | AC-01/02/06/07、T0/T2/T3 |
+| EOLM-SYN-002〜005 | 同内容再利用・出所推測禁止・異内容上書き禁止を維持。SYN-003の自動suffixはQ8の競合保留へ変更 | AC-04/05、T0/T2/T3 |
+| EOLM-ARC-001/002/004/005/006、EOLM-MAN-007/010 | A専用/現在内容確認は維持。ARC-002/005・MAN-007はQ3/Q4のファイル単位へ改訂済み。現v1/helperの実装は変更せず、個別証拠の新契約は未完 | AC-02/03/06/11、T0/T3 |
+| EOLM-DRV-001〜008 | 現在内容確認/結果不明照合等を維持。新しいクラウド削除に必要な操作・権限・結果契約は未完 | AC-01/02/08、T0/T2〜T4 |
+| EOLM-CFG-005、EOLM-SAF-001/004、EOLM-TST-006、P0-012 | 2経路/2条件/役割限定と拒否条件の証明へ要件/受け入れ期待を改訂済み。汎用allowDeleteは採用せず、新しいruntime証拠は未完 | AC-06/11/12、T0/T5 |
+| EOLM-MAN-003〜006/008/009、STG群、LCK群 | 記録/未完了保全/排他を再利用。削除結果との対応を設計。定期実行やB待機の旧前提は別途再照合 | AC-07〜12、T0/T4 |
+| P0-006/009/010、EOLM-REL群 | 役割別配布・秘密非同梱・追跡性を維持し、新しい最終file集合と試験へ追従。P0閉鎖は未完 | AC-11/12、T5 |
+
+主な正本: [要件台帳](../requirements/requirements-traceability.md)、[P0台帳](../requirements/p0-gap-register.md)、[実装計画](implementation-workflow.md)、[決定台帳](../decisions/decision-register-c18-c32.md)、[詳細設計への参照表](development-guide.md)。旧設計は記録として保持し、変更範囲を明示して整合させる。今回更新した冒頭通知だけで全本文の改訂済みとはしない。
+
+## 5. 実装前に閉じる詳細と、後へ分けられるもの
+
+[設計書](../design/log-move-design.md)に、コピー基準/保存先/削除直前の元の3内容と実体を結び付ける具体案、両経路の順序、公式API資料の確認結果と残件を記載した。Q5の具体方式を確定したものではなく、T0の詳細設計として継続する。
+
+同設計§9〜13に、削除前の必要記録、削除応答と除去確認、通常再実行の照合表を追加。Q11で照合による完了の方針は確認済み。記録/状態案は以下へ具体化したが、実API/FSの不在確認、次経路へ移動済みの場合の照合、新版の契約確定は未完で、T0完了とはしない。
+
+同設計§14〜18で、独立したJSONイベント記録・観測と移動結果の状態区分・成功応答/不在確認の分離を候補として具体化した。現v1との接続、新版の正確なfield/validator/永続化と実APIの保証は未完。Q12で両経路の直接削除方式は確認済み。AC-01/02/07/08/11はこの削除方式を前提とし、ごみ箱移動や元フォルダからの消失だけを削除完了へ昇格しない。
+
+| 判断・設計 | 必要な時期 | 残す具体物 |
+| --- | --- | --- |
+| 元/保存先のidentityと平坦化の対応、同名判定/一括発見/同時実行 | T1/T2より前 | 個別元と一意な保存先の対応、競合保留の判定表 |
+| Q5の内容一致/元不変確認と削除を同じ対象へ結び付ける方式 | 削除実装より前 | 両経路の確認方式・確認不能/変更時の保全・確認と削除間の限界 |
+| 削除前後の記録、結果不明照合、ファイル完了とrun状態/終了コード | T2/T3の削除より前 | 状態遷移、必要な永続記録、消失/再到着/次経路移動時の照合表 |
+| Driveの新操作・C-02結果・credential/scope/provider・役割制限 | 対応adapter実装より前 | 要求/応答と拒否条件、実権限の検証計画。文書で権限を与えた扱いにしない |
+| 起動/前提検査と復旧/保存領域/容量の接続 | T1から必要な箇所で | 入口で拒否する条件と各ACの影響範囲。既存helperの観測をそのまま認可にしない |
+| 概要/ローカルレポートの形式・表示・保存失敗・保持 | 最小結果はT1、完成はT4より前 | 元ごとの状況、完了件数、確認先、実値非公開の境界 |
+| 最終package/導入/更新/対象FSとruntime受け入れ | T5より前 | 最終allowlist、既存実設定保持、限定環境検証計画と未実証項目 |
+| 定期実行、専用競合解消ツール | 初回完成後の候補 | 既存判断との整合を後続計画へ記録。今回の実装前提へ混ぜない |
+
+これらを全て利用者へ細かい二択で再質問するのではなく、既存の承認を再利用して具体案を作る。データの扱い・完成範囲が変わる判断だけを壁打ちで確認する。
+
+## 6. 検証と現在地
+
+本書のACは全て未実行。正式Sync/Archive入口、実Drive adapter、新しい元削除経路、両経路の再実行/結果表示は未完成。実装再開指示もまだ受けていない。
+
+T0の旧方針整合は§4のとおり進めた。次は元/保存先の識別・Q5確認と削除結果の詳細設計を進める。通常検証は合成/隔離/模擬APIを使い、実ログ/本番Driveの接続・削除・本番適用は別途具体的指示と限定計画の範囲で扱う。独立レビュー未実施を自己点検で置き換えて表記しない。
+
+## 7. 文書の統合・削除記録
+
+利用者の2026-10-27指示に基づき、作業文書を正式文書へ集約した。以下の旧ファイルはコピーを残さず削除し、全文/差分はGitの`c709558`以前で追跡できる。履歴の書き換えやbranch削除は行わない。
+
+| 削除する旧作業文書 | 移行先と保持内容 |
+| --- | --- |
+| `docs/development/requirements-design-task-review-20261027.md` | 要件定義書: Q1〜Q12/平坦化/恒久規則の承認記録と現行要件。実装対応は本計画 |
+| `docs/development/initial-move-delivery-plan-20261027.md` | 本計画: AC-01〜12、T0〜T5、既存ID対応、未決/受け入れ限界 |
+| `docs/design/move-source-destination-verification.md` | 設計書: 2経路、識別/Q5、記録/状態/照合/応答候補、公式資料と限界 |
+
+既存schema/helperに対応する個別契約、運用規則、判断に必要な過去承認、検証根拠はまだ利用先があるため削除しない。ファイル名にproposal/optionsがあるだけで不要と決めない。AGENTSの変更は承認記録へのリンク先のみで、恒久規則の意味は変えていない。
+
+## 8. 旧実装計画の参照の読み方
+
+過去の監査/証拠に残る節番号・Phase名は当時の文書位置。本ファイルは正式計画へ置き換えたため、現在の実装には次の移行先を使い、過去基準が必要なら`c709558`を参照する。
+
+| 旧位置 | 現在の参照先 |
+| --- | --- |
+| §2.1〜2.3 役割/保存先/保持 | 要件定義書§1〜4 |
+| §2.4 同名、§2.5 削除/クラウド確認、§2.6 起動 | 要件定義書§5〜8、設計書§3〜5/11/17 |
+| §4 P0 readiness、旧Phase 0〜8 | 本計画§2〜5、P0台帳。定期実行は後続候補 |
+| §7 安全境界 | 要件定義書§6/9/10、AGENTS |

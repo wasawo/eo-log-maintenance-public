@@ -1,9 +1,25 @@
-# 移動元・保存先の識別と削除前確認
+# ログ移動システム 設計書
 
-更新日: 2026-10-27（日本時間）
-状態: 詳細設計案。Q5の2条件、Q11の照合による完了、Q12の両経路の対象元の直接削除は確定済み。具体API/FS能力・記録形式/IPC契約は未確定・未実装。
-基準: 文書branch `docs/requirements-design-task-review`。識別/Q5案は`1402600`から、記録/照合案は`8f35128`から整理。
-要件根拠: [再確認台帳](../development/requirements-design-task-review-20261027.md)Q1〜Q10/平坦化、[初回移動計画](../development/initial-move-delivery-plan-20261027.md)T0/AC-01〜08/11。
+文書版: 1.0 / 更新日: 2026-10-27（日本時間）
+位置付け: [要件定義書](../requirements/log-move-requirements.md)を実装へ接続する正式な設計の入口。
+確定範囲: 2経路・平坦化・Q5・同名処理・通常再実行・Q11・Q12の要件と役割境界。
+未確定範囲: 本文で「案」「候補」「未確認」と示すAPI/FS能力・記録形式/状態/IPC・永続化等。正式文書化によって候補を採用済みにしない。
+実装/受け入れ: 未完。[実装計画](../development/implementation-workflow.md)と[現行handoff](../handoff/next-chat.md)を参照。コード/schemaや旧artifactは今回変更しない。
+
+## 0. 全体構成と責務
+
+```mermaid
+flowchart LR
+  A[PC-Aの元ログ] --> C[ログ種別ごとの共通クラウド]
+  B[PC-Bの元ログ] --> C
+  C --> R[PC-A archive]
+```
+
+各矢印はコピー/保存先確認/元不変確認/確認済み元の直接削除までを含む移動。古いA元もクラウド経由。移動は元ファイル単位で確定し、他PCの期間完了を待たない。
+
+PowerShellは設定/役割/対象選択、移動の順序・判定、retry、記録と結果表示を制御する。Pythonは現在のDrive adapter契約に従い1回のAPI試行を担う。新しいcloud削除のoperation/型/権限と、ローカル実体を保つ削除方式は未完。必要な観測・実体結合を確認せず、汎用削除APIへ対象名だけを渡す実装にしない。
+
+設定/容量/排他/復旧/Dry Run/配布等の維持する契約は[開発参照表](../development/development-guide.md)を参照。既存v1/helperの純粋な検査を移動完了/削除認可へ昇格しない。
 
 ## 1. 確認の目的と範囲
 

@@ -3,7 +3,7 @@
 - Status: implementation gate proposal; not a runtime implementation or authorization to archive/delete.
 - Last updated: 2026-10-22
 
-2026-10-27 policy revision: [Q1–Q10 and flattening](../development/requirements-design-task-review-20261027.md) govern the two move routes. Requirements below are aligned with that policy; the new source-deletion IPC/persistence/verification contracts are not yet specified or implemented. Existing v1 validators remain copy/verification helpers, not proof of completed movement.
+2026-10-27 policy revision: [Q1–Q10 and flattening](../requirements/log-move-requirements.md) govern the two move routes. Requirements below are aligned with that policy; the new source-deletion IPC/persistence/verification contracts are not yet specified or implemented. Existing v1 validators remain copy/verification helpers, not proof of completed movement.
 - Related: `docs/development/implementation-workflow.md`, `docs/validation/runtime-safety-test-scenarios.md`, `docs/validation/p0-runtime-entrypoint-safety-audit.md`, `docs/design/manifest-state-transition-v1-proposal.md`
 - Current validation helpers: `Common/AggregationReportValidation.ps1`, `Common/AggregationReferencedArtifacts.ps1`, `Common/validate_aggregation_artifacts.py`, `Common/RunInputEvidenceIntegrity.py`
 
