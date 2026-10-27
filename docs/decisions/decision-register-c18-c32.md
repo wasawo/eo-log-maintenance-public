@@ -1,5 +1,7 @@
 # Decision Register: C-18–C-32
 
+> 2026-10-27: [要件再確認Q1〜Q4](../development/requirements-design-task-review-20261027.md)で、元削除まで含む手動移動を初回完成とする要求、両PC期間完了待ち不要、file単位の完了/再実行が確認された。以下のC-19/C-22/C-28/C-30等との衝突を記録中。詳細条件・恒久安全規則の改訂は未完であり、本通知はそれらの解除や実データ操作の認可ではない。過去の承認内容は履歴として保持し、改訂完了と混同しない。
+
 - Status: Fixed and deferred decisions are recorded here; overall P0 acceptance remains incomplete. The authoritative P0 readiness/acceptance gate is in docs/development/implementation-workflow.md §4.
 - Scope: Initial implementation of ElectronicObserver log maintenance
 - Canonical source: GitHub; current main baseline for this update is PR #38 merge `179787f`.

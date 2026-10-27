@@ -2,6 +2,8 @@
 
 Current implementation inventory and dependency order: [2026-10-24 readiness review](../status/first-release-readiness-20261024.md). This plan does not itself establish completion or production authorization.
 
+2026-10-27から[要件・設計・タスクを再確認中](requirements-design-task-review-20261027.md)。Q1〜Q4では元削除を含む手動移動の初回完成、両PC期間完了待ち不要、file単位の完了/再実行という要求が確認された。以下の旧copy-only/no-delete・両PC待機・phase順序との衝突は同台帳へ記録し、詳細条件と恒久規則の改訂はまだ完了していない。本通知は旧安全規則の解除・実装/実データ操作の開始指示ではない。
+
 
 - Status: Proposed implementation plan
 - Repository: `wasawo/eo-log-maintenance-public`
