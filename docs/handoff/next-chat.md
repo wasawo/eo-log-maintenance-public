@@ -6,11 +6,27 @@
 
 ## 現在地
 
-- 作業branch: `codex/manual-move-preflight`。開始時はクリーンなmain `36550ab`（PR #47 squash merge済み）で、fetch後のorigin/mainとも一致した。そこからupstreamを設定せず新しい作業ブランチを作成した。PR #47のmain Validate/Package Validationも成功を確認済み。今回の実装はローカルコミットまでとし、新たなpush/PR/mergeは利用者の指示を待つ。
+- 作業branch: `codex/manual-move-preflight`。今回開始HEADは`252871e`、作業ツリーはクリーン。PR #47のmain `36550ab`から作成した同じブランチへ継続して蓄積する。PR #47のmain Validate/Package Validationは前回成功を確認済み。今回もローカルコミットまでとし、新たなpush/PR/mergeは利用者の指示を待つ。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
-## 今回の実装再開: 両経路の模擬接続
+## 今回のWindows削除・記録の隔離接続
+
+[Windows隔離probe](../design/windows-move-delete-probe.md)を追加し、自作OS-tempの合成元/保存先で、128-bit File ID・size/hashの確認、削除前記録の実保存/読戻し、同一元ハンドルでの直接削除、除去確認、結果記録と照合を接続した。競合する書込/DELETE openは共有違反で拒否し、既存writerがあれば元の削除guardを取得できない。元/保存先の同内容別実体への差替えでも元を残す。
+
+別readerが残ると削除指定成功後も除去がpendingになることを確認し、成功応答と移動完了を分離した。読取ハンドルを閉じた後の同一probe内照合は、準備記録・現在の同じ保存先・元不在を再確認し、別の照合記録を保存する。結果記録の失敗、準備記録の改変/欠落、元再作成等を成功にせず、旧結果記録も書き換えない。
+
+実装はtests配下のみで、利用者指定pathや実設定を受け取らない。正式provider、新schema、別プロセス回復、Drive接続は提供せず、T0/T1やAC全体は未完のまま。次はこの候補を正式な元/保存先・試行identityと永続記録へどう結び付けるかを具体化する。書込可能mapping、実効ACL、名前空間保護、対象FS/電源断、実Drive保存先との結合は未確認。制御をPowerShell、実Driveの単試行をPythonとする本来の責務分担も変更していない。
+
+Microsoft公式仕様とGitHubのMicrosoft STL実装を比較し、基本FileDispositionInfoを候補として試験した。Drive公式のfiles.delete/404仕様も再確認したが、版を固定した削除と不在/権限不足を区別する保証は得ていない。非対応とは断定せず、cloud元削除は未実装・未実行を維持する。資料URLと限界は上記設計へ記録した。
+
+Python 3.11.9/Windowsの新しい統合試験9件は成功、skipなし。最初のsandbox実行は置換/hardlinkがWinError 5となったため、自動生成一時領域限定の同じ試験をsandbox外で実行して成功を確認した。Pythonの構文解析2ファイルと差分検査も成功。CIにはPython 3.12/Windowsの専用ステップを追加したが、リモートCIは未実行。変更していないCommon/配布物/PowerShellの試験を無関係に再実行していない。rootの自己点検であり、独立レビューと実運用受け入れは未実施。
+
+文書96件の相対リンク946件・見出し参照112件に欠落なし。`git diff --check`成功。今回はmarkdownlintの再実行は行わず、リンク・記述整合・差分を確認した。
+
+文書と既存コードの新たな不一致は見つかっていない。「具体的な開き方が未設計」という記述は、隔離候補ができたことと正式採用は未完であることへ更新した。
+
+## 前回の実装再開: 両経路の模擬接続
 
 新しい[模擬契約](../design/log-move-simulation.md)に基づき、`Common/LogMoveSimulation.ps1`と`tests/Test-LogMoveSimulation.ps1`を追加した。設定・期間選択・平坦化・同名同内容再利用/異内容保持・Q5・元単位の結果・通常再実行・結果不明照合を両経路で接続する。コピー対象のbytesを複製し、内容と元実体の確認後にモデル内の当該元だけを取り除く。コピー/確認/記録/削除の故障を注入し、独立した別ファイルは進める。旧不明記録を変更せず、削除後の結果記録欠落も「対象なし」に隠さない。
 
