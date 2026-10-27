@@ -34,6 +34,7 @@
 
 ## 過去基準の監査・検証根拠
 
+- [リポジトリ整理の再点検（2026-10-27、残存不整合）](validation/repository-organization-review-20261027.md)
 - [診断契約 C-45–C-54: 実装およびテストの証拠](validation/diagnostic-contract-test-evidence.md)
 - [IPC 契約からテストまでの証拠監査](validation/ipc-contract-evidence-audit.md)
 - [P0 PowerShell/Python 契約レビューの結果](validation/p0-contract-review-findings.md)
