@@ -85,6 +85,7 @@ If no eligible files exist, report a successful skip for that category/period. A
 - For inventory/reconciliation, a same-content comparison candidate requires matching name, size, and SHA-256 against a trusted comparison source, with exactly one candidate in a completely enumerated target Drive folder. A match is not proof of provenance and does not itself authorize restore, sync-success classification, or archive; see the approved OSD-01 decision in `docs/requirements/p0-open-specification-decisions.md`.
 - Existing suffixed files are not automatically renamed or removed under this revision.
 - Verify copied files with SHA-256 and record source name, final name, source PC, size, checksum, period, and result in the manifest.
+- 2026-10-27 Q9: after ordinary per-file failures or source-deletion failures, the operator reruns the same move operation; a separate retry command is not required. Re-evaluate current sources and destinations, reuse verified identical content, and verify both Q5 conditions per source before deletion. Keep conflicts and unverifiable items unresolved in the results. Unknown outcomes require reconciliation; crash-left locks and ownership records remain subject to the separate explicit-recovery design. See [rerun policy](requirements-design-task-review-20261027.md). Result reconciliation and deletion API details remain to be designed; this is not implementation or production authorization.
 
 ### 2.5 Deletion and cloud confirmation
 
