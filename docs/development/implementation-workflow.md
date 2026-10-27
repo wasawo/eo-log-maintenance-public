@@ -103,6 +103,7 @@ If no eligible files exist, report a successful skip for that category/period. A
 - Q3/Q4: PC-A processes eligible files currently in the cloud without waiting for both PCs' period-completion manifests. Late arrivals are handled on a later run. Verify each current cloud source and archive destination independently.
 - Q2/Q5: archive completion includes deleting only the verified cloud source after archive-content equality and source unchanged since copying are confirmed. Unknown, changed, or mismatched items retain their sources. Exact verification/deletion APIs and persistence contracts remain to be designed.
 - Deletion is limited to these two move routes and per-source Q5 conditions. Generic or unconditional deletion is not adopted. During this document review no deletion code/schema is added; real-data deletion requires a separate concrete instruction under AGENTS.
+- 2026-10-27 Q12: both routes directly delete only the verified eligible source file without moving it to a recycle bin/trash. Trash placement or disappearance from the source folder alone is not completed source deletion, including Q11 reconciliation. Do not empty trash, recursively delete folders or clean unrelated data. This confirms policy only; API/FS identity binding, response/absence contracts and implementation resumption remain pending.
 
 ### 2.6 Invocation
 

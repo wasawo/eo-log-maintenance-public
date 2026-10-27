@@ -1,7 +1,7 @@
 # 移動元・保存先の識別と削除前確認
 
 更新日: 2026-10-27（日本時間）
-状態: 詳細設計案。Q5の2条件とQ11の照合による完了方針は確定済み。具体方式・実API/FS能力・記録形式/IPC契約は未確定・未実装。
+状態: 詳細設計案。Q5の2条件、Q11の照合による完了、Q12の両経路の対象元の直接削除は確定済み。具体API/FS能力・記録形式/IPC契約は未確定・未実装。
 基準: 文書branch `docs/requirements-design-task-review`。識別/Q5案は`1402600`から、記録/照合案は`8f35128`から整理。
 要件根拠: [再確認台帳](../development/requirements-design-task-review-20261027.md)Q1〜Q10/平坦化、[初回移動計画](../development/initial-move-delivery-plan-20261027.md)T0/AC-01〜08/11。
 
@@ -78,7 +78,7 @@ Bはここまでの自端末元だけを担当し、cloud元削除やarchiveは�
 | 資料 | 確認できた事実 | 本設計への含意・未確認 |
 | --- | --- | --- |
 | [Google Drive files resource](https://developers.google.com/workspace/drive/api/reference/rest/v3/files) | `version`はサーバー上の変更に伴い増える番号。`sha256Checksum`は取得可能な場合の保存内容hashで、Docs/shortcutには設定されない | ID/親/名前とともに取得前後・削除直前の版/内容を比較する候補。実対象での取得可否、versionとdownload bytesの対応付けは未実証 |
-| [Google Drive files.delete](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/delete) | `fileId`で指定し、ごみ箱を経由しない永久削除。公開されたpath/queryパラメーターには期待version指定を確認できない | これだけで条件付き削除が非対応と断定しない。一方、version確認後の削除が同じ版に限定される保証も得ていない。HTTP条件/SDK動作の確認が必要。永久削除とごみ箱移動のどちらを採るかは未決 |
+| [Google Drive files.delete](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/delete) | `fileId`で指定し、ごみ箱を経由しない永久削除。公開されたpath/queryパラメーターには期待version指定を確認できない | Q12で直接削除の要件は確認済み。ただし条件付き削除が非対応とは断定せず、同じ版に限る保証も得ていない。HTTP条件/SDK動作・権限・対象結合を確認してから具体契約を閉じる |
 | [Microsoft SetFileInformationByHandle](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfileinformationbyhandle) | ハンドルを対象に情報を設定でき、削除指定には適切なアクセス権が必要 | 同じ実体を確認して削除する方式の候補。適切な共有/排他指定、link/reparse/対象FS、完了確認を検証してから採用する |
 
 上記は公開仕様の調査であり、実ログ/Driveへの試行や削除ではない。特に「Driveにはversionがある」から「そのversionに限って削除できる」へ飛躍しない。新しい削除要求やscope/権限の拡張はまだ採用していない。
@@ -243,15 +243,19 @@ Google公式の[エラー仕様](https://developers.google.com/workspace/drive/a
 
 ローカルもpath lookup失敗を一律に不在としない。許可root/実体の対応、アクセス不能と不在の分類、削除pending/handle終了と実際の除去を区別する契約を実FSで検証する。cloudの恒久的な除去確認、権限変化との区別、版固定/条件付き操作の具体方式は未確定。根拠を得られないadapterは存在状態を確認不能として返す。
 
-## 17. 削除方式の確認点（Q12回答待ち）
+## 17. 削除方式（Q12確認済み）
 
 Google Driveは、ごみ箱内のファイルも永久削除まで容量に算入する（[公式ヘルプ](https://support.google.com/drive/answer/2375102?hl=en)）。[files.delete仕様](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/delete)はごみ箱を経由しない永久削除で、移動元フォルダから見えなくする操作とは区別する。
 
-容量削減というQ1の目的から、Q5と役割制限を満たした対象ファイルだけを両経路ともごみ箱経由せず直接削除する案をQ12として提示した。回答までは永久削除/ごみ箱方式を採用済みとしない。どちらの選択でも、ごみ箱全体の消去・フォルダ再帰削除・対象外データの清掃は範囲に含めない。容量表示の即時反映を個別移動の完了証拠にする設計にもしていない。
+利用者はQ12で、**移動後の元は、両経路ともごみ箱を経由せず、確認済みの対象ファイルだけを直接削除する**方式を確認した。Q5の2条件と役割制限は維持する。各PCの適格な自端末元と、Aのarchive後の適格cloud元だけが対象。ごみ箱全体の消去・フォルダ再帰削除・対象外データの清掃は範囲に含めない。
+
+元フォルダからの消失やごみ箱への移動だけでは、この削除要件の完了としない。ごみ箱内に元実体が残ると判明した場合も、Q11の「確実な不在」へ変換しない。容量表示の即時反映も個別移動の完了証拠にしない。Q11の照合による完了には、直接削除に対応した元不在と有効記録/保存先内容の確認が必要。
+
+Q12は削除の仕様選択であり、実データ削除・実装再開の指示ではない。現schema/コードは変更せず、具体的な削除API/FS操作・対象の版固定・応答/不在確認・権限の契約は引き続き未完。
 
 ## 18. 次に閉じる契約と試験
 
-1. Q12の削除方式を記録し、除去/不在の意味と必要なpermission/provider契約へ反映する。
+1. Q12の直接削除に合わせ、元フォルダからの消失/ごみ箱残存と直接削除を区別するpermission/provider契約を閉じる。隔離合成元の直接削除と、対象外/ごみ箱全体/フォルダ再帰削除を呼ばない試験へ接続する。
 2. 上記候補を新しい移動記録のfield型/版/条件付き必須項目と状態表へ落とし、同じIDの矛盾・欠落参照・準備前結果・別対象応答を拒否する条件を定める。
 3. 個別cloud IDへのアクセスが失われた404と、実際の削除後404を合成入力で区別できない場合、後者も確認不能として扱うことを試験する。実際に区別する方式の検証は別途必要。
 4. 記録は正常でも観測対象が異なる、成功応答でも不在未確認、Q11照合完了でも前回要求結果は不明、旧manifest verifiedでも移動未完了、の各ケースを検査する。

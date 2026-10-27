@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### Q12: 両経路の確認済み対象元は直接削除（2026-10-27）
+
+- cleanな同branch `docs/requirements-design-task-review`、基準`06d2356`から継続。利用者がQ12で両経路とも「ごみ箱を経由せず、確認済みの対象ファイルだけを直接削除する」方式を明示確認。[再確認台帳](../development/requirements-design-task-review-20261027.md)§2.13と[詳細設計](../design/move-source-destination-verification.md)§17/初回移動計画/実装計画/開発参照表へ反映した。
+- Q5/役割制限は維持し、ごみ箱移動や元フォルダからの消失だけで完了としない。ごみ箱全体消去・フォルダ再帰削除・対象外清掃は含めない。Q11の照合完了も直接削除に対応する元不在の確認が必要。
+- 提示済みの未回答質問はない。次は直接削除を前提に記録の型/版・実API/FSの不在/版固定保証・経路間照合を具体化する。T0と実装再開は未完。コード/schema・実データ操作なし。
+- 変更6文書の相対リンク211件の参照先欠落0、`git diff --check`成功。Q12確定とQ5/役割/対象限定の維持、実装/実データ操作との区別を自己点検した。文書のみのため無関係な全suiteは実行していない。root自己点検のみ、独立レビューなし。同branchへローカルコミットを蓄積し、PRはまとめる。今回push/PR/mergeなし。
+
 ### 記録形式・状態・削除応答の契約候補を整理（2026-10-27）
 
 - cleanな同branch `docs/requirements-design-task-review`、基準`8610e5b`から継続。利用者の次の整理指示を受け、[詳細設計](../design/move-source-destination-verification.md)§14〜18へ不変のJSONイベント/情報群/状態/adapter応答の候補を追記。[再確認台帳](../development/requirements-design-task-review-20261027.md)§2.13、初回移動計画、開発参照表へ接続した。
