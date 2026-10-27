@@ -78,11 +78,12 @@ If no eligible files exist, report a successful skip for that category/period. A
 
 - Keep the existing shared folder layout; do not add PC-A/PC-B subfolders to the log destination.
 - Use SHA-256 to compare file contents.
-- If a same-name destination file has the same SHA-256, treat it as a duplicate and avoid unnecessary re-copying.
-- If same-name files have different contents, preserve both and add `_PCA` or `_PCB` immediately before the extension (for example, `20261001_log_PCA.txt`).
-- If an existing unmarked file must be renamed, determine its source from a trusted manifest/record before assigning its source suffix. If its source cannot be established, do not guess, overwrite, or delete it; record a conflict requiring safe resolution.
+- 2026-10-27 Q8: [confirmed collision policy](requirements-design-task-review-20261027.md#27-同名ファイルの扱いq8回答2026-10-27) applies to both move routes, including collisions caused by flattening source subfolders. These requirements do not authorize implementation resumption or production operations.
+- If a same-name destination file has verified identical content, reuse that destination and avoid unnecessary re-copying. Verify both Q5 deletion conditions for each individual source before deleting it; matching a destination is not by itself a completed move.
+- If same-name files have different contents, leave the existing destination unchanged, preserve the source, and report a conflict for that file. Continue unrelated files where safe. Do not automatically add `_PCA`/`_PCB`, rename existing files, overwrite, or merge contents. This replaces the earlier automatic suffix policy for initial completion.
+- If content equality or destination identity cannot be established, preserve the source and report the unresolved reason. Manual conflict resolution and simultaneous-publication details remain to be designed.
 - For inventory/reconciliation, a same-content comparison candidate requires matching name, size, and SHA-256 against a trusted comparison source, with exactly one candidate in a completely enumerated target Drive folder. A match is not proof of provenance and does not itself authorize restore, sync-success classification, or archive; see the approved OSD-01 decision in `docs/requirements/p0-open-specification-decisions.md`.
-- If the suffixed target also exists with different content, never overwrite it; report an error and leave originals untouched.
+- Existing suffixed files are not automatically renamed or removed under this revision.
 - Verify copied files with SHA-256 and record source name, final name, source PC, size, checksum, period, and result in the manifest.
 
 ### 2.5 Deletion and cloud confirmation
@@ -191,7 +192,7 @@ Implement `scripts/SyncLogs.ps1` and `Run_Log_Sync.bat`:
 
 PC-B build/runtime must not contain or expose archive/delete functionality.
 
-Exit criteria: automated tests cover normal copy, already-present identical file, conflicting same-name file, suffix collision, partial copy, cloud API failure, checksum mismatch, retry after failure, and no eligible files.
+Exit criteria: automated tests cover normal copy, already-present identical file with per-source verification, conflicting same-name file preservation without automatic renaming, ambiguous destination, partial copy, cloud API failure, checksum mismatch, retry after failure, and no eligible files.
 
 ### Phase 3 — Archive implementation (PC-A only)
 
