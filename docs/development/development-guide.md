@@ -6,6 +6,8 @@
 
 [初回ログ移動の受け入れ条件・実装順案](initial-move-delivery-plan-20261027.md)に、両経路を元削除まで通すACとT0〜T5、旧要件IDの変更対象を整理した。次は正本/詳細契約の整合であり、helper単位の追加実装を自動選択しない。
 
+両経路の具体的な確認設計は[移動元・保存先の識別と削除前確認案](../design/move-source-destination-verification.md)を参照。Q5の要件合意と、実体識別/内容再確認/削除対象の結合方式の未確定を区別する。
+
 | 変更対象 | 読む文書・実体 | 維持する条件 |
 | --- | --- | --- |
 | 全体・未完了 | [現行handoff](../handoff/next-chat.md)、[初回配布棚卸し](../status/first-release-readiness-20261024.md)、[実装計画](implementation-workflow.md)、[要件台帳](../requirements/requirements-traceability.md)、[P0台帳](../requirements/p0-gap-register.md) | 記録より実ファイル・実Git状態を優先し、実装済みhelperと正式runtime完成を区別 |

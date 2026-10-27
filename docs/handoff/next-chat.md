@@ -8,6 +8,14 @@
 
 ## 最新基準と今回の作業
 
+### 元/保存先の識別とQ5確認方式を整理（2026-10-27）
+
+- cleanな同branch `docs/requirements-design-task-review`、基準`1402600`から継続。利用者の「次の整理に入って」を受け、[移動元・保存先の識別と削除前確認案](../design/move-source-destination-verification.md)を作成。[再確認台帳](../development/requirements-design-task-review-20261027.md)§2.11/初回移動計画/開発参照表からつないだ。
+- 論理位置/実体を区別し、コピー対象内容・保存先内容・削除直前の元内容の一致とidentityを対応付ける案。既存先再利用でも今回の元確認を行う。ローカル再読取/Drive現在hashまたはdownloadを候補とし、現在のhelperを削除認可へ変更しない。
+- Google/Microsoft公式資料だけを参照してDrive version/hash・files.deleteの永久削除・ハンドル対象操作の候補を調査。version固定で削除できる保証、実FS/SDK動作は未確認。具体API/排他/永久削除またはごみ箱の採否は未決。実データ操作・コード/schema変更なし。
+- 提示済みの未回答質問はない。次は確認した実体と削除対象の結合、削除前後の永続記録と結果不明照合、API能力/方式を具体化する。T0/実装再開は未完。
+- 新規設計案を含む変更5文書の相対リンク194件の参照先欠落0、`git diff --check`成功。公式資料の能力と推測/未確認、既存資産の非認可と方式未確定を自己点検した。文書のみのため無関係な全suiteは実行していない。root自己点検のみ、独立レビューなし。同branchへローカルコミットを蓄積し、PRはまとめる。今回push/PR/mergeなし。
+
 ### 旧仕様の矛盾を合意範囲で解消（2026-10-27）
 
 - cleanな同branch `docs/requirements-design-task-review`、基準`1cdbe04`から継続。利用者の「旧仕様の矛盾解消を実施」を受け、[再確認台帳](../development/requirements-design-task-review-20261027.md)§2.10に変更点と維持境界を記録。全面削除禁止→2経路/Q5の限定削除、両PC待機→現在対象の個別処理、自動suffix→異内容保留を現行文書へ反映した。
