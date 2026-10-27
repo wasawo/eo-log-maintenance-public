@@ -33,6 +33,7 @@ docs/
 
 ## 探し方と配置ルール
 
+- 初回移動の完成判定・作業順を確認する: [受け入れ条件と実装計画案](development/initial-move-delivery-plan-20261027.md)。Q1〜Q10からの整理で、試験/実装再開は未実施。
 - 実装を始める: [詳細仕様への参照表](development/development-guide.md) → 対象の要件・承認記録・仕様・テストを確認する。
 - 単独で作業する: [root単独運用](development/agent-workflow.md)。サブエージェントの新規作成・再利用・別AIタスクへの委譲は行わない。旧定義は [失効した履歴](development/archive/README.md) として保全する。
 - 検証する: [検証スキル](../.agents/skills/eolm-validation/SKILL.md)、[tests案内](../tests/README.md)。Git/CI/引き継ぎは [対応スキル](../.agents/skills/eolm-pr-handoff/SKILL.md)。

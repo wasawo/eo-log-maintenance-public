@@ -4,6 +4,8 @@
 
 2026-10-27から[要件・設計・タスクを利用者と再確認中](requirements-design-task-review-20261027.md)。この再確認の対話が終わり実装再開の指示を受けるまでは、新規実装単位を自動選択せず、同書の現在の質問・合意/提案/未決とhandoffを確認する。既存仕様は明示的な変更合意まで維持する。
 
+[初回ログ移動の受け入れ条件・実装順案](initial-move-delivery-plan-20261027.md)に、両経路を元削除まで通すACとT0〜T5、旧要件IDの変更対象を整理した。次は正本/詳細契約の整合であり、helper単位の追加実装を自動選択しない。
+
 | 変更対象 | 読む文書・実体 | 維持する条件 |
 | --- | --- | --- |
 | 全体・未完了 | [現行handoff](../handoff/next-chat.md)、[初回配布棚卸し](../status/first-release-readiness-20261024.md)、[実装計画](implementation-workflow.md)、[要件台帳](../requirements/requirements-traceability.md)、[P0台帳](../requirements/p0-gap-register.md) | 記録より実ファイル・実Git状態を優先し、実装済みhelperと正式runtime完成を区別 |

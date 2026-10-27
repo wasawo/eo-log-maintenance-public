@@ -1,5 +1,7 @@
 # Requirements Traceability Register
 
+> 2026-10-27 要件再確認: [Q1〜Q10の合意](../development/requirements-design-task-review-20261027.md)と[受け入れ条件/既存ID対応](../development/initial-move-delivery-plan-20261027.md)を参照。SYN-001/003、ARC-002/003/005、MAN-007、CFG-005、SAF-001/004、TST-006等の旧全面削除禁止・自動suffix・両PC成功待ちは変更対象。旧行を新合意より優先しない。IDごとの本文/試験/根拠の整合はT0で継続し、本通知は全行改訂済み・runtime検証済みを示さない。
+
 - Status: Evolving baseline; source-to-requirement mapping is recorded in `docs/validation/requirements-source-audit.md`, but implementation/test/evidence reconciliation remains incomplete.
 - Scope: Initial ElectronicObserver log-maintenance implementation for PC-A and PC-B.
 - Canonical repository: `wasawo/eo-log-maintenance-public`

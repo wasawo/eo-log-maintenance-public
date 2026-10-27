@@ -1,6 +1,8 @@
 # Implementation Workflow: ElectronicObserver Log Maintenance
 
-Current implementation inventory and dependency order: [2026-10-24 readiness review](../status/first-release-readiness-20261024.md). This plan does not itself establish completion or production authorization.
+Historical implementation inventory and dependency order: [2026-10-24 readiness review](../status/first-release-readiness-20261024.md). The current scope/order proposal follows the 2026-10-27 review below. This plan does not itself establish completion or production authorization.
+
+2026-10-27: [初回ログ移動の受け入れ条件・実装順案](initial-move-delivery-plan-20261027.md)にQ1〜Q10と平坦化の合意を整理した。初回完成は両経路の元削除まで。以下の旧phase順や全件no-delete等は同計画§4の改訂対象であり、初回完成をコピーだけへ戻す根拠にしない。詳細契約/本文全体の整合と実装再開指示は未完。
 
 2026-10-27から[要件・設計・タスクを再確認中](requirements-design-task-review-20261027.md)。Q1〜Q5では元削除を含む手動移動の初回完成、両PC期間完了待ち不要、file単位の完了/再実行と、削除前に保存先の内容一致・元がコピー時から不変であることの両方を確認し、確認不能なら元を残す要求が確認された。AGENTSの該当境界は利用者の明示承認を受け限定改訂済み。以下の旧copy-only/no-delete・両PC待機・phase順序との衝突は同台帳へ記録し、本文全体・具体的確認方式・詳細契約の改訂は未完。本通知は実装/実データ操作の開始指示ではない。
 
@@ -19,8 +21,8 @@ Implement safe synchronization, verification, retention, and archival for Electr
 
 ### 2.1 Roles
 
-- **PC-A**: Synchronizes its own logs; writes its manifest; archives eligible Drive logs to the PC-A archive destinations by copying, verifying, and recording results only. Initial implementation has no local-source deletion or Drive deletion capability.
-- **PC-B**: Synchronizes its own logs and writes its manifest. It must never archive or delete source/Drive logs. Do not package or install an archive entry point for PC-B.
+- **PC-A**: Moves its own eligible logs to the cloud, and moves eligible cloud logs to its archive. Each route includes destination-content verification, source-unchanged verification immediately before deletion, and deletion of only the verified source. Records and failure handling remain required; implementation is pending.
+- **PC-B**: Moves its own eligible logs to the cloud, including deletion of only its verified local sources under Q5. It must never archive or delete cloud sources. Do not package or install an archive entry point for PC-B.
 - **Google Drive for desktop shared log location**: Common destination for both PCs' logs and shared maintenance manifests.
 - **GitHub**: Canonical source for scripts and documentation.
 - **Google Drive distribution folder**: Approved release package destination, separate from the log collection folder. Distribution is one-way from GitHub to Drive. PC updates remain manual.
@@ -63,7 +65,7 @@ Period selection is based on the date encoded in the filename. `LastWriteTime` m
 - PC-A BattleLog archive: periods **in the previous year and earlier**.
 - PC-A ErrorReport archive: periods **up to and including two years before the current year**.
 - Current-month BattleLog and current-year ErrorReport remain on the source PC.
-- Steady state: Drive retains the previous month of BattleLog and previous year of ErrorReport; PC-A archive retains older eligible periods.
+- Steady state: Drive retains the current year's BattleLog before the current month and the previous year's ErrorReport; PC-A archive retains older eligible periods.
 - A failed/leftover older period must be eligible for retry on the next run. Do not process only one month/year and leave older backlog stranded.
 
 Example for a run in October 2026:
@@ -90,16 +92,16 @@ If no eligible files exist, report a successful skip for that category/period. A
 
 ### 2.5 Deletion and cloud confirmation
 
-- Initial implementation never deletes local source files. Keep each source file after sync and cloud verification.
+- Q1/Q2/Q5: initial completion includes local-source deletion after both destination-content equality and source unchanged since copying are verified. Otherwise preserve that source. This requirement is not implementation-resumption or production-operation authorization.
 - A file's presence in the Google Drive for desktop local folder alone is not proof of completed cloud upload.
 - Preferred approach: Google Drive API query of the actual cloud file listing and metadata/checksum where available; compare the cloud file identity/name, size, and SHA-256 with the local source.
 - If a cloud SHA-256 is unavailable, download the file through the Drive API and compute SHA-256 locally. Metadata-only name/size matching is insufficient. If API download/verification fails, identity is ambiguous, or size/hash mismatches, fail closed and retain the source; mark the period incomplete.
 - Candidate enumeration must cover the intended target folder and complete all pagination successfully. API errors, incomplete pagination, insufficient access, or uncertain query scope must never be interpreted as confirmed zero/one candidates; hold and fail closed.
-- The comparison source must be a confirmed, trusted PC-A backup/source record. If source integrity or provenance is unconfirmed, hold the item even if a content hash matches. Candidate identity and archive eligibility are separate gates.
+- For the separate initial-inventory workflow, the comparison source must be a confirmed, trusted PC-A backup/source record. Operational moves require their own current source/destination binding; do not impose a PC-A-only comparison source on PC-B's own transfer. Candidate identity and move completion are separate facts.
 - API authentication, scopes, and the ability to access the supplied My Drive folder must be configured and tested before production validation.
-- PC-A archives only after both PC-A and PC-B manifests indicate successful synchronization and verification for the relevant periods.
-- Initial implementation never deletes Drive files. Archive only after verifying the archive destination against Drive source with SHA-256 and confirming required manifests/checks.
-- Local-source deletion and Drive deletion are excluded from the initial implementation: do not include deletion code, operations, or configuration settings. Any future deletion feature requires a separate design, review, tests, and explicit approval.
+- Q3/Q4: PC-A processes eligible files currently in the cloud without waiting for both PCs' period-completion manifests. Late arrivals are handled on a later run. Verify each current cloud source and archive destination independently.
+- Q2/Q5: archive completion includes deleting only the verified cloud source after archive-content equality and source unchanged since copying are confirmed. Unknown, changed, or mismatched items retain their sources. Exact verification/deletion APIs and persistence contracts remain to be designed.
+- Deletion is limited to these two move routes and per-source Q5 conditions. Generic or unconditional deletion is not adopted. During this document review no deletion code/schema is added; real-data deletion requires a separate concrete instruction under AGENTS.
 
 ### 2.6 Invocation
 
@@ -107,7 +109,7 @@ If no eligible files exist, report a successful skip for that category/period. A
 - Manual sync and manual archive entry points are provided where allowed.
 - Scheduled tasks call the same entry points or script functions with equivalent parameters.
 - The run computes all eligible backlog periods automatically.
-- PC-B has no archive entry point and no callable archive/delete capability.
+- PC-B has no archive entry point or cloud-source deletion capability; only its own eligible local sources may be deleted as part of a verified move.
 - Scripts run from each PC's local runtime root, not directly from Drive.
 - GitHub changes are reviewed and tested, a release package is synchronized to the separate Drive distribution folder, then each PC is updated manually.
 
