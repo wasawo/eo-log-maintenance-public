@@ -11,7 +11,7 @@
 
 両経路が使えることが必要であり、コピーだけ、または片方の経路だけでは初回完成としない。保持期間、フォルダの平坦化、競合、Q11/Q12の意味は要件定義書に従う。
 
-正式入口・新しい元削除経路・実Drive接続とruntime受け入れは未完。現在の作業はT0の文書/詳細契約整理。既存の単体/schema/package/CI成功は両経路の完成証拠ではない。ACは全て未実行。
+2026-10-28に利用者の指示で実装を再開した。T0の詳細契約とT1の両経路の流れを具体化するため、[メモリ上の模擬実装](../design/log-move-simulation.md)を追加する。正式入口・新しい実元削除経路・実Drive接続とruntime受け入れは未完。既存の単体/schema/package/CIや模擬モデルの成功は両経路の完成証拠ではなく、AC全体は全て未完。
 
 ## 2. 一連の受け入れ条件
 
@@ -94,7 +94,7 @@ T1から、ファイルごとの最小限の処理結果を出す。T2/T3でも�
 
 ## 6. 検証と現在地
 
-本書のACは全て未実行。正式Sync/Archive入口、実Drive adapter、新しい元削除経路、両経路の再実行/結果表示は未完成。実装再開指示もまだ受けていない。
+本書のAC全体は未完。実装再開指示は2026-10-28に受領した。両経路の対象選択・移動・再実行・結果を模擬モデルで接続するが、正式Sync/Archive入口、実Drive adapter、新しい実元削除経路、永続記録と実レポートは未完成。T0完了やT1完了には昇格しない。
 
 T0の旧方針整合は§4のとおり進めた。次は元/保存先の識別・Q5確認と削除結果の詳細設計を進める。通常検証は合成/隔離/模擬APIを使い、実ログ/本番Driveの接続・削除・本番適用は別途具体的指示と限定計画の範囲で扱う。独立レビュー未実施を自己点検で置き換えて表記しない。
 
@@ -140,7 +140,7 @@ T0の旧方針整合は§4のとおり進めた。次は元/保存先の識別�
 | 排他・manifest選択 | [所有run lock](../../Common/OwnedRunLock.py)、[最新候補選択](../../Common/LatestManifestSelection.py)、[report binding付き読取adapter](../design/reference/latest-manifest-selection.md) | 旧lockの自動引継ぎはしない。実owner証拠、復旧手順、新runとfresh inventoryの作成、実環境での統合 |
 | 明示回復 | 診断・専用mutex、[private証拠のメモリ上のbinding](../../Common/PrivateRecoveryEvidence.py)、供給ACL/descriptorの検査、v1の5field互換境界 | v2の全fieldと適格machine/boot provider、実効ACLと保存先検証、非公開の実保存。v1は診断・保全限定 |
 | 月次・旧確認予算 | [月次観測](../../Common/MonthlyScheduleObservation.py)、[旧24時間/25回予算・checkpoint/使用点の補助処理](../design/reference/completion-wait-budget.md)、[AC電源観測](../design/reference/power-status-observation.md) | 月次task/未実行補完・実時計/account/session/AC停止の統合は未完。定期実行は後続候補。旧PC-B完了待機予算はQ3後のarchive前提には使わない |
-| ドライブ | request/response schema、[相関・終了コード・固定retryable表の純粋helper](../../Common/DriveResponseSemantics.ps1)・[PS再試行観測](../design/reference/drive-retry-observation.md)、[初期inventory読取接続・件数要約](../design/reference/initial-inventory-observation.md)・OSD-01一括同一内容比較・旧PC suffix命名観測（Q8の自動改名採用ではない）・PC-A source一括再観測接続・page集約/前後照合・不足hash計画/完了集合検査/download chunk観測・staging隔離接続試験](../design/drive-content-comparison.md)、P1/V1/L1・R1/N1/D1 | C-01の実root/指定先/使用点検査、C-02のschemaと具体result形、公式Python client adapter、Desktop OAuth/drive.fileの実folder資格、PS retryの実counter/待機/送信統合・結果不明upload照合 |
+| ドライブ | request/response schema、[相関・終了コード・固定retryable表の純粋helper](../../Common/DriveResponseSemantics.ps1)・[PS再試行観測](../design/reference/drive-retry-observation.md)、[初期inventory読取接続・件数要約](../design/reference/initial-inventory-observation.md)・[OSD-01一括同一内容比較・旧PC suffix命名観測（Q8の自動改名採用ではない）・PC-A source一括再観測接続・page集約/前後照合・不足hash計画/完了集合検査/download chunk観測・staging隔離接続試験](../design/reference/drive-content-comparison.md)、P1/V1/L1・R1/N1/D1 | C-01の実root/指定先/使用点検査、C-02のschemaと具体result形、公式Python client adapter、Desktop OAuth/drive.fileの実folder資格、PS retryの実counter/待機/送信統合・結果不明upload照合 |
 | 配布 | [役割別ビルダー](../../.github/scripts/Build-ReleasePackage.ps1)、example検査、PC-Bのarchive除外、レビュー用非配布マーカー。旧file集合の件数は§10で歴史として保持 | 正式入口、PC別/version別の最終JSON file manifest、tag/VERSION/commitのprovenance、E1承認後Actions配布identity、Drive内容検証、手動導入/専用PS移行/復旧 |
 
 正式Sync/Archive入口・実Drive adapter・元削除経路・正式writer・導入/更新の一連処理は未完。既存helper/schema/隔離接続をruntime完成としない。現要件の順序は§3のT0〜T5で、両経路とも確認済み元の直接削除までが初回完成。旧copy-only/両PC期間待ちの依存順序は引き継がない。

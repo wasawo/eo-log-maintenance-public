@@ -2,7 +2,7 @@
 
 共通の開始規則は [AGENTS.md](../../AGENTS.md)。この表は対象別の読取先で、すべてを毎回読む一覧ではない。対象の承認記録・仕様・実装・テストを照合し、矛盾や未決定はrootへ返す。文書を移動・参照化しても仕様・承認範囲は変更しない。
 
-現行の正本は[要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](implementation-workflow.md)の3本。要件の確定と設計内の方式候補/未決を区別する。現在は文書/詳細契約の整理で、利用者の実装再開指示までコード/schemaを追加しない。小さなhelper単位の追加実装を自動選択しない。
+現行の正本は[要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](implementation-workflow.md)の3本。2026-10-28に利用者の指示で実装を再開した。要件の確定と設計内の方式候補/未決を区別し、小さなhelper単位の追加実装を自動選択しない。最初の両経路接続は[模擬実装](../design/log-move-simulation.md)で、正式入口や実API/FSの完成ではない。
 
 承認の根拠は要件定義書の「承認記録」、現在地はhandoffで確認する。以下の個別契約は現schema/helperや維持する条件を調べるために参照し、旧版のverified/reportを元削除完了へ読み替えない。
 

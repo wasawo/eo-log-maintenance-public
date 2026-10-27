@@ -1,5 +1,7 @@
 # テスト計画
 
+`Test-LogMoveSimulation.ps1`は設定・期間・平坦化・同名比較・内容確認・限定元削除・再実行・結果不明照合を、両経路のメモリ上のモデルで接続する。実ファイル/Driveの削除や永続記録は行わない。[模擬契約と受け入れ限界](../docs/design/log-move-simulation.md)を参照。実行: `pwsh -NoProfile -File tests/Test-LogMoveSimulation.ps1`。
+
 `test_power_status_observation.py`はAC観測のmock ABI/不明・失敗と既存使用点への合成接続を検査します。Windowsでは実APIを読取のみで一度照会します。電源の変更・実ログ/Driveアクセス・task登録・実運用受け入れは行いません。
 
 `test_checkpoint_replace_probe.py`はcaller指定先を受けない専用OS-temp probeで、実CreateFileW共有guardとReplaceFileW、使用点検査後の競合反例を確認します。許可名外/root marker変更/hardlinkでもnative変更へ進みません。これは不十分なAPI組合せを検出する負例であり、provider採用・Tier B/C・電源断耐久性の証拠ではありません。

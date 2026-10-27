@@ -15,6 +15,8 @@
 | 診断/非公開証拠 | [従来の詳細ノート](../docs/design/reference/common-module-notes.md)、[private証拠契約](../docs/design/recovery-private-evidence-contract.md) | 各実装の型/証拠/秘匿境界を維持 |
 | 月次/電源・旧確認予算 | [月次](../docs/design/reference/monthly-schedule-observation.md)、[電源](../docs/design/reference/power-status-observation.md)、[確認予算](../docs/design/reference/completion-wait-budget.md) | 定期実行は後続。旧PC-B完了待機はarchive前提にしない |
 
+両経路をメモリ上でつなぐ[LogMoveSimulation.ps1](LogMoveSimulation.ps1)を追加した。[模擬契約と限界](../docs/design/log-move-simulation.md)を参照。実ファイル・Drive操作や永続記録を提供せず、正式な移動入口ではない。
+
 ## 詳細と検証
 
 - 全モジュールの従来説明は[Commonモジュール参照ノート](../docs/design/reference/common-module-notes.md)へ移した。個別の観測条件/未実装境界を削っていない。
