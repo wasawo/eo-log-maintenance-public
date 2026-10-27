@@ -1,7 +1,7 @@
 # Dry Run A: 実行分岐と副作用境界の設計
 
 - 状態：具体設計と限定した合成ハーネスの部分証拠。正式runtimeの実装・受け入れは未完了。
-- 根拠：[OSD-04のA承認](../decisions/dry-run-side-effect-policy-proposal.md) §2/4、[PS/Python契約](powershell-python-contract.md) §3–9、[runtime gate](runtime-entrypoint-validation-gate.md)。Aの選択を再質問せず、その範囲で設計する。
+- 根拠：[OSD-04のA承認](../archive/decisions/dry-run-side-effect-policy-proposal.md) §2/4、[PS/Python契約](powershell-python-contract.md) §3–9、[ランタイム ゲート](runtime-entrypoint-validation-gate.md)。Aの選択を再質問せず、その範囲で設計する。
 - [DRY-01–10](../validation/runtime-safety-test-scenarios.md#10-osd-04-dry-run提案用受け入れfixture計画未実装未実行)は未実装・未実行。OSD-04/P0、Phase 1/7は未完了。OSD-05、C-01/C-02、IPC契約全体のレビューは別ゲートのまま。
 
 ## 1. 入口と呼出し順序
@@ -42,7 +42,7 @@ path/handle identity、属性、size/hash、列挙完全性を使用点で再確
 
 子プロセスのstdout/stderrはファイルを介さず分離捕捉する。Python stdoutはUTF-8 JSON object 1件と末尾改行だけとし、banner/progress/tracebackを混在させない。stderrも秘密除去済み固定理由/概要だけとする。raw例外、ローカル絶対path、token、API本文を外へ流さず、捕捉した不正出力自体も再出力しない。timeout、不正/複数JSON、未知field/version、request ID/operation不一致、schema不適合、終了コード/error/retryableの矛盾は拒否する。
 
-操作固有resultの厳密な検証も必要だが、[C-01/C-02](../validation/p0-contract-review-findings.md)のpath policy/result shapeをこの設計で解決しない。既存schemaのenvelope成功は操作結果の完全性を保証しない。C-01のP1/V1/L1とC-02のR1/N1/D1は選択済み。adapter実装前にC-02の4操作それぞれのclosed executed/plan field集合と全体契約レビューを終える。mock診断を口実に未決定の詳細result shapeをruntime契約として導入しない。
+操作固有resultの厳密な検証も必要だが、[C-01/C-02](../archive/validation/p0-contract-review-findings.md)のpath policy/result shapeをこの設計で解決しない。既存schemaのenvelope成功は操作結果の完全性を保証しない。C-01のP1/V1/L1とC-02のR1/N1/D1は選択済み。adapter実装前にC-02の4操作それぞれのclosed executed/plan field集合と全体契約レビューを終える。mock診断を口実に未決定の詳細result shapeをruntime契約として導入しない。
 
 起動・importを含む全依存経路もAに従う。Pythonはbytecode生成を抑える `-B` とisolated modeを組み合わせる起動を実装候補とし、信頼済みpackage/import解決・既存helper呼出しとの適合性を検証する。これだけで資格完了とはしない。Python/moduleの `__pycache__`、temp、logging、schema参照解決、auth/token store/cache、HTTP client等の暗黙書込み・live通信を調査・捕捉する。抑止・検証できない依存は呼ばず停止し、環境変数だけやimport成功だけを根拠にしない。OS自動atime・監査・キャッシュ・ページング等の物理書込みzeroは保証しない。
 
@@ -50,7 +50,7 @@ path/handle identity、属性、size/hash、列挙完全性を使用点で再確
 
 下表の既存moduleは部分材料であり、DRY fixtureを実装済み・成功済みとする対応ではない。ファイル名は `Common/` 基準。
 
-| fixture | 存在する部分材料 | 欠けている責務・確認 |
+| 治具 | 存在する部分材料 | 欠けている責務・確認 |
 | --- | --- | --- |
 | DRY-01 | `SourceInventoryEvidenceBuilder.py`、`RunInputEvidenceIntegrity.py` | 専用dispatch、計画のみの制御、全mutation/download拒否、正常/0件でも運用runなし |
 | DRY-02 | `ManifestDirectoryReader.py`、`LatestManifestSelection.py`、`ArtifactSetDirectoryVerification.py`、`PrivateRecoveryEvidence.py` | 信頼済みrootでの読取り統合、既存原本不変、不正/欠落でも修復・再生成なし |

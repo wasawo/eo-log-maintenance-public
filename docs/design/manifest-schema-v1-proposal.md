@@ -1,123 +1,125 @@
-# Maintenance Manifest Schema v1 — Approved Field Specification
+# メンテナンス マニフェスト スキーマ v1 — 承認されたフィールド仕様
 
-- Status: approved field names, types, enums, nullability, and field-level constraints are encoded in the strict Draft 2020-12 structural schema `contracts/manifest-v1.schema.json`; synthetic structural contract tests are in `tests/test_contract_schemas.py`. Runtime file/filename identity binding, cross-artifact checks, timestamp policy enforcement, state transitions, locking, and archive authorization remain unimplemented/unverified.
-- Related decision: OSD-02 / C-26.
-- Scope: operational synchronization manifest fields only. This is not the Drive adapter request/response schema.
+> 2026-10-27 互換性境界: [Q1〜Q10 と平坦化](../requirements/log-move-requirements.md) では、両方の PC の期間を待たずにソース削除によるファイルごとの移動が必要です。既存の v1 スキーマ/ヘルパーの動作と以下の日付の証拠は変更されていません。 v1 `verified`/report/latest-manifest の結果は、移動の完了または削除の許可を証明するものではありません。両方の PC の選択/レポートの完全性は、新しいアーカイブの前提条件ではありません。削除状態/IPC/永続化のリビジョンは詳細設計作業のままです。古い不変の成果物を変更したり、このポリシー ノートからスキーマのアップグレードを推測したりしないでください。
 
-## 1. Design principles
+- ステータス: 承認されたフィールド名、型、列挙型、NULL 可能性、およびフィールドレベルの制約は、厳密なドラフト 2020-12 構造スキーマ `contracts/manifest-v1.schema.json` でエンコードされます。合成構造契約テストは `tests/test_contract_schemas.py` にあります。実行時のファイル/ファイル名の ID バインディング、クロス成果物チェック、タイムスタンプポリシーの適用、状態遷移、ロック、アーカイブ認可は未実装/未検証のままです。
+- 関連する決定: OSD-02 / C-26。
+- 範囲: 運用上の同期マニフェスト フィールドのみ。これは、ドライブ アダプターの要求/応答スキーマではありません。
 
-1. Keep run identity, run outcome, per-file result, and Drive content-verification evidence in one manifest.
-2. Record immutable facts needed to correlate a run and its files; do not duplicate verbose operational logs.
-3. A manifest is untrusted input. Schema validity is necessary but never sufficient for archive authorization.
-4. Archive processing must re-query/re-verify current Drive state independently; a stored Drive ID or previous verification result is not a permanent authorization.
-5. schema_version is the required integer 1. Missing, malformed, or unsupported versions are rejected. No implicit migration or rewrite is allowed.
-6. This proposal does not approve the complete transition table, freshness threshold, clock-skew policy, run/period aggregation, or stale-running recovery policy.
+## 1. 設計原則
 
-## 2. Proposed run-level fields
+1. 実行 ID、実行結果、ファイルごとの結果、ドライブのコンテンツ検証証拠を 1 つのマニフェストに保持します。
+2. 実行とそのファイルを関連付けるために必要な不変の事実を記録します。詳細な操作ログを複製しないでください。
+3. マニフェストは信頼できない入力です。スキーマの有効性は必要ですが、アーカイブの承認には決して十分ではありません。
+4. アーカイブ処理では、現在のドライブの状態を個別に再クエリ/再検証する必要があります。保存されたドライブ ID または以前の検証結果は永続的な認証ではありません。
+5. schema_version は必須の整数 1 です。欠落しているバージョン、不正なバージョン、またはサポートされていないバージョンは拒否されます。暗黙的な移行や書き換えは許可されません。
+6. この提案では、完了 遷移テーブル、鮮度しきい値、クロック スキュー ポリシー、実行/期間集計、または失効した 実行中 リカバリ ポリシーが承認されていません。
 
-| Field | Required | Proposed type / constraint | Meaning |
-|---|---:|---|---|
-| schema_version | Yes | integer; exactly 1 | Manifest format version |
-| run_id | Yes | UUID string | Unique identifier for one execution on one PC |
-| pc_id | Yes | enum: PC-A, PC-B | Originating PC |
-| log_type | Yes | enum: BattleLog, ErrorReport | Log category |
-| target_period | Yes | YYYY-MM for BattleLog; YYYY for ErrorReport | Filename-derived period being reported |
-| status | Yes | enum: running, success, partial_failure, failure | Run status already named in lifecycle specification |
-| outcome | Yes | null or enum containing no_work | Distinguishes a successful zero-target run |
-| started_at_utc | Yes | UTC timestamp string ending in Z | Run start time |
-| finished_at_utc | Yes | UTC timestamp string ending in Z, or null | Finalization time; proposed null while status is running |
-| files | Yes | array of per-file records; may be empty | Frozen target inventory and per-file result records |
+## 2. 提案されたランレベルフィールド
 
-### Run-level consistency constraints proposed for review
+| フィールド | 必須 | 提案されたタイプ/制約 | 意味 |
+| --- | ---: | --- | --- |
+| schema_version | はい | 整数;まさに1 | マニフェスト形式のバージョン |
+| run_id | はい | UUID 文字列 | 1 台の PC での 1 回の実行の一意の識別子 |
+| pc_id | はい | 列挙型: PC-A, PC-B | 発信元の PC |
+| log_type | はい | 列挙型: BattleLog, ErrorReport | ログ カテゴリ |
+| target_period | はい | YYYY-MM (BattleLog); YYYY (ErrorReport) | ファイル名に由来する期間が報告されています |
+| status | はい | 列挙型: running, success, partial_failure, failure | 実行ステータスはライフサイクル仕様ですでに指定されています |
+| outcome | はい | null または no_work を含む列挙型 | 成功したゼロターゲット実行を区別します |
+| started_at_utc | はい | UTC Z で終わるタイムスタンプ文字列 | 実行開始時刻 |
+| finished_at_utc | はい | UTC Z で終わるタイムスタンプ文字列、または null | ファイナライズ時間。ステータスが実行中に提案された null |
+| files | はい | ファイルごとのレコードの配列。空いているかもしれない | 凍結されたターゲット インベントリとファイルごとの結果レコード |
 
-- The filename identity <PC-ID>_<LogType>_<TargetPeriod>_<run_id>.json must agree with the corresponding JSON fields.
-- target_period must follow the pattern for log_type; it is derived from validated filename dates, never LastWriteTime.
-- outcome: no_work is only for a successful zero-work run. Other outcomes remain unspecified until the aggregation decision is approved; do not invent additional outcome strings.
-- started_at_utc and finished_at_utc use UTC (Z). A timestamp being syntactically valid does not establish freshness or authorize archive.
-- Full temporal constraints (future timestamps, freshness threshold, clock skew, ordering tolerance) remain blocked by EOLM-MAN-011.
-- The proposed status/time consistency rule (running => finished_at_utc: null; terminal status => non-null finish time) needs approval with the state-transition table.
+### 実行レベルの整合性制約がレビューのために提案されました
 
-## 3. Proposed per-file fields
+- ファイル名の形式は `<PC-ID>_<LogType>_<TargetPeriod>_<run_id>.json` とする。名前に含まれる識別情報は、対応するJSONフィールドと一致しなければならない。
+- target_period は log_type のパターンに従う必要があります。これは、LastWriteTime ではなく、検証されたファイル名の日付から導出されます。
+- 結果: no_work は、ゼロワーク実行が成功した場合のみです。その他の結果は、集計の決定が承認されるまで不明のままです。追加の結果文字列を作成しないでください。
+- started_at_utc および finished_at_utc は UTC (Z) を使用します。タイムスタンプが構文的に有効であっても、最新性が確立されたり、アーカイブが承認されたりすることはありません。
+- 完全な時間的制約 (将来のタイムスタンプ、鮮度のしきい値、クロック スキュー、順序許容値) は EOLM-MAN-011 によってブロックされたままです。
+- 提案されたステータス/時間の一貫性ルール (実行中 => finished_at_utc: null; 終了ステータス => 非 null 終了時間) は、状態遷移テーブルの承認が必要です。
 
-| Field | Required | Proposed type / constraint | Meaning |
-|---|---:|---|---|
-| relative_path | Yes | non-empty normalized relative path | Source-relative path; must not be absolute or escape the configured source root |
-| filename | Yes | non-empty basename | Original filename used for period classification |
-| size_bytes | Yes | integer >= 0 | Frozen source size |
-| sha256 | Yes | 64 hexadecimal characters | Frozen source content hash |
-| status | Yes | enum: staging, ready, pending, uploaded, verified, failed, unknown | Per-file lifecycle state already named in the staging lifecycle |
-| drive_file_id | Yes | non-empty string or null | Stable Drive object ID when identified; null before identification or when not established |
-| verification | Yes | object | Explicit record of Drive content-verification result |
+## 3. 提案されたファイルごとのフィールド
 
-### Proposed verification object
+| フィールド | 必須 | 提案されたタイプ/制約 | 意味 |
+| --- | ---: | --- | --- |
+| relative_path | はい | 空ではない正規化された相対パス | ソース相対パス。絶対パスにすることはできません。または、設定されたソース ルートをエスケープすることはできません。 |
+| filename | はい | 空ではないベース名 | 期間分類に使用される元のファイル名 |
+| size_bytes | はい | 整数 >= 0 | 固定ソースのサイズ |
+| sha256 | はい | 64 16 進文字 | 凍結されたソース コンテンツのハッシュ |
+| status | はい | 列挙型: staging, ready, pending, uploaded, verified, failed, unknown | ファイルごとのライフサイクル状態はステージング ライフサイクルですでに指定されています |
+| drive_file_id | はい | 空ではない文字列または null | 識別された場合は安定したドライブのオブジェクト ID。識別前または確立されていない場合は null |
+| verification | はい | オブジェクト | ドライブのコンテンツ検証結果の明示的な記録 |
 
-| Field | Required | Proposed type / constraint | Meaning |
-|---|---:|---|---|
-| status | Yes | enum: not_checked, verified, mismatch, unavailable, ambiguous, failed | Result of the most recent explicit content-verification attempt |
-| method | Yes | enum: not_performed, drive_sha256, download_sha256 | Method actually used to obtain the observed content hash; `not_performed` when no observed hash was obtained |
-| checked_at_utc | Yes | UTC timestamp string ending in Z, or null | Time of verification; null if not checked |
-| observed_sha256 | Yes | 64-hex string or null | Observed Drive content hash where available |
+### 提案された検証オブジェクト
 
-### Per-file constraints proposed for review
+| フィールド | 必須 | 提案されたタイプ/制約 | 意味 |
+| --- | ---: | --- | --- |
+| status | はい | 列挙型: not_checked, verified, mismatch, unavailable, ambiguous, failed | 最新の明示的なコンテンツ検証の試行の結果 |
+| method | はい | 列挙型: not_performed, drive_sha256, download_sha256 | 観察されたコンテンツのハッシュを取得するために実際に使用されるメソッド。 `not_performed` 観測されたハッシュが取得されなかった場合 |
+| checked_at_utc | はい | UTC Z で終わるタイムスタンプ文字列、または null | 検証の時間。チェックされていない場合は null |
+| observed_sha256 | はい | 64 16 進文字列または null | 観測されたドライブのコンテンツ ハッシュ（利用可能な場合） |
 
-- sha256 is the expected local source hash. verification.observed_sha256 is the observed cloud content hash; these must not be conflated.
-- drive_file_id identifies a Drive object but does not prove its contents or provenance.
-- A verified verification status requires a real content-verification method; metadata-only lookup is not sufficient.
-- The maintainer approved the following exhaustive status/method/time/hash combinations on 2026-10-21; any combination outside this table is invalid and must be rejected:
+### ファイルごとの制約が検討のために提案されました
+
+- `sha256` は元のローカルファイルについて期待するハッシュ、`verification.observed_sha256` はクラウドの内容を確認して得たハッシュである。比較の基準と、実際に観測した値を区別する。
+- drive_file_id はドライブ オブジェクトを識別しますが、その内容や出所を証明するものではありません。
+- 確認済み 検証ステータスには、実際のコンテンツ検証メソッドが必要です。メタデータのみの検索では十分ではありません。
+- メンテナは、2026-10-21 に関する次の完全なステータス/メソッド/時間/ハッシュの組み合わせを承認しました。この表以外の組み合わせは無効であり、拒否する必要があります。
 
   | `verification.status` | `verification.method` | `checked_at_utc` | `observed_sha256` |
-  |---|---|---|---|
+  | --- | --- | --- | --- |
   | `not_checked` | `not_performed` | null | null |
-  | `verified` | `drive_sha256` or `download_sha256` | required UTC timestamp | required valid 64-hex hash |
-  | `mismatch` | `drive_sha256` or `download_sha256` | required UTC timestamp | required valid 64-hex hash |
-  | `unavailable`, `ambiguous`, or `failed` when no observed content hash was obtained | `not_performed` | required UTC attempt timestamp | null |
+  | `verified` | `drive_sha256` または `download_sha256` | UTC タイムスタンプが必要です | 有効な 64-hex ハッシュが必要です |
+  | `mismatch` | `drive_sha256` または `download_sha256` | UTC タイムスタンプが必要です | 有効な 64-hex ハッシュが必要です |
+  | `unavailable`、`ambiguous`、または `failed` (観測されたコンテンツ ハッシュが取得されなかった場合) | `not_performed` | UTC 試行タイムスタンプが必要です | null |
 
-- `method` records the method that actually produced an observed content hash, not merely the method that was attempted. If an operation fails before a hash is obtained, do not claim `drive_sha256` or `download_sha256` as the method.
-- For `unavailable`, `ambiguous`, or `failed`, `checked_at_utc` records the attempt time even when no hash was obtained. The detailed attempted method, sanitized error, and retry-by-retry diagnostics belong in operational logs, not in this manifest field set.
-- Do not place an arbitrary candidate hash in `observed_sha256` when the candidate identity is ambiguous. Without one established observed hash, use `not_performed` and null hash.
-- `mismatch` means an observed hash was obtained and differs from the expected source hash. A missing hash cannot be classified as `mismatch`.
-- `mismatch`, `unavailable`, `ambiguous`, or `failed` must not authorize success or archive. Interactions with file/run status are governed by the approved mapping and still-open aggregation rules.
-- Error details, retry-by-retry history, verbose logs, and local staging paths are intentionally not included in this minimum proposal. They belong in sanitized operational logs unless a separate requirement establishes that durable manifest storage is necessary.
+- `method` は、単に試行されたメソッドではなく、観察されたコンテンツ ハッシュを実際に生成したメソッドを記録します。ハッシュを取得する前に操作が失敗した場合は、メソッドとして `drive_sha256` または `download_sha256` を要求しないでください。
+- `unavailable`、`ambiguous`、または `failed` の場合、ハッシュが取得されなかった場合でも、`checked_at_utc` は試行時間を記録します。試行された詳細なメソッド、サニタイズされたエラー、および再試行ごとの診断は、このマニフェスト フィールド セットではなく、操作ログに属します。
+- 候補 ID が 曖昧 の場合、任意の候補ハッシュを `observed_sha256` に配置しないでください。確立された観測ハッシュが 1 つもない場合は、`not_performed` ハッシュと null ハッシュを使用します。
+- `mismatch` は、観測されたハッシュが取得されたが、予想されるソース ハッシュと異なることを意味します。欠落しているハッシュは `mismatch` として分類できません。
+- `mismatch`、`unavailable`、`ambiguous`、または `failed` は、成功 またはアーカイブを許可してはなりません。ファイル/実行ステータスとの相互作用は、承認されたマッピングとまだ開いている集計ルールによって管理されます。
+- エラーの詳細、再試行ごとの履歴、詳細ログ、およびローカル ステージング パスは、意図的にこの最小提案には含まれていません。耐久性のあるマニフェスト ストレージが必要であることが別の要件で確立されていない限り、それらはサニタイズされた操作ログに属します。
 
-## 4. Validation and compatibility
+## 4. 検証と互換性
 
-- Reject malformed JSON, unknown fields, missing required fields, wrong types, invalid enums, invalid hashes, invalid identity, invalid period formats, absolute/traversing relative paths, and unsupported schema versions.
-- Validate filename identity against JSON identity before selecting a latest manifest.
-- Do not infer a missing field, default a malformed value, or silently migrate older manifests.
-- Write updates through a temporary file, re-read and validate the result, then replace the official local manifest where atomic replacement is supported.
-- A crash-left running manifest remains incomplete. This proposal does not define an automatic transition to failure.
-- Latest-manifest selection and archive authorization remain separate from schema validation. A valid manifest cannot bypass the current Drive re-verification gate.
+- 不正な形式の JSON、不明 フィールド、必須フィールドの欠落、間違った型、無効な列挙型、無効なハッシュ、無効な ID、無効な期間形式、絶対/トラバース相対パス、およびサポートされていないスキーマ バージョンを拒否します。
+- 最新のマニフェストを選択する前に、ファイル名の同一性を JSON の同一性と比較して検証します。
+- 欠落しているフィールドを推測したり、不正な値をデフォルトにしたり、古いマニフェストをサイレントに移行したりしないでください。
+- 一時ファイルを介して更新を書き込み、結果を再読み取りして検証し、アトミック置換がサポートされている公式のローカル マニフェストを置き換えます。
+- クラッシュ後に残された 実行中 マニフェストは 未完了 のままです。この提案では、失敗 への自動移行は定義されていません。
+- 最新マニフェストの選択とアーカイブの承認は、スキーマの検証とは別のままです。有効なマニフェストは、現在のドライブの再検証ゲートをバイパスできません。
 
-## 5. Decisions still required
+## 5. 依然として決定が必要
 
-This field specification records the maintainer's approval of the listed field names, types, enums, nullability, and field-level constraints on 2026-10-21. This approval does not close OSD-02. The following remain open:
+このフィールド仕様は、リストされたフィールド名、型、列挙型、null 可能性、および 2026-10-21 のフィールド レベルの制約に対する管理者の承認を記録します。この承認はOSD-02を終了しません。以下はオープンのままです。
 
-1. Exhaustive allowed/forbidden transitions for file and run states, including remaining transition rules beyond the approved run-level status/time constraint.
-2. outcome values and run/period aggregation (coordinate with OSD-03); do not invent additional outcome values.
-3. Concrete configuration values and application contexts for timestamp freshness, allowed future-time tolerance, and clock-skew (EOLM-MAN-011); policy shape is approved, numeric values remain open.
-4. Runtime implementation and executable validation evidence.
-5. Numeric timestamp freshness/future-time tolerance configuration and exact contexts of applicability.
-5. Runtime validator, transition acceptance tests, and operational evidence remain outstanding. The executable structural schema and synthetic schema-negative tests now exist; they do not establish runtime enforcement.
+1. 承認された実行レベルのステータス/時間制約を超えた残りの移行ルールを含む、ファイルおよび実行状態の包括的な許可/禁止移行。
+2. 結果値と実行/期間の集計 (OSD-03 と調整)。追加の結果値を考え出さないでください。
+3. タイムスタンプの鮮度、将来の許容誤差、およびクロック スキュー (EOLM-MAN-011) に関する具体的な構成値とアプリケーション コンテキスト。ポリシーの形状は承認されていますが、数値は未解決のままです。
+4. ランタイム実装と実行可能検証の証拠。
+5. 数値のタイムスタンプの鮮度/将来の許容範囲の構成と適用性の正確なコンテキスト。
+5. ランタイム検証、移行受け入れテスト、および運用上の証拠は未処理のままです。実行可能な構造スキーマと合成スキーマネガティブ テストが存在します。実行時の強制は確立されません。
 
-The run-level status/time consistency rule approved on 2026-10-21 is normative: `running` requires `finished_at_utc: null`; terminal statuses (`success`, `partial_failure`, `failure`) require non-null `finished_at_utc`. `started_at_utc` is required in every run state. Timestamp validation policy shape approved on 2026-10-21: require UTC ISO 8601 timestamps; reject finish-before-start; use configurable future-time/clock-skew tolerance and context-appropriate freshness thresholds. Numeric values and exact application contexts remain open. No runtime implementation or operational evidence is claimed.
+2026-10-21 で承認された実行レベルのステータス/時間の一貫性ルールは規範的です。`running` には `finished_at_utc: null` が必要です。端末ステータス (`success`、`partial_failure`、`failure`) には、null 以外の `finished_at_utc` が必要です。 `started_at_utc` はすべての実行状態で必要です。 2026-10-21 で承認されたタイムスタンプ検証ポリシー形状: UTC ISO 8601 タイムスタンプが必要です。開始前に終了を拒否します。構成可能な将来時間/クロックスキュー許容値とコンテキストに適した鮮度しきい値を使用します。数値と正確なアプリケーション コンテキストは開いたままになります。実行時の実装や運用上の証拠は主張されていません。
 
-## Approved crash, concurrency, and latest-manifest policy shape — 2026-10-21
+## 承認されたクラッシュ、同時実行性、および最新のマニフェスト ポリシー形式 — 2026-10-21
 
-- A candidate manifest must pass structural validation, including consistency between its filename identity and the identity recorded inside the JSON, before it can be considered current.
-- Timestamp alone must not select a unique latest manifest when candidates collide or remain indistinguishable. Treat the selection as ambiguous and stop the dependent operation rather than choosing arbitrarily.
-- Detect concurrent updates to the same target. Do not overwrite state using a stale read; re-read and re-validate or fail safely.
-- A crash-left `running` manifest remains unfinished and must not be silently rewritten to `success` or `failure`.
-- Until remote state can be re-established and verified, do not authorize archive or deletion.
-- **Still open:** concrete atomicity/locking mechanism, identity fields and filename convention used for correlation, stale-run recovery procedure, and executable tests. This policy-shape approval does not claim runtime support.
-
-
-## OSD-03 aggregation contract and representation gate — 2026-10-21
-
-The run/period aggregation policy shape is approved. Run-level status must follow `docs/decisions/osd-03-status-aggregation-options.md`: `success` requires every eligible target to be verified with no relevant error; verified zero-work requires successful enumeration and validation and uses `outcome: no_work`; verified work combined with unresolved eligible-file failure/unknown or an unclassifiable run-scope error yields `partial_failure`; no verified eligible work with a processing/validation failure or inability to establish valid no-work yields `failure`. Period completion requires all eligible targets in the period to be verified and no relevant error affecting that period. Unclassifiable files remain run-scope errors and must not be assigned by timestamp fallback.
-
-**Approved schema boundary (2026-10-21):** keep the approved manifest v1 field set unchanged. Period summaries and unassigned run-scope validation errors must be recorded in a separate, durable derived aggregation report, not added to the manifest. The report must be linked to the originating `run_id` and validated against the frozen eligible inventory; missing, malformed, stale, or inconsistent report data must not certify period completion. The proposed report contract is documented in `docs/design/aggregation-report-v1-proposal.md`; its schema and operational rules remain unapproved pending the decisions and tests listed there. This decision does not authorize new manifest fields or close OSD-02/OSD-03.
+- 候補マニフェストは、最新であるとみなされる前に、そのファイル名の ID と JSON 内に記録されている ID の間の一貫性を含む構造検証に合格する必要があります。
+- 候補が衝突するか区別できない場合、タイムスタンプだけで一意の最新マニフェストを選択してはなりません。任意に選択するのではなく、選択内容を 曖昧 として扱い、依存する操作を停止します。
+- 同じターゲットに対する同時更新を検出します。古い読み取りを使用して状態を上書きしないでください。再読み込みして再検証するか、安全に失敗します。
+- クラッシュした `running` マニフェストは未完成のままであるため、暗黙的に `success` または `failure` に書き換えてはなりません。
+- リモート状態が再確立され、確認済み になるまでは、アーカイブまたは削除を許可しないでください。
+- **まだオープン中:** 具体的なアトミック性/ロック メカニズム、相関関係、失効した実行の回復手順、および実行可能テストに使用される ID フィールドとファイル名規則。このポリシーシェイプの承認は、ランタイム サポートを要求しません。
 
 
-## Timestamp validation policy cross-reference — 2026-10-21
+## OSD-03 アグリゲーション コントラクトおよび代表ゲート — 2026-10-21
 
-The maintainer separately approved timestamp/freshness policy: UTC ISO 8601 with uppercase `Z`; malformed, offset-form, timezone-less, and unparseable timestamps are rejected; finish must not precede start. Initial configurable defaults are 5 minutes of future-time tolerance and 24 hours for freshness. Freshness applies only to timestamps generated/updated during the current execution; historical manifest age alone does not invalidate history. Host OS time synchronization is assumed configured; if current UTC cannot be obtained reliably, time-dependent operations fail closed. This cross-reference does not make schema validation executable or claim runtime support.
+実行/期間集計ポリシー形状が承認されました。実行レベルのステータスは `docs/archive/decisions/osd-03-status-aggregation-options.md` に従う必要があります。`success` では、すべての適格なターゲットが関連エラーのない 確認済み である必要があります。 確認済み ゼロワークでは、列挙と検証が成功する必要があり、`outcome: no_work` を使用します。 確認済み 作業と未解決の適格ファイル 失敗/不明 または分類できない実行スコープ エラーが組み合わされた場合、`partial_failure` が生成されます。処理/検証 失敗 を伴う 確認済み 対象となる作業がない場合、または有効なノーワークを確立できない場合は `failure` が発生します。期間を完了するには、期間内のすべての対象ターゲットが 確認済み であり、その期間に影響を与える関連エラーがないことが必要です。分類できないファイルは実行範囲エラーのままであるため、タイムスタンプ フォールバックによって割り当ててはなりません。
+
+**承認されたスキーマ境界 (2026-10-21):** 承認されたマニフェスト v1 フィールド セットを変更しないでください。期間の概要と未割り当ての実行スコープ検証エラーは、マニフェストに追加するのではなく、別の永続的な派生集計レポートに記録する必要があります。レポートは元の `run_id` にリンクされ、凍結された対象一覧に対して検証される必要があります。レポート データが欠落している、形式が間違っている、古い、または一貫性がない場合は、期間の完了を証明するものではありません。提案されたレポート契約は `docs/design/reference/aggregation-report-v1-proposal.md` に文書化されています。そのスキーマと運用ルールは未承認のままです 未確定 そこにリストされている決定事項とテスト。この決定は、新しいマニフェスト フィールドを許可したり、OSD-02/OSD-03 を閉じたりするものではありません。
+
+
+## タイムスタンプ検証ポリシーの相互参照 — 2026-10-21
+
+メンテナはタイムスタンプ/鮮度ポリシーを別途承認しました: UTC ISO 8601 (大文字の `Z`)。不正な形式、オフセット形式、タイムゾーンのない、解析不可能なタイムスタンプは拒否されます。終了が開始より前であってはなりません。初期の構成可能なデフォルトは、将来の許容範囲が 5 分、鮮度が 24 時間です。鮮度は、現在の実行中に生成/更新されたタイムスタンプにのみ適用されます。歴史上の明示的な経過時間だけで歴史が無効になるわけではありません。ホスト OS の時刻同期は構成されていると想定されます。現在の UTC を確実に取得できない場合、時間依存の操作はフェールクローズされます。この相互参照は、スキーマ検証を実行可能にしたり、ランタイム サポートを主張したりするものではありません。

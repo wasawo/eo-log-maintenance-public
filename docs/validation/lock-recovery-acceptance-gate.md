@@ -1,264 +1,225 @@
-# Lock Ownership and Crash-Recovery Acceptance Gate
+# ロックの所有権とクラッシュリカバリ受け入れゲート
 
-- Status: implementation gate / non-normative acceptance contract.
-- Date: 2026-10-22.
-- Related approved policy: OSD-02 crash/concurrency/latest-manifest decision (C1-A, C2-C, C3-B, C4-A), `docs/design/staging-file-lifecycle.md`, and `docs/design/runtime-entrypoint-validation-gate.md`.
-- This document does not authorize runtime integration, Drive operations, archive, or deletion.
+- ステータス: 実装ゲート/非規範的な受け入れ契約。
+- 日付: 2026-10-22。
+- 関連する承認済みポリシー: OSD-02 クラッシュ/同時実行/最新マニフェスト決定 (C1-A、C2-C、C3-B、C4-A)、`docs/design/staging-file-lifecycle.md`、および `docs/design/runtime-entrypoint-validation-gate.md`。
+- この文書では、ランタイム統合、ドライブ操作、アーカイブ、または削除を許可しません。
 
-## 1. Purpose
+## 1. 目的
 
-Define a testable boundary for the next lock/recovery implementation slice. The gate must be satisfied before any official sync/archive entry point can acquire a lock, recover an interrupted run, publish authoritative manifests, or perform remote side effects.
+次のロック/リカバリ実装スライスのテスト可能な境界を定義します。公式の同期/アーカイブ エントリ ポイントがロックを取得したり、中断された実行を回復したり、権限のあるマニフェストを公開したり、リモートの副作用を実行したりするには、ゲートが満たされる必要があります。
 
-## 2. Required ownership model
+## 2. 必要な所有権モデル
 
-1. Acquire one OS named mutex per local maintenance scope; PC-A and PC-B use independent scopes.
-2. Pair the mutex with an exclusive lock record containing a cryptographically random ownership token and the minimum identity/diagnostic fields required by the approved lock schema.
-3. The process may mutate or remove the lock record only while it can prove ownership of both the mutex and the matching token. A PID, timestamp, lock age, or host name alone is never proof of ownership.
-4. Wait/retry for at most 60 seconds. If acquisition cannot be established, exit before target enumeration, manifest writes, staging changes, Drive calls, archive, or deletion.
-5. If the OS reports an abandoned mutex, treat this as evidence of prior abnormal termination, not proof that arbitrary lock-record content is safe to remove. Validate the record and prior-run state before proceeding.
-6. If ownership is mismatched, the lock record is malformed, or lock state cannot be established, fail closed and preserve the record and operational artifacts for diagnosis.
-7. Never forcibly terminate a process, steal a live lock, or remove a lock based only on age/PID.
+1. ローカル メンテナンス スコープごとに mutex という名前の OS を 1 つ取得します。 PC-A と PC-B は独立したスコープを使用します。
+2. 暗号的にランダムな所有権トークンと、承認されたロック スキーマに必要な最小限の ID/診断フィールドを含む排他的ロック レコードとミューテックスをペアにします。
+3. プロセスは、ミューテックスと一致するトークンの両方の所有権を証明できる場合にのみ、ロック レコードを変更または削除できます。 PID、タイムスタンプ、ロック経過時間、またはホスト名だけでは、所有権を証明することはできません。
+4. 最大 60 秒間待機/再試行してください。取得を確立できない場合は、ターゲットの列挙、マニフェストの書き込み、ステージング の変更、ドライブの呼び出し、アーカイブ、または削除の前に終了してください。
+5. OS が放棄されたミューテックスを報告した場合、これを任意のロック レコードの内容が安全に削除できるという証拠ではなく、以前の異常終了の証拠として扱います。続行する前に、レコードと前回の実行状態を検証してください。
+6. 所有権が一致しない場合、ロック レコードの形式が不正である場合、またはロック状態を確立できない場合は、フェール クローズし、診断のためにレコードと操作上の成果物を保存します。
+7. 経過時間/PID のみに基づいて、プロセスを強制的に終了したり、ライブ ロックを盗んだり、ロックを削除したりしないでください。
 
-## 3. Lock lifecycle and cleanup
+## 3. ロックのライフサイクルとクリーンアップ
 
-- The ownership token is generated for each acquisition attempt and is not reused across runs.
-- Create the lock record with exclusive create-if-absent semantics. A pre-check followed by an ordinary write is insufficient.
-- Lock-record updates must use validated temporary-file publication and compare-before-replace semantics; they must not overwrite a record owned by another token.
-- Normal release requires verifying that the on-disk token still matches the current owner token, removing only that owner's record, then releasing the mutex in a finally-style path.
-- If release or cleanup fails, do not erase another owner's record; emit a sanitized diagnostic and leave state for explicit recovery.
-- Lock-record schema/version and identity validation must reject unknown fields/versions rather than silently interpreting them.
+- 所有権トークンは取得試行ごとに生成され、実行をまたいで再利用されません。
+- 排他的な存在しない場合の作成セマンティクスを使用してロック レコードを作成します。事前チェックとそれに続く通常の書き込みでは不十分です。
+- ロックレコードの更新では、検証された一時ファイルの公開と置換前比較のセマンティクスを使用する必要があります。別のトークンが所有するレコードを上書きしてはなりません。
+- 通常のリリースでは、ディスク上のトークンが現在の所有者トークンとまだ一致していることを確認し、その所有者のレコードのみを削除してから、finally スタイルのパスでミューテックスを解放する必要があります。
+- 解放またはクリーンアップが失敗した場合でも、別の所有者の記録を消去しないでください。サニタイズされた診断を発行し、明示的な回復のために状態を残します。
+- ロック レコード スキーマ/バージョンおよび ID 検証では、不明 フィールド/バージョンをサイレントに解釈するのではなく、拒否する必要があります。
 
-## 4. Crash recovery and manifest invariants
+## 4. クラッシュリカバリとマニフェストの不変条件
 
-1. A crash-left `running` manifest remains byte-for-byte unchanged; never rewrite it automatically to `failure` or `success`.
-2. Recovery starts only after prior-owner termination is established and the lock state has been validated. Lock age or a stale-looking timestamp is not sufficient.
-3. Once recovery checks pass, the next execution uses a new `run_id`, fresh source inventory, and fresh per-file states. Never resume by blindly copying old file statuses into the new run.
-4. Before retrying any upload whose prior outcome is uncertain, reconcile current Drive state using a complete, trustworthy query and content verification. Incomplete listing, timeout, ambiguity, or unavailable content keeps the outcome unknown and blocks retry.
-5. Preserve staging artifacts for unknown/unverified outcomes. No automatic residual-staging upload or deletion is introduced by this slice.
-6. Latest-manifest selection must use the approved timestamp policy and fail closed on malformed, identity-mismatched, equal-maximal, or otherwise ambiguous candidates. A latest `running`, `partial_failure`, or `failure` record must not fall back to an older success.
-7. Lock/recovery must not modify source logs, Google Drive objects, archive files, or historical manifests.
+1. クラッシュした `running` マニフェストはバイト単位で変更されません。決して自動的に `failure` または `success` に書き換えないでください。
+2. リカバリは、前の所有者の終了が確立され、ロック状態が検証された後にのみ開始されます。ロックの経過時間や古く見えるタイムスタンプだけでは十分ではありません。
+3. リカバリ チェックに合格すると、次の実行では新しい `run_id`、新しいソース インベントリ、および新しいファイルごとの状態が使用されます。古いファイルのステータスを盲目的に新しい実行にコピーして再開しないでください。
+4. 前回の結果が不確実なアップロードを再試行する前に、完了、信頼できるクエリ、およびコンテンツ検証を使用して現在のドライブの状態を調整してください。リストが不完全、タイムアウト、あいまいさ、または 利用不能 コンテンツがある場合、結果 不明 が維持され、再試行がブロックされます。
+5. 不明/未検証の結果のために ステージング 成果物を保存します。このスライスでは、自動残差 ステージング アップロードまたは削除は導入されません。
+6. 最新マニフェストの選択では、承認されたタイムスタンプ ポリシーを使用し、不正な形式、ID の不一致、最大値と等しい、またはその他の 曖昧 候補に対してフェールクローズする必要があります。最新の `running`、`partial_failure`、または `failure` レコードは、古い 成功 にフォールバックしてはなりません。
+7. ロック/リカバリでは、ソース ログ、Google Drive オブジェクト、アーカイブ ファイル、または履歴マニフェストを変更してはなりません。
 
-## 5. Required test matrix
+## 5. 必要なテスト マトリックス
 
-All tests use synthetic fixtures, injected clocks/process probes, temporary directories, and fake Drive adapters. Never use production logs, production paths, credentials, or live Drive objects.
+すべてのテストでは、合成フィクスチャ、挿入されたクロック/プロセス プローブ、一時ディレクトリ、および偽のドライブ アダプターを使用します。運用ログ、運用パス、認証情報、またはライブ ドライブ オブジェクトは決して使用しないでください。
 
-| ID | Scenario | Required assertion |
-|---|---|---|
-| LOCK-01 | First acquisition | Exactly one owner obtains mutex and exclusive token record. |
-| LOCK-02 | Concurrent acquisition | Second process waits no more than 60 seconds, then exits without side effects if lock remains held. |
-| LOCK-03 | Token mismatch | Current process cannot update or remove a record whose token differs. |
-| LOCK-04 | Live owner with old timestamp | Age does not authorize takeover or removal. |
-| LOCK-05 | PID reuse / dead PID ambiguity | PID alone does not establish ownership or authorize recovery. |
-| LOCK-06 | Abandoned mutex, valid matching record | Recovery follows explicit validation path and records sanitized evidence. |
-| LOCK-07 | Abandoned mutex, malformed/mismatched record | Fail closed; preserve lock record, manifest, staging, and source data. |
-| LOCK-08 | Lock record already exists | Exclusive create fails safely; no overwrite occurs. |
-| LOCK-09 | Mutex unavailable / OS error | No inventory, manifest, staging, Drive, archive, or delete side effect occurs. |
-| LOCK-10 | Normal release | Only the matching owner's token record is removed; mutex is released even when later cleanup raises. |
-| REC-01 | Crash before manifest publication | Temporary file is non-authoritative; no partial manifest is accepted. |
-| REC-02 | Crash after manifest publication | Published artifact is complete; crash-left running manifest remains unchanged. |
-| REC-03 | Crash during lock-record update | Existing authoritative record remains valid or operation fails closed; partial record is never trusted. |
-| REC-04 | New run after validated recovery | New run_id and fresh inventory/states are used; prior manifest bytes remain unchanged. |
-| REC-05 | Unknown upload with confirmed matching Drive object | Content verification permits reconciliation to verified without duplicate upload. |
-| REC-06 | Unknown upload with incomplete/ambiguous Drive listing | Keep unknown; do not retry, claim success, clean staging, archive, or delete. |
-| REC-07 | Equal latest timestamps / identity mismatch | No arbitrary winner and no fallback to older success. |
-| REC-08 | Recovery interruption repeated | Idempotent fail-closed behavior; no ownership theft or data loss. |
+| ID | シナリオ | 必須のアサーション |
+| --- | --- | --- |
+| LOCK-01 | 最初の取得 | 正確に 1 人の所有者がミューテックスと排他的なトークン レコードを取得します。 |
+| LOCK-02 | 同時取得 | 2 番目のプロセスは 60 秒以内に待機し、ロックが保持されたままであれば副作用なく終了します。 |
+| LOCK-03 | トークン 不一致 | 現在のプロセスは、トークンが異なるレコードを更新または削除できません。 |
+| LOCK-04 | 古いタイムスタンプを持つライブ所有者 | 経過時間によって乗っ取りや削除は許可されません。 |
+| LOCK-05 | PID の再利用 / デッド PID のあいまいさ | PID だけでは所有権を確立したり、リカバリを許可したりすることはできません。 |
+| LOCK-06 | 放棄されたミューテックス、有効な一致レコード | リカバリは明示的な検証パスに従い、サニタイズされた証拠を記録します。 |
+| LOCK-07 | 放棄されたミューテックス、不正な形式または不一致のレコード | フェイルクローズ。ロック レコード、マニフェスト、ステージング、ソース データを保持します。 |
+| LOCK-08 | ロック レコードはすでに存在します | 排他的作成は安全に失敗します。上書きは行われません。 |
+| LOCK-09 | ミューテックスが利用できない / OS エラー | インベントリ、マニフェスト、ステージング、ドライブ、アーカイブ、または削除の副作用は発生しません。 |
+| LOCK-10 | 通常リリース | 一致する所有者のトークン レコードのみが削除されます。ミューテックスは、後のクリーンアップが発生した場合でも解放されます。 |
+| REC-01 | マニフェスト公開前にクラッシュする | 一時ファイルには権限がありません。部分的なマニフェストは受け入れられません。 |
+| REC-02 | マニフェスト公開後のクラッシュ | 公開された成果物は完成しました。 crash-left 実行マニフェストは変更されません。 |
+| REC-03 | ロックレコードの更新中にクラッシュしました | 既存の信頼できるレコードが有効なままであるか、操作が失敗して終了します。部分的なレコードは決して信頼されません。 |
+| REC-04 | 検証されたリカバリ後の新しい実行 | 新しい run_id と新しい一覧/状態が使用されます。以前のマニフェストバイトは変更されません。 |
+| REC-05 | 一致するドライブ オブジェクトが確認された不明なアップロード | コンテンツ検証により、重複アップロードなしで検証される調整が可能になります。 |
+| REC-06 | 未完了/曖昧 の不明なアップロード ドライブのリスト | 不明のままにしておく。再試行、成功の宣言、ステージングのクリーンアップ、アーカイブ、または削除は行わないでください。 |
+| REC-07 | 最新のタイムスタンプが等しい / ID の不一致 | 恣意的な勝者はなく、以前の成功へのフォールバックもありません。 |
+| REC-08 | 回復中断が繰り返されました | 冪等なフェールクローズ動作。所有権の盗難やデータの損失はありません。 |
 
-Every test must assert return/result classification, relevant manifest bytes, token ownership, temporary-file state, and that source/Drive/archive data remain unchanged. A test is not passed if only the expected error code is asserted.
+すべてのテストでは、戻り/結果の分類、関連するマニフェスト バイト、トークンの所有権、一時ファイルの状態、およびソース/ドライブ/アーカイブ データが変更されていないことをアサートする必要があります。予想されるエラー コードのみがアサートされた場合、テストは合格しません。
 
-## 6. Implementation sequence and exit criteria
+## 6. 実装順序と終了基準
 
-- Slice A: implement the lock ownership primitive and deterministic synthetic tests without connecting it to official entry points.
-- Slice B: implement crash/recovery decision helpers and synthetic tests, including lock/manifest/latest-run reconciliation.
-- Slice C: prove multi-artifact publication and recovery ordering under injected crashes and concurrent publishers.
-- Only after A-C and the runtime-entrypoint gate pass may official entry points be integrated. Each slice requires Validate and Package Validation to pass on the exact latest PR HEAD and post-merge main workflows to be verified.
-- Do not mark P0 complete until runtime acceptance evidence, packaging, role constraints, Drive verification, and end-to-end safety checks are independently confirmed.
+- スライス A: ロック所有権のプリミティブおよび決定論的合成テストを、公式のエントリ ポイントに接続せずに実装します。
+- スライス B: クラッシュ/回復意思決定ヘルパーと、ロック/マニフェスト/最新実行調整を含む合成テストを実装します。
+- スライス C: 挿入されたクラッシュと同時パブリッシャーの下で、複数の成果物のパブリケーションとリカバリの順序を証明します。
+- A-C およびランタイム エントリポイント ゲート パスの後のみ、正式なエントリ ポイントを統合できます。各スライスでは、正確な最新の PR HEAD を渡し、マージ後のメイン ワークフローが 確認済み になるように、検証とパッケージ検証が必要です。
+- 実行時の受け入れ証拠、パッケージ化、役割の制約、ドライブの検証、およびエンドツーエンドの安全性チェックが個別に確認されるまで、P0 完了 をマークしないでください。
 
-## 7. Explicit exclusions
+## 7. 明示的な除外
 
-This gate does not implement a lock helper, stale-lock deletion, automatic staging recovery, Drive synchronization, archive, local-source deletion, Drive deletion, or official entry points. It is an acceptance contract only. P0 remains open.
+このゲートは、ロック ヘルパー、古いロックの削除、自動 ステージング 回復、ドライブの同期、アーカイブ、ローカル ソースの削除、ドライブの削除、または公式のエントリ ポイントを実装していません。受諾のみの契約となります。 P0 は開いたままになります。
 
 
-## 8. Multi-artifact evidence classification (implementation not yet authorized)
+## 8. 複数の成果物証拠の分類 (実装はまだ承認されていません)
 
-The isolated `Common/ArtifactSetRecovery.py` helper classifies evidence only. Its synthetic commit-marker model is not yet the approved final transaction protocol.
+分離された `Common/ArtifactSetRecovery.py` ヘルパーは証拠のみを分類します。その合成コミットマーカー モデルは、まだ承認された最終トランザクション プロトコルではありません。
 
-- A set is reported `committed` only when the marker has the strict supported shape, its transaction ID is valid, its SHA-256 map exactly matches the expected artifact set, and every expected published artifact is present with matching content hash.
-- A marker missing after all artifacts appear, a partial published set, malformed marker, unexpected artifact, or digest mismatch must not be reported as committed. Preserve existing artifacts and require reconciliation.
-- The helper does not establish crash durability, filesystem atomicity across multiple artifacts, ownership, or Drive consistency. Those require separate injected-crash/concurrency tests and explicit review before any runtime integration.
-- No cleanup or overwrite is authorized by a classification result.
+- セットは、マーカーが厳密にサポートされている形状を持ち、そのトランザクション ID が有効で、その SHA-256 マップが予期される成果物 セットと正確に一致し、予期されるすべてのパブリッシュされた成果物が一致するコンテンツ ハッシュとともに存在する場合にのみ、`committed` と報告されます。
+- すべての成果物が表示された後に欠落したマーカー、部分的に公開されたセット、不正な形式のマーカー、予期しない成果物、またはダイジェスト 不一致 は、コミット済みとして報告されてはなりません。既存の成果物を保持し、調整を必要とします。
+- ヘルパーは、クラッシュ耐久性、複数の成果物にわたるファイルシステムのアトミック性、所有権、またはドライブの一貫性を確立しません。これらには、ランタイム統合の前に、個別の挿入クラッシュ/同時実行テストと明示的なレビューが必要です。
+- 分類結果によるクリーンアップまたは上書きは許可されません。
 
 
-## 9. Marker-last multi-artifact publication helper (implementation gate remains open)
+## 9.  Marker-last マルチ成果物 パブリケーション ヘルパー (実装ゲートは開いたままです)
 
-The isolated `Common/ArtifactSetPublication.py` composes the single-file no-overwrite helper, publishes artifacts in deterministic order, then publishes a transaction marker last. This ordering provides a detectable incomplete-set state, not an atomic multi-file transaction.
+分離された `Common/ArtifactSetPublication.py` は、単一ファイルの上書きなしヘルパーを構成し、成果物を決定的な順序で公開し、最後にトランザクション マーカーを公開します。この順序付けにより、アトミックな複数ファイル トランザクションではなく、検出可能な 未完了-set 状態が提供されます。
 
-- A crash before marker publication may leave some or all artifacts present; without a valid marker the set must not be reported committed.
-- Existing identical artifact bytes may be retried idempotently; conflicting bytes fail closed and must not be overwritten.
-- The helper must not roll back or delete previously published artifacts after a partial failure.
-- Actual directory reconciliation must re-read bytes and verify hashes plus marker identity before classifying committed.
-- This helper is not yet approved for official entry-point integration, Drive interaction, manifest lifecycle mutation, archive, or deletion. Cross-process crash/concurrency acceptance and target-filesystem behavior remain required.
+- マーカーの公開前にクラッシュすると、一部またはすべての成果物が残る可能性があります。有効なマーカーがなければ、セットはコミットされたと報告してはなりません。
+- 既存の同一の成果物 バイトはべき等に再試行される可能性があります。競合するバイトはフェールクローズされるため、上書きしてはなりません。
+- ヘルパーは、部分的な 失敗 の後に、以前に公開された成果物をロールバックまたは削除してはなりません。
+- 実際のディレクトリ調整では、コミット済みを分類する前に、バイトを再読み取り、ハッシュとマーカー ID を検証する必要があります。
+- このヘルパーは、公式のエントリ ポイント統合、ドライブ インタラクション、マニフェスト ライフサイクルの変更、アーカイブ、または削除についてはまだ承認されていません。クロスプロセスクラッシュ/同時実行の受け入れとターゲットファイルシステムの動作は引き続き必要です。
 
 
-### Primary write failure survives stream-close failure (2026-10-26)
+### プライマリ書き込み 失敗 はストリームクローズ後も存続します 失敗 (2026-10-26)
 
-If an incomplete write is detected and stream close subsequently raises an OSError, the single-file publisher preserves the primary fixed `artifact_write_incomplete` reason. It does not replace that reason with the generic `artifact_publish_failed`. The artifact-set publisher propagates the same primary reason, preserving earlier artifacts and leaving the marker unpublished. Partial/unverified temporary content remains preserved under the existing cleanup rules.
+未完了 書き込みが検出され、その後ストリームを閉じると OSError が発生した場合、単一ファイル パブリッシャーは主な固定された `artifact_write_incomplete` 理由を保持します。その理由を一般的な `artifact_publish_failed` に置き換えるわけではありません。成果物 セットのパブリッシャーは、同じ主な理由を伝播し、以前の成果物を保存し、マーカーを非公開のままにします。部分的/未検証の一時コンテンツは、既存のクリーンアップ ルールに基づいて保持されたままになります。
 
-Synthetic tests also inject individual write/flush/fsync/close OSErrors and require fixed `artifact_publish_failed` without linking a destination. Existing cleanup may remove a temp after a close failure only when its already-captured identity, complete exact bytes and parent chain still verify; incomplete or otherwise unverified temps remain. This does not introduce cleanup authority, retries, filesystem qualification, power-loss guarantees or formal runtime integration. Tests cover the double failure through both single-file and set publishers and each individual I/O failure stage.
+合成テストでは、個別の write/flush/fsync/close OSError も挿入され、宛先をリンクせずに固定の `artifact_publish_failed` が必要になります。既存のクリーンアップでは、すでに取得された ID、完了 の正確なバイト数、および親チェーンがまだ検証されている場合にのみ、失敗 を閉じた後に一時を削除できます。 未完了 または未検証の温度が残ります。これにより、クリーンアップ権限、再試行、ファイルシステムの認定、電源損失の保証、または正式なランタイム統合は導入されません。テストでは、単一ファイル パブリッシャーとセット パブリッシャーの両方、および個々の I/O 失敗 ステージを通じて、ダブル 失敗 がカバーされます。
 
-### Payload mapping snapshot before publication (2026-10-26)
+### 公開前のペイロード マッピング スナップショット (2026-10-26)
 
-The artifact-set publisher first copies a Mapping into a plain dictionary, rejects an empty copied set, and then validates every copied name and payload before hashing or publication. Failures while copying keys/items are suppressed behind fixed `artifact_set_empty_or_invalid`; no artifacts or marker are published and any existing partial set is preserved. A caller's truthiness/length declaration cannot substitute for actual copied content, so a nonempty declaration with no enumerated entries cannot produce an empty marker. Invalid marker/name/payload checks remain required after copying.
+成果物 セット パブリッシャーは、まずマッピングをプレーン ディクショナリにコピーし、空のコピー セットを拒否し、次に、ハッシュまたはパブリケーションの前に、コピーされたすべての名前とペイロードを検証します。キー/アイテムのコピー中の失敗は、修正された `artifact_set_empty_or_invalid` の背後で抑制されます。成果物やマーカーは公開されず、既存の部分セットは保持されます。呼び出し元の真偽性/長さの宣言は、実際にコピーされたコンテンツの代わりに使用できないため、列挙されたエントリのない空でない宣言は空のマーカーを生成できません。コピー後も、無効なマーカー/名前/ペイロードのチェックが必要です。
 
-The same copied bytes supply hashes, ordered artifact writes and the marker. Later mutation of the source mapping cannot replace them. This is not an atomic snapshot of a concurrently mutated custom mapping, a memory bound or caller-authenticity proof. Tests cover iteration/partial-copy/item failures, empty copied content despite a positive length declaration, a valid copy independent of an unusable length declaration, mutation during the first actual publication and preservation of an existing partial set. Formal provider/runtime and durability gates remain unchanged.
+同じコピーされたバイトが、ハッシュ、順序付けられた成果物の書き込み、およびマーカーを提供します。後でソース マッピングを変更しても、それらを置き換えることはできません。これは、同時に変更されたカスタム マッピングのアトミック スナップショット、メモリ制限、または呼び出し元の信頼性証明ではありません。テストでは、反復/部分コピー/項目の失敗、正の長さの宣言にもかかわらず空のコピーされたコンテンツ、使用できない長さの宣言に依存しない有効なコピー、最初の実際のパブリケーション中の突然変異、および既存の部分セットの保存がカバーされます。正式なプロバイダー/ランタイムおよび耐久性ゲートは変更されません。
 
-### Exact temporary-file write counts (2026-10-26)
+### 一時ファイルの正確な書き込み数 (2026-10-26)
 
-The single-file publisher writes its immutable payload in chunks of at most 1,048,576 bytes using memoryview slices. Every `write` result must be an exact integer equal to that chunk's length; short/zero/negative/oversized counts, bool, None or other types reject with fixed `artifact_write_incomplete`. The helper does not retry a partial write, explicitly flush/fsync it, or link it to the destination. Stream close may flush buffered data, so partial/unverified temp files remain preserved; they are not automatically repaired or removed. Existing readback, identity and parent checks remain required after complete writes. Empty payloads still flush, fsync and pass readback before publication.
+単一ファイル パブリッシャーは、memoryview スライスを使用して、不変ペイロードを最大 1、048、576 バイトのチャンクに書き込みます。すべての `write` の結果は、そのチャンクの長さに等しい正確な整数でなければなりません。 short/zero/negative/oversize カウント、bool、None、またはその他の型は固定 `artifact_write_incomplete` で拒否されます。ヘルパーは、部分的な書き込みを再試行したり、明示的にフラッシュ/fsync したり、宛先にリンクしたりしません。ストリームを閉じるとバッファされたデータがフラッシュされる可能性があるため、部分的/未検証の一時ファイルは保持されたままになります。これらは自動的に修復または削除されません。 完了 の書き込み後も、既存のリードバック、同一性、および親のチェックが必要です。空のペイロードは依然としてフラッシュされ、fsync され、発行前にリードバックが渡されます。
 
-The artifact-set publisher propagates the same fixed reason. If a later artifact fails its write, earlier published artifacts remain, no marker is published, and the partial temp remains for separately authorized reconciliation. Synthetic tests cover bounded multichunk writes, invalid return values without retry/link, empty payload publication, and a second-artifact short write. These checks do not add runtime integration, durable recovery, qualified ownership/filesystems, or power-loss guarantees; caller payload memory is not bounded by chunking.
+成果物 セットのパブリッシャーは、同じ固定理由を伝播します。後の成果物が書き込みに失敗した場合、以前に公開された成果物が残り、マーカーは公開されず、個別に承認された調整のために部分的な一時ファイルが残ります。合成テストは、制限されたマルチチャンク書き込み、再試行/リンクのない無効な戻り値、空のペイロード パブリケーション、および 2 番目の成果物の短い書き込みをカバーします。これらのチェックでは、ランタイムの統合、永続的なリカバリ、適格な所有権/ファイルシステム、または電源損失の保証は追加されません。呼び出し元のペイロード メモリはチャンクによって制限されません。
 
-### Destination basenames before publication (2026-10-26)
+### 公開前の宛先ベース名 (2026-10-26)
 
-The artifact-set publisher applies the single-file publisher's existing prohibition on trailing spaces/dots to every artifact basename and the marker basename during whole-set input validation. Invalid artifact names raise `artifact_name_invalid`; invalid marker names raise `commit_marker_name_invalid`, before any call to publish an artifact. Previously, a later invalid basename or the invalid marker could be discovered only after earlier valid files had been published. Invalid input no longer creates that avoidable partial set; an existing partial set remains unchanged.
+成果物 セット パブリッシャーは、セット全体の入力検証中に、単一ファイル パブリッシャーの既存の末尾のスペース/ドットの禁止をすべての成果物のベース名とマーカーのベース名に適用します。無効な成果物名では `artifact_name_invalid` が発生します。無効なマーカー名は、成果物を公開する呼び出しの前に `commit_marker_name_invalid` を生成します。以前は、後の無効なベース名または無効なマーカーは、以前の有効なファイルがパブリッシュされた後にのみ検出できました。無効な入力によって回避可能な部分セットが作成されることはなくなりました。既存の部分セットは変更されません。
 
-The single-file publisher also checks its existing basename rule before parent inspection, so `destination_name_invalid` takes precedence over an unavailable parent for such invalid names. This reorders existing single-file validation and tightens the set preflight to the same rule. It does not define a complete Windows namespace/alias policy, change valid-file ordering or no-overwrite behavior, or authorize cleanup/recovery. Synthetic tests cover invalid trailing spaces/dots on later artifacts and markers, preservation of existing partial sets, and absence of parent inspection/temp allocation for invalid single-file basenames.
+単一ファイルのパブリッシャーは、親の検査の前に既存のベース名ルールもチェックするため、そのような無効な名前については `destination_name_invalid` が 利用不能 の親よりも優先されます。これにより、既存の単一ファイル検証の順序が変更され、設定されたプリフライトが同じルールに厳格化されます。 完了 Windows ネームスペース/エイリアス ポリシーの定義、有効なファイルの順序や上書き禁止の動作の変更、クリーンアップ/リカバリの承認は行いません。合成テストでは、後の成果物やマーカーの無効な末尾のスペース/ドット、既存の部分セットの保存、無効な単一ファイルのベース名に対する親検査/一時割り当ての欠如がカバーされます。
 
-### Publication comparisons bounded by expected bytes (2026-10-26)
+### 予期されるバイト数によって制限されたパブリケーションの比較 (2026-10-26)
 
-`AtomicArtifactPublication._same_bytes` rejects an inspected regular file whose initial size differs from the immutable expected payload length without opening its content. For an existing destination this remains `destination_conflict`; it does not allocate a temp file or overwrite the destination. A staging/final readback size conflict still fails its existing verification gate, and changed/unverified temporary content is preserved under the existing ownership-based cleanup checks.
+`AtomicArtifactPublication._same_bytes` は、初期サイズが不変の予想されるペイロード長と異なる検査済みの通常ファイルを、その内容を開かずに拒否します。既存の宛先の場合、これは `destination_conflict` のままです。一時ファイルを割り当てたり、宛先を上書きしたりすることはありません。 ステージング/最終リードバック サイズの競合は依然として既存の検証ゲートに失敗し、変更/未検証の一時コンテンツは既存の所有権ベースのクリーンアップ チェックの下で保存されます。
 
-When initial sizes agree, each read is at most 1,048,576 bytes and the total comparison stops at expected length plus one byte. Observed growth immediately rejects with `artifact_changed_during_read`, preventing a continuously growing file from extending the comparison indefinitely. Handle/path/ancestor signatures and byte comparisons remain required for an identical result. Empty and multichunk payloads retain idempotent behavior. This uses known caller bytes rather than introducing configurable production limits. It does not bound caller payload memory or read latency, qualify ownership/filesystems, prevent ABA, or establish durability/runtime acceptance. Synthetic tests cover pre-open size conflicts, exact empty/multichunk comparisons, growth during reading, and size change between inspection and open.
+初期サイズが一致すると、各読み取りは最大 1、048、576 バイトとなり、合計の比較は予想される長さに 1 バイトを加えた時点で停止します。観察された増加は `artifact_changed_during_read` で即座に拒否され、継続的に増加するファイルが比較を無制限に延長することを防ぎます。同一の結果を得るには、ハンドル/パス/祖先の署名とバイト比較が引き続き必要です。空のペイロードとマルチチャンクのペイロードは冪等の動作を保持します。これは、構成可能な実稼働制限を導入するのではなく、既知の呼び出し側バイトを使用します。呼び出し元のペイロード メモリや読み取り遅延の制限、所有権/ファイル システムの制限、ABA の防止、耐久性/実行時の受け入れの確立は行いません。合成テストは、オープン前のサイズの競合、正確な空/マルチチャンクの比較、読み取り中の増加、検査とオープンの間のサイズの変更をカバーします。
 
-### Publisher and classifier transaction grammar (2026-10-26)
+### パブリッシャーおよび分類子のトランザクション文法 (2026-10-26)
 
-The publisher now uses the existing classifier's shared `is_artifact_transaction_id` grammar before payload validation or any publication call: a hyphenated UUID with version 1 through 8 and RFC variant (fourth group starting 8, 9, a or b), accepting upper/lowercase hex. The supplied spelling is preserved in the marker; independent transaction expectations remain exact string comparisons rather than UUID normalization. The marker classifier and expected-ID validator use the same grammar.
+パブリッシャーは、ペイロード検証またはパブリケーション呼び出しの前に、既存の分類子の共有 `is_artifact_transaction_id` 文法を使用するようになりました。これは、バージョン 1 から 8 および RFC バリアント (8、9、a または b で始まる 4 番目のグループ) のハイフン付き UUID で、大文字/小文字の 16 進数を受け入れます。指定されたスペルはマーカーに保存されます。独立したトランザクションの期待は、UUID の正規化ではなく、正確な文字列比較のままです。マーカー分類子と予期される ID 検証子は同じ文法を使用します。
 
-Previously, the publisher's generic UUID parse accepted nil IDs, unsupported versions or non-RFC variants that the classifier could never accept as committed. Such inputs now fail with fixed `transaction_id_invalid` before publishing any artifact or marker. Existing partial sets remain unchanged. This tightens invalid producer inputs to the already established consumer contract; it does not migrate or repair old invalid markers. Synthetic tests cover invalid types/forms, all 64 combinations of supported version/variant/case through real publication and directory verification, and preservation of an existing partial set. Crash/concurrency and formal runtime qualification remain separate gates.
+以前は、パブリッシャーの汎用 UUID 解析は、分類子がコミット済みとして受け入れることができない nil ID、サポートされていないバージョン、または非 RFC バリアントを受け入れていました。このような入力は、成果物またはマーカーを公開する前に修正された `transaction_id_invalid` で失敗するようになりました。既存の部分セットは変更されません。これにより、すでに確立された消費者契約に対する無効な生産者の入力が強化されます。古い無効なマーカーは移行または修復されません。合成テストは、実際のパブリケーションとディレクトリの検証、および既存の部分セットの保存を通じて、無効なタイプ/フォーム、サポートされているバージョン/バリアント/ケースのすべての 64 の組み合わせをカバーします。クラッシュ/同時実行と正式なランタイム認定は別個のゲートのままです。
 
-## 10. Read-only directory-state verification (synthetic implementation)
+## 10. 読み取り専用のディレクトリ状態検証 (合成実装)
 
-`Common/ArtifactSetDirectoryVerification.py` now reads observed artifact bytes from one directory, computes SHA-256, parses the marker with duplicate-key rejection, rejects unexpected directory entries and non-regular files, and delegates to the strict artifact-set classifier. It performs no repair, publish, overwrite, or deletion.
+`Common/ArtifactSetDirectoryVerification.py` は、1 つのディレクトリから観察された成果物 バイトを読み取り、SHA-256 を計算し、重複キーの拒否でマーカーを解析し、予期しないディレクトリ エントリと非正規ファイルを拒否し、厳密な成果物 セット分類子に委任するようになりました。修復、公開、上書き、削除は行われません。
 
-- A successful classification is only a point-in-time observation. A concurrent writer can change files after verification; a lock/ownership boundary and revalidation at the actual consumer remain required.
-- Missing markers and partial sets never report committed. Invalid marker JSON, duplicate keys, unexpected entries, symlinks, unreadable files, or invalid directories fail closed.
-- This slice does not establish multi-file atomicity, durable directory entries, crash recovery, network/Windows filesystem semantics, Drive consistency, or official entrypoint safety. Cross-process crash/concurrency tests remain required before integration.
+- 成功した分類は、ある時点の観察にすぎません。同時ライターは検証後にファイルを変更できます。ロック/所有権の境界と実際の消費者での再検証は依然として必要です。
+- 欠落しているマーカーや部分的なセットはコミットされたことを報告しません。無効なマーカー JSON、重複キー、予期しないエントリ、シンボリックリンク、読み取り不可能なファイル、または無効なディレクトリはフェールクローズされます。
+- このスライスは、マルチファイルの原子性、永続的なディレクトリ エントリ、クラッシュ リカバリ、ネットワーク/Windows ファイル システム セマンティクス、ドライブの一貫性、または公式のエントリポイントの安全性を確立しません。統合前に、クロスプロセスのクラッシュ/同時実行テストが引き続き必要です。
 
 
-### Plain bytes for publication comparisons (2026-10-26)
+### パブリケーション比較用のプレーン バイト (2026-10-26)
 
-The single-file and set publishers retain support for bytes subclasses but materialize their exposed buffer into plain immutable bytes before destination inspection, hashing or publication. This bypasses subclass length/slice/`__bytes__` overrides, so byte comparisons, writes and marker digests describe the same payload. Ordinary exact bytes remain unchanged without an extra snapshot copy. Other input types, including bytearray and memoryview, retain the existing `artifact_bytes_required` rejection.
+単一ファイルおよびセット パブリッシャーは、バイト サブクラスのサポートを維持しますが、宛先検査、ハッシュ、またはパブリケーションの前に、公開されたバッファーをプレーンな不変バイトに実体化します。これにより、サブクラスの長さ/スライス/`__bytes__` オーバーライドがバイパスされるため、バイト比較、書き込み、およびマーカー ダイジェストは同じペイロードを記述します。通常の正確なバイトは、追加のスナップショット コピーなしで変更されません。 bytearray や Memoryview などの他の入力タイプは、既存の `artifact_bytes_required` 拒否を保持します。
 
-Previously a subclass could return existing destination bytes from slicing and obtain an identical classification despite a different underlying buffer. Synthetic tests require a fixed destination conflict with original files preserved, successful publication/idempotence of the actual buffer despite misleading length/slice overrides, and a marker that verifies against the actual published bytes. Caller mapping/payload objects are not modified. This does not bound snapshot allocation, qualify an external writer/provider or establish runtime authority, durability or ABA protection.
+以前は、サブクラスはスライスから既存の宛先バイトを返し、基礎となるバッファーが異なるにもかかわらず、同一の分類を取得できました。合成テストには、保存された元のファイルとの固定宛先の競合、誤解を招く長さ/スライスのオーバーライドにもかかわらず実際のバッファーの成功したパブリケーション/冪等性、および実際にパブリッシュされたバイトに対して検証するマーカーが必要です。呼び出し元のマッピング/ペイロード オブジェクトは変更されません。これは、スナップショットの割り当てを制限したり、外部ライター/プロバイダーを認定したり、実行時の権限、耐久性、または ABA 保護を確立したりするものではありません。
 
-### Duplicate artifact directory entries (2026-10-26)
+### 成果物 ディレクトリ エントリが重複しています (2026-10-26)
 
-Artifact-set directory scans reject exact repeated entry names with existing fixed `directory_changed` before replacing a stored signature. The initial scan and both later rescans use this rule, so a duplicate artifact or marker observation cannot collapse into a committed classification. No casefolding, normalization, deduplication or new alias policy is added. Existing allowlist/reparse/type/hash/marker/byte-limit checks remain required.
+成果物 セット ディレクトリ スキャンでは、保存されている署名を置き換える前に、既存の固定 `directory_changed` を使用して正確に繰り返されるエントリ名が拒否されます。最初のスキャンとその後の両方の再スキャンではこのルールが使用されるため、重複した成果物またはマーカーの観察がコミットされた分類に組み込まれることはありません。大文字と小文字の区別、正規化、重複排除、または新しいエイリアス ポリシーは追加されません。既存のホワイトリスト/再解析/タイプ/ハッシュ/マーカー/バイト制限チェックは引き続き必要です。
 
-Synthetic tests repeat entries on each of the three scans and require original-byte preservation. Both-role candidate integration injects duplicates and verifies that rejection leaves bundle/prior bytes intact and releases the owned lock. This does not certify native provider completeness, prevent ABA, or qualify runtime/Drive operations.
+合成テストでは 3 つのスキャンのそれぞれでエントリが繰り返され、元のバイトの保存が必要です。両方のロール候補の統合では、重複を挿入し、拒否によってバンドル/以前のバイトがそのまま残り、所有されているロックが解放されることを確認します。これは、ネイティブ プロバイダーの完全性を保証したり、ABA を防止したり、ランタイム/ドライブ操作を認定したりするものではありません。
 
-### Classifier validates the copied mappings (2026-10-26)
+### 分類子はコピーされたマッピングを検証します (2026-10-26)
 
-The pure artifact-set classifier copies expected/published/staged mappings before validating or comparing their contents. It also copies the marker object and its hash mapping before validating those structures. Each copy failure returns the existing input-specific blocked reason (expected/published/staged set invalid, marker invalid, or marker artifact-set mismatch); custom exception details do not escape. Expected and marker hash snapshots must remain nonempty and pass the existing name/hash grammar.
+純粋な成果物セット分類子は、その内容を検証または比較する前に、予期/公開/ステージングされたマッピングをコピーします。また、構造を検証する前に、マーカー オブジェクトとそのハッシュ マッピングもコピーします。各コピー 失敗 は、既存の入力固有のブロック理由 (予期/公開/ステージング セットが無効、マーカーが無効、またはマーカー 成果物 セット 不一致) を返します。カスタム例外の詳細はエスケープされません。予想されるハッシュ スナップショットとマーカー ハッシュ スナップショットは空ではなく、既存の名前/ハッシュ文法を通過する必要があります。
 
-Previously, expected hashes could be checked through a custom Mapping's `items()` and then separately copied through its key/item protocol. Divergent observations could validate a nominally nonempty expected set but classify an empty copied set, including a false committed outcome with a similarly deceptive marker hash mapping. Validation now uses the same plain dictionaries as classification. Ordinary dict and read-only Mapping inputs retain the existing states/flags, exact transaction binding and preservation behavior. Tests cover all five mapping-copy failure locations, divergent/empty copies and valid read-only mappings. This does not provide an atomic snapshot of a concurrently mutated custom mapping, validate caller provenance or authorize runtime side effects.
+以前は、予想されるハッシュはカスタム マッピングの `items()` を通じてチェックされ、そのキー/アイテム プロトコルを通じて個別にコピーできました。発散観察では、名目上は空ではない予期されるセットを検証できますが、同様に欺瞞的なマーカー ハッシュ マッピングを使用した false コミットされた結果を含む、空のコピー セットを分類する可能性があります。検証では、分類と同じ単純な辞書が使用されるようになりました。通常の辞書および読み取り専用マッピング入力は、既存の状態/フラグ、正確なトランザクション バインディング、および保存動作を保持します。テストは、マッピング コピー 失敗 の 5 つの場所すべて、分岐/空のコピー、および有効な読み取り専用マッピングを対象としています。これは、同時に変更されたカスタム マッピングのアトミック スナップショットを提供したり、呼び出し元の来歴を検証したり、実行時の副作用を承認したりするものではありません。
 
-### Present marker JSON is distinct from an absent marker (2026-10-26)
+### 存在するマーカー JSON は、存在しないマーカー (2026-10-26) とは異なります
 
-When a marker file is present, its UTF-8 JSON must have an object root. `null`, arrays and scalar roots raise the fixed directory error `commit_marker_json_invalid`; a present `null` can no longer be classified as a missing marker. NaN/Infinity/-Infinity constants are rejected at every nesting level, duplicate keys remain rejected, and JSON parsing recursion failures map to the same fixed error instead of escaping as interpreter exceptions. Object shape/version/transaction/hash checks still belong to the existing classifier; an actually absent marker retains its prior missing/partial-set behavior.
+マーカー ファイルが存在する場合、その UTF-8 JSON にはオブジェクト ルートが必要です。 `null`、配列とスカラー ルートでは、固定ディレクトリ エラー `commit_marker_json_invalid` が発生します。現在の `null` は、欠落マーカーとして分類できなくなります。 NaN/Infinity/-Infinity 定数はすべてのネスト レベルで拒否され、重複キーは拒否されたままになり、JSON 解析再帰エラーはインタープリター例外としてエスケープされるのではなく、同じ固定エラーにマップされます。オブジェクトの形状/バージョン/トランザクション/ハッシュ チェックは引き続き既存の分類子に属します。実際に存在しないマーカーは、以前の欠落/部分セットの動作を保持します。
 
-The reader does not repair or delete invalid markers or promote another artifact set. Synthetic tests cover root types, nonstandard constants, nested duplicate keys and excessive nesting. Both-role candidate integration verifies original bundle/prior preservation and owner release on rejection. This tightens invalid-marker handling without introducing a numeric JSON depth/complexity policy or claiming bounded parser resources, atomicity, durability or runtime authorization. Existing caller read bounds and signature/rescan checks remain unchanged.
+リーダーは、無効なマーカーを修復または削除したり、別の成果物 セットを昇格したりしません。合成テストは、ルート型、非標準定数、ネストされた重複キー、過度のネストをカバーします。両方の役割候補の統合により、元のバンドル/以前の保存と拒否時の所有者の解放が検証されます。これにより、数値 JSON の深さ/複雑さのポリシーを導入したり、制限されたパーサー リソース、アトミック性、耐久性、実行時認可を要求したりすることなく、無効なマーカーの処理が強化されます。既存の呼び出し元の読み取り制限と署名/再スキャン チェックは変更されません。
 
-### Artifact-set expectations before filesystem access (2026-10-26)
+### ファイルシステムにアクセスする前の成果物設定の期待値 (2026-10-26)
 
-`verify_published_artifact_set` copies the caller's expected hash mapping before root/path inspection and validates that snapshot plus the optional expected transaction ID with the existing pure classifier. Invalid filename/hash grammar or transaction identity returns the classifier's blocked decision without filesystem access. Non-mapping/empty inputs, collision with the marker name, and mapping-copy failure raise the fixed `expected_artifact_set_invalid` directory error before I/O; custom mapping exception details are suppressed. Existing marker-name and resource-limit checks also remain before I/O.
+`verify_published_artifact_set` は、ルート/パス検査の前に呼び出し元の予期されるハッシュ マッピングをコピーし、そのスナップショットとオプションの予期されるトランザクション ID を既存の純粋な分類子で検証します。無効なファイル名/ハッシュ文法またはトランザクション ID は、ファイルシステムにアクセスせずに分類子のブロックされた決定を返します。非マッピング/空の入力、マーカー名との衝突、およびマッピングコピー 失敗 により、I/O 前に修正された `expected_artifact_set_invalid` ディレクトリ エラーが発生します。カスタム マッピング例外の詳細は抑制されます。既存のマーカー名とリソース制限のチェックも I/O 前に残ります。
 
-This changes rejection timing: caller errors take precedence over an unavailable or malformed directory, and invalid expectations no longer trigger scans or payload reads. Valid expectations retain the same marker/hash/transaction classification and full before/after observations. A mutation to the original mapping during the first root inspection cannot change the copied expectations. Copying is not an atomic snapshot of an externally mutated custom mapping and does not prove caller authenticity or root/owner qualification. The preliminary empty-publication classifier result is discarded for valid inputs; it cannot report an observed directory or authorize publication. Synthetic tests cover invalid hashes/names/transactions, invalid containers, sanitized copy failure and mutation at first root inspection.
+これにより、拒否のタイミングが変更されます。呼び出し元のエラーが 利用不能 または不正なディレクトリよりも優先され、無効な期待によってスキャンやペイロードの読み取りがトリガーされなくなりました。有効な期待値は、同じマーカー/ハッシュ/トランザクション分類と完全な前後の観察を保持します。最初のルート検査中に元のマッピングが変更されても、コピーされた期待値を変更することはできません。コピーは、外部で変更されたカスタム マッピングのアトミック スナップショットではなく、呼び出し元の信頼性やルート/所有者の資格を証明するものではありません。予備的な空の出版物分類子の結果は、有効な入力に対しては破棄されます。観察されたディレクトリを報告したり、公開を承認したりすることはできません。合成テストは、無効なハッシュ/名前/トランザクション、無効なコンテナ、サニタイズされたコピー 失敗、および最初のルート検査時の変異をカバーします。
 
-### Caller-selected artifact-set read bounds (2026-10-26)
+### 呼び出し元が選択した成果物セットの読み取り境界 (2026-10-26)
 
-`verify_published_artifact_set` accepts optional `maximum_artifact_bytes` and `maximum_total_bytes`, each None or a positive exact integer. Invalid values reject with `artifact_read_limit_invalid` before filesystem access. After the initial metadata scan, every observed artifact and the marker are checked before any payload opens. A file over its bound rejects with `artifact_read_limit_exceeded`; the sum of observed initial sizes over the set bound rejects with `artifact_total_limit_exceeded`. Partial sets and marker-missing states do not bypass these checks. Empty directories still classify as not published.
+`verify_published_artifact_set` は、オプションの `maximum_artifact_bytes` および `maximum_total_bytes` を受け入れます。それぞれ None または正の正確な整数です。無効な値は、ファイルシステムにアクセスする前に `artifact_read_limit_invalid` で拒否されます。最初のメタデータ スキャンの後、ペイロードが開く前に、観察されたすべての成果物とマーカーがチェックされます。境界を超えるファイルは `artifact_read_limit_exceeded` で拒否されます。設定された境界を超えて観察された初期サイズの合計は、`artifact_total_limit_exceeded` で拒否されます。部分セットとマーカー欠落状態は、これらのチェックをバイパスしません。空のディレクトリは依然として未公開として分類されます。
 
-The total is the initial observed set size, not cumulative I/O: final rereads must match the same signatures and exact bytes but are not charged again. Each read uses chunks of at most 65,536 bytes and stops at the inspected initial size plus one byte, rejecting observed growth with `artifact_changed`, even without caller bounds. Existing marker/hash/transaction classification, final rereads and directory rescans remain required. No truncation, fallback or mutation occurs on a resource failure.
+合計は、累積 I/O ではなく、最初に観察されたセット サイズです。最後の再読み取りは同じ署名と正確なバイトに一致する必要がありますが、再度請求されることはありません。各読み取りは最大 65、536 バイトのチャンクを使用し、検査された初期サイズに 1 バイトを加えた値で停止し、呼び出し元の制限がない場合でも、`artifact_changed` による観察された増加を拒否します。既存のマーカー/ハッシュ/トランザクションの分類、最終的な再読み取り、ディレクトリの再スキャンは引き続き必要です。リソース 失敗 では切り捨て、フォールバック、または突然変異は発生しません。
 
-None imposes no caller ceiling; no production default, schema constraint or retention policy is selected. These controls do not bound caller mapping size, native enumeration/read latency, JSON complexity or total memory, and do not establish qualified roots/owners, atomicity, ABA protection, durability or runtime authorization. Synthetic directory tests cover exact boundaries, every payload including the marker, pre-open rejection, incomplete sets and bounded growth. Tests-only terminal candidate integration supplies bounds on both observations for both PC roles and verifies that rejection preserves the bundle/prior and releases ownership. A committed classifier result remains an observation of the marker/hash snapshot, not permission to update a manifest or archive.
+なしは呼び出し元の上限を課しません。運用デフォルト、スキーマ制約、または保持ポリシーは選択されていません。これらの制御は、呼び出し元のマッピング サイズ、ネイティブ列挙/読み取りレイテンシ、JSON の複雑さ、または総メモリを制限せず、修飾されたルート/所有者、アトミック性、ABA 保護、耐久性、または実行時認証を確立しません。合成ディレクトリ テストは、正確な境界、マーカーを含むすべてのペイロード、プレオープン拒否、未完了 セット、および制限された増加をカバーします。テストのみの端末候補統合は、両方の PC ロールの両方の観測値に限界を提供し、拒否によってバンドル/以前が保持され、所有権が解放されることを検証します。コミットされた分類子の結果は、マニフェストまたはアーカイブを更新する許可ではなく、マーカー/ハッシュ スナップショットの観察のままです。
 
-## 11. Cross-process marker-last publication race (synthetic test)
+## 11. クロスプロセスマーカー - 最終出版物競合 (合成テスト)
 
-The publication tests now exercise two spawned processes concurrently publishing sets with the same manifest bytes but conflicting report bytes to one temporary directory. Acceptance requires exactly one success, one fail-closed conflict, and a commit marker that validates against the winning on-disk bytes. This only tests the host runner's temporary local filesystem; it does not prove behavior on Drive/network filesystems, power loss, cross-file atomicity, or coordination with the owned-run lock. Official integration remains gated.
+パブリケーション テストでは、生成された 2 つのプロセスが実行され、マニフェスト バイトは同じだがレポート バイトが競合するセットを 1 つの一時ディレクトリに同時にパブリッシュします。受け入れには、正確に 1 つの 成功、フェールクローズされた競合が 1 つ、およびディスク上の勝ったバイトに対して検証するコミット マーカーが必要です。これはホスト ランナーの一時的なローカル ファイル システムのみをテストします。ドライブ/ネットワーク ファイル システムでの動作、電源損失、ファイル間のアトミック性、または所有実行ロックとの調整は証明されません。正式な統合はゲートされたままです。
 
 
-## 12. Target-filesystem qualification (required before official integration)
+## 12. ターゲット ファイルシステムの認定 (正式な統合前に必要)
 
-See `docs/validation/target-filesystem-acceptance.md` for the tiered evidence plan. Hosted Windows CI is Tier A only. Before official entrypoint integration, Tier B disposable-root tests must pass on each operator PC's intended local volume, including crash injection, conflicting concurrent publishers, strict marker/hash revalidation, and no-overwrite capability checks. Any Google Drive for desktop or network-target-dependent behavior requires separately gated Tier C evidence in a dedicated disposable folder. Do not infer remote sync completion or power-loss durability from local visibility. Unknown, ambiguous, or unobservable states block dependent archive/deletion. No production log path or Drive operation is authorized by this plan.
+段階的な証拠計画については、`docs/validation/target-filesystem-acceptance.md` を参照してください。ホストされた Windows CI は Tier A のみです。正式なエントリポイント統合の前に、Tier B ディスポーザブル ルート テストは、クラッシュ インジェクション、同時パブリッシャーの競合、厳密なマーカー/ハッシュの再検証、および上書き禁止機能チェックを含む、各オペレーター PC の対象ローカル ボリューム上で合格する必要があります。デスクトップまたはネットワーク ターゲットに依存する動作に関する Google Drive には、専用の使い捨てフォルダー内に個別にゲートされた Tier C 証拠が必要です。ローカルの可視性からリモート同期の完了や停電時の耐久性を推測しないでください。不明、曖昧、または観察不可能な状態では、依存するアーカイブ/削除がブロックされます。このプランでは、実稼働ログ パスまたはドライブ操作は許可されません。
 
 
-## Owned publication/recovery integration evidence (2026-10-23)
+## 所有する出版物/リカバリ統合証拠 (2026-10-23)
 
-`tests/test_owned_publication_integration.py` uses real Windows machine-wide
-named mutexes and spawned processes in a fresh harness-owned temp root. It
-verifies competing-publisher timeout without artifact changes, normal token
-cleanup plus exact-byte retry, actual abandoned-mutex fail-closed behavior,
-ownership-token mismatch preservation, and revalidation after an external writer
-changes previously verified bytes. A parent handle keeps the mutex object alive
-so the abandonment assertion does not accidentally test a newly created mutex.
+`tests/test_owned_publication_integration.py` は、新しく作成したハーネス所有の一時ルートで、実際の Windows のマシン全体の名前付きmutexと起動したプロセスを使う。競合する公開側が成果物を変更せずタイムアウトすること、通常のトークン後片付けと同一バイトの再試行、実際の放棄mutexの安全側での拒否、所有権トークン不一致時の保全、外部書き込みで検証済みバイトが変わった後の再検証を確認する。親ハンドルがmutexオブジェクトを生存させ、放棄の検証が誤って新規mutexを試験しないようにする。
 
-A schema-valid synthetic crash-left running manifest and actual surviving lock
-record are supplied to the pure recovery classifier. Missing termination proof,
-ambiguous latest candidate, incomplete reconciliation, unresolved uploads and
-record-identity mismatch all block. A positive result still requires fresh
-inventory/new run identity and does not authorize stale-record deletion/adoption.
-The tests preserve that manifest, lock record and published bytes; operational
-recovery and lock-protected use of real source/Drive data remain unimplemented.
-This is hosted/local synthetic evidence, not Tier B/C or complete runtime
-integration. P0-010/P0-012 remain open.
+スキーマに適合する合成のクラッシュ後runningマニフェストと、実際に残存するロック記録を、副作用のない復旧分類器へ渡す。終了証明の欠落、最新候補の曖昧さ、照合の未完了、未解決アップロード、記録の識別不一致はいずれも実行を止める。肯定結果でも新しい一覧と実行IDが必要であり、古い記録の削除・採用は許可しない。試験はマニフェスト、ロック記録、公開済みバイトを保全する。実運用の復旧と、ロックの下で実ログ・Driveを扱う処理は未実装である。これはホスト上・ローカルの合成試験の証拠であり、Tier B/Cや正式ランタイム統合全体の証拠ではない。P0-010/P0-012 は未完のままである。
 
-## Strict lock and recovery evidence (2026-10-23)
+## 厳密なロックと回復の証拠 (2026-10-23)
 
-OwnedRunLock rejects duplicate JSON keys before checking ownership. A matching
-token does not make a malformed record removable: schema_version must be an
-actual integer equal to 1, pid an actual positive integer (not boolean), and
-host a nonempty string. Non-ASCII tokens are rejected before constant-time
-comparison. Unverified or malformed records remain byte-for-byte unchanged;
-the mutex is normally released. No stale-record adoption/removal is introduced.
+OwnedRunLockは所有権の検査前に JSON の重複キーを拒否する。トークンが一致しても、不正な記録を削除可能とはしない。schema_version は 1 に等しい実際の整数、pidは真偽値でない正の整数、hostは空でない文字列でなければならない。非ASCIIトークンは定時間比較の前に拒否する。未確認・不正な記録のバイト列を変更せず、mutexは通常どおり解放する。古い記録の採用・削除は導入しない。
 
-CrashRecoveryDecision also rejects duplicate manifest keys, including when the
-last duplicate would otherwise overwrite an invalid value with a valid one.
-Only boolean true proves the supplied abandoned-mutex observation. Invalid
-manifest/reconciliation primitive types return the existing fixed block reasons
-rather than escaping as unhandled type errors. The decision remains pure; no
-prior manifest is rewritten and no actual recovery/run starts here.
+CrashRecoveryDecisionは、最後の重複キーが無効値を有効値で上書きする場合も、マニフェストの重複キーを拒否する。放棄されたmutexの観測を証明できる入力はbooleanのtrueだけである。マニフェスト・照合の基本型が無効な場合は、未処理の型エラーにせず既存の固定停止理由を返す。判断処理は副作用を持たず、過去のマニフェストを書き換えず、実際の復旧・実行を開始しない。
 
-Regressions reproduced unintended malformed-record deletion and acceptance of
-ambiguous recovery evidence before the fix. A spawned Windows worker verifies
-duplicate/boolean/non-ASCII malformed records remain intact, stays alive after
-release, and a parent acquires the same non-abandoned mutex while that worker
-is alive. Subsequent acquisition remains blocked by the preserved record.
-These are synthetic evidence checks, not proof of atomic compare/delete against
-arbitrary external writers, validated stale-lock disposition, or complete REC-04
-new-run/fresh-inventory integration. LOCK/REC and P0 acceptance remain open.
+修正前の回帰試験で、不正記録の意図しない削除と、曖昧な復旧証拠の受け入れを再現した。起動した Windows の作業プロセスは、重複キー・真偽値・非ASCIIの不正記録が保全されることを検証し、解放後も生存する。その間に親が同じ非放棄mutexを取得する。以降の取得も保全された記録によって拒否される。これは合成証拠の検証であり、任意の外部書き込みに対するアトミックな比較・削除、古いロックの処分、REC-04 の新規実行・新しい一覧との統合全体の証明ではない。LOCK/RECとP0受け入れは未完である。
 
-[PC-B strict-lock follow-up](../../tests/evidence/pc-b-lock-validation-local-volume-20261023.json) records 29 passing disposable-root checks without skips at source 302682abb7fd3b45b6745247dfa5297542f81c4b on the intended local fixed NTFS volume. This adds real-mutex malformed-record preservation/release to earlier crash/reparse cases. Pure lock/recovery unit regressions are covered separately by the full Python suite. Complete Tier B and operational recovery remain unaccepted.
+[PC-B 厳密ロックのフォローアップ](../../tests/evidence/pc-b-lock-validation-local-volume-20261023.json) は、目的のローカル固定 NTFS ボリューム上のソース 302682abb7fd3b45b6745247dfa5297542f81c4b でスキップせずに使い捨てルート チェックに合格した 29 を記録します。これにより、以前のクラッシュ/再解析ケースに、実ミューテックスの不正な形式のレコードの保存/解放が追加されます。純粋なロック/回復ユニットの回帰は、完全な Python スイートで個別にカバーされます。 Tier B を完了しても、運用上の回復は受け入れられないままです。
 
-## Latest candidate selection evidence (2026-10-23)
+## 最新の対象候補選択証拠 (2026-10-23)
 
-The read-only [C4 core](../design/latest-manifest-selection.md) independently parses the defined filename and selects only a unique validated latest start time. It rejects ambiguous/malformed/unreadable candidates and never falls back from a newer incomplete run to old success. It does not enumerate/read operational manifests, establish owner termination, dispose stale locks or start a new run; REC-04/REC-07 runtime acceptance remains open.
+読み取り専用の [C4 コア](../design/reference/latest-manifest-selection.md) は、定義されたファイル名を個別に解析し、一意の検証された最新の開始時刻のみを選択します。 曖昧/不正な形式/読み取り不可能な候補は拒否され、新しい 未完了 の実行から古い 成功 にフォールバックすることはありません。操作マニフェストの列挙や読み取り、所有者の終了の確立、古いロックの破棄、または新しい実行の開始は行いません。 REC-04/REC-07 ランタイムの受付は引き続き受付中です。
 
-## Latest-directory composition evidence (2026-10-23)
+## 最新のディレクトリ構成の証拠 (2026-10-23)
 
-Seven synthetic composition tests feed the exact latest-directory byte snapshot
-into the existing pure recovery classifier. Latest failure, equal maxima, older
-corruption and read uncertainty never permit recovery via an older candidate.
-The actual Windows abandoned-mutex test now selects its prior running manifest
-from the defined PC directory and confirms that a subsequent normal acquisition
-still refuses the unchanged stale record even after a positive classification.
-Changes after a snapshot demonstrate why classification is not a current-use
-permit. This extends bounded evidence only; REC-04 operational new-run creation,
-explicit disposition, termination proof and protection through use remain open.
+7件の合成結合試験は、最新ディレクトリの厳密なバイトスナップショットを既存の副作用のない復旧分類器へ渡す。最新の失敗、同じ最大値、古い候補の破損、読み取りの不確実性がある場合、古い候補による復旧を許可しない。実際の Windows の放棄mutex試験は、規定のPCディレクトリから前回のrunningマニフェストを選び、肯定分類の後も、以降の通常取得が変更されていない古い記録を拒否することを確認する。スナップショット後の変更により、分類が現在の利用許可ではない理由も示す。限定的な証拠の拡張に限り、REC-04 の実運用の新規実行作成、明示的処分、終了証明、利用までの保護は未解決である。
 
-## Explicit recovery entrypoint direction (2026-10-23)
+## 明示的なリカバリ エントリポイントの方向 (2026-10-23)
 
-Maintainer approved designing a dedicated explicit recovery command while normal synchronization continues to stop on stale records. [The command design](../design/explicit-recovery-command-design.md) defines read-only diagnosis/planning, non-authorizing results, safe mutex lifetime and a pending synthetic test matrix. It does not implement an entrypoint or authorize disposition. Persistent owner identity, root/clock qualification, private evidence storage and protected state changes remain open.
+メンテナは、古いレコードで通常の同期が停止し続ける間に、専用の明示的リカバリ コマンドを設計することを承認しました。 [コマンドの設計](../design/explicit-recovery-command-design.md) は、読み取り専用の診断/計画、非承認の結果、安全なミューテックスの有効期間、および 未確定 合成テスト マトリックスを定義します。エントリポイントを実装したり、処理を許可したりするものではありません。永続的な所有者 ID、ルート/クロック資格、プライベート証拠ストレージ、および保護された状態の変更はオープンなままです。
 
-Diagnosis-only lease slice (2026-10-23): RecoveryDiagnosticMutex adds record-free acquisition of the existing named mutex and non-authorizing abandonment observations. Thirteen lifetime tests cover actual Windows contention, consumed abandonment and cross-process reacquisition after failure. It does not change acquire_owned_lock or authorize stale-record removal. See the [legacy-record policy proposal](../decisions/recovery-owner-evidence-v2-proposal.md).
+診断専用リース スライス (2026-10-23): RecoveryDiagnosticMutex は、既存の名前付きミューテックスのレコードフリー取得と非承認放棄監視を追加します。 13 のライフタイム テストは、実際の Windows 競合、消費された放棄、失敗 後のプロセス間再取得をカバーします。 acquire_owned_lock を変更したり、古いレコードの削除を許可したりするものではありません。 [レガシー レコード ポリシーの提案](../archive/decisions/recovery-owner-evidence-v2-proposal.md)を参照してください。
 
-Owner-evidence design slice (2026-10-23): v1 preservation/v2-only future recovery direction is approved. The [logical contract](../design/recovery-owner-evidence-v2-contract.md) specifies source/binding requirements, non-authorizing termination observation and OWNER-01 through OWNER-06 as pending tests. No OS provider, v2 schema/writer or record disposition is implemented. Old lock/manifest bytes remain unchanged.
+所有者証拠デザイン スライス (2026-10-23): v1 の保存/v2 のみの将来のリカバリの方向が承認されています。 [論理契約](../design/recovery-owner-evidence-v2-contract.md) は、ソース/バインディング要件、非承認終了監視、および 未確定 テストとしての OWNER-01 から OWNER-06 までを指定します。 OS プロバイダー、v2 スキーマ/ライター、またはレコードの配置は実装されていません。古いロック/マニフェスト バイトは変更されません。

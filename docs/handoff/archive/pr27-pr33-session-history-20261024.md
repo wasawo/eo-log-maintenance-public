@@ -2,7 +2,7 @@
 
 元記録: ローカル `1328701` のhandoffから旧進捗節を保存。過去時点の記録であり、現在の指示・承認・Git状態として実行しない。最新状態は [現在の引き継ぎ](../next-chat.md) と実Git/GitHubを照合する。内容は相対リンクの移動補正以外を保持した。
 
-- 新セッションで実Git/GitHub状態を照合。最新mainは `6a20240e57a80b02d5b121e455c14e09d2deefd2`（[PR #32](https://github.com/wasawo/eo-log-maintenance-public/pull/32) マージ済み）。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40030809179) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40030808925) 成功。開始時の作業ツリーはclean。
+- 新セッションで実Git/GitHub状態を照合。最新mainは `6a20240e57a80b02d5b121e455c14e09d2deefd2`（[PR #32](https://github.com/wasawo/eo-log-maintenance-public/pull/32) マージ済み）。mainの [検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40030809179) / [パッケージの検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40030808925) 成功。開始時の作業ツリーはclean。
 - 最新の利用者指示により `agent-workflow.md` 記載のanalyst/implementer/reviewerに限って新規生成・分担を許可。以下の旧「新規agent作成禁止」記録を更新する。他の担当は生成しない。
 - 今回branch `test/dry-run-readonly-helper-boundaries`。analyst調査に基づき、implementerが既存Python監査childへ実diagnostic mutex helperを注入mutex経由で接続。資格未完時の後段不到達、取得/body/release/close中の依存書込み拒否、解放履歴と状態不変を9テスト/33probeで確認した。reviewerの独立レビューは指摘なし。担当は上記3役のみで、実装は複数ファイルの意味論的変更のためmediumを使用。
 - 検証: Python 3.11.9で対象9件、既存diagnostic mutex 13件（実Windows 2件を含む）成功。全体回帰はサンドボックス内のpwsh起動失敗により初回309件/11 error/2 skip。通常環境でPowerShell 7.6.7を確認後、同じ全体コマンドを再実行し315件成功（既存2件skip）。変更4文書のローカルファイルリンク21件は欠落0、差分検査成功。CIのPython 3.12との差は残る。PowerShell実装・配布変更がないため独立したPS/package回帰は未実行。今回の差分のCIは未実行。
@@ -18,10 +18,10 @@
 - 省消費方針に従い追加analystは起動せず、具体設計担当はSol/medium。rootは統合とhandoff/Gitを担当。現在のA方針を再質問せず、本番接続・実処理を追加しない。
 - [Dry Run実行経路](../../design/dry-run-execution-design.md) を追加。Sol/mediumの独立レビューはブロッカーなし、全68文書リンク・差分検査成功。fixture/runtimeは未実装・未実行。次の単位は合成fixture内の専用dispatch/依存境界の拒否経路検証で、IPC接続や仮のroot認可を追加しない。本PRの最終CI/マージは実GitHub状態を照合する。
 
-- 基準main: `ec12f9e0c7c2a9aab933efc161649475672be25e`（[PR #29](https://github.com/wasawo/eo-log-maintenance-public/pull/29) スカッシュマージ済み）。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40025793060) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40025793004) 成功。
+- 基準main: `ec12f9e0c7c2a9aab933efc161649475672be25e`（[PR #29](https://github.com/wasawo/eo-log-maintenance-public/pull/29) スカッシュマージ済み）。mainの [検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40025793060) / [パッケージの検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40025793004) 成功。
 - 作業ブランチ: `docs/approve-dry-run-a-reduce-effort`。最新指示（2026-10-24）はAの明示承認と、品質を大きく落とさない思考量削減。今回は承認反映とプロジェクト設定の調整を1単位とし、既存指示どおり1PR作成・CI成功確認後にマージする。runtime実装・本番適用は行わない。
 - 調査でIPC契約自体のレビューとC-01/C-02が承認待ちと確認。未承認の契約を規範とするadapter/validator実装は行わず、先にDry Runの具体的な判断資料を作成する。
-- [2026-10-24棚卸し・作業順序](../../status/first-release-readiness-20261024.md) を現行の入口とする。正式Sync/Archive・Drive adapterが不在で、初回実運用配布には未到達。review ZIPと正式配布を区別する。
+- [2026-10-24棚卸し・作業順序](../../development/implementation-workflow.md#10-旧棚卸しの証拠基準歴史) を現行の入口とする。正式Sync/Archive・Drive adapterが不在で、初回実運用配布には未到達。review ZIPと正式配布を区別する。
 - 利用者の既存ステージ済み表整形は `6d9036e` に含めて保全済み。
 
 ## 今回の作業: A承認反映・思考量削減
@@ -35,7 +35,7 @@
 
 - ローカル書込を行わない案Aと、限定した診断report/所有一時物だけを許す案Bを比較する。Drive/元ログ/archive変更、運用manifest/lock/state更新、予算消費、private証拠処分は認めない。方針は承認待ちのままで、提案PRのマージを運用方針の承認と扱わない。
 - analystは `gpt-6-luna` / highで調査。implementerは `gpt-6.1-sol` / mediumで提案と参照先を編集。独立reviewerは同モデル/highで根拠・差分・新anchor/fixture参照を確認し、ブロッカー指摘なし。rootはhandoff・Git/PR/CI/マージを担当。各担当は履歴なしで対象資料だけを渡して起動し、指定モデル/思考量での作業を実施した。
-- [判断案](../../decisions/dry-run-side-effect-policy-proposal.md) とDRY-01〜10計画、関連参照を追加。全67 Markdownのローカルリンク切れ0、索引漏れ0、差分検査成功。文書のみで実装/schema/CI変更0、ローカル機能テストは再実行していない。DRY fixtureは未実装/未実行。利用者のA/B判断前は依存runtimeを実装しない。PRの最新HEAD CIと実マージ状態は本PRで照合する。
+- [判断案](../../archive/decisions/dry-run-side-effect-policy-proposal.md) とDRY-01〜10計画、関連参照を追加。全67 Markdownのローカルリンク切れ0、索引漏れ0、差分検査成功。文書のみで実装/schema/CI変更0、ローカル機能テストは再実行していない。DRY fixtureは未実装/未実行。利用者のA/B判断前は依存runtimeを実装しない。PRの最新HEAD CIと実マージ状態は本PRで照合する。
 
 ## 直前の作業: リポジトリ構成の整理
 

@@ -1,437 +1,442 @@
-# Requirements Traceability Register
-
-- Status: Evolving baseline; source-to-requirement mapping is recorded in `docs/validation/requirements-source-audit.md`, but implementation/test/evidence reconciliation remains incomplete.
-- Scope: Initial ElectronicObserver log-maintenance implementation for PC-A and PC-B.
-- Canonical repository: `wasawo/eo-log-maintenance-public`
-- Register owner: Project maintainer.
-- Last reviewed: 2026-10-24 (selected-policy status reconciliation; full requirement-by-requirement audit remains open).
-- Targeted update: 2026-10-25, EOLM-SYN-006–009 and EOLM-STG-007–009 only; this is not a full-register reconciliation.
-- This document does not claim runtime implementation or acceptance-test completion.
-
-## 1. Purpose
-
-This register assigns stable identifiers to requirements and connects each requirement to its source, implementation location, verification method, and current evidence. It operationalizes P0-010 in `docs/requirements/p0-gap-register.md`; it does not replace the source specifications or approve unresolved design decisions.
-
-A requirement is not considered verified merely because a document or source file exists. Runtime scripts are currently incomplete; therefore many implementation and verification links are planned targets rather than evidence of completion.
-
-Source-coverage audit: see [`docs/validation/requirements-source-audit.md`](../validation/requirements-source-audit.md). The latest merged tracked-tree review baseline is PR #123 merge `6b543930f9a9805f50693bd6333a8278c416fe05`; the normative source-clause baseline remains PR #25. PR #117–#123 are documentation-only and do not alter runtime/test coverage. Historical PR #78 source-coverage results are retained in the audit history; they are not current runtime evidence. Multiple `Partial` rows remain because runtime implementation, executable tests, or objective evidence are absent. P0-010 remains open until clause-to-requirement-to-implementation-to-executable-test-to-evidence reconciliation is complete.
-
-## 2. Identifier rules
-
-- Format: `EOLM-<DOMAIN>-<NNN>`, where `EOLM` means ElectronicObserver Log Maintenance, `DOMAIN` identifies a requirement area, and `NNN` is a zero-padded sequence.
-- IDs are permanent and unique. Do not renumber an existing ID because a section or file moved.
-- Never reuse an ID. If a requirement is withdrawn, retain it with status `retired` and a reason.
-- If one requirement is split, retire or supersede the original only through an explicit change note; assign new IDs and record the parent/supersedes relationship.
-- If a requirement changes materially, update its history and verification criteria. Do not silently change the meaning of an existing ID.
-- A source heading or line reference is locator metadata, not the requirement identity. Keep the source path and section heading accurate as documents evolve.
-- Use multiple source references when the same requirement is repeated in README, a decision register, and a detailed specification. Do not create duplicate requirement IDs for repeated wording.
-- Requirements derived from design decisions or safety practice must be marked `Derived` and cite the decision or rationale. They must not be presented as externally imposed requirements.
-- The register is bidirectional: every requirement should trace to a source/parent, and every normative source clause should map to one or more IDs or be explicitly marked `not a requirement / informational / unresolved`.
-
-## 3. Status vocabulary
-
-| Status | Meaning |
-|---|---|
-| `not_started` | No implementation or verification work has been evidenced. |
-| `partial` | Some related work exists, but the requirement is not fully satisfied. |
-| `implemented_unverified` | An implementation target exists, but adequate verification evidence is absent. |
-| `verified` | Defined acceptance criteria passed and evidence is linked. |
-| `blocked` | Progress requires a decision, external capability, or prerequisite. |
-| `retired` | Formally withdrawn or superseded; rationale and replacement ID(s) are recorded. |
-
-Status describes the requirement as a whole, not the status of a document alone. Use `partial` for current items with a partial implementation but no full end-to-end proof. No runtime requirement in this initial register is marked `verified`.
-
-## 4. Traceability fields
-
-Each row includes: ID, requirement statement, source, parent/decision, implementation target, verification target, priority, and status/evidence. Source section references below use section headings and must be updated if a source heading changes. Where the repository's source text is not yet fully audited, the row is explicitly marked for confirmation rather than asserting a false exact paragraph reference.
-
-Priority: `P0-A` execution/safety prerequisite; `P0-B` specification/contract/CI prerequisite; `P0-C` consistency and regression coverage; `P1` sync/runtime delivery; `P2` archive/operations; `P3` future separately approved capability. Priority is planning metadata, not permission to implement.
-
-## 5. Requirement register
-
-### 5.1 Environment and entry points
-
-| ID | Requirement | Source / section | Parent / decision | Implementation target | Verification target | Priority | Status / notes |
-|---|---|---|---|---|---|---|---|
-| EOLM-ENV-001 | Both PCs shall run PowerShell 7.6.7; Windows PowerShell 5.1 compatibility is out of scope. | `docs/design/staging-file-lifecycle.md` §2; `docs/requirements/p0-gap-register.md` P0-001/P0-002; `README.md` §現在の制約 | P0-001; P0-002 | Shared runtime guard and every supported entry point | Pass on 7.6.7; reject unsupported/unreadable version before file processing | P0-A | partial; shared guard and CI version pin/check exist, but official runtime entry points are absent so all-entry-point enforcement is unverified |
-| EOLM-ENV-002 | Supported batch entry points shall invoke `pwsh.exe`, not `powershell.exe`. | `docs/design/staging-file-lifecycle.md` §2; `docs/requirements/p0-gap-register.md` P0-003 | P0-003 | Runtime BAT entry points and package allowlist | Static scan all tracked `.bat`/`.cmd`; runtime smoke test | P0-A | not_started; tracked entry points not present in current inventory |
-| EOLM-ENV-003 | Runtime version validation shall occur before any file enumeration, copy, upload, archive, or other processing. | `docs/design/staging-file-lifecycle.md` §2 | EOLM-ENV-001 | Common startup validation called by every entry point | Negative tests prove no file operation occurs after version rejection | P0-A | not_started |
-| EOLM-ENV-004 | Runtime logs, operational manifests, active PC-specific configuration, and secrets shall not be committed or included in release packages. | `README.md` §安全上の必須ルール / §配布パッケージ; `docs/development/implementation-workflow.md` §Phase 5 — Packaging and repository CI | Derived from repository safety policy | `.gitignore`, package allowlist/exclusions | Git/package inspection tests with seeded forbidden files | P0-B | partial; package tests exist, full audit pending |
-| EOLM-ENV-005 | Local runtime scripts shall be executed from each PC's local runtime directory, not directly from the Google Drive management copy. | `README.md` §安全上の必須ルール | Derived | Installation/operations instructions | Procedure review and path assertion where applicable | P1 | not_started |
-
-### 5.2 Configuration and PC roles
-
-| ID | Requirement | Source / section | Parent / decision | Implementation target | Verification target | Priority | Status / notes |
-|---|---|---|---|---|---|---|---|
-| EOLM-CFG-001 | Configuration shall identify the PC role and validate required paths and values before processing. Missing, malformed, unknown, or role-inappropriate configuration shall fail closed. | `docs/decisions/decision-register-c18-c32.md` §Fixed decisions (C-20/C-21); `docs/development/implementation-workflow.md` Phase 1 | C-20/C-21 | Config loader and `Config/PC-*.example.json` | Valid/invalid/missing/unknown-field configuration tests | P0-B | partial; PR #78 adds package-builder checks for example machineId/role, exact allowed/required field sets, non-empty absolute Windows drive paths, and fixed archive/deletion-flag constraints with negative cases. No runtime config loader or active-config/path validator exists; example-template checks are not active-config validation. |
-| EOLM-CFG-002 | `SyncLogs.ps1` is the official synchronization entry point. | `docs/decisions/decision-register-c18-c32.md` C-20/C-21; `docs/development/implementation-workflow.md` Phase 2 | C-20/C-21 | `scripts/SyncLogs.ps1` and PC-specific sync launcher | Package allowlist and entry-point tests | P0-B | not_started; the file exists as a sentinel only, with no operational synchronization logic |
-| EOLM-CFG-003 | `ArchiveLogs.ps1` is the official archive entry point and PC-A only. `ArchiveAndUploadLogs.ps1` is not an official entry point. | `docs/decisions/decision-register-c18-c32.md` C-20/C-21; `docs/requirements/p0-gap-register.md` P0-006 | C-20/C-21; P0-006 | `scripts/ArchiveLogs.ps1`, package builder | PC-A/PC-B package tests; reject legacy name as deployable criterion | P0-B | partial; PR #76 verifies PC-A requires `ArchiveLogs.ps1` and PC-B excludes it, and the legacy name cannot satisfy the official entry-point gate. The official runtime script remains absent and OSD-09 final allowlist/deployment approval is unresolved. |
-| EOLM-CFG-004 | PC-A may archive only when `allowArchive: true` is explicit. PC-B configuration shall omit `allowArchive`; its presence is invalid. | `docs/decisions/decision-register-c18-c32.md` C-20/C-21/C-28; `README.md` roles table | C-28 | Config validation and PC-specific package | Positive PC-A test; PC-A missing/false and PC-B-present negative tests | P0-B | partial; package-builder checks reject unsafe example templates (PC-A `allowArchive: true` or missing, PC-B property present) and validate role/field/path syntax. These are template tests, not active-config validation. No runtime loader, approved-root containment check, role-bound authorization, or PC-A positive archive authorization path exists. |
-| EOLM-CFG-005 | `allowDelete` and any equivalent deletion-enabling configuration shall not exist in the initial implementation. | `docs/decisions/decision-register-c18-c32.md` C-19/C-22; `docs/requirements/p0-gap-register.md` P0-012 | C-19/C-22; P0-012 | Config schema, runtime source, package | Static/config/package tests reject deletion capability | P0-A | partial; package-builder fixtures reject `allowDelete` in example configs and the Drive request schema excludes a delete operation. The static safety audit is a bounded path review, not a current whole-tree negative-capability test. No dedicated source/config/contract/package guard or runtime before/after mutation test exists. |
-
-### 5.3 Filename validation and retention periods
-
-| ID | Requirement | Source / section | Parent / decision | Implementation target | Verification target | Priority | Status / notes |
-|---|---|---|---|---|---|---|---|
-| EOLM-FIL-001 | BattleLog filenames shall match `^(?<Date>\d{8})_\d{8}@.+\.txt$`. | `docs/design/filename-and-period-selection.md` §2; `docs/decisions/decision-register-c18-c32.md` C-25 | C-25 | `Common/LogFunctions.ps1` | `Test-LogFunctions.ps1`: valid BattleLog parse; unexpected name; missing underscore; wrong extension; empty suffix; uppercase `.TXT` rejected | P0-C | partial; helper assertions including case-sensitive `.txt` rejection run in Validate #44; directory enumeration and run-level error aggregation are not implemented |
-| EOLM-FIL-002 | ErrorReport filenames shall match `^(?<Date>\d{8})_\d{8}\.txt$`. | `docs/design/filename-and-period-selection.md` §2; decision C-25 | C-25 | `Common/LogFunctions.ps1` | `Test-LogFunctions.ps1`: valid ErrorReport parse; unexpected suffix rejection; uppercase `.TXT` rejected | P0-C | partial; helper assertions including case-sensitive `.txt` rejection run in Validate #44; directory enumeration and run-level error aggregation are not implemented |
-| EOLM-FIL-003 | Target date shall be extracted from the first eight filename characters and parsed strictly as `yyyyMMdd` using invariant culture. | `docs/design/filename-and-period-selection.md` §2; decision C-25 | C-25 | `Common/LogFunctions.ps1` | `Test-LogFunctions.ps1`: valid date, impossible date, leap day, invalid month, and `th-TH` culture-switch assertion | P0-C | partial; strict parse and InvariantCulture independence run in Validate #44; helper-only evidence does not prove run-level file classification |
-| EOLM-FIL-004 | `LastWriteTime` shall never be used as a fallback for an invalid or unclassifiable filename. | `docs/design/filename-and-period-selection.md` §§2, 6–7; decision C-25 | C-25 | `Common/LogFunctions.ps1` plus future enumerator | Helper rejects malformed names and accepts no timestamp parameter; runtime test must pair invalid filename with plausible `LastWriteTime` and assert validation error | P0-C | partial; helper-level no-fallback structure and malformed-name assertions run in Validate #44; end-to-end timestamp-fallback behavior remains untested because enumeration is absent |
-| EOLM-FIL-005 | An invalid or unclassifiable relevant filename shall prevent the run from being reported as fully successful; processing may continue for other independent files where safe. | `docs/design/filename-and-period-selection.md` §§2, 6–7; decision C-25 | C-25 | Future target enumeration and run-status aggregation | Runtime mixed valid/invalid directory test plus final manifest/run-status assertion | P0-C | not_started; source clause is explicit, but no enumeration, manifest, or run-status implementation/test exists; OSD-03 blocks exhaustive aggregation policy |
-| EOLM-FIL-006 | Sync shall select all eligible backlog periods, not just files created during the current run. | `docs/design/filename-and-period-selection.md` §3; `docs/development/implementation-workflow.md` Phase 2; decision C-31 | C-31 | Future target enumeration | Seed multiple old periods; verify all eligible periods selected in one run | P1 | not_started; helper proves an older historical filename is eligible, but no directory enumeration proves all backlog periods are selected |
-| EOLM-FIL-007 | BattleLog sync eligibility shall include the previous month and all older eligible periods; archive eligibility shall include the previous year and older. | `docs/design/filename-and-period-selection.md` §§3–5; decision C-31 | C-31 | `Common/LogFunctions.ps1` | `Test-LogFunctions.ps1`: October 2026 cutoff, inclusive/exclusive eligibility, Jan rollover, Feb 28/29, Apr 30 and Jun 30 month ends | P0-C | partial; cutoff/helper boundary assertions run in Validate #44; complete backlog enumeration and archive-gate behavior remain unimplemented |
-| EOLM-FIL-008 | ErrorReport sync eligibility shall include the previous year and older; archive eligibility shall include the year two years before the current year and older. | `docs/design/filename-and-period-selection.md` §§3–5; decision C-31 | C-31 | `Common/LogFunctions.ps1` | `Test-LogFunctions.ps1`: October 2026 sync/archive cutoffs and inclusive/exclusive date assertions, plus January rollover | P0-C | partial; cutoff/helper boundary assertions run in Validate #44; complete backlog enumeration and archive-gate behavior remain unimplemented |
-| EOLM-FIL-009 | Period eligibility shall be derived from filename date, not filesystem timestamps. | `docs/design/filename-and-period-selection.md` §§3, 6; decisions C-25/C-31 | C-25/C-31 | `Common/LogFunctions.ps1` plus future enumerator | Helper eligibility derives only from parsed filename date; runtime fixture must set `LastWriteTime` to imply the opposite result | P0-C | partial; date-based cutoff assertions run in Validate #44 and helper accepts no timestamp input; timestamp/date disagreement remains untested at enumeration level |
-| EOLM-FIL-010 | No-work execution shall be represented as a successful skip and distinguished from a script that never ran. | `docs/design/filename-and-period-selection.md` §3; `docs/validation/runtime-safety-test-scenarios.md`; decision C-26 | C-26 | Future manifest/run-status implementation | Zero-target run vs missing-manifest test | P1 | not_started; no manifest or run-status implementation exists, and zero-target selection must not be inferred from helper tests |
-
-### 5.4 Synchronization, collisions, and inventory
-
-| ID | Requirement | Source / section | Parent / decision | Implementation target | Verification target | Priority | Status / notes |
-|---|---|---|---|---|---|---|---|
-| EOLM-SYN-001 | The sync process shall preserve each local source log; source deletion is not part of initial sync. | `README.md` §安全上の必須ルール; `docs/development/implementation-workflow.md` §2.5 / §Phase 2 — Synchronization implementation | C-19/C-22 | Sync implementation | Source hash/existence unchanged after success and failure | P0-A | not_started |
-| EOLM-SYN-002 | Identical same-name files with identical SHA-256 shall be treated as duplicates and shall not be copied again unnecessarily. | `docs/development/implementation-workflow.md` §2.4 / §Phase 2 — Synchronization implementation; `docs/decisions/decision-register-c18-c32.md` C-31/C-32 | Derived | Collision resolver | Same-name/same-hash idempotency test | P1 | not_started |
-| EOLM-SYN-003 | Same-name files with different content shall be preserved as separate files using `_PCA`/`_PCB` suffixes before the extension. | `docs/development/implementation-workflow.md` §2.4 / §Phase 2 — Synchronization implementation; `docs/decisions/decision-register-c18-c32.md` C-32 | Derived from source preservation policy | Collision resolver | Different-content same-name test, both hashes preserved | P1 | not_started |
-| EOLM-SYN-004 | A pre-existing unmarked file shall not be attributed to PC-A or PC-B without a trusted manifest proving origin. | `docs/decisions/decision-register-c18-c32.md` C-32; `docs/development/implementation-workflow.md` Phase 0/4 | C-32 | Inventory and collision resolver | Unknown-origin fixture remains held | P1 | not_started |
-| EOLM-SYN-005 | A suffixed target shall never be overwritten with different content. | `docs/development/implementation-workflow.md` §2.4 / §Phase 2 — Synchronization implementation | Derived | Collision resolver | Existing suffixed file mismatch test | P1 | not_started |
-| EOLM-SYN-006 | Initial inventory/restoration records shall be separate from operational sync/archive manifests. | `docs/decisions/decision-register-c18-c32.md` C-32; `README.md` §初期インベントリと復元 | C-32 | [Initial inventory observation](../design/initial-inventory-observation.md), separate internal type; persistent schema/location pending | [Synthetic separation test](../../tests/test_initial_inventory_observation.py); persistent schema/location separation still unimplemented | P1 | partial; internal observations are distinct from operational manifest plans, but no inventory artifact schema/storage/runtime exists |
-| EOLM-SYN-007 | Inventory shall compare Drive files to a trusted PC-A backup by matching name, size, and SHA-256, after complete enumeration confirms exactly one candidate; candidate matching does not authorize restore or archive. | Decision C-32; approved OSD-01; README inventory section | C-32 / OSD-01 | [DriveContentComparison.py](../../Common/DriveContentComparison.py) and [PC-A/source integration](../design/initial-inventory-observation.md) | [Comparison/page/hash fixtures](../../tests/test_drive_content_comparison.py) and [initial inventory integration](../../tests/test_initial_inventory_observation.py) | P1 | partial; pure comparison and synthetic PC-A/plan/hash integration exist; authenticated source/API observations, persistence and runtime remain pending |
-| EOLM-SYN-008 | Unmatched, conflicting, or unknown-origin inventory files shall be held and never automatically restored, archived, or deleted; incomplete or failed Drive listing also fails closed. | Decision C-32; approved OSD-01; README inventory section | C-32 / OSD-01 | [Read-only inventory observations](../design/initial-inventory-observation.md); restore/archive/delete orchestration absent | [Hold/source-change/global-failure fixtures](../../tests/test_initial_inventory_observation.py) and [counts-only summary](../../tests/test_initial_inventory_summary.py); actual provider/provenance and reporting qualification pending | P0-A | partial; held observations preserve selection/B2 and all permission flags are false; real API/trusted-origin/operational enforcement remain unimplemented |
-| EOLM-SYN-009 | Completing the initial inventory shall not be treated as proof of operational synchronization success or archive eligibility. | `README.md` §初期インベントリと復元; `docs/decisions/decision-register-c18-c32.md` C-32 | C-32 | [Dedicated inventory type and false sync/archive flags](../design/initial-inventory-observation.md) | [No operational manifest/publication or success promotion](../../tests/test_initial_inventory_observation.py), [non-authorizing historical summary](../../tests/test_initial_inventory_summary.py) | P0-B | partial; synthetic observation separation/non-authorizing results only; persisted initial inventory and operational sync/archive acceptance remain pending |
-
-### 5.5 Drive adapter and cloud-side verification
-
-| ID | Requirement | Source / section | Parent / decision | Implementation target | Verification target | Priority | Status / notes |
-|---|---|---|---|---|---|---|---|
-| EOLM-DRV-001 | Python shall act as a Google Drive API adapter and perform exactly one API attempt per invocation; it shall not implement implicit retries/backoff/jitter. | `docs/decisions/decision-register-c18-c32.md` C-18/C-29; `docs/design/powershell-python-contract.md` retry ownership | C-18/C-29 | Python adapter and contract | Mock call count exactly one for success and failure cases | P0-B | partial; contract tests only |
-| EOLM-DRV-002 | PowerShell shall own retry classification and perform at most four total attempts with waits of 1, 5, and 15 minutes. | Decision C-18/C-29; tests README retry section | C-18/C-29 | PS retry candidate helper plus pure manifest-history upload boundary cap; operational orchestration absent | `tests/test_manifest_history_retry_budget.py`: per-file four-boundary cap, no unknown-to-failed inference; existing PS retry observation tests | P0-B | partial; fixed retryable table/PS candidates and supplied-history cap have synthetic tests. Actual counter/persistence, trustworthy waits, API attempt coverage and unknown-upload reconciliation remain unimplemented |
-| EOLM-DRV-003 | Before retrying an upload with an unknown outcome, the system shall query Drive state. | Decision C-18/C-29; `docs/design/powershell-python-contract.md` | C-18/C-29 | Retry/reconciliation flow | Unknown outcome: matching file => verified; absent => retry allowed; uncertain/mismatch => stop | P0-B | not_started |
-| EOLM-DRV-004 | Cloud upload completion shall not be inferred from local Google Drive for desktop file presence or metadata-only retrieval. | `README.md` safety rules; `docs/development/implementation-workflow.md` Phase 2 | C-28/C-30 | Drive adapter | Test metadata-only response is not accepted as content verification | P0-A | not_started |
-| EOLM-DRV-005 | Cloud content shall be verified using a trustworthy Drive SHA-256 when available, otherwise by downloading and hashing the content. | `docs/development/implementation-workflow.md` §Phase 2 — Synchronization implementation; `docs/design/powershell-python-contract.md` §3 / §5 / §7; `docs/design/staging-file-lifecycle.md` §7 | Derived | Python adapter and PowerShell verification | Checksum and download/hash branches; mismatch/permission/network failures | P0-B | blocked until adapter/auth validation |
-| EOLM-DRV-006 | Unknown upload outcome, content mismatch, or inability to confirm state shall fail closed for that file; it shall not be treated as successful. | Decision C-18/C-29; staging lifecycle upload verification sections | C-18/C-29 | Upload reconciliation | Simulated timeout-after-upload, mismatch, and inaccessible Drive states | P0-A | not_started |
-| EOLM-DRV-007 | OAuth scope shall be the minimum validated scope that supports listing, metadata, upload, and download/hash against the actual My Drive folders; widening requires documentation and review. | `docs/decisions/decision-register-c18-c32.md` C-23 | C-23 | Python auth adapter and setup docs | Real My Drive capability test and scope review record | P0-B | policy selected: I1/A1/S1/T1 plus encrypted user-bound file; actual four-operation/both-PC visibility and store qualification pending |
-| EOLM-DRV-008 | An unconfirmed cloud state shall never authorize archive or cleanup of staging data. | `docs/design/staging-file-lifecycle.md` upload gating/cleanup sections; `docs/development/implementation-workflow.md` Phase 3 | C-28/C-30 | Sync and archive orchestration | Cloud unknown/mismatch preserves source, staging, and Drive copy | P0-A | not_started |
-
-### 5.6 Manifest requirements
-
-| ID | Requirement | Source / section | Parent / decision | Implementation target | Verification target | Priority | Status / notes |
-|---|---|---|---|---|---|---|---|
-| EOLM-MAN-001 | Operational manifests shall be stored under `_maintenance/manifests/PC-A/` and `PC-B/`. | `docs/design/staging-file-lifecycle.md` §8 (manifest location); `docs/decisions/decision-register-c18-c32.md` C-26 | C-26 | Manifest path builder | Path construction tests for both PC roles | P1 | blocked pending schema baseline |
-| EOLM-MAN-002 | Manifest filename identity shall follow `<PC-ID>_<LogType>_<TargetPeriod>_<run_id>.json` and agree with JSON identity fields. | `docs/design/staging-file-lifecycle.md` §8 (manifest filename and identity validation); `docs/decisions/decision-register-c18-c32.md` C-26 | C-26 | Manifest writer/reader | Filename/payload mismatch negative tests | P1 | partial: LatestManifestSelection and read-only ManifestDirectoryReader identity tests; writer/runtime integration and acceptance pending |
-| EOLM-MAN-003 | Each PC execution shall have a unique `run_id`; PC-A and PC-B runs are correlated by PC ID, period, log type, and file verification, not by requiring equal run IDs. | Manifest/run identity design; decision C-26 | C-26 | Run initialization and archive gate | Different run IDs for same period can satisfy gate only with correct matching data | P1 | blocked |
-| EOLM-MAN-004 | Manifest statuses shall be `running`, `success`, `partial_failure`, and `failure`; a zero-work run shall be `success` with `outcome: "no_work"`. | Manifest design; `tests/README.md` no-work scenario | C-26 | Manifest schema and state machine | Enum and state transition tests | P1 | blocked |
-| EOLM-MAN-005 | A run shall publish `running` after acquiring the lock and before processing; the same run/manifest shall be updated to its final state. | `docs/design/staging-file-lifecycle.md` §8 (running-to-final lifecycle); `docs/decisions/decision-register-c18-c32.md` C-26 | C-26 | Run orchestration | Interrupt tests leave running state; successful run updates same manifest | P1 | blocked |
-| EOLM-MAN-006 | A crash-left `running` manifest shall not be automatically rewritten as failure; recovery must inspect actual state. | Manifest recovery design; `docs/development/implementation-workflow.md` Phase 4 | C-26 | Recovery flow | Seed stale running manifest and verify it is held/reconciled | P1 | blocked |
-| EOLM-MAN-007 | Latest manifest for a PC/period/log type governs the archive gate; latest `running`, `partial_failure`, or `failure` shall not fall back to an older success. | Manifest/archive gate design; decision C-28 | C-26/C-28 | Manifest selector and archive gate | Older success + latest failure/running fixtures | P0-A | blocked |
-| EOLM-MAN-008 | Manifests shall be written to a temporary file, re-read and validated, then atomically replace the official local manifest where supported. | `docs/design/staging-file-lifecycle.md` §3 (staging metadata); §8 (manifest atomic update) | C-26 | Manifest and metadata writers | Fault-injection tests for invalid JSON/write/replace failure | P1 | partial; staging metadata rule specified |
-| EOLM-MAN-009 | Manifest schema shall define required fields, types, enums, timestamps, per-file results, Drive identity, version compatibility, and malformed-data rejection before runtime implementation. | `docs/decisions/decision-register-c18-c32.md` C-26; `docs/design/powershell-python-contract.md`; approved OSD-02 version and field specification; `docs/design/manifest-schema-v1-proposal.md` | C-26 / OSD-02 | Manifest JSON Schema and runtime validator | Implement the approved field specification as an executable schema and validator; add positive/negative tests including missing/malformed/unsupported schema_version and invalid fields | P0-B | approved manifest v1 field contract and structural schema exist; full semantic validator/writer/runtime enforcement pending |
-| EOLM-MAN-010 | Archive shall reverify cloud-side state before relying on manifest claims. | Decision C-28; `docs/development/implementation-workflow.md` Phase 3 | C-28 | Archive gate | Stale cloud metadata or changed file blocks archive | P0-A | not_started |
-
-### 5.7 Staging and per-file lifecycle
-
-| ID | Requirement | Source / section | Parent / decision | Implementation target | Verification target | Priority | Status / notes |
-|---|---|---|---|---|---|---|---|
-| EOLM-STG-001 | Staging shall be local to each PC and outside Google Drive synchronization. Default path: `%LOCALAPPDATA%\eo-log-maintenance\staging`. | `docs/design/staging-file-lifecycle.md` §3 | Derived safety requirement | Staging path builder | Assert staging path is local and not under configured Drive paths | P0-A | not_started |
-| EOLM-STG-002 | Staging filenames shall use `<run_id>_<sequence>_<original_filename>`; creation shall use atomic create-new semantics and never overwrite an existing staging file. | `docs/design/staging-file-lifecycle.md` §3 | Derived | Staging copy function | Collision/race test; ensure sequence increments | P0-A | not_started |
-| EOLM-STG-003 | Each staging file shall have adjacent JSON metadata recording run ID, original relative path/name, size, SHA-256, status, and staging path. | `docs/design/staging-file-lifecycle.md` §3 | Derived | Metadata writer/reader | Required-field and malformed JSON tests | P1 | not_started |
-| EOLM-STG-004 | The upload target list shall be frozen after the global lock is acquired and residual staging inspection completes; later-added files are deferred to the next run. | `docs/design/staging-file-lifecycle.md` §4 Target Inventory Freeze | Derived | Target planner | Add a file after freeze; verify not processed in current run | P1 | not_started |
-| EOLM-STG-005 | Target records shall include filename, relative path, size, and SHA-256; source size/hash shall be rechecked before staging. Changed or missing sources shall not be uploaded. | `docs/design/staging-file-lifecycle.md` §4 | Derived | Initial plan/source revalidation plus tests-only owned copy integration; runtime copy/metadata writer absent | `tests/test_upload_staging_integration.py`: frozen source change, bounded copy/readback, partial failure preservation; Upload always denied; runtime disappearance gate pending | P0-A | partial (synthetic integration only) |
-| EOLM-STG-006 | Only a verified staging copy may be uploaded; the original source file shall never be used as the upload payload. | `docs/design/staging-file-lifecycle.md` lifecycle/upload gating | Derived | Read-only `observe_initial_staging_copy`: frozen plan/target, existing copy size/hash/identity/link/ancestry; no source payload read; actual adapter gate absent | `tests/test_initial_staging_copy_observation.py`; source unavailable still permits observation only, all permissions false. Runtime payload-path/metadata-history assertion pending | P0-A | partial (copy observation only; Upload gate not implemented) |
-| EOLM-STG-007 | Startup shall inspect residual staging artifacts, warn and retain them; automatic recovery or deletion of leftovers is out of scope initially. | `docs/design/staging-file-lifecycle.md` residual artifacts section | Derived | [StagingResidualObservation.py](../../Common/StagingResidualObservation.py): immediate entry counts/warning signal only; full startup metadata inspector pending | [Synthetic entry observation](../../tests/test_staging_residual_observation.py): retain files, do not read payloads/traverse directories; metadata-pair/startup warning integration pending | P0-A | partial; read-only count observation only. Metadata/old-run inspection, real root qualification and official startup invocation remain unimplemented |
-| EOLM-STG-008 | If residual staging inspection fails, the run shall block uploads and fail safely. A warning alone does not change run status if inspection completed successfully. | `docs/design/staging-file-lifecycle.md` residual artifacts section | Derived | [Residual-entry held observation](../design/staging-residual-observation.md); official failure/upload-stop enforcement pending | [Enumeration/reparse/change/failure and count-preservation fixtures](../../tests/test_staging_residual_observation.py) | P0-A | partial; uncertainty returns incomplete/held and no upload permission. Operational run failure, actual startup enforcement and provider/FS acceptance remain pending |
-| EOLM-STG-009 | Staging capacity shall be checked at start and before each copy. Required reserve is target bytes plus 10% plus 100,000,000 bytes (decimal 100 MB); capacity changes mid-copy must be handled. | `docs/design/staging-file-lifecycle.md` capacity section | Derived | [LogFunctions.ps1](../../Common/LogFunctions.ps1): exact reserve and explicit size-array aggregation; [ManifestTransitionInspection.py](../../Common/ManifestTransitionInspection.py): explicit size projection from exact manifest/B2; [MachineConfigurationRootInspection.ps1](../../Common/MachineConfigurationRootInspection.ps1): unqualified Windows caller-space metadata; copy handler/formal PS transport pending (numeric bridge is tests-only) | [Test-StagingCapacity.ps1](../../tests/Test-StagingCapacity.ps1): integer/array/threshold boundaries plus [numeric bridge](../../tests/test_staging_capacity_bridge.py); [free-space metadata fixtures](../../tests/Test-StagingFreeSpace.ps1); operational root/capacity qualification and disk-full/copy fault acceptance pending | P1 | partial; pure arithmetic/aggregation only, with all permission flags false. Initial/per-file trusted space reads, selection and mid-copy failure handling are unimplemented |
-| EOLM-STG-010 | On copy failure, cleanup may remove only the incomplete staging file created by that copy operation; failed cleanup leaves the artifact and emits a warning. | `docs/design/staging-file-lifecycle.md` capacity/copy failure sections | Derived | Staging copy failure handler | Fault injection with cleanup failure | P1 | not_started |
-| EOLM-STG-011 | Staging may be removed only after upload success, cloud content verification, and required manifest update are all confirmed. Unknown outcome or verification/manifest failure retains staging and metadata. | `docs/design/staging-file-lifecycle.md` cleanup section | Derived safety requirement | Staging cleanup gate | Matrix of success/unknown/hash mismatch/manifest failure cases | P0-A | not_started |
-| EOLM-STG-012 | If staging deletion itself fails after all other success conditions, warn but do not retroactively mark the upload failed. | `docs/design/staging-file-lifecycle.md` cleanup section | Derived | Staging cleanup | Delete-failure injection test | P1 | not_started |
-
-### 5.8 Locking, retries, and concurrency
-
-| ID | Requirement | Source / section | Parent / decision | Implementation target | Verification target | Priority | Status / notes |
-|---|---|---|---|---|---|---|---|
-| EOLM-LCK-001 | A single global lock shall serialize maintenance operations on the same PC; PC-A and PC-B locks are independent. | `docs/design/staging-file-lifecycle.md` §10 (global per-PC lock); `docs/validation/runtime-safety-test-scenarios.md` §1 (test execution rules) | Derived | Lock helper | Same-PC contention and cross-PC independence tests | P0-A | not_started |
-| EOLM-LCK-002 | Lock acquisition shall wait at most 60 seconds, then log that another process is running and exit without killing or stealing the lock. | `docs/design/staging-file-lifecycle.md` §10 (60-second lock timeout and no lock stealing) | Derived | Lock helper and exit code handling | 60-second timeout test via injectable wait | P0-A | not_started |
-| EOLM-LCK-003 | Lock contention is an operational skip, not a business-processing failure; abandoned lock/mutex state after crash shall be logged and actual data state verified. | Lock design; manifest recovery design | Derived | Lock helper and recovery | Contention and abandoned-mutex tests | P0-A | not_started |
-| EOLM-LCK-004 | Scheduling shall not wait indefinitely for the other PC; PC-A checks PC-B completion hourly. Schedule times shall be staggered and selected before Task Scheduler setup. | Decision C-24; implementation workflow Phase 8 | C-24 | Scheduler instructions and archive gate | Scheduler configuration review; bounded wait test | P2 | blocked; times intentionally deferred |
-
-### 5.9 Archive gate and non-destructive policy
-
-| ID | Requirement | Source / section | Parent / decision | Implementation target | Verification target | Priority | Status / notes |
-|---|---|---|---|---|---|---|---|
-| EOLM-ARC-001 | Only PC-A may archive, and only with explicit valid `allowArchive: true`. | Decision C-28; README roles table | C-28 | `scripts/ArchiveLogs.ps1`, PC-A config | PC-B package/runtime negative tests | P0-A | not_started; official archive entry point and runtime role gate are absent. The package builder enforces only the safe example-template default; it does not authorize active PC-A config or evaluate archive eligibility. |
-| EOLM-ARC-002 | Archive shall require relevant PC-A and PC-B manifests to be valid, current, successful, and applicable to the target period/log type/files. | Decision C-28; `docs/development/implementation-workflow.md` Phase 3 | C-28 | Archive gate | Missing/stale/invalid/wrong-period/wrong-type manifests block archive | P0-A | not_started |
-| EOLM-ARC-003 | Archive shall copy, verify with SHA-256, and record results only; it shall never delete the Drive source. | Decision C-28/C-30; `README.md` | C-28/C-30 | `scripts/ArchiveLogs.ps1` | Archive success/failure tests verify Drive source remains | P0-A | not_started |
-| EOLM-ARC-004 | Archive destination shall not overwrite different content; incomplete or mismatched archive verification shall preserve Drive and archive data and report failure. | `docs/development/implementation-workflow.md` Phase 3 | C-28 | Archive copy/verification | Destination collision and hash mismatch tests | P0-A | not_started |
-| EOLM-ARC-005 | Missing, stale, invalid, or ambiguous manifests, unavailable API, ambiguous source attribution, or any verification failure shall block archive. | Decision C-28; implementation workflow Phase 3 | C-28 | Archive gate | Negative test matrix for every gate | P0-A | not_started |
-| EOLM-ARC-006 | PC-B package and runtime shall not contain or expose archive functionality. | Decision C-20/C-21/C-30; P0-006/P0-009 | C-20/C-21 | Release package allowlist | Inspect PC-B package contents and command surface | P0-B | partial; package-builder fixtures verify `ArchiveLogs.ps1` is excluded from PC-B packages, but official runtime entry points are absent. This is package-content evidence only; runtime command-surface absence and final allowlist/deployment policy remain unverified/blocked by OSD-09. |
-
-### 5.10 Safety, Dry Run, and deletion exclusion
-
-| ID | Requirement | Source / section | Parent / decision | Implementation target | Verification target | Priority | Status / notes |
-|---|---|---|---|---|---|---|---|
-| EOLM-SAF-001 | Initial implementation in P0-P2 shall contain no local-source deletion or Google Drive deletion code, operation, or setting. | Decision C-19/C-22/C-30; `docs/requirements/p0-gap-register.md` P0-012; README safety rules | C-19/C-22/C-30 | All runtime/config/contracts/package contents | Static scan plus runtime/package tests prove absence | P0-A | partial; bounded static inspection plus example-config rejection of `allowDelete` and request-schema operation constraints provide limited evidence only. No current whole-tree forbidden-capability guard, generated-package negative-capability scan, or runtime before/after mutation test exists. |
-| EOLM-SAF-002 | Dry Run shall perform no upload, final download placement, archive placement, local-source deletion, or Drive deletion. | `docs/development/implementation-workflow.md` Phase 1/7 | C-30 | Dry Run mode | Filesystem and mocked API state unchanged after Dry Run | P0-A | not_started |
-| EOLM-SAF-003 | Uncertain cloud status, invalid/missing manifests, hash mismatch, ambiguous origin, or incomplete archive verification shall fail closed. | `docs/development/implementation-workflow.md` §Non-negotiable safety gates | C-28/C-30 | Shared safety gates | Fault-injection and negative tests | P0-A | not_started |
-| EOLM-SAF-004 | Future local-source deletion or Drive deletion requires a separate design, review, tests, and explicit approval; it is excluded from initial acceptance criteria. | Decision C-19/C-22/C-30; deferred gates table | C-19/C-22/C-30 | Governance/change process | Review checklist; no deletion ID may be implemented under this baseline | P3 future | not_started; excluded |
-| EOLM-SAF-005 | Source files and Drive files shall be preserved when synchronization, cloud verification, or archive verification fails. | README safety rules; implementation workflow Phases 2-3 | C-28/C-30 | Sync/archive failure handling | Inject each failure and assert source/cloud copy remains | P0-A | not_started |
-
-### 5.11 Tests, CI, and release packaging
-
-| ID | Requirement | Source / section | Parent / decision | Implementation target | Verification target | Priority | Status / notes |
-|---|---|---|---|---|---|---|---|
-| EOLM-TST-001 | CI shall validate PowerShell runtime version rather than relying on the runner's default `pwsh`. | `docs/requirements/p0-gap-register.md` P0-002 | P0-002 | `.github/workflows/validate.yml`, `package-validation.yml` | CI fails on non-7.6.7 runtime and logs actual version | P0-A | partial; both workflows install and verify exact 7.6.7 (Validate #80 and Package Validation #72 succeeded); runtime-entrypoint enforcement remains unverified |
-| EOLM-TST-002 | CI shall execute `tests/Test-LogFunctions.ps1` and fail if it fails. | `docs/requirements/p0-gap-register.md` P0-007 | P0-007 | `.github/workflows/validate.yml` | Workflow log shows test execution and failure propagation | P0-C | partial; workflow invocation is present and Validate #80 succeeded; exact assertion-to-requirement mapping and remaining boundary cases are still open |
-| EOLM-TST-003 | Filename/period tests shall cover month/year boundaries, leap day, invalid dates/names, and excluded files. | P0-008; `docs/validation/filename-period-test-plan.md` | P0-008 | `tests/Test-LogFunctions.ps1` plus future runtime selection tests | `Test-LogFunctions.ps1` assertions mapped in `docs/validation/requirements-source-audit.md` §3.11; runtime enumeration/status suite remains future work | P0-C | partial; Validate #80 runs helper assertions for invalid dates/names, leap day, cutoffs and January rollover; case-sensitive extension, culture independence, timestamp disagreement, broader month-end, mixed-directory enumeration and run-status remain open |
-| EOLM-TST-004 | PowerShell/Python contract tests shall cover schemas, operation/error codes, exit codes, timeout, and request/response correlation. | `docs/design/powershell-python-contract.md`; P0-005 | P0-005 | Contract tests and runtime integration tests | CI contract tests plus mocked adapter integration tests | P0-B | partial; schema tests exist, integration incomplete |
-| EOLM-TST-005 | Runtime safety tests shall cover synchronization, cloud verification, manifests, archive, IPC, configuration, logging, locks, and retry behavior. | Decision C-19/C-22; `docs/validation/runtime-safety-test-scenarios.md`; `tests/README.md` | C-19/C-22 | `tests/` | Coverage matrix maps every relevant requirement to executable tests | P0-B | partial; runtime tests incomplete |
-| EOLM-TST-006 | Tests shall prove deletion capabilities are absent from source, configuration, contracts, and packages. | P0-012; `tests/README.md` runtime safety section | C-19/C-22; P0-012 | Static guard tests and package tests | Deliberate fixture introducing forbidden delete operation causes test failure | P0-A | partial evidence only; request-schema tests reject unknown/delete operations and PR #78 package-builder fixtures reject `allowDelete` in example configs, but no dedicated source/package negative-capability guard or runtime before/after mutation test exists. PR #91 clarifies archive runtime evidence remains absent. |
-| EOLM-TST-007 | A passing schema test or GitHub Actions run shall not be presented as proof of runtime safety or cloud synchronization completion. | README current constraints; `tests/README.md` | Derived evidence rule | Documentation/release status | Review claims against actual test scope | P0-B | partial |
-| EOLM-TST-008 | Requirement status shall be updated only with linked objective evidence such as test command/results, CI run, changed files, and PR. | `docs/requirements/p0-gap-register.md` §ステータス更新ルール | P0-010/P0-011 | This register and gap register | Review every row marked `verified` for evidence links | P0-C | partial; register newly introduced |
-
-### 5.12 Distribution and operations
-
-| ID | Requirement | Source / section | Parent / decision | Implementation target | Verification target | Priority | Status / notes |
-|---|---|---|---|---|---|---|---|
-| EOLM-REL-001 | Release packages shall use an explicit allowlist and exclude tests, repository automation, active PC configs, secrets, runtime logs, and operational manifests. | `docs/development/implementation-workflow.md` Phase 5; README §配布パッケージ | Derived | `.github/scripts/Build-ReleasePackage.ps1` | Package allowlist/exclusion tests | P0-B | partial; review builder allowlist exists; final PC/version exact JSON manifests and deployable package pending |
-| EOLM-REL-002 | A review-only package shall carry a non-deployable marker when runtime scripts are missing; it shall not be applied to PC-A or PC-B. | README §配布パッケージ; P0-009 | P0-009 | Package builder and tests | Missing-runtime package fails deployable test and includes marker | P0-B | partial |
-| EOLM-REL-003 | Package deployability shall be determined by official entry points and PC-specific allowlists, not by the obsolete `ArchiveAndUploadLogs.ps1` filename. | P0-006/P0-009; decision C-20/C-21 | C-20/C-21 | Builder and release tests | Regression test for legacy-only package | P0-B | partial |
-| EOLM-REL-004 | Distribution shall be one-way and separate from log synchronization; package SHA-256 and cloud artifacts shall be verified before updating `latest.json`. | `docs/development/implementation-workflow.md` Phase 6; decision C-27 | C-27 | Distribution automation | Failed upload leaves previous release pointer unchanged | P2 | policy selected; E1/Actions release direction fixed, distribution pipeline and verification unimplemented |
-| EOLM-REL-005 | PC deployment shall remain manual: download, verify, inspect diff, preserve active configuration, then apply with operator approval. | README §配布パッケージ; implementation workflow Phase 6 | C-27/C-30 | Deployment instructions/tooling | Procedure review; no automatic overwrite | P2 | not_started |
-| EOLM-OPS-001 | Scheduler shall run monthly and on the first startup of a month if a scheduled run was missed. | Decision C-24 | C-24 | Task Scheduler instructions | Schedule logic review/test | P2 | policy selected; monthly missed-run compensation helper exists, actual task/trigger tests pending |
-| EOLM-OPS-002 | PC-A and PC-B schedule times shall be quiet and staggered before Task Scheduler is configured. | Decision C-24 | C-24 | Operations docs | Approved schedule recorded | P2 | policy selected: PC-B 20:00, PC-A 21:00 JST, logged-on/same-account/AC-only/no-wake; task rollout pending |
-| EOLM-OPS-003 | Each run shall log structured outcomes and expose failures; errors shall not be silently treated as skips. | `docs/development/implementation-workflow.md` Phase 1/8 | Derived | Common logging/exit code functions | Failure-path logging and exit-code tests | P1 | partial |
-| EOLM-OPS-004 | Manual and scheduled execution shall use the same processing and safety logic. | `docs/development/implementation-workflow.md` Phase 8 | Derived | Common entry point/orchestration | Same test suite for manual and scheduled invocation | P2 | not_started |
-
-### 5.13 Additional requirements identified during full-source review
-
-| ID | Requirement | Source / section | Parent / decision | Implementation target | Verification target | Priority | Status / notes |
-|---|---|---|---|---|---|---|---|
-| EOLM-CFG-006 | Configuration validation shall reject paths that are not absolute Windows paths, escape approved roots, or violate role-specific source/staging/archive/Drive separation. | `docs/design/powershell-python-contract.md` §2, §4; `docs/development/implementation-workflow.md` §2.2 | C-20/C-21 | Config/path validation | Positive and negative path tests including traversal, wrong root, and role mismatch | P0-A | not_started |
-| EOLM-CFG-007 | Configuration validation shall reject unknown, missing, malformed, or role-inappropriate fields before any file processing. | `docs/decisions/decision-register-c18-c32.md` C-20/C-21; `docs/design/powershell-python-contract.md` §2 | C-20/C-21 | Config schema/loader | Missing/unknown/type/role mismatch tests prove no file access starts | P0-A | partial; runtime loader absent |
-| EOLM-DRV-009 | The Drive adapter shall paginate list operations explicitly and shall not silently treat a partial listing as a complete inventory. | `docs/design/powershell-python-contract.md` §3 | Derived | Python `list_files` adapter | Multi-page mocked results; interrupted/failed page prevents completeness claim | P0-B | not_started |
-| EOLM-DRV-010 | Drive candidates shall be identified unambiguously using stable Drive identity, intended parent/folder, matching name, size, and SHA-256 against a trusted source; candidate enumeration must be complete and ambiguous candidates fail closed. | `docs/design/powershell-python-contract.md` §3, §7; approved OSD-01 | C-18/C-29 / OSD-01 | Drive matching/reconciliation | Zero/one/multiple candidates; incomplete pagination/API failure; untrusted source; hash fallback/failure; no arbitrary candidate selection | P0-A | specification approved; executable tests not_started |
-| EOLM-DRV-011 | Python requests shall be validated against allowed operation, schema version, required fields, absolute path syntax, and caller-approved path roots; a path argument shall not grant overwrite or deletion permission. | `docs/design/powershell-python-contract.md` §3–4; request schema | C-20/C-21 | Request validator and adapter | Malformed, relative, traversal, disallowed-root, and unknown-field tests | P0-B | partial; schema only covers part |
-| EOLM-DRV-012 | The PowerShell/Python boundary shall accept exactly one UTF-8 JSON response on stdout; diagnostics go to stderr, and malformed/multiple/empty output fails closed. | `docs/design/powershell-python-contract.md` §5–6 | Derived | IPC wrapper | Empty, invalid UTF-8, malformed JSON, multiple JSON, and banner output tests | P0-B | not_started |
-| EOLM-DRV-013 | PowerShell shall validate response schema, request_id, operation, exit-code consistency, and operation-specific result fields before using an adapter result. | `docs/design/powershell-python-contract.md` §5–6, §8 | Derived | IPC response validator | Mismatch matrix including exit 0 + failure JSON and nonzero + success JSON | P0-B | not_started |
-| EOLM-DRV-014 | PowerShell shall be the sole workflow orchestrator and decide whether processing may continue; Python shall perform only the explicitly requested allowlisted adapter operation and return its result. | `docs/design/powershell-python-contract.md` §1–2, §8 | C-18/C-29 | PowerShell orchestrator and Python adapter | Integration tests prove Python response cannot bypass role, manifest, cloud-verification, archive, or operator-approval gates | P0-B | not_started; contract requirement explicit, runtime orchestration absent |
-| EOLM-DRV-015 | Request/response IPC files shall be created in an access-restricted per-run temporary location, contain no credentials, and cleanup shall remove only files created by the current invocation. | `docs/design/powershell-python-contract.md` §4, §8–9 | C-18/C-29 | IPC request-file writer and cleanup | Isolation tests verify permissions, credential exclusion, and that unrelated files survive cleanup | P0-B | not_started; lifecycle is specified but runtime IPC is absent |
-| EOLM-DRV-016 | With `dry_run: true`, the Drive adapter shall not mutate Drive or write downloaded file content to the staging path. | `docs/design/powershell-python-contract.md` §3 | C-30 | Python adapter Dry Run path | Mocked adapter test asserts no Drive mutation and no downloaded-content write for every operation | P0-B | not_started; schema example exists but behavior is unimplemented |
-| EOLM-SEC-001 | Credentials shall be loaded only from an approved local credential store; tokens, client secrets, authorization headers, raw sensitive API payloads, and credential contents shall never be written to stdout or logs. | `docs/design/powershell-python-contract.md` §1–2, §9 | C-19/C-22 | Python auth adapter, PowerShell/Python logging | Inject secret-bearing errors and assert redaction across stdout/stderr/logs | P0-A | not_started |
-| EOLM-OPS-005 | Structured operational logs shall include UTC timestamp, run ID, request ID where applicable, operation, elapsed time, exit code, fixed error code, and a sanitized outcome summary. | `docs/design/powershell-python-contract.md` §9 | Derived | Common logging | Schema/field assertions for success, failure, timeout, and retry paths | P1 | not_started |
-| EOLM-REQ-001 | Each staging file shall follow only the explicitly allowed state transitions; an upload cannot start before staging is verified as `ready`, and inconsistent state/metadata shall be held for review. | `docs/design/staging-file-lifecycle.md` §6, §9 | Derived | Pure snapshot/pair and initial-history inspection; distinguishes registration/upload pending, denies skipped ready history | `tests/test_manifest_history_inspection.py` / pair tests; metadata/file disagreement and operational enforcement pending | P0-A | partial (supplied history only; actual events/metadata/writer/runtime gate absent) |
-| EOLM-MAN-011 | Manifest timestamps, time zone, freshness threshold, and clock-skew handling shall be specified before freshness-dependent archive gating is implemented. | `docs/design/powershell-python-contract.md` §2, §9; `docs/validation/runtime-safety-test-scenarios.md` §4 MAN-04 | C-26/C-28 | Manifest schema and archive gate | Approved threshold and deterministic stale/future/clock-skew tests | P0-B | policy approved: UTC ISO 8601 Z, configurable 5-minute future and 24-hour freshness defaults, current-execution applicability and unreliable-clock refusal; fixed-clock tests and runtime enforcement pending |
-| EOLM-MAN-012 | Manifest and metadata readers shall reject missing/malformed/unsupported schema versions, malformed data, inconsistent identity, invalid transitions, and missing required fields without treating them as success; existing manifests are not implicitly migrated. | `docs/design/staging-file-lifecycle.md` §3, §8.1–9; `docs/design/powershell-python-contract.md` §9; approved OSD-02 version and field specification; `docs/design/manifest-state-transition-v1-proposal.md` | C-26 / OSD-02 | Schema and transition validators | Negative tests for missing/malformed/unsupported versions, malformed JSON, identity/state mismatch, missing/invalid fields, and forbidden transitions | P0-B | partial; approved table, schema, read-only selection and snapshot/pair inspector have synthetic tests; event evidence, transition writer/enforcement/runtime tests pending |
-| EOLM-SAF-006 | Dry Run shall not mutate Drive content, source logs, staging upload state, or archive destinations; any permitted reporting/manifest side effects must be explicitly specified. | `docs/design/powershell-python-contract.md` §3; `docs/validation/runtime-safety-test-scenarios.md` ARC-01; `docs/development/implementation-workflow.md` Phase 7 | C-30 | Dry Run orchestration | Snapshot local/cloud/mock state before and after Dry Run; document allowed audit outputs | P0-A | partial; exact report/manifest side effects need decision |
-| EOLM-REL-006 | A release pointer such as `latest.json` shall be updated only after the uploaded package and its identity/checksum are verified; any failure shall leave the prior pointer unchanged. | `docs/release/distribution-design.md` §7–8 | C-27 | Distribution release publisher | Inject upload/verification/pointer-write failures and assert previous pointer remains | P2 | policy selected; pointer-last verification rule fixed, publisher and fault-injection tests unimplemented |
-| EOLM-REL-007 | Deployment shall preserve active configuration and the previous working package, verify downloaded artifact identity/checksum, and require manual approval before applying or rolling back. | `docs/release/distribution-design.md` §9; `docs/development/implementation-workflow.md` Phase 6–7 | C-27/C-30 | Deployment/rollback procedure | Procedure review and fault-injection tests; no automatic overwrite | P2 | not_started |
-| EOLM-TST-009 | Runtime-safety tests shall use isolated temporary fixtures and mocked Drive operations, not production log paths or real user data, unless a separately approved integration test explicitly requires it. | `docs/validation/runtime-safety-test-scenarios.md` §1–2; `tests/README.md` | Derived | Test harness | Test config asserts temp root/mock adapter; verify no production paths are touched | P0-B | partial; test plan states intent, harness incomplete |
-| EOLM-TST-010 | Every SYNC, MAN, ARC, and IPC scenario shall map to requirement IDs and to an executable test or an explicit not-implemented disposition. | `docs/validation/runtime-safety-test-scenarios.md` §3–8; `docs/requirements/p0-gap-register.md` P0-010 | P0-010 | Scenario crosswalk and runtime tests | Audit crosswalks in `docs/validation/requirements-source-audit.md` §3.1 and §3.10 must agree on functional requirement IDs and scenario status; every scenario must link to an executable test or explicit not-implemented/blocked disposition | P0-C | partial; PR #20 reconciles requirement mappings between the two audit matrices; all 37 runtime scenarios still lack complete executable runtime tests, and MAN-04 remains blocked by EOLM-MAN-011
-| EOLM-TST-011 | Before operational acceptance of the PowerShell/Python boundary, the contract shall receive operator review/approval and executable contract integration tests shall pass; schema validation alone is insufficient. | `docs/design/powershell-python-contract.md` §10; `docs/requirements/p0-gap-register.md` P0-005 | P0-005 | Contract review record and PowerShell/Python integration test suite | Approved review record plus CI-linked tests for IPC semantics, exit codes, timeout, retry classification, and request/response correlation | P0-B | blocked; operator review and runtime integration tests are unchecked |
-| EOLM-OPS-006 | Manual and scheduled runs shall use the same safety gates, status model, logging, and exit-code semantics. | `docs/development/implementation-workflow.md` Phase 8 | C-24/C-30 | Shared orchestrator/entry points | Same acceptance suite for manual and scheduled invocation | P2 | not_started |
-| EOLM-REL-008 | Distribution shall remain one-way and separate from log synchronization; distribution failures shall not mutate source logs or operational manifests. | `docs/release/distribution-design.md` §1–2, §8 | C-27 | Distribution pipeline | Mocked distribution failure tests verify maintenance state unchanged | P2 | policy selected; distribution separation fixed, publisher and operational non-mutation tests unimplemented |
-| EOLM-REL-009 | For each release, update both `VERSION` and `CHANGELOG.md`. | `README.md` §開発・変更手順 / §バージョンと変更履歴 | Derived from repository release procedure | Release checklist | Release checklist verifies both `VERSION` and `CHANGELOG.md` are updated for each release | P0-C | not_started; source rule mapped; release checklist/test absent |
-| EOLM-REL-010 | Google Drive release uploads shall run only from a protected release event or equivalent explicit approval; ordinary push/PR validation shall not upload or receive distribution credentials. | `docs/release/distribution-design.md` §2, §8 | C-27 | GitHub Actions release workflow and permissions | PR/push workflow tests prove no Drive credentials or upload capability; protected release job requires approval | P0-B | policy selected: E1 release event, maintainer manual approval, Actions publisher; CI identity/workflow unimplemented |
-| EOLM-REL-011 | A published release version and its release directory shall be immutable; publishing must not overwrite an existing version. | `docs/release/distribution-design.md` §3 | C-27 | Distribution publisher | Existing-version collision test proves fail closed and preserves published ZIP/checksum | P0-B | blocked; distribution publisher is not implemented |
-| EOLM-REL-012 | The release tag/version shall be valid and agree with repository `VERSION` and the release metadata. | `docs/release/distribution-design.md` §7; `docs/requirements/requirements-traceability.md` EOLM-REL-009 | C-27 | Release validation | CI rejects malformed version and mismatched tag, VERSION, and package metadata | P0-B | tag/VERSION/commit/package matching selected; workflow and executable mismatch tests pending |
-| EOLM-REL-013 | Release packaging shall fail when a required allowlist path is missing, omit a path only when it is explicitly optional, and preserve repository-relative paths. | `docs/release/distribution-design.md` §3–4 | C-27 | Allowlist package builder | Missing-required-file, optional-file, and relative-path preservation tests | P0-B | partial; allowlist builder exists but final runtime allowlist is not approved |
-| EOLM-REL-014 | Release trust shall derive from reviewed repository content and approved release provenance; a matching SHA-256 alone proves integrity, not source authenticity. | `docs/release/distribution-design.md` §3, §7 | C-27 | Release review and provenance controls | Review/tag provenance is required independently of checksum validation | P0-B | reviewed source/provenance required; concrete CI identity and provenance controls pending |
-| EOLM-REL-015 | Previously published releases shall be retained for rollback; automated cleanup must not run until a separate release-retention policy is approved. | `docs/release/distribution-design.md` §3, §11 | C-27 | Release retention/cleanup policy | Test cleanup is disabled without an approved policy and prior release remains recoverable | P0-B | policy selected: retain every version, no automatic cleanup; publisher/rollback tests pending |
-
-## 6. P0 gap-register crosswalk
-
-| Gap ID | Related requirement IDs | Expected closure evidence |
-|---|---|---|
-| P0-001 | EOLM-ENV-001, EOLM-ENV-003 | Version guard and positive/negative tests on supported entry points |
-| P0-002 | EOLM-TST-001 | CI runtime version assertion and logs |
-| P0-003 | EOLM-ENV-002, EOLM-CFG-002, EOLM-CFG-003 | Full entry-point inventory and static validation |
-| P0-004 | EOLM-CFG-002, EOLM-CFG-003, EOLM-DRV-005, EOLM-MAN-001, EOLM-ARC-001 | Runtime implementation status accurately reflected across docs/package |
-| P0-005 | EOLM-CFG-001, EOLM-DRV-001, EOLM-DRV-002, EOLM-TST-004 | Reviewed contract plus CI integration tests |
-| P0-006 | EOLM-CFG-003, EOLM-CFG-004, EOLM-ARC-006, EOLM-REL-003 | Official entry points and PC-specific allowlist tests |
-| P0-007 | EOLM-TST-002 | PowerShell unit tests executed by CI |
-| P0-008 | EOLM-FIL-001–EOLM-FIL-009, EOLM-TST-003 | Boundary/negative test suite in CI |
-| P0-009 | EOLM-REL-001–EOLM-REL-003, EOLM-ENV-001 | Package content and runtime policy tests |
-| P0-010 | All IDs in this register | Full source audit, every normative clause mapped, unresolved clauses explicitly listed |
-| P0-011 | EOLM-TST-008 plus phase acceptance requirements | `docs/development/implementation-workflow.md` §4 provides the authoritative P0 readiness/acceptance gate and README links to it. Cross-document status alignment is partial; the final maintainer review and evidence-backed classification of every P0-001–012 item remain outstanding. |
-| P0-012 | EOLM-CFG-005, EOLM-SAF-001–EOLM-SAF-005, EOLM-TST-006 | Full source/config/contract/package deletion-absence checks |
-
-## 7. Verification evidence convention
-
-When a requirement is verified, update the row with the specific evidence path or URL, test command or CI run, and relevant PR/commit. Evidence must prove the acceptance criterion for that requirement; nearby tests or successful documentation checks are not substitutes.
-
-Recommended evidence form:
-- `Test:` exact command or test name.
-- `Result:` pass/fail and date.
-- `CI:` workflow run URL where applicable.
-- `Change:` PR and commit URL.
-- `Notes:` known limits or environment assumptions.
-
-Do not set a requirement to `verified` if the test was not run, if it only tests a schema while the requirement concerns runtime behavior, or if the cloud-side state was not actually checked.
-
-## 8. Audit findings and unresolved traceability work
-
-1. The tracked repository contains helper functions and schema/package tests, but official synchronization/archive entry points and runtime orchestration are absent. Dependent requirements remain `not_started`, `partial`, or `blocked` as individually recorded; schema/package CI does not prove runtime behavior.
-2. `docs/validation/requirements-source-audit.md` is the source-coverage matrix and `docs/requirements/p0-gap-register.md` is the P0 action register. At baseline `2b5d4266df9130ad532707dec8727a7623b3c9e2`, source-section rows in audit §2.1 have requirement-ID mappings, but Partial evidence gaps remain. This is not proof that all implementation, tests, or evidence are complete.
-3. Any source locator still marked as requiring confirmation must be resolved against the complete source text before P0-010 closes. A source-to-ID mapping is only the first traceability link.
-4. Remaining evidence gaps include filename-date/metadata disagreement and mixed-directory run-status behavior; process-boundary IPC validation; semantic config role/path validation; official entry points and PC-specific package command surfaces; manifest state/schema/freshness; and runtime no-delete/source-preservation evidence. Use the source audit and open-specification-decision register for exact dispositions; do not infer unresolved policy values.
-5. No deletion behavior is authorized. Local-source deletion and Drive deletion remain excluded from P0-P2. P0-012 stays open until source, configuration, contracts, generated packages, and runtime boundaries have sufficient negative-capability evidence.
-
-## 9. Change control
-
-Any requirement change shall update this register and the source document in the same change set where practical. PR descriptions should identify affected requirement IDs, rationale, implementation/test evidence, and whether any safety gate changes. Review the register at each phase gate and before marking P0 complete.
-
-## 10. Traceability method reference
-
-The structure follows common requirements-management practice: unique identifiers, explicit source references, parent/source links, and verification evidence. NASA's guidance recommends unique identifiers and definitive source references in verification matrices, and bidirectional traceability between higher-level requirements, implementation artifacts, and verification. This is a methodological reference only; it does not make NASA guidance a project requirement.
-
-- NASA, [Appendix D: Requirements Verification Matrix](https://www.nasa.gov/reference/appendix-d-requirements-verification-matrix/)
-- NASA, [6.2 Requirements Management](https://www.nasa.gov/reference/6-2-requirements-management/)
-- NASA Software Engineering Handbook, [SWE-052 Bidirectional Traceability](https://swehb.nasa.gov/spaces/7150/pages/16450285/SWE-052%2B-%2BBidirectional%2BTraceability%2BBetween%2BHigher%2BLevel%2BRequirements%2Band%2BSoftware%2BRequirements)
-
-## 8. High-risk evidence reconciliation — PR #71 baseline
-
-Baseline: main after PR #71 merge, commit `951601f20a45f653723cf134f955ce25c35e3e68`. This section summarizes closure evidence for high-risk requirement groups; it does not override individual row statuses or authorize implementation of blocked decisions.
-
-| Requirement group | Current evidence disposition | Missing closure evidence / dependency |
-|---|---|---|
-| EOLM-CFG-001, CFG-004, CFG-006, CFG-007 | Partial or not started. Example JSON syntax validation is not semantic role/path validation; PC-A example keeps `allowArchive: false`, and PC-B omits `allowArchive`. | Official runtime config loader; positive and negative role-specific tests; absolute-path/root/separation tests; fail-before-file-access evidence. Keep sample configs non-operational. |
-| EOLM-CFG-005; EOLM-ARC-001–006; EOLM-TST-006 | No-delete/archive safety remains unverified at runtime. Static/package checks are partial evidence only; the official archive entry point and runtime role gate are absent. | Complete source/config/contract/package capability scan plus executable negative tests and before/after source/Drive-state evidence. Do not add deletion behavior or enable archive in examples. |
-| EOLM-DRV-011–016; IPC-01–06 | Contract/schema checks cover only part of the boundary; no official PowerShell orchestrator, Python adapter, or process-boundary harness exists. | Runtime integration tests for request/response correlation, stdout/stderr rules, exit-code consistency, timeout, secret redaction, retry ownership, path-root validation, and Dry Run non-mutation. Schema tests must not be described as runtime proof. |
-| EOLM-MAN-004–010, MAN-012 | Manifest field and conditional transition policies are selected, while operational manifest implementation remains incomplete. No tracked `contracts/manifest.schema.json` has been established. | Align the normative schema with the adopted transition tables, then implement and test malformed data, identity, status transitions, latest-manifest selection, atomic writes, and cloud re-verification. Do not invent schema fields or transitions. |
-| EOLM-MAN-011; EOLM-FIL-005/010; OSD-03 | Numeric freshness/future-time defaults and applicability are approved; OSD-03 aggregation and G1 report-time policies are selected, with producer/builder/reference-validator alignment implemented; executable runtime evidence remains open. Helper-level filename/cutoff tests do not prove enumeration or final run status. | Add fixed-clock stale/future boundary tests and runtime enforcement, runtime B2 V1/G1 integration, filename-date-vs-`LastWriteTime` disagreement fixtures, mixed valid/invalid directory tests, zero-target vs never-ran tests, and objective run/manifest evidence. |
-| EOLM-SAF-006; EOLM-REL-010–015; EOLM-OPS-001–002 | Dry Run A, E1/Actions release direction, all-version retention and monthly account/AC/no-wake policies are selected; implementation and qualification remain incomplete. | Finalize CI identity/provenance, exact runtime package lists, task persistence/AC-loss rules and executable evidence before acceptance claims. |
-
-### Evidence interpretation
-
-- `SEL-RT-01–10` are designed scenarios, not executed runtime tests.
-- `IPC-01–06` are not implemented/not run until a process-boundary harness exists.
-- Passing `Validate` or `Package Validation` proves only the checks those workflows actually execute; it does not close P0-010 or P0-012.
-- P0-010 remains open until every normative source clause is reconciled to implementation, executable test, and objective evidence. P0-012 remains open until deletion capability absence is demonstrated across source, config, contract, package, and runtime boundaries.
-
-
-
-## 9. High-risk evidence reconciliation — PR #91 baseline
-
-Baseline: main after PR #91 merge, commit `0fe7ac0428e4596afc77464f8caa4461dd19c5b5`. This section updates evidence interpretation only; individual requirement statuses and unresolved decision gates remain authoritative.
-
-| Requirement group | Current evidence disposition | Missing closure evidence / dependency |
-|---|---|---|
-| EOLM-CFG-004/007; EOLM-ARC-001–006 | Example-config/package-builder checks validate role semantics and PC-B archive-entry exclusion, but runtime config loading, archive authorization, two-PC manifest/freshness gates, cloud verification, and copy/verify/record behavior are absent. | Active-config tests that fail before file access; approved OSD-02/03 and MAN-011 freshness rules; runtime archive negative/fault-injection tests. |
-| EOLM-CFG-005; EOLM-SAF-001–005; EOLM-TST-006; P0-012 | Partial evidence only: four-operation Drive schema and schema tests reject deletion operations; package builder rejects `allowDelete` in example configs; bounded static audit covers named tracked paths. PR #91 does not expand this into a full negative-capability proof. | Dedicated source/config/contract/package negative tests, deliberate forbidden-operation fixtures, generated-package inspection, and runtime before/after local-source/Drive mutation evidence. |
-| EOLM-MAN-011; OSD-02/03; OSD-04 | Archive freshness, conditional manifest transitions, aggregation and Dry Run A policies are selected; runtime enforcement and objective evidence remain incomplete. | Align contracts and implementations to selected policies, then add deterministic tests and objective runtime evidence for every dependent gate. |
-
-### Evidence interpretation
-
-- PR #91 is a documentation-only reconciliation. It does not change runtime implementation status or enable archive.
-- Package-builder semantic checks are not active-config authorization. Schema validation is not a process-boundary or cloud-operation test.
-- P0-010 and P0-012 remain open; no requirement is promoted to verified by this update.
-
-
-## 10. High-risk evidence reconciliation — C-29 retry and unknown upload outcome (PR #95)
-
-| Requirement | Current tracked evidence | Required executable evidence | Current disposition |
-|---|---|---|---|
-| EOLM-DRV-001 — one API attempt per Python invocation | Contract/decision prose only; no Python Drive adapter or API-call mock test. | Mock successful and failing API operations and assert exactly one call per invocation; disable and test absence of HTTP-client/library retries. | Not implemented / not run |
-| EOLM-DRV-002 — PowerShell-owned bounded retries | Contract specifies at most four attempts and waits of 1, 5, 15 minutes; no official orchestrator or injectable wait seam. | Deterministic retry classification, attempt-budget, exact-wait, and permanent-error-no-retry tests. | Not implemented / not run |
-| EOLM-DRV-003 — reconcile unknown upload outcome before retry | Contract says query Drive before repeating an upload whose result is unknown; no adapter/reconciliation code. | Simulate upload success followed by timeout/response loss, then prove complete state reconciliation precedes any next upload. | Not implemented / not run |
-| EOLM-DRV-006/008 — unknown or unverified state fails closed | Requirement and staging/contract prose only; no runtime gate or mutation snapshot test. | Unknown, mismatch, inaccessible, and incomplete listing cases must stop and preserve source/staging; no success/archive/cleanup is authorized. | Not implemented / not run |
-| EOLM-DRV-009/010 — complete listing and unambiguous identity | Request schema validates shape only; no pagination or candidate reconciliation implementation. | Complete pagination and zero/one/multiple candidate fixtures; failed pages must never be interpreted as confirmed absence. | Not implemented / not run; OSD-01 blocks trust of unmarked objects |
-
-- Scenario IDs: RETRY-01–06 in `docs/validation/runtime-safety-test-scenarios.md`; the source audit has the clause-level crosswalk.
-- A successful schema or documentation CI run proves only the checks actually executed. It does not execute the above scenarios and does not change these requirement statuses.
-- P0-010 remains open. No requirement is promoted to verified by this documentation-only reconciliation.
-
-## C-26 manifest evidence slice — PR #100
-
-| Clause / requirement group | Current tracked evidence | Disposition | Required executable evidence / blocker |
-|---|---|---|---|
-| C-26; EOLM-MAN-001–003, MAN-007–009 — schema, identity, version and status | staging-file-lifecycle.md describes selected fields and run status names. No operational manifest schema or reader/writer exists. contracts/drive-response.schema.json is only the adapter response envelope. | Prose only; not implemented / not run | Approve a versioned maintenance-manifest schema and complete identity/type/enum constraints under OSD-02; add malformed, missing-field, unknown-version, and filename/payload mismatch tests. |
-| EOLM-MAN-003–006; OSD-03 — transitions and mixed outcomes | Lifecycle text describes individual states and selected transitions, but does not replace the approved exhaustive state-transition and run/period aggregation tables. | Partial specification; blocked | Approve transition table under OSD-02 and aggregation/scope under OSD-03; implement table-driven allowed/forbidden transition and mixed-outcome tests. |
-| EOLM-MAN-004/007/010/012; ARC-002/005 — latest manifest and archive gate | Lifecycle prose requires latest-run precedence and current Drive re-verification. No latest-manifest lookup or runtime archive gate exists. | Not implemented / not run | Test that a latest running, partial_failure, or failure manifest cannot fall back to older success; validate PC/period/log type/run identity before any archive action. |
-| EOLM-MAN-011; ARC-005 — freshness and timestamp semantics | Policy approved: UTC ISO 8601 `Z`; 5-minute future tolerance and 24-hour freshness defaults are configurable; current-execution timestamps only; fail closed if reliable current UTC is unavailable. Executable fixed-clock tests/runtime enforcement remain pending. | Blocked | Decision recorded in OSD-02 on 2026-10-21; add fixed-clock stale/future boundary and invalid-clock tests. Runtime enforcement remains pending. |
-| EOLM-MAN-008/009/012; LCK-001–004 — atomic write, crash and concurrency | Temporary-file/re-read/replace and interrupted-running behavior are prose only; no writer or runtime test exists. | Not implemented / not run | Fault-inject interruption around write/replace and concurrent update; prove old manifests remain unchanged and incomplete runs cannot authorize archive. |
-
-- Baseline: PR #99 merge 87b858d079f8cfbf49fa50dc3de7a9afc6e1b0b2; focused evidence crosswalk added in PR #100.
-- Do not confuse the Drive adapter response schema with a maintenance-run manifest schema.
-- OSD-02, OSD-03, and EOLM-MAN-011 have policy selections but remain incomplete at runtime; P0-010 and P0-012 remain open. Documentation/schema/package CI is not runtime acceptance evidence.
-
-## P0-011 acceptance-gate evidence — PR #101
-
-- Current authoritative gate: docs/development/implementation-workflow.md §4. It requires all P0-001–012 items to be classified as complete, blocked, or incomplete and explicitly rejects acceptance while unresolved required decisions or runtime evidence gaps remain.
-- README.md links to the gate. The decision register now clarifies that fixed/deferred decisions do not imply overall P0 acceptance; the P0 gap register remains the item-level gap record.
-- P0-011 is not closed by this documentation update. Final acceptance requires the maintainer's cross-document review and evidence-backed classification of all P0 items.
-
-
-## Diagnostic contract evidence crosswalk — C-45–C-54 (PRs #140/#141)
-
-See docs/validation/diagnostic-contract-test-evidence.md for a clause-by-clause mapping to current helpers, named executable tests, exact CI evidence, and remaining implementation gaps. This is a crosswalk over the existing C-45–C-54 decision identifiers, not a new requirement ID. PR #145 records the maintainer-approved C-45 Option A conflict disposition in the normative decision text; implementation remains pending. Existing EOLM-TST-008 evidence discipline and EOLM-TST-010 scenario disposition remain applicable. C-50 pure token-to-code helper coverage exists after PR #144 and C-51 operation-to-phase resolver coverage exists after PR #146. Runtime classification/producer precedence, producer semantic correctness, event creation/propagation, raw JSON duplicate-key rejection, runtime sink non-disclosure, and end-to-end runtime acceptance remain not implemented/not run. P0-008, P0-010, and P0-012 remain open.
-
-
-## OSD-02 timestamp/freshness policy update — 2026-10-21
-
-EOLM-MAN-011 timestamp policy is now approved at the policy level: UTC ISO 8601 uppercase `Z`, reject malformed/offset/timezone-less values and finish-before-start; configurable future tolerance 5 minutes and freshness threshold 24 hours; freshness applies only to timestamps generated/updated during the current execution; assume OS time synchronization and fail closed if reliable current UTC is unavailable. Historical manifest age alone does not invalidate history. Required fixed-clock/configuration tests and runtime enforcement remain pending, so this does not satisfy executable acceptance or close P0-010.
-
-
-## OSD-02 approved crash/concurrency/latest-manifest policy (2026-10-21)
-
-Maintainer approved C1-A/C2-C/C3-B/C4-A. C1-A requires validated same-directory temporary writes, atomic create-if-absent, compare-before-replace, and fail-closed behavior when guarantees are unavailable. C2-C requires a per-scope OS named mutex plus exclusive ownership-token lock record; stale lock recovery is explicit and must verify the owner is gone. C3-B preserves crash-left `running` history and creates a new `run_id` only after recovery checks, with a fresh inventory and reconciliation of uncertain uploads. C4-A selects only a unique maximum validated `started_at_utc` for the exact PC/log-type/period scope; ties, malformed/conflicting candidates, read errors, or incomplete enumeration block operation, and there is no fallback to an older success. Timestamp freshness/future tolerance are not lock or retry timeouts.
-
-Synthetic tests for crash points, concurrent create/update, lock ownership/recovery, interrupted runs, uncertain uploads, and resolver ambiguity are required but **not yet executed/evidenced**. These decisions do not claim runtime implementation or close P0-008/P0-010/P0-012.
-
-
-## OSD-02 crash/concurrency test requirements — pending execution
-
-- Inject crashes before/during temporary write, after flush/validation, before publication, and after publication; prove incomplete temp files are never authoritative and failed publication leaves prior content unchanged.
-- Race concurrent first publishers and concurrent updates; prove create-if-absent and compare-before-replace prevent overwrite.
-- Test named-mutex contention/failure, process termination, lock ownership-token mismatch, and stale-lock recovery. Age/PID alone must not authorize lock removal.
-- Preserve crash-left `running` manifest byte-for-byte; after verified owner recovery, create a new `run_id` with a fresh inventory; reconcile uncertain uploads before retry.
-- Test unique latest timestamp, equal maxima, malformed or identity-mismatched candidates, read/enumeration failure, and latest non-success blocking fallback to older success.
-- Use synthetic fixtures and temporary directories only. Evidence status: **not run / not yet evidenced**; no runtime acceptance is implied.
-
-
-## Maintainer-approved OSD-03 report contract (2026-10-21)
-
-The maintainer explicitly approved **R1-B, R2-A, R3-B, R4-A, R5-A, R6-A, R7-A**. This settles the report-contract options but does not constitute an executable JSON Schema, runtime implementation, or test evidence.
-
-- **R1-B — summaries only:** period entries contain counts and completion state, not duplicated per-target rows. Validate the eligible inventory and per-file outcomes against immutable run-input evidence and the originating manifest.
-- **R2-A — tuple identity:** report identity is exactly (pc_id, log_type, run_id, report_schema_version). Omit report_id; derive the canonical filename from that tuple. Do not add fields to manifest v1.
-- **R3-B — content-bound references:** manifest_ref and evidence_ref each include canonical relative path, schema version, and lowercase 64-character SHA-256 of exact validated bytes. Validate referenced artifact identity against the report tuple. Reject absolute paths, traversal, identity mismatch, malformed digest, or changed bytes.
-- **R4-A — reuse OSD-02 controls:** use unique same-directory temp files, flush/close, read-back validation, and atomic create-if-absent; reuse the existing per-PC maintenance lock during normal publication. Regeneration/recovery must acquire the same named mutex plus ownership-token lock record. Existing same-identity identical bytes are idempotent; different bytes are a conflict and are never overwritten. Remove a temp file only when ownership is proven; orphan temp files are non-authoritative and must not be removed based on age alone.
-- **R5-A — deterministic regeneration:** regenerate only from the exact validated manifest plus immutable B2 run-input evidence. Never re-scan mutable source directories to reconstruct historical inventory. Validate identity, inventory digest, all counts, and error scope. If inputs are incomplete/unavailable, remain unresolved. Identical output is idempotent; different content for the same identity is a conflict.
-- **R6-A — three-state period completion:** complete only if all eligible targets for the period are verified and no relevant error affects it; incomplete for known failed/unknown targets or known relevant errors; indeterminate if required evidence is missing, malformed, conflicting, or unverifiable. Never map indeterminate to complete. These are report-only values and must not be added to manifest run-status enums.
-- **R7-A — separate local/Drive states:** local validated publication is authoritative. Drive replication is a separate verified step; replication failure does not invalidate/delete the local artifact. Do not claim cross-PC availability until the Drive copy's identity and exact content are verified.
-- Recompute all summary counts from the referenced manifest and B2 evidence. Reject missing/duplicate period rows, target accounting mismatch, inventory digest/count mismatch, report/manifest/evidence identity mismatch, and inconsistent error scope. generated_at_utc uses UTC ISO 8601 uppercase Z and approved future-time validation; report age alone does not invalidate immutable historical evidence.
-- Required synthetic acceptance tests are specified but **not yet executed/evidenced**. Runtime implementation, executable schema, and operational evidence remain pending. No P0 item is closed by this documentation change.
-
-
-## OSD-03 report-contract acceptance tests — approved design, execution pending
-
-1. Required fields, strict integer schema version, unsupported versions, no implicit migration, and absence of report_id.
-2. Canonical report identity tuple and filename agreement for PC/log type/run/schema version.
-3. Canonical relative manifest_ref and evidence_ref; exact bytes SHA-256; malformed digest, absolute/traversal path, identity mismatch, and stable-path content replacement all fail closed.
-4. R1-B: report period rows contain summaries only; counts recompute from the referenced manifest and B2 evidence; no duplicated per-target inventory is trusted from the report.
-5. Inventory digest/count mismatch; missing, extra, duplicate, or multiply assigned target; missing/duplicate period row; report/manifest/evidence identity mismatch; inconsistent error scope.
-6. R6-A: complete, incomplete, and indeterminate boundaries; indeterminate never becomes complete and these values never enter manifest v1 run-status enums.
-7. R4-A publication crash points, concurrent create, identical idempotent retry, conflicting retry, unsupported atomic primitive, mutex/lock ownership, and temp-file ownership cleanup. Orphan cleanup cannot rely on age alone.
-8. R5-A regeneration only from exact immutable manifest and B2 evidence; refuse if evidence is missing, corrupt, incomplete, or inconsistent; never rescan mutable source.
-9. R7-A local publication succeeds independently of Drive replication; replication failure preserves local report; cross-PC use is blocked until identity and content verification succeeds.
-10. UTC timestamp format/future tolerance, historical age, zero-work versus failed enumeration versus only-invalid filenames, known-period completion with unrelated run-scope errors, and all approved OSD-03 aggregation cases.
-11. Synthetic fixtures and temporary directories only. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion. Evidence status: **not run / not yet evidenced**.
-
-
-## OSD-03 executable schema implementation slice — PR #150 (2026-10-21)
-
-- Added `contracts/aggregation-report-v1.schema.json` as a strict Draft 2020-12 structural schema candidate for the approved R1–R7 report shape. It rejects unknown properties, `report_id`, unsupported/non-integer report schema versions, invalid enums/count types, non-UTC-Z timestamps, malformed lowercase SHA-256 values, and non-canonical relative paths.
-- Added schema-definition and synthetic structural-contract tests in `tests/test_contract_schemas.py`. They cover partial-failure and zero-work examples, all three period completion values, strict versioning, unknown fields, reference path/hash validation, timestamp form, enums/counts, and run-scope error shape.
-- These tests are authored but **not yet executed/evidenced** in this PR. CI must pass on the exact latest PR HEAD before merge. No runtime report reader/writer, cross-artifact digest verification, tuple/path binding, count recomputation, deterministic regeneration, atomic publication, lock integration, or Drive replication implementation is included in this slice.
-- The JSON Schema validates structure only. Cross-field and cross-artifact invariants remain mandatory fail-closed runtime checks; schema acceptance alone is not proof of report correctness or authorization for any side effect.
-- No manifest v1 fields, B2 evidence contract, A2 digest contract, or OSD-02 safety boundaries are changed. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion.
-
-
-## PR #151 status note — OSD-03 internal consistency slice (2026-10-22)
-
-PR #150 merged the structural aggregation-report v1 JSON Schema and its synthetic schema tests; PR-head and post-merge CI passed. PR #151 adds a report-local PowerShell consistency validator and synthetic tests for period uniqueness, safe reference paths/digest shape, summary count reconciliation, completion consistency, run-scope error count, and zero-work/success consistency. Until PR #151 CI passes on its exact latest HEAD, these tests are authored but not yet verified. This slice does not validate exact referenced manifest/evidence bytes, B2/A2 integrity, full target-set completeness, cross-artifact identity, deterministic regeneration, atomic publication, lock ownership, or Drive replication. P0 acceptance remains open.
-
-## OSD-03 status correction — 2026-10-22
-
-PR #151 is merged at `e93f0ea552496831c69efb1e8dd2818ac86f4e5b`. Validate and Package Validation passed on exact PR HEAD `846cfdbb1ce76f3ec1363460c4f0576b7c10a2b6` (runs `39635268289`, `39635268115`) and on the post-merge commit (runs `39636402422`, `39636402408`). The report-local consistency validator is now implemented and CI-verified within its stated scope. PR #152 adds a narrow exact-byte reference verifier; its tests are not yet CI-verified. Neither PR implements full manifest/B2 schema validation, identity binding, A2 digest recomputation, exhaustive target/count reconciliation, deterministic report regeneration, atomic publication, lock recovery, or Drive replication. P0 acceptance remains open.
-EOLM-MAN-001/002 partial evidence (2026-10-23): [read-only directory adapter](../design/latest-manifest-selection.md#read-only-directory-adapter) supplies checked observations to the C4 selection core and retains exact validated bytes. Synthetic filesystem tests cover uncertainty and observed replacement; this does not complete approved-root authority, full manifest semantics, runtime recovery or archive gates.
-
-EOLM-MAN-001/002 recovery composition evidence (2026-10-23): seven directory-to-classifier tests plus real Windows abandonment coverage validate selected-byte use and preservation, without implementing stale-lock disposition or a new-run runtime. See [recovery gate](../validation/lock-recovery-acceptance-gate.md) and the [unapproved workflow proposal](../decisions/recovery-disposition-proposal.md).
+# 要件追跡台帳
+
+> 2026-10-27改訂: [合意台帳](log-move-requirements.md)に基づき、該当13要件の本文・実装/試験対象を2経路/Q5/ファイル単位へ改訂した。IDは維持し、旧全面削除禁止・両PC完了待ち・自動suffix方針の変更履歴は§5直前へ記録。実装/試験/schemaは今回変更せず、runtime受け入れ未完。以降の過去日付付き追従記録は当時の証拠範囲であり、新要件の検証済み根拠ではない。
+
+- ステータス: 発展中のベースライン。ソースと要件のマッピングは `docs/archive/validation/requirements-source-audit.md` に記録されますが、実装/テスト/証拠の調整は 未完了 のままです。
+- スコープ: PC-A および PC-B の初期 ElectronicObserver ログ メンテナンス実装。
+- 正規リポジトリ: `wasawo/eo-log-maintenance-public`
+- 登録所有者: プロジェクト管理者。
+- 最終レビュー日: 2026-10-24 (選択されたポリシーのステータス調整。完全な要件ごとの監査は未解決のままです)。
+- 対象となる更新: 2026-10-25、EOLM-SYN-006–009、EOLM-STG-007–009 のみ。これは完全な登録調整ではありません。
+- このドキュメントは、ランタイム実装や受け入れテストの完了を主張するものではありません。
+
+## 1. 目的
+
+このレジスタは、安定した識別子を要件に割り当て、各要件をそのソース、実装場所、検証方法、および現在の証拠に関連付けます。 `docs/requirements/p0-gap-register.md` で P0-010 を動作可能にします。ソース仕様を置き換えたり、未解決の設計上の決定を承認したりするものではありません。
+
+ドキュメントまたはソース ファイルが存在するというだけの理由では、要件は 確認済み とみなされません。現在、ランタイム スクリプトは 未完了 です。したがって、実装と検証のリンクの多くは、完了の証拠ではなく、計画されたターゲットです。
+
+ソース カバレッジ監査: [`docs/archive/validation/requirements-source-audit.md`](../archive/validation/requirements-source-audit.md) を参照。最新のマージされた追跡ツリー レビュー ベースラインは PR #123 merge `6b543930f9a9805f50693bd6333a8278c416fe05`; です。規範的なソース条項のベースラインは PR #25 のままです。 PR #117–#123 はドキュメントのみであり、ランタイム/テスト カバレッジは変更されません。 PR #78 ソース カバレッジの履歴結果は監査履歴に保持されます。これらは現在の実行時の証拠ではありません。ランタイム実装、実行可能なテスト、または客観的な証拠がないため、複数の `Partial` 行が残ります。 P0-010 は、条項、要件、実装、実行可能テスト、証拠の調整が 完了 になるまでオープンのままです。
+
+## 2. 識別子の規則
+
+- 形式: `EOLM-<DOMAIN>-<NNN>`、`EOLM` は ElectronicObserver ログ メンテナンスを意味し、`DOMAIN` は要件領域を識別し、`NNN` はゼロ埋めされたシーケンスです。
+- ID は永続的で一意です。セクションまたはファイルが移動されたために、既存の ID の番号を付け直さないでください。
+- ID は決して再利用しないでください。要件が撤回された場合は、ステータス `retired` と理由を付けて保持します。
+- 1 つの要件が分割された場合は、明示的な変更メモを通じてのみ元の要件を廃止または置き換えます。新しい ID を割り当て、親/優先関係を記録します。
+- 要件が大幅に変更された場合は、その履歴と検証基準を更新します。既存の ID の意味を黙って変更しないでください。
+- ソース見出しまたは行参照は、要件 ID ではなく、ロケーター メタデータです。ドキュメントが進化するにつれて、ソース パスとセクション見出しを正確に保ちます。
+- README、決定レジスタ、詳細仕様で同じ要件が繰り返される場合は、複数のソース参照を使用します。繰り返しの文言に対して重複した要件 ID を作成しないでください。
+- 設計上の決定または安全実践から得られた要件には、`Derived` とマークを付け、その決定または根拠を引用する必要があります。それらは外部から課せられた要件として提示されてはなりません。
+- レジスタは双方向です。すべての要件はソース/親までトレースする必要があり、すべての規範的なソース句は 1 つ以上の ID にマップするか、明示的に `not a requirement / informational / unresolved` とマークする必要があります。
+
+## 3. ステータスに関する語彙
+
+| 状態 | 意味 |
+| --- | --- |
+| `not_started` | 実装または検証作業は証明されていません。 |
+| `partial` | 関連する作業がいくつか存在しますが、要件は完全には満たされていません。 |
+| `implemented_unverified` | 実装目標は存在しますが、十分な検証証拠がありません。 |
+| `verified` | 定義された受け入れ基準に合格し、証拠がリンクされています。 |
+| `blocked` | 進歩には、意思決定、外部の能力、または前提条件が必要です。 |
+| `retired` | 正式に撤回または置き換えられます。根拠と置換 ID が記録されます。 |
+
+ステータスは、ドキュメント単体のステータスではなく、要件全体を説明します。部分的に実装されているが完全なエンドツーエンドの証明がない現在のアイテムには `partial` を使用してください。この初期レジスタには `verified` とマークされたランタイム要件はありません。
+
+## 4. トレーサビリティ分野
+
+各行には、ID、要件ステートメント、ソース、親/決定、実装ターゲット、検証ターゲット、優先度、ステータス/証拠が含まれます。以下のソース セクション参照ではセクション見出しが使用されており、ソース見出しが変更された場合は更新する必要があります。リポジトリのソース テキストがまだ完全に監査されていない場合、その行は false 正確な段落参照を主張するのではなく、確認のために明示的にマークされます。
+
+優先度: `P0-A` 実行/安全の前提条件。 `P0-B` 仕様/契約/CI の前提条件。 `P0-C` 一貫性と回帰のカバレッジ。 `P1` 同期/ランタイム配信。 `P2` アーカイブ/操作。 `P3` 将来的には別途承認される機能。優先されるのはメタデータの計画であり、実装の許可ではありません。
+
+## 2026-10-27 ポリシー改訂履歴
+
+Q1/Q2/Q5 は、CFG-005、SYN-001、ARC-003、SAF-001/004、TST-006 にあるローカル・クラウドのコピーのみと削除除外を、2経路の条件付き移動要件へ置き換える。Q3/Q4 は、MAN-007、LCK-004、ARC-002/005、SAF-003 の両PC完了待ち・期間全体のアーカイブ停止を置き換える。Q8 は、SYN-003 のPC接尾辞の自動付加を競合保全へ置き換える。IDは維持し、実行時の状態を検証済みへ昇格させない。既存の接尾辞付き上書き禁止、ファイル名・期間規則、Dry Run の無変更、所有権、証拠の完全性は維持する。削除のIPC・状態・永続化の詳細設計は未確定である。後述の日付付き監査・証拠は過去基準を残すもので、失効した旧方針を復活させない。
+
+## 5. 要件登録
+
+### 5.1 環境とエントリ ポイント
+
+| ID | 要件 | ソース/セクション | 上位要件 / 判断 | 実装対象 | 検証対象 | 優先度 | 状態 / 注記 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| EOLM-ENV-001 | 両PCは実行する PowerShell 7.6.7; Windows PowerShell 5.1 互換性は範囲外です。 | `docs/design/staging-file-lifecycle.md` §2; `docs/requirements/p0-gap-register.md` P0-001/P0-002; `README.md` §現在の制約 | P0-001; P0-002 | 共有ランタイム ガードとサポートされているすべてのエントリ ポイント | 7.6.7 を渡します。ファイル処理前にサポートされていない/読み取り不可能なバージョンを拒否します | P0-A | 部分的。共有ガードと CI バージョンのピン/チェックは存在しますが、公式のランタイム エントリ ポイントがないため、すべてのエントリ ポイントの適用は未検証です |
+| EOLM-ENV-002 | サポートされているバッチ エントリ ポイントは、`powershell.exe` ではなく、`pwsh.exe` を呼び出す必要があります。 | `docs/design/staging-file-lifecycle.md` §2; `docs/requirements/p0-gap-register.md` P0-003 | P0-003 | ランタイム BAT エントリ ポイントとパッケージ ホワイトリスト | 静的スキャンはすべて`.bat`/`.cmd`を追跡しました。ランタイムスモークテスト | P0-A | not_started;追跡されたエントリ ポイントが現在のインベントリに存在しない |
+| EOLM-ENV-003 | ランタイム バージョンの検証は、ファイルの列挙、コピー、アップロード、アーカイブ、またはその他の処理の前に行われます。 | `docs/design/staging-file-lifecycle.md` §2 | EOLM-ENV-001 | すべてのエントリ ポイントによって呼び出される共通の起動検証 | 否定的なテストにより、バージョンの拒否後にファイル操作が発生しないことが証明されます | P0-A | not_started |
+| EOLM-ENV-004 | ランタイム ログ、操作マニフェスト、アクティブな PC 固有の構成、およびシークレットはコミットしたり、リリース パッケージに含めたりしてはなりません。 | `README.md` §安全上の必須ルール / §配布パッケージ; docs/requirements/log-move-requirements.md §9; docs/development/implementation-workflow.md §3 | リポジトリの安全性ポリシーから派生 | `.gitignore`、パッケージの許可リスト/除外 | シードされた禁止ファイルを使用した Git/パッケージ検査テスト | P0-B | 部分的です。パッケージテストが存在し、完全な監査 未確定 |
+| EOLM-ENV-005 | ローカル ランタイム スクリプトは、Google Drive 管理コピーから直接ではなく、各 PC のローカル ランタイム ディレクトリから実行されます。 | `README.md` §安全上の必須ルール | 派生 | インストール/操作手順 | 該当する場合、手順のレビューとパス アサーション | P1 | not_started |
+
+### 5.2 構成と PC の役割
+
+| ID | 要件 | ソース/セクション | 上位要件 / 判断 | 実装対象 | 検証対象 | 優先度 | 状態 / 注記 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| EOLM-CFG-001 | 構成では、処理前に PC の役割を特定し、必要なパスと値を検証する必要があります。欠落している、不正な構成、不明な構成、または役割が不適切な構成は、フェールクローズされます。 | `docs/decisions/decision-register-c18-c32.md` §固定決定 (C-20/C-21); docs/requirements/log-move-requirements.md §§2、9; docs/design/runtime-entrypoint-validation-gate.md | C-20/C-21 | 構成ローダーと `Config/PC-*.example.json` | 有効/無効/欠落/不明 フィールド構成テスト | P0-B | 部分的。 PR #78 は、machineId/role、正確な許可/必須フィールド セット、空ではない絶対 Windows ドライブ パス、および負の場合の固定アーカイブ/削除フラグ制約などのパッケージ ビルダー チェックを追加します。ランタイム構成ローダーまたはアクティブ構成/パス検証ツールは存在しません。サンプル テンプレートのチェックは、アクティブな設定の検証ではありません。 |
+| EOLM-CFG-002 | `SyncLogs.ps1` は、公式の同期エントリ ポイントです。 | `docs/decisions/decision-register-c18-c32.md` C-20/C-21; docs/requirements/log-move-requirements.md §§2,9; docs/design/runtime-entrypoint-validation-gate.md | C-20/C-21 | `scripts/SyncLogs.ps1` および PC 固有の同期ランチャー | パッケージのホワイトリストとエントリポイントのテスト | P0-B | not_started;ファイルは監視としてのみ存在し、操作上の同期ロジックはありません。 |
+| EOLM-CFG-003 | `ArchiveLogs.ps1` は公式アーカイブ エントリ ポイントであり、PC-A のみです。 `ArchiveAndUploadLogs.ps1` は正式なエントリ ポイントではありません。 | `docs/decisions/decision-register-c18-c32.md` C-20/C-21; `docs/requirements/p0-gap-register.md` P0-006 | C-20/C-21; P0-006 | `scripts/ArchiveLogs.ps1`、パッケージビルダー | PC-A/PC-B パッケージ テスト。デプロイ可能な基準としてレガシー名を拒否する | P0-B | 部分的。 PR #76 は、PC-A には `ArchiveLogs.ps1` が必要で、PC-B にはそれが除外されていることを検証し、レガシー名は公式のエントリポイント ゲートを満たすことができません。公式のランタイム スクリプトは存在しないままで、OSD-09 最終的な許可リスト/展開の承認は未解決です。 |
+| EOLM-CFG-004 | PC-A は、`allowArchive: true` が明示的である場合にのみアーカイブできます。 PC-B 構成では `allowArchive` を省略する必要があります。その存在は無効です。 | `docs/decisions/decision-register-c18-c32.md` C-20/C-21/C-28; `README.md` 役割テーブル | C-28 | 構成の検証と PC 固有のパッケージ | PC-A 検査で陽性。 PC-A 欠落/偽、および PC-B 存在陰性テスト | P0-B | 部分的です。パッケージ ビルダー チェックでは、安全でないサンプル テンプレート (PC-A `allowArchive: true` または欠落、PC-B プロパティが存在) が拒否され、ロール/フィールド/パスの構文が検証されます。これらはテンプレート テストであり、アクティブな構成の検証ではありません。ランタイム ローダー、承認されたルートの包含チェック、ロールにバインドされた承認、または PC-A ポジティブ アーカイブ承認パスが存在しません。 |
+| EOLM-CFG-005 | 構成では、一般的な削除オーバーライドを提供しないものとします。ソースの削除は、2 つの移動ルート、正確なソース ID、Q5 条件、および PC の役割に限定されます。設定だけでは許可になりません。 | [2026-10-27 レビュー](log-move-requirements.md); [移動受け入れ計画](../development/implementation-workflow.md) | Q1-Q10 / 平坦化;以前の決定は改訂履歴に保持されます | Config/runtime/contract/package ロール ゲート | 無条件の削除、PC-B アーカイブ/クラウドの削除、およびルート外のターゲットを拒否します。許可された独自ソースの移動を検証する | P0-A | 部分的です。既存のallowDeleteの拒否は引き続き関連しますが、新しいロール限定のランタイム/削除コントラクトと承認は存在しません。 |
+
+### 5.3 ファイル名の検証と保存期間
+
+| ID | 要件 | ソース/セクション | 上位要件 / 判断 | 実装対象 | 検証対象 | 優先度 | 状態 / 注記 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| EOLM-FIL-001 | BattleLog ファイル名は `^(?<Date>\d{8})_\d{8}@.+\.txt$` と一致する必要があります。 | `docs/design/filename-and-period-selection.md` §2; `docs/decisions/decision-register-c18-c32.md` C-25 | C-25 | `Common/LogFunctions.ps1` | `Test-LogFunctions.ps1`: 有効な BattleLog 解析。予想外の名前。アンダースコアがありません。拡張子が間違っています。空の接尾辞。大文字の `.TXT` は拒否されました | P0-C | 部分的。大文字と小文字を区別する `.txt` 拒否を含むヘルパー アサーションは、Validate #44; で実行されます。ディレクトリの列挙と実行レベルのエラー集計は実装されていません |
+| EOLM-FIL-002 | ErrorReport ファイル名は `^(?<Date>\d{8})_\d{8}\.txt$` と一致する必要があります。 | `docs/design/filename-and-period-selection.md` §2;決定 C-25 | C-25 | `Common/LogFunctions.ps1` | `Test-LogFunctions.ps1`: 有効な ErrorReport 解析。予期しない接尾辞の拒否。大文字の `.TXT` は拒否されました | P0-C | 部分的。大文字と小文字を区別する `.txt` 拒否を含むヘルパー アサーションは、Validate #44; で実行されます。ディレクトリの列挙と実行レベルのエラー集計は実装されていません |
+| EOLM-FIL-003 | ターゲットの日付は、ファイル名の最初の 8 文字から抽出され、インバリアント カルチャを使用して `yyyyMMdd` として厳密に解析されます。 | `docs/design/filename-and-period-selection.md` §2;決定 C-25 | C-25 | `Common/LogFunctions.ps1` | `Test-LogFunctions.ps1`: 有効な日付、不可能な日付、うるう日、無効な月、および `th-TH` カルチャ スイッチ アサーション | P0-C | 部分的です。 Validate #44; で厳密な解析と InvariantCulture の独立性が実行されます。ヘルパーのみの証拠は実行レベルのファイル分類を証明しない |
+| EOLM-FIL-004 | `LastWriteTime` は、無効なファイル名または分類できないファイル名のフォールバックとして使用してはなりません。 | `docs/design/filename-and-period-selection.md` §§2、6–7;決定 C-25 | C-25 | `Common/LogFunctions.ps1` と将来の列挙子 | ヘルパーは不正な形式の名前を拒否し、タイムスタンプ パラメータを受け入れません。ランタイム テストでは無効なファイル名を妥当な `LastWriteTime` と組み合わせて検証エラーをアサートする必要があります | P0-C | 部分的。ヘルパーレベルの非フォールバック構造と不正な名前のアサーションが Validate #44; で実行されます。列挙が存在しないため、エンドツーエンドのタイムスタンプ フォールバック動作は未テストのままです |
+| EOLM-FIL-005 | 関連するファイル名が無効または分類できない場合、実行は完全に成功したと報告されません。安全な場合は、他の独立したファイルの処理が続行される場合があります。 | `docs/design/filename-and-period-selection.md` §§2、6–7;決定 C-25 | C-25 | 将来のターゲットの列挙と実行ステータスの集計 | 実行時の有効/無効混合ディレクトリ テストと最終マニフェスト/実行ステータス アサーション | P0-C | not_started;ソース句は明示的ですが、列挙、マニフェスト、または実行ステータスの実装/テストが存在しません。 OSD-03 は徹底的な集約ポリシーをブロックします |
+| EOLM-FIL-006 | 同期では、現在の実行中に作成されたファイルだけでなく、対象となるすべてのバックログ期間が選択されます。 | `docs/design/filename-and-period-selection.md` §3; docs/requirements/log-move-requirements.md §3; docs/design/filename-and-period-selection.md;決定 C-31 | C-31 | 将来のターゲットの列挙 | 複数の古い期間をシードします。 1 回の実行で選択されたすべての対象期間を確認します | P1 | not_started;ヘルパーは古い履歴ファイル名が適格であることを証明しますが、ディレクトリ列挙がないことはすべてのバックログ期間が選択されていることを証明します |
+| EOLM-FIL-007 | BattleLog 同期の対象条件には、前月とそれより古いすべての対象条件のある期間が含まれます。アーカイブの対象条件には前年以前のものも含まれます。 | `docs/design/filename-and-period-selection.md` §§3–5;決定 C-31 | C-31 | `Common/LogFunctions.ps1` | `Test-LogFunctions.ps1`: 10 月 2026 の締め切り、包括的/排他的対象条件、1 月のロールオーバー、2 月 28/29、4 月 30、および 6 月 30 月の終了日 | P0-C | 部分的です。カットオフ/ヘルパー境界アサーションは Validate #44; で実行されます。 完了 バックログの列挙とアーカイブ ゲートの動作は未実装のままです |
+| EOLM-FIL-008 | ErrorReport 同期対象条件には前年以降も含まれます。アーカイブの対象条件には、今年の 2 年前以降の年が含まれます。 | `docs/design/filename-and-period-selection.md` §§3–5;決定 C-31 | C-31 | `Common/LogFunctions.ps1` | `Test-LogFunctions.ps1`: 10 月 2026 同期/アーカイブのカットオフと包括的/排他的な日付アサーション、および 1 月のロールオーバー | P0-C | 部分的です。カットオフ/ヘルパー境界アサーションは Validate #44; で実行されます。 完了 バックログの列挙とアーカイブ ゲートの動作は未実装のままです |
+| EOLM-FIL-009 | 期間の適格性は、ファイルシステムのタイムスタンプではなく、ファイル名の日付から導出されるものとします。 | `docs/design/filename-and-period-selection.md` §§3、6;決定 C-25/C-31 | C-25/C-31 | `Common/LogFunctions.ps1` と将来の列挙子 | ヘルパーの適格性は、解析されたファイル名の日付からのみ導出されます。ランタイム フィクスチャは反対の結果を暗黙的に示すために `LastWriteTime` を設定する必要があります | P0-C | 部分的です。日付ベースのカットオフ アサーションは Validate #44 で実行され、ヘルパーはタイムスタンプ入力を受け入れません。タイムスタンプ/日付の不一致は列挙レベルでテストされていないままです |
+| EOLM-FIL-010 | 作業のない実行は、成功したスキップとして表され、実行されなかったスクリプトとは区別されます。 | `docs/design/filename-and-period-selection.md` §3; `docs/validation/runtime-safety-test-scenarios.md`;決定 C-26 | C-26 | 将来のマニフェスト/実行ステータスの実装 | ゼロターゲット実行とマニフェスト欠落テスト | P1 | not_started;マニフェストまたは実行ステータスの実装は存在せず、ヘルパー テストからゼロ ターゲットの選択を推測してはなりません |
+
+### 5.4 同期、衝突、およびインベントリ
+
+| ID | 要件 | ソース/セクション | 上位要件 / 判断 | 実装対象 | 検証対象 | 優先度 | 状態 / 注記 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| EOLM-SYN-001 | 各 PC は、宛先コンテンツの同等性と、そのソースのみを削除する直前にコピーしてから正確なソースが変更されていないことを検証することにより、適格なローカルからクラウドへの移動を完了する必要があります。それ以外の場合は保持します。 | [2026-10-27 レビュー](log-move-requirements.md); [移動受け入れ計画](../development/implementation-workflow.md) | Q1-Q10 / 平坦化;以前の決定は改訂履歴に保持されます | 同期エントリ ポイントおよびソースごとの結果ライター | 移動が成功すると、検証された適格なソースのみが削除されます。不一致/変更/不確実性/削除の失敗により、そのソースが未解決として保持または記録されます | P0-A | not_started。Q1/Q2/Q5 を改訂。コピーのみの実装証拠は移動の検証にはならない。 |
+| EOLM-SYN-002 | 同一の SHA-256 を持つ同一の同名ファイルは重複として扱われ、不必要に再度コピーされないものとします。 | docs/requirements/log-move-requirements.md §§5-7; docs/design/log-move-design.md §§3-5; `docs/decisions/decision-register-c18-c32.md` C-31/C-32 | 派生 | 衝突リゾルバー | 同名/同ハッシュの冪等性テスト | P1 | not_started |
+| EOLM-SYN-003 | 同じ名前で異なるコンテンツのファイルは、ソースを保持し、宛先を変更しないものとし、競合が発生します。初期完了では、サフィックスの自動名前変更、上書き、またはマージを使用しないでください。 | [2026-10-27 レビュー](log-move-requirements.md); [移動受け入れ計画](../development/implementation-workflow.md) | Q1-Q10 / 平坦化;以前の決定は改訂履歴に保持されます | ファイルごとの衝突処理 | 同じ PC 間、フォルダ間、PC 間、および既存の宛先間の競合では、ソースが保持され、名前の変更や上書きは行われません。独立したファイルで完了できる | P1 | not_started; Q7/Q8 および平坦化命令を改訂。自動 _PCA/_PCB 保存ポリシーを置き換えます |
+| EOLM-SYN-004 | マークされていない既存のファイルは、作成元を証明する信頼できるマニフェストがなければ、PC-A または PC-B に帰属しません。 | `docs/decisions/decision-register-c18-c32.md` C-32; docs/requirements/log-move-requirements.md §§5-7; docs/design/log-move-design.md §§3-5 | C-32 | インベントリと衝突リゾルバー | 起源不明のフィクスチャは保持されたままです | P1 | not_started |
+| EOLM-SYN-005 | 接尾辞の付いたターゲットは、異なるコンテンツで上書きされることはありません。 | docs/requirements/log-move-requirements.md §§5-7; docs/design/log-move-design.md §§3-5 | 派生 | 衝突リゾルバー | 既存の拡張子付きファイルの不一致テスト | P1 | not_started |
+| EOLM-SYN-006 | 初期インベントリ/復元レコードは、運用上の同期/アーカイブ マニフェストとは別のものとします。 | `docs/decisions/decision-register-c18-c32.md` C-32; `README.md` §初期インベントリと復元 | C-32 | [初期一覧観察](../design/reference/initial-inventory-observation.md)、内部分離型。永続的なスキーマ/場所 未確定 | [合成分離試験](../../tests/test_initial_inventory_observation.py);永続的なスキーマ/場所の分離はまだ実装されていません | P1 | 部分的です。内部観察は運用マニフェスト計画とは異なりますが、インベントリ成果物のスキーマ/ストレージ/ランタイムは存在しません |
+| EOLM-SYN-007 | インベントリは、完全な列挙により候補が 1 つだけ確認された後、名前、サイズ、SHA-256 を照合することによって、ドライブ ファイルを信頼できる PC-A バックアップと比較します。候補一致では復元またはアーカイブは許可されません。 | 決定 C-32; OSD-01 を承認しました。 README インベントリセクション | C-32 / OSD-01 | [DriveContentComparison.py](../../Common/DriveContentComparison.py) および [PC-A/ソース統合](../design/reference/initial-inventory-observation.md) | [比較/ページ/ハッシュフィクスチャ](../../tests/test_drive_content_comparison.py) および [初期一覧統合](../../tests/test_initial_inventory_observation.py) | P1 | 部分的です。純粋な比較と合成 PC-A/プラン/ハッシュ統合が存在します。認証されたソース/API 観察、永続性、およびランタイムは 未確定 のままです |
+| EOLM-SYN-008 | 一致しない、競合する、または 不明 起源のインベントリ ファイルは保持され、自動的に復元、アーカイブ、または削除されることはありません。 未完了 または 失敗した ドライブのリストも失敗します。 | 決定 C-32; OSD-01 を承認しました。 README インベントリセクション | C-32 / OSD-01 | [読み取り専用のインベントリ監視](../design/reference/initial-inventory-observation.md);オーケストレーションの復元/アーカイブ/削除が存在しない | [ホールド/ソース変更/グローバル-失敗 フィクスチャ](../../tests/test_initial_inventory_observation.py) および [カウントのみの概要](../../tests/test_initial_inventory_summary.py);実際のプロバイダー/出所および報告資格 未確定 | P0-A | 部分的。保持された観測は選択/B2 を保持し、すべての許可フラグは false です。実際の API/trusted-origin/運用上の強制は未実装のままです |
+| EOLM-SYN-009 | 初期インベントリの完了は、運用同期の成功またはアーカイブ適格性の証明として扱われないものとします。 | `README.md` §初期インベントリと復元; `docs/decisions/decision-register-c18-c32.md` C-32 | C-32 | [専用のインベントリ タイプと false 同期/アーカイブ フラグ](../design/reference/initial-inventory-observation.md) | [運用マニフェスト/パブリケーションまたは 成功 プロモーションはありません](../../tests/test_initial_inventory_observation.py), [非承認の履歴概要](../../tests/test_initial_inventory_summary.py) | P0-B | 部分的です。合成観察の分離/非認証結果のみ。永続的な初期インベントリと運用上の同期/アーカイブの受け入れは 未確定 のままです |
+
+### 5.5 ドライブ アダプターとクラウド側の検証
+
+| ID | 要件 | ソース/セクション | 上位要件 / 判断 | 実装対象 | 検証対象 | 優先度 | 状態 / 注記 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| EOLM-DRV-001 | Python は Google Drive API アダプターとして機能し、呼び出しごとに API を 1 回だけ実行します。暗黙的な再試行/バックオフ/ジッターを実装してはなりません。 | `docs/decisions/decision-register-c18-c32.md` C-18/C-29; `docs/design/powershell-python-contract.md` 所有権を再試行してください | C-18/C-29 | Python アダプターとコントラクト | 成功した場合と失敗した場合の模擬呼び出し数は 1 つだけです | P0-B | 部分的です。契約テストのみ |
+| EOLM-DRV-002 | PowerShell は再試行分類を所有し、1、5、および 15 分の待機時間で最大合計 4 回の試行を実行します。 | 決定 C-18/C-29;テストの README 再試行セクション | C-18/C-29 | PS 再試行候補ヘルパーと純粋なマニフェスト履歴アップロード境界キャップ。運用オーケストレーションが存在しない | `tests/test_manifest_history_retry_budget.py`: ファイルごとの 4 境界の上限、不明 から 失敗した への推論はありません。既存の PS リトライ観測テスト | P0-B | 部分的です。固定された再試行可能なテーブル/PS 候補と提供された履歴キャップには合成テストがあります。実際のカウンター/永続性、信頼できる待機、API 試行カバレッジ、および 不明 アップロード調整は未実装のままです |
+| EOLM-DRV-003 | 結果が不明なアップロードを再試行する前に、システムはドライブの状態をクエリします。 | 決定 C-18/C-29; `docs/design/powershell-python-contract.md` | C-18/C-29 | 再試行/調整フロー | 不明な結果: 一致するファイル => 確認済み;存在しない => 再試行が許可されます。不確実/不一致 => 停止 | P0-B | not_started |
+| EOLM-DRV-004 | クラウド アップロードの完了は、デスクトップ ファイルの存在またはメタデータのみの取得の場合、ローカル Google Drive から推測されません。 | `README.md` 安全規則; docs/design/log-move-design.md §§3、16; docs/design/powershell-python-contract.md | C-28/C-30 | ドライブアダプター | テスト メタデータのみの応答はコンテンツ検証として受け入れられません | P0-A | not_started |
+| EOLM-DRV-005 | クラウド コンテンツは、利用可能な場合は信頼できるドライブ SHA-256 を使用して検証され、そうでない場合はコンテンツをダウンロードしてハッシュすることによって検証されます。 | docs/design/log-move-design.md §§3,16; docs/design/powershell-python-contract.md; `docs/design/powershell-python-contract.md` §3 / §5 / §7; `docs/design/staging-file-lifecycle.md` §7 | 派生 | Python アダプターと PowerShell の検証 | チェックサムとダウンロード/ハッシュ ブランチ。不一致/権限/ネットワーク障害 | P0-B | はアダプター/認証が検証されるまでブロックされます |
+| EOLM-DRV-006 | 不明なアップロード結果、コンテンツ 不一致、または状態を確認できない場合、そのファイルはフェールクローズされます。成功したものとして扱われません。 | 決定 C-18/C-29;ステージング ライフサイクル アップロード検証セクション | C-18/C-29 | アップロード調整 | アップロード後のタイムアウト、不一致、およびアクセス不能なドライブ状態のシミュレーション | P0-A | not_started |
+| EOLM-DRV-007 | OAuth スコープは、実際のマイ ドライブ フォルダーに対するリスト、メタデータ、アップロード、およびダウンロード/ハッシュをサポートする検証済みの最小スコープでなければなりません。拡張には文書化とレビューが必要です。 | `docs/decisions/decision-register-c18-c32.md` C-23 | C-23 | Python 認証アダプターとセットアップ ドキュメント | 実際のマイドライブ の機能テストと範囲レビューの記録 | P0-B | ポリシーが選択されました: I1/A1/S1/T1 と暗号化されたユーザー バインド ファイル。実際の 4 つの操作/両方の PC の可視性と店舗資格 未確定 |
+| EOLM-DRV-008 | 未確認のクラウド状態では、ステージング データのアーカイブやクリーンアップは決して許可されません。 | `docs/design/staging-file-lifecycle.md` ゲート/クリーンアップ セクションをアップロードします。 docs/design/log-move-design.md §§3、16; docs/design/powershell-python-contract.md | C-28/C-30 | 同期とアーカイブのオーケストレーション | クラウドが不明/不一致の場合、ソース、ステージング、ドライブのコピーが保持される | P0-A | not_started |
+
+### 5.6 マニフェスト要件
+
+| ID | 要件 | ソース/セクション | 上位要件 / 判断 | 実装対象 | 検証対象 | 優先度 | 状態 / 注記 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| EOLM-MAN-001 | 運用マニフェストは `_maintenance/manifests/PC-A/` および `PC-B/` に保存されます。 | `docs/design/staging-file-lifecycle.md` §8 (マニフェストの場所); `docs/decisions/decision-register-c18-c32.md` C-26 | C-26 | マニフェスト パス ビルダー | 両方の PC ロールのパス構築テスト | P1 | は 未確定 スキーマ ベースラインをブロックしました |
+| EOLM-MAN-002 | マニフェスト ファイル名の ID は `<PC-ID>_<LogType>_<TargetPeriod>_<run_id>.json` に続き、JSON ID フィールドと一致する必要があります。 | `docs/design/staging-file-lifecycle.md` §8 (マニフェスト ファイル名と ID の検証); `docs/decisions/decision-register-c18-c32.md` C-26 | C-26 | マニフェストのライター/リーダー | ファイル名/ペイロードの不一致の陰性テスト | P1 | 部分的:LatestManifestSelection および読み取り専用 ManifestDirectoryReader の ID テスト。ライター/ランタイムの統合と受け入れ 未確定 |
+| EOLM-MAN-003 | 各 PC 実行には一意の `run_id` が必要です。 PC-A と PC-B の実行は、同じ実行 ID を必要とするのではなく、PC ID、期間、ログ タイプ、およびファイル検証によって関連付けられます。 | マニフェスト/実行同一性設計。決定 C-26 | C-26 | 初期化とアーカイブゲートを実行します | 同じ期間の異なる実行 ID は、正しい一致データがある場合にのみゲートを満たすことができます。 | P1 | がブロックされました |
+| EOLM-MAN-004 | マニフェスト ステータスは `running`、`success`、`partial_failure`、および `failure` でなければなりません。ゼロワーク実行は `success` と `outcome: "no_work"` になります。 | マニフェストデザイン。 `tests/README.md` 作業なしシナリオ | C-26 | マニフェスト スキーマとステート マシン | 列挙型および状態遷移のテスト | P1 | がブロックされました |
+| EOLM-MAN-005 | 実行では、ロックの取得後、処理前に `running` を公開する必要があります。同じ実行/マニフェストは最終状態に更新されます。 | `docs/design/staging-file-lifecycle.md` §8 (実行中 ～最終ライフサイクル); `docs/decisions/decision-register-c18-c32.md` C-26 | C-26 | オーケストレーションの実行 | 割り込みテストは実行状態のままになります。実行が成功すると、同じマニフェストが更新されます | P1 | がブロックされました |
+| EOLM-MAN-006 | クラッシュしたままになった `running` マニフェストは、失敗として自動的に書き換えられません。リカバリでは実際の状態を検査する必要があります。 | マニフェストリカバリ設計。 docs/design/log-move-design.md §§12、15; docs/design/manifest-schema-v1-proposal.md | C-26 | 復旧フロー | 古い実行マニフェストをシードし、それが保持/調整されていることを確認する | P1 | がブロックされました |
+| EOLM-MAN-007 | ファイルに必要なレコードは、以前の成功に戻ったり、不完全な履歴を書き換えたりすることなく検証されなければなりません。アーカイブは両方の PC が期間を完了するかどうかに依存しないものとします。現在のファイルの検証が必要です。 | [2026-10-27 レビュー](log-move-requirements.md); [移動受け入れ計画](../development/implementation-workflow.md) | Q1-Q10 / 平坦化;以前の決定は改訂履歴に保持されます | ファイルごとのアーカイブ証拠バインディングおよび履歴リーダー | 欠落または失敗した PC-B 期間レコードだけでは、対象となる現在のクラウド ファイルはブロックされません。無効な必要な証拠が依存する操作をブロックする | P0-A | はブロックされました。従来の最新マニフェスト セレクターは引き続き実装されたヘルパーです。新しいファイルごとの証拠契約は 未確定 であり、その 成功 は移動承認ではありません |
+| EOLM-MAN-008 | マニフェストは一時ファイルに書き込まれ、再読み取りおよび検証されてから、サポートされている場合には公式のローカル マニフェストをアトミックに置き換えます。 | `docs/design/staging-file-lifecycle.md` §3 (ステージング メタデータ); §8 (マニフェストのアトミック更新) | C-26 | マニフェストおよびメタデータのライター | 無効な JSON/書き込み/置換の失敗に対するフォールト挿入テスト | P1 | 部分的です。 ステージング メタデータ ルールが指定されました |
+| EOLM-MAN-009 | マニフェスト スキーマは、実行時実装前に、必要なフィールド、タイプ、列挙型、タイムスタンプ、ファイルごとの結果、ドライブ ID、バージョン互換性、および不正なデータの拒否を定義する必要があります。 | `docs/decisions/decision-register-c18-c32.md` C-26; `docs/design/powershell-python-contract.md`;承認されたOSD-02バージョンとフィールド仕様。 `docs/design/manifest-schema-v1-proposal.md` | C-26 / OSD-02 | マニフェスト JSON Schema およびランタイムバリデータ | 承認されたフィールド仕様を実行可能なスキーマおよびバリデータとして実装します。欠落/不正/サポートされていない schema_version および無効なフィールドを含むポジティブ/ネガティブ テストを追加します | P0-B | 承認されたマニフェスト v1 フィールド契約と構造スキーマが存在します。完全なセマンティックバリデータ/ライター/ランタイム強制 未確定 |
+| EOLM-MAN-010 | アーカイブは、マニフェスト クレームに依存する前に、クラウド側の状態を再確認する必要があります。 | 決定 C-28; docs/design/log-move-design.md §§12、15; docs/design/manifest-schema-v1-proposal.md | C-28 | アーカイブ ゲート | 古いクラウド メタデータまたは変更されたファイル ブロックのアーカイブ | P0-A | not_started |
+
+### 5.7 ステージングとファイルごとのライフサイクル
+
+| ID | 要件 | ソース/セクション | 上位要件 / 判断 | 実装対象 | 検証対象 | 優先度 | 状態 / 注記 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| EOLM-STG-001 | ステージングは各 PC に対してローカルであり、Google Drive 同期の外部に行われます。デフォルトのパス: `%LOCALAPPDATA%\eo-log-maintenance\staging`。 | `docs/design/staging-file-lifecycle.md` §3 | 派生した安全要件 | ステージング パス ビルダー | ステージング パスがローカルであり、構成されたドライブ パスの下にないことをアサートします | P0-A | not_started |
+| EOLM-STG-002 | ステージング ファイル名には `<run_id>_<sequence>_<original_filename>` を使用します。作成ではアトミックな create-new セマンティクスを使用し、既存のステージング ファイルを決して上書きしないものとします。 | `docs/design/staging-file-lifecycle.md` §3 | 派生 | ステージングコピー機能 | 衝突/レーステスト。シーケンスの増分を保証する | P0-A | not_started |
+| EOLM-STG-003 | 各ステージング ファイルには、実行 ID、元の相対パス/名前、サイズ、SHA-256、ステータス、およびステージング パスを記録する隣接する JSON メタデータがなければなりません。 | `docs/design/staging-file-lifecycle.md` §3 | 派生 | メタデータ ライター/リーダー | 必須フィールドと不正な形式の JSON テスト | P1 | not_started |
+| EOLM-STG-004 | アップロード ターゲット リストは、グローバル ロックが取得され、残りの ステージング 検査が完了した後に凍結されます。後で追加されたファイルは次回の実行まで延期されます。 | `docs/design/staging-file-lifecycle.md` §4 対象一覧凍結 | 派生 | ターゲットプランナー | 凍結後にファイルを追加します。現在の実行で処理されていないことを確認する | P1 | not_started |
+| EOLM-STG-005 | ターゲット レコードには、ファイル名、相対パス、サイズ、SHA-256 が含まれます。ソースのサイズ/ハッシュはステージングの前に再チェックされます。変更または欠落しているソースはアップロードしてはなりません。 | `docs/design/staging-file-lifecycle.md` §4 | 派生 | 初期計画/ソースの再検証とテストのみの所有コピーの統合。ランタイム コピー/メタデータ ライターが存在しない | `tests/test_upload_staging_integration.py`: 凍結されたソース変更、制限付きコピー/リードバック、部分的な 失敗 保存。アップロードは常に拒否されました。ランタイム消失ゲート 未確定 | P0-A | 部分的 (合成統合のみ) |
+| EOLM-STG-006 | アップロードできるのは検証済みのステージング コピーのみです。元のソース ファイルをアップロード ペイロードとして使用することはできません。 | `docs/design/staging-file-lifecycle.md` ライフサイクル/アップロード ゲーティング | 派生 | 読み取り専用 `observe_initial_staging_copy`: 凍結されたプラン/ターゲット、既存のコピー サイズ/ハッシュ/同一性/リンク/祖先。ソースペイロードは読み取られません。実際のアダプターゲートが存在しない | `tests/test_initial_staging_copy_observation.py`;ソース 利用不能 は引き続き観察のみを許可し、すべての権限 false を許可します。ランタイムペイロードパス/メタデータ履歴アサーション 未確定 | P0-A | 部分的 (コピー監視のみ。アップロード ゲートは実装されていません) |
+| EOLM-STG-007 | スタートアップは、残りのステージング 成果物を検査し、警告し、保持するものとします。残り物の自動回復または削除は、最初は範囲外です。 | `docs/design/staging-file-lifecycle.md` 残留成果物 セクション | 派生 | [StagingResidualObservation.py](../../Common/StagingResidualObservation.py): 即時エントリ数/警告信号のみ。完全な起動メタデータ インスペクター 未確定 | [合成エントリー観測](../../tests/test_staging_residual_observation.py): ファイルを保持し、ペイロードの読み取りやディレクトリの横断は行いません。メタデータ ペア/起動警告の統合 未確定 | P0-A | 部分的です。読み取り専用カウント監視のみ。メタデータ/古い実行の検査、実際のルート認定、および公式のスタートアップ呼び出しは未実装のままです |
+| EOLM-STG-008 | 残りのステージング検査が失敗した場合、実行はアップロードをブロックし、安全に失敗します。検査が正常に完了した場合、警告だけでは実行ステータスは変わりません。 | `docs/design/staging-file-lifecycle.md` 残留成果物 セクション | 派生 | [残留エントリ保持観測](../design/reference/staging-residual-observation.md);公式 失敗/アップロード停止の強制 未確定 | [列挙/再解析/変更/失敗 およびカウント保存フィクスチャ](../../tests/test_staging_residual_observation.py) | P0-A | 部分的です。不確実性がある場合は 未完了/hold が返され、アップロード許可がありません。運用の実行 失敗、実際の起動の強制とプロバイダー/FS の受け入れは 未確定 のままです |
+| EOLM-STG-009 | ステージング容量は、開始時および各コピーの前にチェックされます。必要な予約は、ターゲット バイトに 10% と 100、000、000 バイト (10 進数 100 MB) を加えたものです。コピー中の容量変更を処理する必要があります。 | `docs/design/staging-file-lifecycle.md` 容量セクション | 派生 | [LogFunctions.ps1](../../Common/LogFunctions.ps1): 正確な予約と明示的なサイズ配列の集約。 [ManifestTransitionInspection.py](../../Common/ManifestTransitionInspection.py): 正確なマニフェスト/B2 からの明示的なサイズ投影。 [MachineConfigurationRootInspection.ps1](../../Common/MachineConfigurationRootInspection.ps1): 修飾されていない Windows 呼び出し元スペースのメタデータ。コピー ハンドラー/正式 PS トランスポート 未確定 (数値ブリッジはテストのみ) | [Test-StagingCapacity.ps1](../../tests/Test-StagingCapacity.ps1): 整数/配列/しきい値境界に [数値ブリッジ](../../tests/test_staging_capacity_bridge.py) を加えたもの。 [フリースペースメタデータフィクスチャ](../../tests/Test-StagingFreeSpace.ps1);運用ルート/容量の認定とディスクフル/コピー障害の受け入れ 未確定 | P1 | 部分的です。純粋な算術/集計のみ、すべての許可フラグ false が付いています。初期/ファイルごとの信頼できる領域の読み取り、選択、およびコピー中の 失敗 処理は実装されていません |
+| EOLM-STG-010 | コピーが失敗した場合、クリーンアップでは、そのコピー操作によって作成された不完全なステージング ファイルのみが削除される場合があります。クリーンアップが失敗すると、成果物が残り、警告が表示されます。 | `docs/design/staging-file-lifecycle.md` 容量/コピー 失敗 セクション | 派生 | ステージングコピー失敗ハンドラー | クリーンアップ失敗によるフォールト挿入 | P1 | not_started |
+| EOLM-STG-011 | ステージングは、アップロードの成功、クラウド コンテンツの検証、および必要なマニフェストの更新がすべて確認された後にのみ削除できます。不明な結果または検証/マニフェストの失敗では、ステージングとメタデータが保持されます。 | `docs/design/staging-file-lifecycle.md` クリーンアップ セクション | 派生した安全要件 | ステージングクリーンアップゲート | 成功/不明/ハッシュ不一致/マニフェスト失敗ケースのマトリックス | P0-A | not_started |
+| EOLM-STG-012 | 他のすべての成功条件の後でステージング削除自体が失敗した場合は、警告しますが、遡ってアップロードに失敗のマークを付けることはしません。 | `docs/design/staging-file-lifecycle.md` クリーンアップ セクション | 派生 | クリーンアップのステージング | 削除失敗注入テスト | P1 | not_started |
+
+### 5.8 ロック、再試行、および同時実行性
+
+| ID | 要件 | ソース/セクション | 上位要件 / 判断 | 実装対象 | 検証対象 | 優先度 | 状態 / 注記 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| EOLM-LCK-001 | 単一のグローバル ロックは、同じ PC 上でメンテナンス操作をシリアル化します。 PC-A ロックと PC-B ロックは独立しています。 | `docs/design/staging-file-lifecycle.md` §10 (PC ごとのグローバル ロック); `docs/validation/runtime-safety-test-scenarios.md` §1 (テスト実行ルール) | 派生 | ロックヘルパー | 同一 PC 競合およびクロス PC 独立性テスト | P0-A | not_started |
+| EOLM-LCK-002 | ロックの取得は最大 60 秒待機してから、別のプロセスが実行中であることをログに記録し、ロックを強制終了したり盗んだりせずに終了します。 | `docs/design/staging-file-lifecycle.md` §10 (60 秒のロック タイムアウトおよびロック盗用なし) | 派生 | ロックヘルパーと終了コードの処理 | 60 注入可能な待機によるタイムアウト テスト | P0-A | not_started |
+| EOLM-LCK-003 | ロック競合は、業務処理の失敗ではなく、操作のスキップです。クラッシュ後の放棄されたロック/ミューテックス状態はログに記録され、実際のデータ状態が検証されます。 | ロックのデザイン。マニフェストリカバリ設計 | 派生 | ロックヘルパーと回復 | 競合および放棄されたミューテックスのテスト | P0-A | not_started |
+| EOLM-LCK-004 | スケジュールでは、アーカイブ前に PC-B 期間を完了する必要はありません。現在対象となるクラウド ファイルは処理され、遅れた到着は後で処理されます。スケジュールは手動による移動の完了後に行われます。 | [2026-10-27 レビュー](log-move-requirements.md); [移動受け入れ計画](../development/implementation-workflow.md) | Q1-Q10 / 平坦化;以前の決定は改訂履歴に保持されます | 後のスケジューラとファイルごとのアーカイブ フロー | 手動アーカイブは PC-B がオフラインのときに機能します。遅延したファイルはその後のアーカイブ実行時に移動します | P2 | はブロックされました。スケジューラの実装は延期されました。早い時間ごと/24 時間の完了待機ポリシーはアーカイブの前提条件ではありません |
+
+### 5.9 アーカイブ ゲートおよびソースごとの移動ポリシー
+
+| ID | 要件 | ソース/セクション | 上位要件 / 判断 | 実装対象 | 検証対象 | 優先度 | 状態 / 注記 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| EOLM-ARC-001 | 明示的に有効な `allowArchive: true` を使用した場合のみ、PC-A のみをアーカイブできます。 | 決定 C-28; README の役割テーブル | C-28 | `scripts/ArchiveLogs.ps1`、PC-A 構成 | PC-B パッケージ/ランタイム ネガティブ テスト | P0-A | not_started;公式アーカイブ エントリ ポイントとランタイム ロール ゲートはありません。パッケージ ビルダーは、安全なサンプル テンプレートのデフォルトのみを適用します。アクティブな PC-A 構成を承認したり、アーカイブの適格性を評価したりすることはありません。 |
+| EOLM-ARC-002 | PC-A は、PC-A/PC-B 期間の完了を待たずに対象となる現在のクラウド ファイルを処理し、各ソース/宛先とそのファイルに必要な証拠を検証します。 | [2026-10-27 レビュー](log-move-requirements.md); [移動受け入れ計画](../development/implementation-workflow.md) | Q1-Q10 / 平坦化;以前の決定は改訂履歴に保持されます | PC-A ファイルごとのアーカイブ ゲート | B 欠落/失敗/古い期間レコードだけではアーカイブがブロックされません。現在のソース/宛先バインディングを検証し、曖昧な必要証拠を拒否します | P0-A | not_started。Q3/Q4 を改訂。 |
+| EOLM-ARC-003 | アーカイブは、検証されたコンテンツをコピーまたは再利用し、宛先の同等性と、そのソースのみを削除する直前にコピー以来変更されていない正確なクラウド ソースを検証し、それぞれの結果を記録します。 | [2026-10-27 レビュー](log-move-requirements.md); [移動受け入れ計画](../development/implementation-workflow.md) | Q1-Q10 / 平坦化;以前の決定は改訂履歴に保持されます | scripts/ArchiveLogs.ps1 およびアーカイブ結果の永続性 | アーカイブが成功すると、検証されたクラウド ソースのみが削除されます。失敗/変化/不確実性はソースを保持します。再利用と再実行が安全に完了する | P0-A | not_started。Q2/Q5/Q9 を改訂。クラウド削除の契約は未実装。 |
+| EOLM-ARC-004 | アーカイブ先は異なるコンテンツを上書きしてはなりません。不完全または不一致のアーカイブ検証では、ドライブとアーカイブ データが保存され、失敗が報告されます。 | docs/requirements/log-move-requirements.md §§2,6; docs/design/log-move-design.md §§5,11 | C-28 | Archive copy/verification | 宛先の衝突とハッシュの不一致のテスト | P0-A | not_started |
+| EOLM-ARC-005 | 検証できない現在の ID/コンテンツ、またはアーカイブ ファイルに必要な無効な証拠は、その依存操作をブロックします。他の PC の不在/失敗した 期間のマニフェストや無関係なファイルの障害だけでは、独立した有効なファイルの移動がブロックされません。 | [2026-10-27 レビュー](log-move-requirements.md); [移動受け入れ計画](../development/implementation-workflow.md) | Q1-Q10 / 平坦化;以前の決定は改訂履歴に保持されます | ファイルごとのアーカイブ ゲートと共通前提条件の処理 | フォールト挿入により、影響を受けるソースが保持されます。一般的な認証/同一性/ロックの失敗により、依存する作業が停止します。独立した有効なファイルが完成しました | P0-A | not_started。Q3/Q4/Q5 を改訂。 |
+| EOLM-ARC-006 | PC-B パッケージとランタイムには、アーカイブ機能が含まれたり、公開されたりしてはなりません。 | 決定 C-20/C-21/C-30; P0-006/P0-009 | C-20/C-21 | パッケージ許可リストをリリース | PC-B パッケージの内容とコマンド画面を検査します | P0-B | 部分的です。パッケージ ビルダー フィクスチャは、`ArchiveLogs.ps1` が PC-B パッケージから除外されていることを確認しますが、公式のランタイム エントリ ポイントが存在しません。これはパッケージ内容の証拠のみです。ランタイム コマンド サーフェスの欠如と最終的な許可リスト/展開ポリシーは未検証のままであり、OSD-09 によってブロックされています。 |
+
+### 5.10 安全性、Dry Run、および削除の除外
+
+| ID | 要件 | ソース/セクション | 上位要件 / 判断 | 実装対象 | 検証対象 | 優先度 | 状態 / 注記 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| EOLM-SAF-001 | ソースの削除は、各 PC のローカルからクラウド、および PC-A のクラウドからアーカイブに限定されます。宛先の同等性とソースは、正確なソースごとにコピーが検証されてから変更されません。不明な/不一致/変更されたソースはそのまま残ります。 | [2026-10-27 レビュー](log-move-requirements.md); [移動受け入れ計画](../development/implementation-workflow.md) | Q1-Q10 / 平坦化;以前の決定は改訂履歴に保持されます | Runtime/config/contracts/package の内容とソースごとの状態 | 肯定的な分離移動テストに加えて、間違った役割、期間、ソース、あいまいな ID および失敗した Q5 検証の拒否 | P0-A | 部分的です。過去の非削除スキーマ/パッケージの証拠はインターフェイス固有のままです。新しい条件付き削除ランタイム証明がありません |
+| EOLM-SAF-002 | Dry Run は、アップロード、最終ダウンロードの配置、アーカイブの配置、ローカル ソースの削除、またはドライブの削除を実行しません。 | docs/requirements/log-move-requirements.md §§6,9,10; docs/design/log-move-design.md §16 | C-30 | Dry Run モード | ファイルシステムとモック化された API の状態は Dry Run 以降も変化しません | P0-A | not_started |
+| EOLM-SAF-003 | 不確実な現在のクラウド状態、無効な必要なファイル証拠、コンテンツ 不一致、曖昧 ID、または 未完了 アーカイブ検証は、依存ファイル/操作に対してフェールクローズされます。独立したファイルは移動を完了できる場合があります。 | [2026-10-27 レビュー](log-move-requirements.md); [移動受け入れ計画](../development/implementation-workflow.md) | Q1-Q10 / 平坦化;以前の決定は改訂履歴に保持されます | 共有/ファイルごとのセーフティ ゲート | ファイルごとの障害挿入と共通の前提条件の停止テスト。両方の PC で成功するための前提条件はありません | P0-A | not_started。Q3/Q4/Q5 を改訂。 |
+| EOLM-SAF-004 | 初期完了には、検証済みの移動元削除ルート 2 つだけが含まれます。詳細な検証/削除/永続契約と実装再開指示がコーディングに先立って行われます。実データの削除/展開には、別の具体的な指示が必要です。 | [2026-10-27 レビュー](log-move-requirements.md); [移動受け入れ計画](../development/implementation-workflow.md) | Q1-Q10 / 平坦化;以前の決定は改訂履歴に保持されます | 設計と実装/生産の境界 | Q5/ロール/ターゲット テストへの各削除パスをトレースします。実装と実際のデータ操作の承認を区別する | P0-A | not_started。初回範囲の Q2/Q5 を改訂し、AGENTSの改訂を承認済み。初回受け入れの対象外とはしない。 |
+| EOLM-SAF-005 | 影響を受けるソースと宛先は、そのファイルの同期/コンテンツ検証が失敗した場合に保存されます。独立した 確認済み ファイルは、完了 移動する可能性があります。 | README の安全規則。実装ワークフローのフェーズ 2-3 | C-28/C-30 | 同期/アーカイブ失敗の処理 | ファイルごとの障害をそれぞれ挿入し、独立した検証済みファイルが完了するまでの間、影響を受けるソース/クラウド コピーが残っていることをアサートします。 | P0-A | not_started |
+
+### 5.11 テスト、CI、およびリリース パッケージ
+
+| ID | 要件 | ソース/セクション | 上位要件 / 判断 | 実装対象 | 検証対象 | 優先度 | 状態 / 注記 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| EOLM-TST-001 | CI は、ランナーのデフォルトの `pwsh` に依存するのではなく、PowerShell ランタイム バージョンを検証します。 | `docs/requirements/p0-gap-register.md` P0-002 | P0-002 | `.github/workflows/validate.yml`, `package-validation.yml` | CI は 7.6.7 以外のランタイムで失敗し、実際のバージョンをログに記録します | P0-A | 部分的です。どちらのワークフローも正確な 7.6.7 をインストールして検証します (検証 #80 とパッケージ検証 #72 は成功しました)。ランタイムエントリポイントの適用は未検証のままです |
+| EOLM-TST-002 | CI は `tests/Test-LogFunctions.ps1` を実行し、失敗した場合は失敗します。 | `docs/requirements/p0-gap-register.md` P0-007 | P0-007 | `.github/workflows/validate.yml` | ワークフロー ログにテストの実行と 失敗 の伝播が表示される | P0-C | 部分的です。ワークフロー呼び出しが存在し、#80 の検証が成功しました。アサーションと要件の正確なマッピングと残りの境界ケースはまだ未解決です |
+| EOLM-TST-003 | ファイル名/期間のテストは、月/年の境界、閏日、無効な日付/名前、および除外されたファイルを対象とします。 | P0-008; `docs/validation/filename-period-test-plan.md` | P0-008 | `tests/Test-LogFunctions.ps1` と将来のランタイム選択テスト | `Test-LogFunctions.ps1` アサーションは `docs/archive/validation/requirements-source-audit.md` §3.11 にマップされます。ランタイム列挙/ステータススイートは今後の作業として残ります | P0-C | 部分的です。 Validate #80 は、無効な日付/名前、閏日、締め日、および 1 月のロールオーバーに対してヘルパー アサーションを実行します。大文字と小文字を区別する拡張子、文化の独立性、タイムスタンプの不一致、幅広い月末、混合ディレクトリの列挙と実行ステータスは開いたままになります |
+| EOLM-TST-004 | PowerShell/Python コントラクト テストは、スキーマ、操作/エラー コード、終了コード、タイムアウト、および要求/応答の相関をカバーするものとします。 | `docs/design/powershell-python-contract.md`; P0-005 | P0-005 | 契約テストとランタイム統合テスト | CI コントラクト テストと模擬アダプター統合テスト | P0-B | 部分的。スキーマテストが存在します、統合 未完了 |
+| EOLM-TST-005 | 実行時安全性テストは、同期、クラウド検証、マニフェスト、アーカイブ、IPC、構成、ロギング、ロック、および再試行動作を対象とします。 | 決定 C-19/C-22; `docs/validation/runtime-safety-test-scenarios.md`; `tests/README.md` | C-19/C-22 | `tests/` | カバレッジ マトリックスは、すべての関連要件を実行可能なテストにマッピングします | P0-B | 部分的です。ランタイムテスト 未完了 |
+| EOLM-TST-006 | テストでは、ソース、構成、コントラクト、およびパッケージにわたる 2 つのルート/Q5/ロールの外側の削除と拒否を通じて、ソースごとの移動が許可されていることを証明する必要があります。 Dry Run は非変異のままです。 | [2026-10-27 レビュー](log-move-requirements.md); [移動受け入れ計画](../development/implementation-workflow.md) | Q1-Q10 / 平坦化;以前の決定は改訂履歴に保持されます | 合成ランタイム/状態テストおよびロール固有のパッケージ テスト | 前後の正確な送信元/宛先を確認してください。 不明/不一致/変更された/間違った役割のターゲットを挿入します。インターフェイスがリビジョンされるまで、現在の v1 の操作拒否テストを保持します。 | P0-A | 部分的です。古いスキーマ/パッケージのネガティブ テストは現在のインターフェイスに対して引き続き有効ですが、新しいランタイムが受け入れられる証拠ではありません |
+| EOLM-TST-007 | 合格したスキーマ テストまたは GitHub Actions の実行は、ランタイムの安全性またはクラウド同期の完了の証拠として提示されないものとします。 | README 現在の制約。 `tests/README.md` | 派生証拠ルール | ドキュメント/リリースのステータス | 実際のテスト範囲に照らしてクレームを確認する | P0-B | 部分的 |
+| EOLM-TST-008 | 要件ステータスは、テスト コマンド/結果、CI の実行、変更されたファイル、PR などのリンクされた客観的な証拠によってのみ更新されます。 | `docs/requirements/p0-gap-register.md` §ステータス更新ルール | P0-010/P0-011 | このレジスタとギャップレジスタ | 証拠リンクについて `verified` とマークされたすべての行を確認します | P0-C | 部分的です。新しく導入されたものを登録する |
+
+### 5.12 配布と運用
+
+| ID | 要件 | ソース/セクション | 上位要件 / 判断 | 実装対象 | 検証対象 | 優先度 | 状態 / 注記 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| EOLM-REL-001 | リリース パッケージは明示的な許可リストを使用し、テスト、リポジトリの自動化、アクティブな PC 構成、シークレット、ランタイム ログ、および操作マニフェストを除外する必要があります。 | docs/development/implementation-workflow.md §3; docs/release/distribution-design.md; README §配布パッケージ | 派生 | `.github/scripts/Build-ReleasePackage.ps1` | パッケージの許可リスト/除外テスト | P0-B | 部分的です。レビュービルダー許可リストが存在します。最終的な PC/バージョンの正確な JSON マニフェストと展開可能なパッケージ 未確定 |
+| EOLM-REL-002 | レビュー専用パッケージには、ランタイム スクリプトが欠落している場合、展開不可能なマーカーが付けられます。 PC-A または PC-B には適用されません。 | README §配布パッケージ; P0-009 | P0-009 | パッケージビルダーとテスト | 不足しているランタイム パッケージはデプロイ可能なテストに失敗し、マーカーが含まれています | P0-B | 部分的 |
+| EOLM-REL-003 | パッケージの展開可能性は、廃止された `ArchiveAndUploadLogs.ps1` ファイル名ではなく、公式のエントリ ポイントと PC 固有の許可リストによって決定されます。 | P0-006/P0-009;決定 C-20/C-21 | C-20/C-21 | ビルダーおよびリリースのテスト | レガシー専用パッケージの回帰テスト | P0-B | 部分的 |
+| EOLM-REL-004 | 配布は一方向であり、ログ同期とは別のものとします。 `latest.json` を更新する前に、パッケージ SHA-256 とクラウド 成果物を検証する必要があります。 | docs/development/implementation-workflow.md §3; docs/release/distribution-design.md;決定 C-27 | C-27 | 配布の自動化 | アップロードに失敗すると、以前のリリース ポインタが変更されないままになります | P2 | ポリシーが選択されました。 E1/Actions のリリース方向は修正され、配布パイプラインと検証は未実装 |
+| EOLM-REL-005 | PC の導入は引き続き手動で行う必要があります。ダウンロード、検証、差分の検査、アクティブな構成の保存を行ってから、オペレーターの承認を得て適用します。 | README §配布パッケージ; implementation workflow Phase 6 | C-27/C-30 | 導入手順/ツール | 手順のレビュー。自動上書きなし | P2 | not_started |
+| EOLM-OPS-001 | スケジューラは毎月実行され、スケジュールされた実行が行われなかった場合は月の最初の起動時に実行されます。 | 決定 C-24 | C-24 | タスク スケジューラの命令 | ロジックのレビュー/テストをスケジュールする | P2 | ポリシーが選択されました。毎月の実行ミス補正ヘルパーが存在します。実際のタスク/トリガー テスト 未確定 |
+| EOLM-OPS-002 | PC-A および PC-B のスケジュール時間は、タスク スケジューラが構成される前に静的かつずらして実行する必要があります。 | 決定 C-24 | C-24 | 運用ドキュメント | 承認済みの定期実行方針を記録済み | P2 | ポリシーが選択されました: PC-B 20:00、PC-A 21:00 JST、ログオン/同じアカウント/AC のみ/ウェイクなし。タスクのロールアウト 未確定 |
+| EOLM-OPS-003 | 各実行では構造化された結果が記録され、失敗が明らかになります。エラーは黙ってスキップとして扱われません。 | docs/development/implementation-workflow.md §§2-5 | 派生 | 一般的なロギング/終了コード関数 | 障害パスのログ記録と終了コードのテスト | P1 | 部分的 |
+| EOLM-OPS-004 | 手動実行とスケジュールされた実行では、同じ処理と安全ロジックを使用する必要があります。 | docs/development/implementation-workflow.md §§2-5 | 派生 | 共通のエントリ ポイント/オーケストレーション | 手動呼び出しとスケジュールされた呼び出しの同じテスト スイート | P2 | not_started |
+
+### 5.13 ソース全体のレビュー中に追加の要件が特定されました
+
+| ID | 要件 | ソース/セクション | 上位要件 / 判断 | 実装対象 | 検証対象 | 優先度 | 状態 / 注記 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| EOLM-CFG-006 | 構成検証では、絶対 Windows パスではないパス、承認されたルートをエスケープするパス、または役割固有のソース/ステージング/アーカイブ/ドライブの分離に違反するパスを拒否する必要があります。 | `docs/design/powershell-python-contract.md` §2, §4; docs/requirements/log-move-requirements.md §§2,9; docs/design/runtime-entrypoint-validation-gate.md | C-20/C-21 | Config/path 検証 | トラバーサル、間違ったルート、役割の不一致などのポジティブおよびネガティブ パス テスト | P0-A | not_started |
+| EOLM-CFG-007 | 構成の検証では、ファイルを処理する前に、不明なフィールド、欠落しているフィールド、不正な形式のフィールド、または役割が不適切なフィールドを拒否する必要があります。 | `docs/decisions/decision-register-c18-c32.md` C-20/C-21; `docs/design/powershell-python-contract.md` §2 | C-20/C-21 | 構成スキーマ/ローダー | 欠落/不明/タイプ/役割の不一致テストにより、ファイル アクセスが開始されないことが証明されます | P0-A | 部分的です。ランタイムローダーが存在しない |
+| EOLM-DRV-009 | ドライブ アダプタはリスト操作を明示的にページ分割し、部分的なリストを暗黙的に 完了 インベントリとして処理しません。 | `docs/design/powershell-python-contract.md` §3 | 派生 | Python `list_files` アダプター | 複数ページのモック結果。中断/失敗したページにより完全性の主張が妨げられる | P0-B | not_started |
+| EOLM-DRV-010 | ドライブ候補は、安定したドライブ ID、対象の親/フォルダー、一致する名前、サイズ、および信頼できるソースに対する SHA-256 を使用して明確に識別されます。対象候補の列挙は完全である必要があり、候補が曖昧な場合は安全側で拒否します。 | `docs/design/powershell-python-contract.md` §3、§7;承認済み OSD-01 | C-18/C-29 / OSD-01 | ドライブのマッチング/調整 | ゼロ/1/複数の候補。 未完了 ページネーション/API 失敗;信頼できないソース。ハッシュ フォールバック/失敗;恣意的な対象候補の選択はありません | P0-A | 仕様が承認されました。実行可能なテスト not_started |
+| EOLM-DRV-011 | Python リクエストは、許可された操作、スキーマ バージョン、必須フィールド、絶対パス構文、呼び出し元が承認したパス ルートに対して検証されます。 path 引数は上書きまたは削除の許可を与えてはなりません。 | `docs/design/powershell-python-contract.md` §3–4;リクエストスキーマ | C-20/C-21 | リクエストバリデーターとアダプター | 不正な形式のテスト、相対テスト、トラバーサル テスト、許可されていないルート テスト、および未知のフィールドのテスト | P0-B | 部分的。スキーマは一部のみをカバーしています |
+| EOLM-DRV-012 | PowerShell/Python 境界は、標準出力で UTF-8 JSON 応答を 1 つだけ受け入れます。診断は標準エラー出力に送られ、不正な形式/複数の/空の出力は安全側で拒否します。 | `docs/design/powershell-python-contract.md` §5–6 | 派生 | IPC ラッパー | 空、無効な UTF-8、不正な形式の JSON、複数の JSON、およびバナー出力テスト | P0-B | not_started |
+| EOLM-DRV-013 | PowerShell は、アダプターの結果を使用する前に、応答スキーマ、request_id、操作、終了コードの一貫性、および操作固有の結果フィールドを検証する必要があります。 | `docs/design/powershell-python-contract.md` §5–6, §8 | 派生 | IPC 応答バリデーター | 終了 0 + 失敗 JSON およびゼロ以外 + 成功 JSON を含む不一致行列 | P0-B | not_started |
+| EOLM-DRV-014 | PowerShell は唯一のワークフロー オーケストレーターとなり、処理を続行できるかどうかを決定します。 Python は、明示的に要求された許可リストに登録されたアダプター操作のみを実行し、その結果を返します。 | `docs/design/powershell-python-contract.md` §1–2, §8 | C-18/C-29 | PowerShell オーケストレーターおよび Python アダプター | 統合テストにより、Python 応答はロール、マニフェスト、クラウド検証、アーカイブ、またはオペレーター承認ゲートをバイパスできないことが証明されています | P0-B | not_started;契約要件が明示的、実行時オーケストレーションが存在しない |
+| EOLM-DRV-015 | リクエスト/レスポンス IPC ファイルは、アクセスが制限された実行ごとの一時的な場所に作成され、認証情報は含まれず、クリーンアップでは現在の呼び出しによって作成されたファイルのみが削除されます。 | `docs/design/powershell-python-contract.md` §4, §8–9 | C-18/C-29 | IPC リクエスト ファイルのライターとクリーンアップ | 分離テストでは、アクセス許可、認証情報の除外、および無関係なファイルがクリーンアップされても存続するかどうかを検証します。 | P0-B | not_started;ライフサイクルは指定されていますが、ランタイム IPC がありません |
+| EOLM-DRV-016 | `dry_run: true` を使用すると、ドライブ アダプターはドライブを変更したり、ダウンロードされたファイルのコンテンツを ステージング パスに書き込んだりしません。 | `docs/design/powershell-python-contract.md` §3 | C-30 | Python アダプター Dry Run パス | モック化されたアダプター テストでは、すべての操作でドライブの変更やダウンロードされたコンテンツの書き込みがないことがアサートされます。 | P0-B | not_started;スキーマの例は存在しますが、動作が実装されていません |
+| EOLM-SEC-001 | 認証情報は、承認されたローカル認証情報ストアからのみロードされます。トークン、クライアント シークレット、認証ヘッダー、生の機密性の高い API ペイロード、および認証情報の内容は、stdout またはログに決して書き込まれません。 | `docs/design/powershell-python-contract.md` §1–2, §9 | C-19/C-22 | Python 認証アダプター、PowerShell/Python ロギング | 秘密を含むエラーを挿入し、stdout/stderr/log 全体でリダクションをアサートします。 | P0-A | not_started |
+| EOLM-OPS-005 | 構造化された操作ログには、UTC タイムスタンプ、実行 ID、該当する場合はリクエスト ID、操作、経過時間、終了コード、修正されたエラー コード、およびサニタイズされた結果の概要が含まれます。 | `docs/design/powershell-python-contract.md` §9 | 派生 | 共通ログ | 成功、失敗、タイムアウト、および再試行パスのスキーマ/フィールド アサーション | P1 | not_started |
+| EOLM-REQ-001 | 各ステージング ファイルは、明示的に許可された状態遷移のみに従います。ステージングが `ready` として検証されるまでアップロードを開始することはできず、矛盾した状態/メタデータはレビューのために保留されます。 | `docs/design/staging-file-lifecycle.md` §6, §9 | 派生 | 純粋なスナップショット/ペアおよび初期履歴の検査。登録/アップロード保留を区別し、スキップされた準備完了履歴を拒否します | `tests/test_manifest_history_inspection.py` / ペアテスト;メタデータ/ファイルの不一致と運用の強制 未確定 | P0-A | 部分的 (提供された履歴のみ。実際のイベント/メタデータ/ライター/ランタイム ゲートは含まれていません) |
+| EOLM-MAN-011 | マニフェストのタイムスタンプ、タイム ゾーン、鮮度のしきい値、およびクロック スキューの処理は、鮮度に依存したアーカイブ ゲーティングを実装する前に指定する必要があります。 | `docs/design/powershell-python-contract.md` §2, §9; `docs/validation/runtime-safety-test-scenarios.md` §4 MAN-04 | C-26/C-28 | マニフェスト スキーマとアーカイブ ゲート | 承認済みのしきい値および決定論的な古い/将来/クロック スキュー テスト | P0-B | ポリシーが承認されました: UTC ISO 8601 Z、構成可能な 5 分の将来と 24 時間の鮮度のデフォルト、現在の実行の適用性、および信頼性の低いクロックの拒否。固定クロックのテストとランタイムの強制 未確定 |
+| EOLM-MAN-012 | マニフェストおよびメタデータのリーダーは、欠落/不正な形式/サポートされていないスキーマ バージョン、不正な形式のデータ、一貫性のない ID、無効な遷移、および必須フィールドの欠落を成功として処理せずに拒否するものとします。既存のマニフェストは暗黙的に移行されません。 | `docs/design/staging-file-lifecycle.md` §3、§8.1–9; `docs/design/powershell-python-contract.md` §9;承認されたOSD-02バージョンとフィールド仕様。 `docs/design/manifest-state-transition-v1-proposal.md` | C-26 / OSD-02 | スキーマおよび遷移バリデーター | 欠落/不正なバージョン/サポートされていないバージョン、不正な形式の JSON、ID/状態の不一致、欠落/無効なフィールド、および禁止された遷移に対するネガティブ テスト | P0-B | 部分的です。承認されたテーブル、スキーマ、読み取り専用選択、およびスナップショット/ペア インスペクターには合成テストがあります。イベント証拠、移行ライター/強制/実行時テスト 未確定 |
+| EOLM-SAF-006 | Dry Run は、ドライブのコンテンツ、ソース ログ、ステージング アップロード状態、またはアーカイブ先を変更してはなりません。許可されているレポート/マニフェストの副作用は明示的に指定する必要があります。 | `docs/design/powershell-python-contract.md` §3; `docs/validation/runtime-safety-test-scenarios.md` ARC-01; docs/requirements/log-move-requirements.md §§6,9,10; docs/design/log-move-design.md §16 | C-30 | Dry Run オーケストレーション | Dry Run の前後のローカル/クラウド/モック状態のスナップショット。許可された監査出力を文書化する | P0-A | 部分的です。正確な報告/明らかな副作用には決定が必要 |
+| EOLM-REL-006 | `latest.json` などのリリース ポインタは、アップロードされたパッケージとその ID/チェックサムが検証された後にのみ更新されます。失敗した場合、以前のポインタは変更されないままになります。 | `docs/release/distribution-design.md` §7–8 | C-27 | 配布リリース発行元 | アップロード/検証/ポインター書き込み失敗を挿入し、以前のポインターが残っていることをアサートします | P2 | ポリシーが選択されました。ポインター最後の検証ルールが修正され、パブリッシャーおよびフォールト挿入テストが未実装 |
+| EOLM-REL-007 | デプロイメントでは、アクティブな構成と以前の作業パッケージを保存し、ダウンロードされた成果物の ID/チェックサムを検証し、適用またはロールバックする前に手動による承認を必要とする必要があります。 | `docs/release/distribution-design.md` §9; docs/development/implementation-workflow.md §3; docs/release/distribution-design.md | C-27/C-30 | デプロイ/ロールバック手順 | 手順のレビューとフォールト挿入テスト。自動上書きなし | P2 | not_started |
+| EOLM-TST-009 | 実行時安全性テストでは、別途承認された統合テストで明示的に要求されない限り、運用ログ パスや実際のユーザー データではなく、分離された一時的なフィクスチャと模擬ドライブ操作を使用する必要があります。 | `docs/validation/runtime-safety-test-scenarios.md` §1–2; `tests/README.md` | 派生 | テスト ハーネス | テスト構成は一時ルート/モック アダプターをアサートします。本番パスが触れられていないことを確認する | P0-B | 部分的です。テスト計画には意図、ハーネス 未完了 が記載されています |
+| EOLM-TST-010 | すべての SYNC、MAN、ARC、および IPC シナリオは、要件 ID と、実行可能なテストまたは明示的な未実装の処理にマップされます。 | `docs/validation/runtime-safety-test-scenarios.md` §3–8; `docs/requirements/p0-gap-register.md` P0-010 | P0-010 | シナリオの対応表と実行時テスト | `docs/archive/validation/requirements-source-audit.md` §3.1 および §3.10 の監査クロスウォークは、機能要件 ID とシナリオのステータスに同意する必要があります。すべてのシナリオは、実行可能なテストまたは明示的な未実装/ブロックされた処理にリンクする必要があります | P0-C | 部分的。 PR #20 は、2 つの監査マトリックス間の要件マッピングを調整します。すべての 37 ランタイム シナリオには 完了 実行可能ランタイム テストがまだなく、MAN-04 は EOLM-MAN-011 によってブロックされたままです。
+| EOLM-TST-011 | PowerShell/Python 境界の運用上の承認前に、契約はオペレーターのレビュー/承認を受け、実行可能な契約統合テストに合格するものとします。スキーマ検証だけでは不十分です。 | `docs/design/powershell-python-contract.md` §10; `docs/requirements/p0-gap-register.md` P0-005 | P0-005 | 契約レビュー記録と PowerShell/Python 統合テスト スイート | 承認されたレビュー記録と、IPC セマンティクス、終了コード、タイムアウト、再試行分類、および要求/応答相関に関する CI にリンクされたテスト | P0-B | はブロックされました。オペレーターレビューとランタイム統合テストはチェックされていません |
+| EOLM-OPS-006 | 手動実行とスケジュールされた実行では、同じセーフティ ゲート、ステータス モデル、ログ記録、および終了コード セマンティクスを使用する必要があります。 | docs/development/implementation-workflow.md §§2-5 | C-24/C-30 | 共有オーケストレーター/エントリ ポイント | 手動呼び出しとスケジュールされた呼び出しの同じ受け入れスイート | P2 | not_started |
+| EOLM-REL-008 | 配布は一方向のままであり、ログの同期とは別に行われます。配布の失敗によってソース ログや運用マニフェストが変更されてはなりません。 | `docs/release/distribution-design.md` §1–2, §8 | C-27 | 配布パイプライン | 模擬配布障害テストでメンテナンス状態が変化していないことを確認する | P2 | ポリシーが選択されました。配布の分離は修正され、パブリッシャーおよび運用上の非突然変異テストは未実装 |
+| EOLM-REL-009 | リリースごとに、`VERSION` と `CHANGELOG.md` の両方を更新します。 | `README.md` §開発・変更手順 / §バージョンと変更履歴 | リポジトリのリリース手順から派生 | リリースチェックリスト | リリース チェックリストは、`VERSION` と `CHANGELOG.md` の両方がリリースごとに更新されていることを確認します | P0-C | not_started;マッピングされたソース ルール。リリースチェックリスト/テスト不在 |
+| EOLM-REL-010 | Google Drive リリースのアップロードは、保護されたリリース イベントまたは同等の明示的な承認からのみ実行されます。通常のプッシュ/PR 検証では、配布認証情報のアップロードまたは受信は行われません。 | `docs/release/distribution-design.md` §2, §8 | C-27 | GitHub Actions ワークフローと権限のリリース | PR/プッシュ ワークフロー テストでは、ドライブの認証情報やアップロード機能がないことが証明されます。保護されたリリースジョブには承認が必要です | P0-B | ポリシーが選択されました: E1 リリース イベント、メンテナによる手動承認、アクション発行者。 CI ID/ワークフローが実装されていません |
+| EOLM-REL-011 | 公開されたリリース バージョンとそのリリース ディレクトリは不変でなければなりません。公開する場合、既存のバージョンを上書きしてはなりません。 | `docs/release/distribution-design.md` §3 | C-27 | 配布パブリッシャー | 既存のバージョンの衝突テストにより、フェール クローズが証明され、公開された ZIP/チェックサムが保持されることが証明されました | P0-B | はブロックされました。配布パブリッシャーは実装されていません |
+| EOLM-REL-012 | リリース タグ/バージョンは有効であり、リポジトリ `VERSION` およびリリース メタデータと一致する必要があります。 | `docs/release/distribution-design.md` §7; `docs/requirements/requirements-traceability.md` EOLM-REL-009 | C-27 | リリースの検証 | CI は、不正なバージョン、タグ、VERSION、およびパッケージのメタデータの不一致を拒否します | P0-B | タグ/バージョン/コミット/パッケージの一致が選択されました。ワークフローと実行可能ファイル 不一致 テスト 未確定 |
+| EOLM-REL-013 | 必要な許可リストのパスが欠落している場合、リリースのパッケージ化は失敗し、明示的にオプションである場合にのみパスを省略し、リポジトリ相対パスを保持します。 | `docs/release/distribution-design.md` §3–4 | C-27 | ホワイトリストパッケージビルダー | 欠落している必須ファイル、オプション ファイル、および相対パスの保存テスト | P0-B | 部分的です。ホワイトリスト ビルダーは存在しますが、最終的なランタイム ホワイトリストが承認されていません |
+| EOLM-REL-014 | リリースの信頼は、レビューされたリポジトリのコンテンツと承認されたリリースの出所から得られるものとします。一致する SHA-256 だけが完全性を証明するものであり、ソースの信頼性を証明するものではありません。 | `docs/release/distribution-design.md` §3, §7 | C-27 | リリースのレビューと来歴の管理 | チェックサムの検証とは別に、来歴のレビュー/タグ付けが必要です | P0-B | ソース/出所を確認する必要があります。具体的な CI 同一性と出所の管理 未確定 |
+| EOLM-REL-015 | 以前に公開されたリリースはロールバックのために保持されます。別のリリース保持ポリシーが承認されるまで、自動クリーンアップを実行しないでください。 | `docs/release/distribution-design.md` §3, §11 | C-27 | リリース保持/クリーンアップ ポリシー | テストのクリーンアップは承認されたポリシーなしでは無効になり、以前のリリースは引き続き回復可能です | P0-B | ポリシーが選択されました: すべてのバージョンを保持し、自動クリーンアップは行いません。パブリッシャー/ロールバック テスト 未確定 |
+
+## 6.  P0ギャップレジスター対応表
+
+| ギャップID | 関連する要件 ID | 予想される閉鎖の証拠 |
+| --- | --- | --- |
+| P0-001 | EOLM-ENV-001, EOLM-ENV-003 | サポートされているエントリ ポイントのバージョン ガードとポジティブ/ネガティブ テスト |
+| P0-002 | EOLM-TST-001 | CI ランタイム バージョン アサーションとログ |
+| P0-003 | EOLM-ENV-002, EOLM-CFG-002, EOLM-CFG-003 | 完全なエントリポイント インベントリと静的検証 |
+| P0-004 | EOLM-CFG-002, EOLM-CFG-003, EOLM-DRV-005, EOLM-MAN-001, EOLM-ARC-001 | docs/package 全体に正確に反映されたランタイム実装ステータス |
+| P0-005 | EOLM-CFG-001, EOLM-DRV-001, EOLM-DRV-002, EOLM-TST-004 | 契約書と CI 統合テストを確認しました |
+| P0-006 | EOLM-CFG-003, EOLM-CFG-004, EOLM-ARC-006, EOLM-REL-003 | 公式エントリ ポイントと PC 固有の許可リスト テスト |
+| P0-007 | EOLM-TST-002 | PowerShell CI によって実行された単体テスト |
+| P0-008 | EOLM-FIL-001–EOLM-FIL-009, EOLM-TST-003 | CI の境界/ネガティブ テスト スイート |
+| P0-009 | EOLM-REL-001–EOLM-REL-003, EOLM-ENV-001 | パッケージの内容と実行時ポリシーのテスト |
+| P0-010 | このレジスタ内のすべての ID | 完全なソース監査、すべての規範的な条項がマッピングされ、未解決の条項が明示的にリストされています |
+| P0-011 | EOLM-TST-008 プラスフェーズ受け入れ要件 | `docs/development/implementation-workflow.md` §§2-5 および P0 レジスタは、現在の準備/受け入れ基準と、それへの README リンクを提供します。ドキュメント間のステータス調整は部分的です。すべての P0-001 ～ 012 項目の最終的なメンテナー レビューと証拠に裏付けられた分類は未処理のままです。 |
+| P0-012 | EOLM-CFG-005, EOLM-SAF-001–EOLM-SAF-005, EOLM-TST-006 | source/config/contracts/package/runtime にわたる 2 つのルート/Q5/ロール限定の削除と拒否チェック |
+
+## 7. 検証証拠の取り決め
+
+要件が 確認済み の場合、特定の証拠のパスまたは URL、テスト コマンドまたは CI の実行、および関連する PR/コミットを使用して行を更新します。証拠はその要件の受け入れ基準を証明する必要があります。近くのテストや成功した文書チェックは代わりにはなりません。
+
+推奨される証拠フォーム:
+- `Test:` 正確なコマンドまたはテスト名。
+- `Result:` 合格/不合格と日付。
+- `CI:` ワークフロー実行 URL (該当する場合)。
+- `Change:` PR およびコミット URL。
+- `Notes:` 既知の制限または環境の仮定。
+
+テストが実行されなかった場合、要件が実行時の動作に関するものでスキーマのみをテストする場合、またはクラウド側の状態が実際にチェックされなかった場合は、要件を `verified` に設定しないでください。
+
+## 8. 監査結果と未解決のトレーサビリティ作業
+
+1. 追跡されるリポジトリにはヘルパー関数とスキーマ/パッケージ テストが含まれていますが、公式の同期/アーカイブ エントリ ポイントとランタイム オーケストレーションは存在しません。依存要件は、個別に記録されたように `not_started`、`partial`、または `blocked` のままです。スキーマ/パッケージ CI は実行時の動作を証明しません。
+2. `docs/archive/validation/requirements-source-audit.md` はソース カバレッジ マトリックス、`docs/requirements/p0-gap-register.md` は P0 アクション レジスタです。ベースライン `2b5d4266df9130ad532707dec8727a7623b3c9e2` では、監査 §2.1 のソース セクション行に要件 ID マッピングがありますが、部分的な証拠のギャップが残ります。これは、すべての実装、テスト、または証拠が 完了 であることを証明するものではありません。
+3. 確認が必要としてマークされたソース ロケーターは、P0-010 が閉じる前に、完了 ソース テキストに対して解決する必要があります。ソースから ID へのマッピングは、最初のトレーサビリティ リンクにすぎません。
+4. 残りの証拠のギャップには、ファイル名と日付/メタデータの不一致と、混合ディレクトリの実行ステータスの動作が含まれます。プロセス境界 IPC 検証。セマンティック構成の役割/パスの検証。公式エントリ ポイントと PC 固有のパッケージ コマンド サーフェス。マニフェストの状態/スキーマ/鮮度。実行時の条件付き移動/ソース保存の証拠。正確な処理を行うには、ソース監査およびオープン仕様決定レジスタを使用します。未解決のポリシー値を推測しないでください。
+5. Q1/Q2/Q5 には 2 つの条件付き移動元削除ルートが必要です。 P0-012 は、Q5/ロール/ターゲット外での削除の許可と拒否がsource/config/contracts/package/runtime. 全体で証明されるまで開いたままになります。この文書レビューでは、削除コード/スキーマは追加されません。実装の再開と実際のデータの操作は、引き続き個別に指示されます。以下の日付ベースライン監査では、元の非削除証拠の範囲が維持されます。
+
+## 9. 変更管理
+
+要件を変更すると、実際にはこのレジスタと同じ変更セット内のソースドキュメントが更新されます。 PR の説明では、影響を受ける要件 ID、根拠、実装/テストの証拠、およびセーフティ ゲートが変更されるかどうかを特定する必要があります。 P0 完了 をマークする前に、各フェーズ ゲートでレジスタを確認してください。
+
+## 10. トレーサビリティ方法のリファレンス
+
+この構造は、一意の識別子、明示的なソース参照、親/ソース リンク、検証証拠などの一般的な要件管理慣行に従っています。 NASA のガイダンスでは、検証マトリックスにおける一意の識別子と最終的なソース参照、および上位レベルの要件、実装成果物、検証の間の双方向のトレーサビリティを推奨しています。これは方法論上の参照のみです。 NASA のガイダンスがプロジェクトの要件になるわけではありません。
+
+- NASA、[付録 D: 要件検証マトリックス](https://www.nasa.gov/reference/appendix-d-requirements-verification-matrix/)
+- NASA、[6.2 要件管理](https://www.nasa.gov/reference/6-2-requirements-management/)
+- NASA ソフトウェア エンジニアリング ハンドブック、[SWE-052 双方向トレーサビリティ](https://swehb.nasa.gov/spaces/7150/pages/16450285/SWE-052%2B-%2BBidirectional%2BTraceability%2BBetween%2BHigher%2BLevel%2BRequirements%2Band%2BSoftware%2BRequirements)
+
+## 8. 高リスク証拠の調整 - PR #71 ベースライン
+
+ベースライン: PR #71 マージ後のメイン、`951601f20a45f653723cf134f955ce25c35e3e68` のコミット。このセクションでは、高リスク要件グループの閉鎖証拠を要約します。個々の行のステータスをオーバーライドしたり、ブロックされた決定の実装を許可したりすることはありません。
+
+| 要件グループ | 現在の証拠の処分 | 閉鎖の証拠/依存関係が欠落しています |
+| --- | --- | --- |
+| EOLM-CFG-001, CFG-004, CFG-006, CFG-007 | 部分的または未開始。例 JSON 構文検証は、セマンティックな役割/パス検証ではありません。 PC-A の例では `allowArchive: false` が保持され、PC-B では `allowArchive` が省略されます。 | 公式ランタイム設定ローダー。役割固有の陽性および陰性テスト。絶対パス/ルート/分離テスト。ファイルアクセス前の失敗の証拠。サンプル構成は動作しないようにしてください。 |
+| EOLM-CFG-005; EOLM-ARC-001–006; EOLM-TST-006 | 削除なし/アーカイブの安全性は実行時に検証されていません。静的/パッケージ チェックは部分的な証拠にすぎません。公式アーカイブ エントリ ポイントとランタイム ロール ゲートは存在しません。 | 完全なソース/構成/契約/パッケージ機能スキャンに加えて、実行可能なネガティブ テストとソース/ドライブ状態の証拠の前後のテスト。例では、削除動作を追加したり、アーカイブを有効にしたりしないでください。 |
+| EOLM-DRV-011–016; IPC-01–06 | 契約/スキーマ チェックは境界の一部のみをカバーします。公式の PowerShell オーケストレーター、Python アダプター、またはプロセス境界ハーネスは存在しません。 | リクエスト/レスポンスの相関関係、stdout/stderr ルール、終了コードの一貫性、タイムアウト、シークレットの編集、所有権の再試行、パスとルートの検証、および Dry Run の非突然変異に関するランタイム統合テスト。スキーマ テストは、実行時の証明として記述されてはなりません。 |
+| EOLM-MAN-004–010, MAN-012 | マニフェスト フィールドと条件付き移行ポリシーが選択されていますが、運用マニフェストの実装は不完全なままです。追跡された `contracts/manifest.schema.json` は確立されていません。 | 標準スキーマと採用された遷移テーブルを調整し、不正なデータ、ID、ステータス遷移、最新マニフェスト選択、アトミック書き込み、クラウド再検証を実装してテストします。スキーマ フィールドや遷移を発明しないでください。 |
+| EOLM-MAN-011; EOLM-FIL-005/010; OSD-03 | 数値の鮮度/将来のデフォルトと適用性が承認されています。 OSD-03 集計および G1 レポート時ポリシーが選択され、プロデューサー/ビルダー/参照バリデーターの調整が実装されます。実行可能ファイルの実行時の証拠はオープンなままです。ヘルパー レベルのファイル名/カットオフ テストは、列挙または最終的な実行ステータスを証明しません。 | 固定クロックの古い/将来の境界テストとランタイム強制、ランタイム B2 V1/G1 統合、ファイル名と日付と`LastWriteTime` の不一致フィクスチャ、有効/無効の混合ディレクトリ テスト、ゼロターゲット vs 決して実行されないテスト、客観的な実行/マニフェストの証拠を追加します。 |
+| EOLM-SAF-006; EOLM-REL-010–015; EOLM-OPS-001–002 | Dry Run A、E1/アクションのリリース方向、全バージョンの保持、および月次アカウント/AC/ノーウェイク ポリシーが選択されています。実装と認定は 未完了 のままです。 | CI の同一性/来歴、正確なランタイム パッケージ リスト、タスクの永続性/AC ロス ルール、および実行可能証拠を受領請求の前に完成させます。 |
+
+### 証拠の解釈
+
+- `SEL-RT-01–10` は設計されたシナリオであり、実行時テストではありません。
+- `IPC-01–06` は、プロセス境界ハーネスが存在するまで実装されず、実行されません。
+- `Validate` または `Package Validation` を渡すと、それらのワークフローが実際に実行するチェックのみが証明されます。 P0-010 または P0-012 は閉じません。
+- P0-010 は、すべての規範的なソース条項が実装、実行可能なテスト、および客観的な証拠と照合されるまで、開いたままになります。 P0-012 は、ソース、構成、コントラクト、パッケージ、およびランタイムの境界を越えて削除機能の欠如が実証されるまで、開いたままになります。
+
+
+
+## 9. 高リスク証拠の調整 - PR #91 ベースライン
+
+ベースライン: PR #91 マージ後のメイン、`0fe7ac0428e4596afc77464f8caa4461dd19c5b5` のコミット。このセクションでは証拠の解釈のみを更新します。個々の要件ステータスと未解決の意思決定ゲートは依然として権威を持っています。
+
+| 要件グループ | 現在の証拠の処分 | 閉鎖の証拠/依存関係が欠落しています |
+| --- | --- | --- |
+| EOLM-CFG-004/007; EOLM-ARC-001–006 | Example-config/package-builder チェックでは、ロール セマンティクスと PC-B アーカイブ エントリの除外が検証されますが、ランタイム設定の読み込み、アーカイブの承認、2 台の PC マニフェスト/鮮度ゲート、クラウド検証、およびコピー/検証/記録動作は含まれていません。 | ファイルにアクセスする前に失敗するアクティブ構成テスト。 OSD-02/03 および MAN-011 鮮度ルールを承認しました。ランタイムアーカイブのネガティブ/フォールトインジェクションテスト。 |
+| EOLM-CFG-005; EOLM-SAF-001–005; EOLM-TST-006; P0-012 | 部分的な証拠のみ: 4 つの操作のドライブ スキーマとスキーマ テストは削除操作を拒否します。パッケージ ビルダーはサンプル構成の `allowDelete` を拒否します。制限された静的監査は、名前付き追跡パスを対象とします。 PR #91 は、これを完全な否定的能力の証明に拡張するものではありません。 | 専用のソース/構成/コントラクト/パッケージのネガティブ テスト、意図的な禁止操作フィクスチャ、生成されたパッケージの検査、ローカル ソース/ドライブの変異証拠の前後のランタイム。 |
+| EOLM-MAN-011; OSD-02/03; OSD-04 | アーカイブの鮮度、条件付きマニフェストの遷移、集約、および Dry Run A ポリシーが選択されています。実行時の強制と客観的な証拠は不完全なままです。 | 契約と実装を選択したポリシーに合わせて調整し、依存するゲートごとに決定論的なテストと客観的な実行時の証拠を追加します。 |
+
+### 証拠の解釈
+
+- PR #91 は文書のみの調整です。ランタイムの実装ステータスが変更されたり、アーカイブが有効になったりすることはありません。
+- パッケージ ビルダーのセマンティック チェックは、アクティブな構成の承認ではありません。スキーマ検証は、プロセス境界またはクラウド操作のテストではありません。
+- P0-010 と P0-012 は開いたままです。この更新により、要件は 確認済み に昇格されません。
+
+
+## 10. 高リスク証拠の調整 — C-29 再試行と 不明 結果のアップロード (PR #95)
+
+| 要件 | 現在追跡されている証拠 | 必要な実行証拠 | 現在の配置 |
+| --- | --- | --- | --- |
+| EOLM-DRV-001 — Python 呼び出しごとに API 回の試行 | 契約/決定の散文のみ。 Python ドライブ アダプターまたは API 呼び出しの模擬テストはありません。 | 成功および失敗した API 操作を模擬し、呼び出しごとに 1 つの呼び出しを正確にアサートします。 HTTP クライアント/ライブラリの再試行を無効にし、存在しないことをテストします。 | 未実装 / 未実行 |
+| EOLM-DRV-002 — PowerShell が所有する制限付き再試行回数 | 契約では最大 4 回の試行と 1、5、15 分の待ち時間が指定されています。公式のオーケストレーターや注入可能な待機シームはありません。 | 決定的な再試行分類、試行バジェット、正確な待機、永続的エラー再試行なしのテスト。 | 未実装 / 未実行 |
+| EOLM-DRV-003 — 再試行する前に 不明 アップロード結果を調整します | 契約では、結果が不明なアップロードを繰り返す前にDriveを照会すると定める。アダプター・照合コードは存在しない。 | アップロードの成功とその後のタイムアウト/応答喪失をシミュレートし、次のアップロードの前に完全な状態調整が行われていることを証明します。 | 未実装 / 未実行 |
+| EOLM-DRV-006/008 — 不明 または未検証の状態がフェールクローズされました | 要件およびステージング/契約の散文のみ。ランタイム ゲートや突然変異スナップショット テストはありません。 | 不明、不一致、アクセス不能、および 未完了 リストのケースは停止し、source/ステージング を保存する必要があります。 成功/archive/cleanup は許可されていません。 | 未実装 / 未実行 |
+| EOLM-DRV-009/010 — 完了 リストと明確な ID | リクエストスキーマは形状のみを検証します。ページネーションや候補調整の実装はありません。 | 完全なページネーションとゼロ/1/複数の候補フィクスチャ。失敗したページを、不在が確認されたものとして解釈してはなりません。 | 実装されていない/実行されていません。 OSD-01 はマークされていないオブジェクトの信頼をブロックします |
+
+- シナリオ ID: RETRY-01–06 (`docs/validation/runtime-safety-test-scenarios.md`)。ソース監査には条項レベルの対応表があります。
+- スキーマまたはドキュメント CI の実行が成功すると、実際に実行されたチェックのみが証明されます。上記のシナリオは実行されず、これらの要件ステータスは変更されません。
+- P0-010 は開いたままです。この文書のみの調整では、要件は 確認済み に昇格されません。
+
+## C-26 マニフェスト証拠スライス — PR #100
+
+| 条項/要件グループ | 現在追跡されている証拠 | 処分 | 必要な実行可能証拠/ブロッカー |
+| --- | --- | --- | --- |
+| C-26; EOLM-MAN-001–003、MAN-007–009 — スキーマ、ID、バージョン、ステータス | staging-file-lifecycle.md は、選択されたフィールドと実行ステータス名を説明します。操作可能なマニフェスト スキーマまたはリーダー/ライターは存在しません。 contracts/drive-response.schema.json はアダプター応答エンベロープのみです。 | 散文のみ。実装されていない/実行されていない | バージョン管理されたメンテナンス マニフェスト スキーマと、OSD-02 に基づく完全な ID/型/列挙型制約を承認します。不正な形式、欠落フィールド、不明なバージョン、およびファイル名/ペイロードの不一致テストを追加します。 |
+| EOLM-MAN-003–006; OSD-03 — 移行とさまざまな結果 | ライフサイクル テキストは個々の状態と選択された遷移を説明しますが、承認された完全な状態遷移テーブルと実行/期間集計テーブルを置き換えるものではありません。 | 部分的な仕様。ブロックされました | OSD-02 の下の遷移テーブルと OSD-03 の下の集計/スコープを承認します。テーブル駆動の許可/禁止遷移テストと混合結果テストを実装します。 |
+| EOLM-MAN-004/007/010/012; ARC-002/005 — 最新のマニフェストとアーカイブ ゲート | ライフサイクルの処理には、最新の実行の優先順位と現在のドライブの再検証が必要です。最新マニフェスト検索やランタイム アーカイブ ゲートは存在しません。 | 未実装 / 未実行 | 最新の 実行中、partial_failure、または 失敗 マニフェストが古い 成功 にフォールバックできないことをテストします。アーカイブ アクションの前に、PC/期間/ログ タイプ/実行 ID を検証します。 |
+| EOLM-MAN-011; ARC-005 — 鮮度とタイムスタンプのセマンティクス | 承認されたポリシー: UTC ISO 8601 `Z`; 5 分の将来の許容範囲と 24 時間の鮮度のデフォルトは構成可能です。現在の実行タイムスタンプのみ。信頼できる現在の UTC が利用できない場合はフェイルクローズします。実行可能な固定クロック tests/runtime の施行は保留中です。 | ブロックされました | 決定は 2026-10-21 の OSD-02 に記録されます。固定クロックの古い/将来の境界と無効なクロックのテストを追加します。実行時の強制は保留中のままです。 |
+| EOLM-MAN-008/009/012; LCK-001–004 — アトミック書き込み、クラッシュ、同時実行 | 一時ファイル/再読み取り/置換および中断された実行動作は散文的なものにすぎません。ライターまたはランタイム テストは存在しません。 | 未実装 / 未実行 | 書き込み/置換および同時更新に関する障害挿入の中断。古いマニフェストが変更されていないことを証明し、不完全な実行ではアーカイブを承認できません。 |
+
+- ベースライン: PR #99 87b858d079f8cfbf49fa50dc3de7a9afc6e1b0b2 をマージします。焦点を絞った証拠の対応表が PR #100 に追加されました。
+- ドライブ アダプターの応答スキーマとメンテナンス実行マニフェスト スキーマを混同しないでください。
+- OSD-02、OSD-03、および EOLM-MAN-011 にはポリシーが選択されていますが、実行時には 未完了 のままです。 P0-010 と P0-012 は開いたままになります。ドキュメント/スキーマ/パッケージ CI は、実行時の受け入れの証拠ではありません。
+
+## P0-011 アクセプタンスゲートの証拠 — PR #101
+
+- 現在の権限のあるゲート: docs/development/implementation-workflow.md §4。すべての P0-001 ～ 012 項目を 完了、ブロック、または 未完了 として分類する必要があり、未解決の必須決定または実行時の証拠のギャップが残っている間は受け入れを明示的に拒否します。
+- README.md はゲートにリンクします。決定レジスタは、固定/遅延決定が全体的な P0 の受け入れを意味するものではないことを明確にしました。 P0 ギャップ レジスタは項目レベルのギャップ レコードのままです。
+- P0-011 は、このドキュメントの更新では閉じられません。最終的な承認には、管理者による文書横断的なレビューと、すべての P0 項目の証拠に裏付けられた分類が必要です。
+
+
+## 診断契約証拠対応表 — C-45–C-54 (PR #140/#141)
+
+現在のヘルパー、名前付き実行可能テスト、正確な CI 証拠、および残りの実装ギャップへの句ごとのマッピングについては、docs/archive/validation/diagnostic-contract-test-evidence.md を参照してください。これは、既存の C-45–C-54 決定識別子を横断するものであり、新しい要件 ID ではありません。 PR #145 は、規範的決定文にメンテナ承認の C-45 オプション A の矛盾の性質を記録します。実装はpendingのままです。既存の EOLM-TST-008 証拠規律および EOLM-TST-010 シナリオの処分は引き続き適用されます。 C-50 純粋なトークンからコードへのヘルパー カバレッジは PR #144 の後に存在し、C-51 操作からフェーズへのリゾルバー カバレッジは PR #146 の後に存在します。ランタイムの分類/プロデューサーの優先順位、プロデューサーのセマンティックの正確性、イベントの作成/伝播、生の JSON 重複キーの拒否、ランタイム シンクの非公開、およびエンドツーエンドのランタイムの受け入れは、未実装/実行されないままです。 P0-008、P0-010、および P0-012 は開いたままになります。
+
+
+## OSD-02 タイムスタンプ/鮮度ポリシーの更新 — 2026-10-21
+
+EOLM-MAN-011 タイムスタンプ ポリシーがポリシー レベルで承認されるようになりました: UTC ISO 8601 大文字 `Z`、不正な形式/オフセット/タイムゾーンのない値と開始より前の終了を拒否します。構成可能な将来の許容範囲 5 分と鮮度しきい値 24 時間。鮮度は、現在の実行中に生成/更新されたタイムスタンプにのみ適用されます。信頼できる現在の UTC が 利用不能 である場合は、OS時刻同期を前提とせず、フェールクローズします。歴史上の明示的な経過時間だけでは、歴史が無効になるわけではありません。必要な固定クロック/構成テストとランタイム強制は 未確定 のままであるため、これは実行可能ファイルの受け入れを満たしていないか、P0-010を完了させるものではありません。
+
+
+## OSD-02 がクラッシュ/同時実行/最新マニフェスト ポリシーを承認しました (2026-10-21)
+
+メンテナは C1-A/C2-C/C3-B/C4-A を承認しました。 C1-A では、保証が 利用不能 の場合、検証済みの同じディレクトリへの一時書き込み、アトミックな存在しない場合の作成、置換前の比較、およびフェールクローズ動作が必要です。 C2-C には、mutex という名前のスコープごとの OS と排他的所有権トークン ロック レコードが必要です。古いロックの回復は明示的であり、所有者がいなくなっていることを確認する必要があります。 C3-B は、クラッシュ時に残された `running` 履歴を保存し、回復チェック後にのみ、新しいインベントリと不確実なアップロードの調整を使用して、新しい `run_id` を作成します。 C4-A は、正確な PC/ログタイプ/期間スコープに対して、検証された一意の最大値 `started_at_utc` のみを選択します。同点、不正な形式/競合する候補、読み取りエラー、または 未完了 列挙ブロック操作が発生し、古い 成功 へのフォールバックはありません。タイムスタンプの鮮度/将来の許容範囲は、ロックまたは再試行タイムアウトではありません。
+
+クラッシュ時点、同時作成・更新、ロックの所有権と復旧、処理の中断、アップロード結果不明、候補選択の曖昧さを扱う合成試験が必要である。この判断を記録した時点では、これらの試験は**実行されておらず、結果の証拠も記録されていなかった**。仕様の決定だけで、実行時の処理を実装済みとしたり、P0-008/P0-010/P0-012を完了扱いにしたりしてはならない。
+
+
+## OSD-02 クラッシュ/同時実行テストの要件 — 未確定 の実行
+
+- インジェクトは一時書き込み前/一時書き込み中、フラッシュ/検証後、公開前、および公開後にクラッシュします。 未完了 一時ファイルが決して信頼できるものではなく、失敗した 公開では以前のコンテンツが変更されないことが証明されます。
+- 同時の最初のパブリッシャーと同時の更新を競合します。 未作成時だけ作成 と 置換前に比較 が上書きを防止することを証明します。
+- 名前付きミューテックス競合/失敗、プロセス終了、ロック所有権トークン 不一致、および古いロックの回復をテストします。経過時間/PID だけでロックの削除を許可してはなりません。
+- クラッシュレフト `running` マニフェストをバイト単位で保存します。 確認済み 所有者の回復後、新しいインベントリで新しい `run_id` を作成します。再試行する前に、不確実なアップロードを調整してください。
+- 固有の最新タイムスタンプ、等しい最大値、不正な形式または ID の不一致の候補、読み取り/列挙 失敗、および古い 成功 へのフォールバックをブロックする最新の非 成功 をテストします。
+- 合成フィクスチャと一時ディレクトリのみを使用してください。証拠ステータス: **未実行 / まだ証拠がありません**;実行時の受け入れは暗黙的には行われません。
+
+
+## メンテナ承認の OSD-03 レポート契約 (2026-10-21)
+
+メンテナは、**R1-B、R2-A、R3-B、R4-A、R5-A、R6-A、R7-A** を明示的に承認しました。これはレポート契約オプションを決定しますが、実行可能 JSON Schema、ランタイム実装、またはテスト証拠を構成するものではありません。
+
+- **R1-B — 概要のみ:** 期間エントリには、ターゲットごとの重複した行ではなく、カウントと完了状態が含まれます。不変の実行入力証拠および元のマニフェストに対して、適格なインベントリとファイルごとの結果を検証します。
+- **R2-A — タプル ID:** レポート ID は正確に (pc_id、log_type、run_id、report_schema_version) です。 report_id を省略します。そのタプルから正規のファイル名を導出します。マニフェスト v1 にはフィールドを追加しないでください。
+- **R3-B — コンテンツ バインドされた参照:** manifest_ref および evidence_ref にはそれぞれ、正規の相対パス、スキーマ バージョン、および正確に検証されたバイトの小文字の 64 文字 SHA-256 が含まれます。参照された成果物の ID をレポート タプルに対して検証します。絶対パス、トラバーサル、同一性 不一致、不正な形式のダイジェスト、または変更されたバイトを拒否します。
+- **R4-A — OSD-02 コントロールを再利用します。** は、同じディレクトリにある一意の一時ファイル、フラッシュ/クローズ、リードバック検証、およびアトミックな存在しない場合の作成を使用します。通常の公開中に既存の PC ごとのメンテナンス ロックを再利用します。再生成/回復では、同じ名前のミューテックスと所有権トークンのロック レコードを取得する必要があります。既存の同一性の同一バイトは冪等です。異なるバイトは競合し、上書きされることはありません。一時ファイルは、所有権が証明された場合にのみ削除してください。孤立した一時ファイルには権限がないため、経過時間だけを理由に削除してはなりません。
+- **R5-A — 決定論的再生成:** 正確に検証されたマニフェストと不変の B2 実行入力証拠からのみ再生成します。過去のインベントリを再構築するために、変更可能なソース ディレクトリを再スキャンしないでください。 ID、インベントリダイジェスト、すべてのカウント、およびエラー範囲を検証します。入力が 未完了/利用不能 の場合は、未解決のままになります。同一の出力は冪等です。同じ同一性に対する異なるコンテンツは競合です。
+- **R6-A — 3 状態の期間完了:** 完了 期間のすべての適格なターゲットが 確認済み であり、それに影響する関連エラーがない場合のみ。既知の 失敗した/不明 ターゲットまたは既知の関連エラーの場合は 未完了。 確定不能 必要な証拠が欠落している、形式が間違っている、矛盾している、または検証できない場合。 確定不能 を 完了 にマップしないでください。これらはレポート専用の値であり、マニフェストの実行ステータス列挙型に追加しないでください。
+- **R7-A — ローカル/ドライブの個別の状態:** ローカルで検証されたパブリケーションが信頼可能です。ドライブのレプリケーションは別の 確認済み ステップです。レプリケーション 失敗 はローカル 成果物を無効化/削除しません。ドライブ コピーの ID と正確なコンテンツが 確認済み になるまで、PC 間での可用性を主張しないでください。
+- 参照されたマニフェストと B2 証拠からすべてのサマリー カウントを再計算します。欠落/重複した期間行、ターゲット会計 不一致、一覧ダイジェスト/カウント 不一致、レポート/マニフェスト/証拠 ID 不一致、および一貫性のないエラー範囲を拒否します。 generated_at_utc は UTC ISO 8601 大文字の Z と承認された将来の検証を使用します。報告の経過時間だけでは、不変の歴史的証拠が無効になるわけではありません。
+- 必要な合成受け入れテストが指定されていますが、**まだ実行/証明されていません**。ランタイム実装、実行可能スキーマ、および運用上の証拠は 未確定 のままです。このドキュメントの変更によって閉じられる P0 項目はありません。
+
+
+## OSD-03 レポート契約受諾テスト — 承認された設計、実行 未確定
+
+1. 必須フィールド、厳密な整数スキーマのバージョン、サポートされていないバージョン、暗黙的な移行なし、report_id の欠如。
+2. PC/ログ タイプ/実行/スキーマ バージョンの正規レポート ID タプルとファイル名合意。
+3. 正規相対 manifest_ref および evidence_ref。正確なバイト SHA-256;不正な形式のダイジェスト、絶対パス/トラバーサル パス、同一性 不一致、および安定したパスのコンテンツ置換はすべてフェール クローズされます。
+4. R1-B: レポート期間の行には概要のみが含まれます。カウントは参照されたマニフェストと B2 証拠から再計算されます。ターゲットごとの重複したインベントリはレポートから信頼されません。
+5. 一覧ダイジェスト/カウント 不一致;割り当てられたターゲットが欠落している、余分である、重複している、または重複している。期間行が欠落または重複しています。レポート/マニフェスト/証拠の同一性 不一致;一貫性のないエラー範囲。
+6. R6-A: 完了、未完了、および 確定不能 の境界。 確定不能 が 完了 になることはなく、これらの値がマニフェスト v1 の実行ステータス列挙型に入力されることはありません。
+7. R4-A パブリケーションのクラッシュ ポイント、同時作成、同一冪等再試行、競合再試行、サポートされていないアトミック プリミティブ、ミューテックス/ロック所有権、および一時ファイル所有権のクリーンアップ。孤立ファイルの浄化は経過時間だけに頼ることはできません。
+8. R5-A 正確な不変マニフェストと B2 証拠からのみ再生成。証拠が欠落している、破損している、未完了、または矛盾している場合は拒否します。可変ソースを決して再スキャンしないでください。
+9. R7-A ローカル パブリケーションは、ドライブのレプリケーションとは関係なく成功します。レプリケーション 失敗 はローカル レポートを保存します。 ID とコンテンツの検証が成功するまで、PC 間での使用はブロックされます。
+10. UTC タイムスタンプ形式/将来の許容範囲、過去の経過期間、ゼロワーク対 失敗した 列挙と無効なファイル名のみ、無関係な実行スコープ エラーを伴う既知の期間の完了、およびすべての承認された OSD-03 集計ケース。
+11. 合成フィクスチャと一時ディレクトリのみ。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。証拠ステータス: **未実行 / まだ証拠がありません**。
+
+
+## OSD-03 実行可能スキーマ実装スライス — PR #150 (2026-10-21)
+
+- 承認された R1 ～ R7 レポート形式の厳密なドラフト 2020-12 構造スキーマ候補として `contracts/aggregation-report-v1.schema.json` を追加しました。 不明 プロパティ、`report_id`、サポートされていない/非整数のレポート スキーマ バージョン、無効な列挙型/カウント タイプ、非 UTC-Z タイムスタンプ、不正な形式の小文字 SHA-256 値、および非正規相対パスは拒否されます。
+- `tests/test_contract_schemas.py` にスキーマ定義と合成構造契約テストを追加しました。部分的な 失敗 およびゼロ作業の例、3 つの期間完了値すべて、厳密なバージョン管理、不明 フィールド、参照パス/ハッシュ検証、タイムスタンプ形式、列挙型/カウント、および実行スコープのエラー形状をカバーしています。
+- これらのテストは作成されていますが、この PR では **まだ実行も証拠化もされていません** が証明されています。 CI は、マージ前に正確な最新の PR HEAD を渡す必要があります。このスライスには、ランタイム レポート リーダー/ライター、クロス 成果物 ダイジェスト検証、タプル/パス バインディング、カウント再計算、確定的再生成、アトミック パブリケーション、ロック統合、またはドライブ レプリケーションの実装は含まれません。
+- JSON Schema は構造のみを検証します。クロスフィールドおよびクロス成果物の不変条件は引き続き必須のフェールクローズ実行時チェックです。スキーマの受け入れだけでは、レポートの正確性や副作用の承認の証拠にはなりません。
+- マニフェスト v1 フィールド、B2 証拠コントラクト、A2 ダイジェスト コントラクト、または OSD-02 安全境界は変更されません。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。
+
+
+## PR #151 ステータスメモ — OSD-03 内部整合性スライス (2026-10-22)
+
+PR #150 は、構造集約レポート v1 JSON Schema とその合成スキーマ テストをマージしました。 PR ヘッドとマージ後の CI が合格しました。 PR #151 は、レポートローカルの PowerShell 一貫性検証機能と、期間の一意性、安全な参照パス/ダイジェスト形状、要約数の調整、完了の一貫性、実行スコープのエラー数、およびゼロ作業/成功 の一貫性についての合成テストを追加します。 PR #151 CI がその正確な最新の HEAD を渡すまで、これらのテストは作成されますが、まだ 確認済み は作成されていません。このスライスは、正確に参照されるマニフェスト/証拠バイト、B2/A2 整合性、完全なターゲット セットの完全性、クロス成果物 ID、決定論的再生成、アトミック パブリケーション、ロック所有権、またはドライブ レプリケーションを検証しません。 P0 の受付は引き続き受け付けております。
+
+## OSD-03 ステータス修正 — 2026-10-22
+
+PR #151 は `e93f0ea552496831c69efb1e8dd2818ac86f4e5b` でマージ済み。正確なPR HEAD `846cfdbb1ce76f3ec1363460c4f0576b7c10a2b6` に対するValidate/Package Validation（実行 `39635268289`、`39635268115`）とマージ後コミットの検査（実行 `39636402422`、`39636402408`）は成功した。レポート内部の整合検証器を実装し、記載範囲内で CI による検証を終えた。PR #152 は限定的な完全バイト一致の参照検証器を追加するが、その試験はまだ CI で検証されていない。どちらのPRも、マニフェスト/B2 の全スキーマ検証、識別情報の結合、A2 ダイジェストの再計算、対象・件数の網羅的照合、決定的なレポート再生成、アトミック公開、ロック復旧、Drive複製を実装しない。P0受け入れは未完。EOLM-MAN-001/002 の部分証拠（2026-10-23）: [読み取り専用ディレクトリ アダプタ](../design/reference/latest-manifest-selection.md#読み取り専用のディレクトリ-アダプタ) は検査済みの観測を C4 の選択処理へ渡し、検証した厳密なバイト列を保持する。合成ファイルシステム試験は不確実性と観測された置換を扱うが、承認ルートの権限、マニフェストの意味検証全体、実行時の復旧やアーカイブ実行条件は未完である。
+
+EOLM-MAN-001/002 リカバリ構成証拠 (2026-10-23): 7 つのディレクトリから分類子までのテストと実際の Windows 放棄カバレッジにより、古いロックの処理や新規実行ランタイムを実装することなく、選択されたバイトの使用と保存が検証されます。 [回復ゲート](../validation/lock-recovery-acceptance-gate.md) および [未承認のワークフロー提案](../archive/decisions/recovery-disposition-proposal.md) を参照してください。

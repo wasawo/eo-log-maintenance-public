@@ -1,71 +1,71 @@
-# C-53/C-54 deterministic policy test matrix and audit
+# C-53/C-54 決定論的ポリシー テスト マトリックスと監査
 
-- Status: non-normative audit and test-planning artifact; does not amend approved C-53 or C-54 decisions.
-- Baseline: main commit `5b258fbdc775e5aa5db2dc2903108d7a4461bd29`.
-- Scope: define deterministic fixture coverage before implementing diagnostic path sanitization.
-- Safety: fixtures must be synthetic; never use actual credentials, user paths, logs, or Drive data.
+- ステータス: 非規範的な監査およびテスト計画成果物。承認された C-53 または C-54 の決定は修正されません。
+- ベースライン: メイン コミット `5b258fbdc775e5aa5db2dc2903108d7a4461bd29`。
+- スコープ: 診断パスのサニタイズを実装する前に、確定的なフィクスチャ カバレッジを定義します。
+- 安全性: 器具は合成品である必要があります。実際の認証情報、ユーザー パス、ログ、ドライブ データは決して使用しないでください。
 
-## Audit result
+## 監査結果
 
-C-53 and C-54 agree on the high-level processing contract:
+C-53 と C-54 は、高レベルの処理契約に同意します。
 
-1. Validate path type/text and relative-path syntax.
-2. Check the validated candidate against fixed sensitive-path policy.
-3. Emit the canonical relative path only when both checks pass; otherwise emit JSON null for the entire optional path.
-4. Do not partially redact, resolve against a filesystem, inspect symlinks, use current directory, or echo rejected input.
-5. Invalid required diagnostic fields reject finalization rather than being repaired.
+1. パスのタイプ/テキストおよび相対パス構文を検証します。
+2. 検証された候補を固定機密パス ポリシーに対してチェックします。
+3. 両方のチェックに合格した場合にのみ正規の相対パスを出力します。それ以外の場合は、オプションのパス全体に対して JSON null を出力します。
+4. 部分的な編集、ファイルシステムに対する解決、シンボリックリンクの検査、現在のディレクトリの使用、拒否された入力のエコーは行わないでください。
+5. 必須の診断フィールドが無効であるため、修復されずにファイナライズが拒否されます。
 
-No executable diagnostic sanitization function or dedicated test file currently exists in the tracked tree. Existing `Common/LogFunctions.ps1` covers runtime version, filename/date parsing, cutoffs, and eligibility only. Existing CI success therefore does not prove C-53/C-54 behavior.
+現在、追跡されるツリーには実行可能な診断サニタイズ関数または専用のテスト ファイルが存在しません。既存の `Common/LogFunctions.ps1` は、ランタイム バージョン、ファイル名/日付の解析、カットオフ、および対象条件のみをカバーしています。したがって、既存の CI 成功 は C-53/C-54 の動作を証明しません。
 
-## Deterministic fixture matrix
+## 決定論的フィクスチャ マトリックス
 
-The eventual implementation tests should assert both the returned value and that rejected input is not included in any diagnostic output. All cases are synthetic.
+最終的な実装テストでは、戻り値と、拒否された入力が診断出力に含まれないことの両方をアサートする必要があります。すべてのケースは合成です。
 
-| Area | Positive / control fixtures | Negative fixtures and expected outcome |
-|---|---|---|
-| Input type | Valid string relative path | Null, non-string, or invalid Unicode scalar text => path null |
-| Separator handling | `a/b.txt`; `a\\b.txt` canonicalizes to `a/b.txt` | Mixed/repeated separators creating an empty segment => null |
-| Rooted paths | Ordinary relative path | `/a`, `C:/a`, `C:a`, UNC and device prefixes => null |
-| Segment grammar | `logs/2026/file.txt` | Empty path, empty segment, `.`, `..`, colon/ADS, NUL, or any control character => null |
-| Fixed sensitive names | Ordinary `config.json`; ordinary names that merely resemble a protected name | Each C-54 fixed name, including case variants, in first/middle/final segment => null |
-| Bounded sensitive tokens | `tokenizer.txt` must not match solely due to the substring `token` | `api-token-prod.txt`, `my_password.txt`, and each listed token bounded by segment edge or non-alphanumeric => null |
-| Secret-bearing formats | Near-miss text that lacks the required credential structure | URI user-info credential form, bearer credential form, provider-token prefix form, and PEM private-key marker => null |
-| Whole-path behavior | Safe path passes unchanged except separator canonicalization | Any one matching segment or whole-path pattern => the complete path is null, never partial redaction |
-| Required fields | Valid allowlisted error_id/error_code/phase/operation and fixed C-52 message | Invalid required enum/identity or message code => diagnostic finalization rejected |
-| Determinism | Repeat same fixtures under different current directories/locales | Identical results; no filesystem, symlink, locale, current-directory, or host path-rule dependency |
-| Serialization / invariants | JSON serializer escapes valid values correctly | JSON escaping must not make unsafe input acceptable; path nulling must preserve event identity and classification |
+| エリア | 正/制御治具 | ネガティブな試合と予想される結果 |
+| --- | --- | --- |
+| 入力タイプ | 有効な文字列の相対パス | Null、非文字列、または無効な Unicode スカラー テキスト => パス null |
+| セパレータの処理 | `a/b.txt`; `a\\b.txt` は `a/b.txt` に正規化されます | 空のセグメントを作成する混合/繰り返し区切り文字 => null |
+| ルート化されたパス | 通常の相対パス | `/a`、`C:/a`、`C:a`、UNC およびデバイス プレフィックス => null |
+| セグメント文法 | `logs/2026/file.txt` | 空のパス、空のセグメント、`.`、`..`、コロン/ADS、NUL、または任意の制御文字 => null |
+| 機密性の高い名前を修正しました | 通常の `config.json`;保護された名前に似ているだけの通常の名前 | 最初/中間/最後のセグメントの各 C-54 固定名 (大文字小文字の違いを含む) => null |
+| 境界のある機密トークン | `tokenizer.txt` は、部分文字列 `token` のみが原因で一致することはできません | `api-token-prod.txt`、`my_password.txt`、およびセグメントの端または非英数字で囲まれたリストされた各トークン => null |
+| 秘密を含む形式 | 必要な認証情報構造が欠落しているニアミス テキスト | URI ユーザー情報認証情報フォーム、ベアラー認証情報フォーム、プロバイダー トークン プレフィックス フォーム、および PEM 秘密キー マーカー => null |
+| パス全体の動作 | 安全なパスはセパレータの正規化を除いて変更されずに渡されます | 一致するセグメントまたはパス全体のパターンのいずれか => 完全なパスは null であり、部分的な編集は行われません |
+| 必須フィールド | 有効なホワイトリストに登録された error_id/error_code/phase/operation および修正された C-52 メッセージ | 必要な列挙型/ID またはメッセージ コードが無効です => 診断の終了処理が拒否されました |
+| 決定論 | 異なる現在のディレクトリ/ロケールで同じフィクスチャを繰り返します | 同じ結果。ファイルシステム、シンボリックリンク、ロケール、現在のディレクトリ、またはホストのパスルールの依存関係はありません |
+| シリアル化 / 不変式 | JSON シリアライザーは有効な値を正しくエスケープします | JSON エスケープによって安全でない入力が受け入れられるようにしてはなりません。パスのヌル化はイベントの ID と分類を保持する必要があります |
 
-## Concrete ambiguity found — requires maintainer decision before normative implementation
+## 具体的な曖昧さが見つかりました - 規範的な実装の前に管理者の決定が必要です
 
-C-54 gives examples of secret-value formats but does not define exact matching grammars for every format. This is a concrete implementation/test ambiguity, not a reason to reopen the already-approved overall option A.
+C-54 は秘密値の形式の例を示していますが、すべての形式に完全に一致する文法を定義しているわけではありません。これは具体的な実装/テストのあいまいさであり、すでに承認された全体的なオプション A を再開する理由ではありません。
 
-The following details need an explicit choice recorded before a normative implementation claims complete coverage:
+以下の詳細は、規範的な実装が 完了 の適用範囲を主張する前に、明示的な選択を記録する必要があります。
 
-1. **URI user-info:** which URI scheme syntax is in scope, whether empty usernames/passwords count, and the exact allowed user-info character grammar before `@`.
-2. **Bearer credential text:** whether the matcher requires an explicit case-insensitive `Bearer` scheme plus a non-empty token, and which ASCII token characters are accepted.
-3. **Provider-token prefixes:** minimum/maximum suffix length and permitted suffix characters for `ghp_`, `github_pat_`, and access-key-like `AKIA` values. The current record gives prefixes/examples but not a complete grammar.
-4. **PEM private-key markers:** whether to match a fixed enumerated set of labels (for example, RSA, EC, OPENSSH, and generic PRIVATE KEY) or a bounded general label grammar.
-5. **Token separators:** confirm fixtures for underscore, hyphen, dot, and other non-alphanumeric boundaries, because the rule says token boundaries are non-alphanumeric but compound hyphenated alternatives are literal entries.
+1. **URI ユーザー情報:** どの URI スキーム構文がスコープ内にあるか、空のユーザー名/パスワードがカウントされるかどうか、および `@` より前に許可されている正確なユーザー情報文字文法。
+2. **Bearer認証情報の文字列:** マッチャーが明示的に大文字と小文字を区別しない `Bearer` スキームと空でないトークンを必要とするかどうか、およびどの ASCII トークン文字が受け入れられるか。
+3. **プロバイダー トークン プレフィックス:** `ghp_`、`github_pat_`、およびアクセス キーのような `AKIA` 値の最小/最大サフィックス長と許可されるサフィックス文字。現在のレコードには接頭辞/例が示されていますが、完了 文法は示されていません。
+4. **PEM 秘密鍵マーカー:** 列挙されたラベルの固定セット (RSA、EC、OPENSSH、汎用 PRIVATE KEY など) と一致するか、または制限された一般的なラベル文法と一致するか。
+5. **トークン区切り文字:** は、アンダースコア、ハイフン、ドット、およびその他の非英数字境界のフィクスチャを確認します。これは、ルールではトークン境界は非英数字であるが、複合ハイフンで囲まれた代替はリテラル エントリであると規定されているためです。
 
-### Recommended next decision
+### 次の決定を推奨
 
-Keep the already-approved C-53/C-54 processing order and whole-field-null behavior unchanged. Approve a small, explicit regex/grammar table for the four secret-bearing format groups, including one valid positive fixture and near-miss negatives per grammar. Avoid broad substring matching, generic high-entropy detection, heuristic rewriting, and filesystem-dependent validation.
+すでに承認されている C-53/C-54 の処理順序とフィールド全体の null 動作を変更しないでください。文法ごとに 1 つの有効な正のフィクスチャとニアミスの否定を含む、4 つの秘密を含む形式グループの小さな明示的な正規表現/文法テーブルを承認します。広範な部分文字列の一致、一般的な高エントロピーの検出、ヒューリスティックな書き換え、およびファイルシステムに依存する検証を避けてください。
 
-No choice in this recommendation is adopted by this audit. Until the exact patterns are approved and tested, report secret-format coverage as incomplete rather than silently choosing a grammar.
+この推奨事項の選択肢はこの監査では採用されません。正確なパターンが承認されテストされるまでは、黙って文法を選択するのではなく、シークレット形式のカバレッジを 未完了 として報告してください。
 
-## Implementation gate
+## 実装ゲート
 
-After the maintainer approves the exact pattern table:
+メンテナが正確なパターン テーブルを承認した後:
 
-- implement a pure, deterministic path-validation/sanitization function;
-- add isolated synthetic fixtures to the PowerShell test suite;
-- verify full-field nulling and non-disclosure, including tests that no rejected path is echoed;
-- verify release packaging includes the function and tests run in CI;
-- keep runtime integration, P0 acceptance, archive enablement, and deletion behavior separate. Passing unit tests alone must not close P0.
+- 純粋で決定的なパス検証/サニタイズ機能を実装します。
+- PowerShell テスト スイートに独立した合成フィクスチャを追加します。
+- 拒否されたパスがエコーされないことのテストを含め、フィールド全体のヌル化と非開示を検証します。
+- リリース パッケージに関数が含まれていることを確認し、CI で実行されるテストを実行します。
+- ランタイムの統合、P0 の受け入れ、アーカイブの有効化、および削除動作を分離してください。単体テストに合格するだけで P0 を閉じてはなりません。
 
 
-## Approved C-54 grammar test extension — 2026-10-21
+## C-54 文法テストの拡張機能を承認しました — 2026-10-21
 
-P1–P6 were explicitly approved (option A for each). Exact regexes and interpretation are canonical in `docs/decisions/decision-record-c54-sensitive-path-detection.md`, section “C-54 approved secret-format grammars — P1–P6”. The new executable `tests/Test-C54PatternContract.ps1` covers synthetic positives, near misses, minimum lengths, ASCII boundaries, and case sensitivity.
+P1 ～ P6 は明示的に承認されました (それぞれのオプション A)。正確な正規表現と解釈は、`docs/archive/decisions/decision-record-c54-sensitive-path-detection.md` のセクション「C-54 承認された秘密形式の文法 - P1 ～ P6」に記載されています。新しい実行可能ファイル `tests/Test-C54PatternContract.ps1` は、合成ポジティブ、ニアミス、最小長、ASCII 境界、および大文字と小文字の区別をカバーしています。
 
-This test is deliberately limited to the regex grammar. It does not assert that a runtime sanitizer invokes these patterns, nulls the whole optional path, or prevents diagnostic disclosure. Those runtime tests remain pending. URI-like path fixtures must continue to distinguish C-53 rejection from C-54 URI-matcher behavior.
+このテストは意図的に正規表現文法に限定されています。ランタイムサニタイザーがこれらのパターンを呼び出したり、オプションのパス全体を null にしたり、診断の開示を防止したりすることは主張しません。これらのランタイム テストは 未確定 のままです。 URI のようなパス フィクスチャは、C-53 の拒否と C-54 URI マッチャーの動作を区別し続ける必要があります。

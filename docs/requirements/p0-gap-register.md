@@ -1,12 +1,14 @@
 # P0 現行実装・仕様差分台帳
 
-> 現況: [2026-10-24棚卸し](../status/first-release-readiness-20261024.md)。以下の過去PR記録は当時の状態を含む。sentinel存在・schema未実装・CI待ち等を現況として扱わない。P0受け入れは未完了。
+> 2026-10-27: [初回移動の受け入れ条件と作業順案](../development/implementation-workflow.md)を追加。Q1〜Q10と平坦化の合意により、初回完成は両経路の元削除まで。P0-012の本文/合格条件を、合意した2経路/2条件/役割限定と拒否条件の証明へ改訂済み。以下の過去記録を現在の要件合意と混同しない。P0-006/009/010/012のruntime/配布/追跡性受け入れは未完。
+
+> 現況の実装資産/不足は[実装計画§9](../development/implementation-workflow.md#9-既存の実装資産と不足)、旧棚卸しの証拠基準は同計画§10へ統合した。以下の過去PR記録は当時の状態を含み、sentinel存在・schema未実装・CI待ち等を現況として扱わない。P0受け入れは未完了。
 
 
 - 状態：初版。P0着手時の調査結果であり、全ソースの実行時検証完了を意味しない
 - 対象ブランチ：`main` の確認時点
 - 目的：現行ソース、仕様書、テスト、CI、配布処理の不整合を分類し、P0で修正・確認する対象を管理する
-- 原則：仕様未確定事項を実装側の都合で確定しない。未実装機能を実装済みと扱わない。P0〜P2では元ログ削除・Drive削除を追加しない
+- 原則：仕様未確定事項を実装側の都合で確定しない。未実装機能を実装済みと扱わない。現在は文書見直し中で削除コード/schemaを追加せず、実装再開・実データ操作は[エージェント](../../AGENTS.md)の限定条件に従う。
 
 ## 分類
 
@@ -24,22 +26,22 @@
 
 ## 差分一覧
 
-この表の現況はmain `179787f`と2026-10-24の選択記録を照合したもの。方針選択はP0受け入れではない。[選択記録](../decisions/selected-policy-decisions-20261024.md)、[限定4件](../decisions/implementation-grounded-four-decisions-20261024.md)、[初回配布順序](../status/first-release-readiness-20261024.md)を併読する。
+この表の現況はmain `179787f`と2026-10-24の選択記録を照合したもの。方針選択はP0受け入れではない。[選択記録](../archive/decisions/selected-policy-decisions-20261024.md)、[限定4件](../archive/decisions/implementation-grounded-four-decisions-20261024.md)、[初回配布順序](../development/implementation-workflow.md#9-既存の実装資産と不足)を併読する。
 
 | ID | 優先度 | 分類 | 対象 | 確認された現状／差分 | 対応方針 | 完了条件 |
-|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- |
 | P0-001 | P0-A | 仕様差分・テスト不足 | `Common/LogFunctions.ps1`、全PowerShellスクリプト | PR #11で共通モジュールに厳密な7.6.7ガードと版判定テストを追加済み。現行追跡ツリーに `scripts/SyncLogs.ps1` は存在せず、正式なsync処理は未実装。`ArchiveLogs.ps1` とバッチエントリーポイントも未実装で、全実行経路への適用は未完了 | 共通ガードを正式エントリーポイントの処理開始前に適用し、すべての起動点を棚卸しする。バージョン情報取得失敗時は fail closed とする | 7.6.7で合格し、不一致版・取得不能・不正値ではファイル処理前に停止するテストがあり、全正式エントリーポイントに適用される。PR #11の共通ガードとテストは完了、エントリーポイント適用は未完了 |
 | P0-002 | P0-A | 仕様差分・テスト不足 | `.github/workflows/validate.yml`、`.github/workflows/package-validation.yml` | PR #10で両ワークフローにPowerShell 7.6.7の取得・SHA-256検証・実行版確認を追加し、CI成功を確認済み | 変更はPR #10でマージ済み。CIの厳密な実行版検証を維持し、将来変更時も回帰確認する | 両ワークフローが7.6.7以外で失敗し、ログから実行バージョンを確認できる。PR #10のValidate #57とPackage Validation #49は成功 |
-| P0-003 | P0-A | 仕様差分・確認待ち | バッチエントリーポイント、運用手順、パッケージ | PR #13後のtracked treeを静的確認。`.bat` / `.cmd` と正式運用エントリーポイントは存在せず、確認した実行可能ソース／CI設定に `powershell.exe` の参照はない。将来の運用起動方法は未検証。監査記録: `docs/validation/p0-runtime-entrypoint-safety-audit.md` | 正式エントリーポイントの設計後に起動点を追加し、全 `.bat` / `.cmd` と手順書を検査。実在する起動点は `pwsh.exe -NoLogo -NoProfile -NonInteractive` を基準に統一 | 正式な起動点が存在し、静的検査と実行テストで指定起動方式およびバージョン不一致時の停止を確認する |
+| P0-003 | P0-A | 仕様差分・確認待ち | バッチエントリーポイント、運用手順、パッケージ | PR #13後のtracked treeを静的確認。`.bat` / `.cmd` と正式運用エントリーポイントは存在せず、確認した実行可能ソース／CI設定に `powershell.exe` の参照はない。将来の運用起動方法は未検証。監査記録: `docs/archive/validation/p0-runtime-entrypoint-safety-audit.md` | 正式エントリーポイントの設計後に起動点を追加し、全 `.bat` / `.cmd` と手順書を検査。実在する起動点は `pwsh.exe -NoLogo -NoProfile -NonInteractive` を基準に統一 | 正式な起動点が存在し、静的検査と実行テストで指定起動方式およびバージョン不一致時の停止を確認する |
 | P0-004 | P0-B | 未実装 | `scripts/`、README、実装ワークフロー | READMEは既存スクリプト移行・本番実行未完了と明記。同期、Drive内容検証、マニフェスト、アーカイブのランタイム処理は未完成 | P0でスコープと前提を確定し、実処理は後続フェーズで段階実装する。未実装のまま正式配布・本番適用しない | 各機能の状態が文書・パッケージ状態・テストで一貫して「未実装」または「実装済み」と識別できる |
-| P0-005 | P0-B | 仕様未確定・テスト不足 | `docs/design/powershell-python-contract.md`、`contracts/drive-request.schema.json`、`contracts/drive-response.schema.json`、`tests/test_contract_schemas.py` | C-01 P1/V1/L1 and in-place IPC 1.0 tightening, C-02 R1/N1/D1 and four-operation review are approved. The response schema and DriveResponseSemantics.ps1 now enforce the fixed retryable table, with four-operation/nine-code synthetic tests. C-01 path grammar is enforced by request schema and pure PS/Python helpers with a shared corpus; result remains permissive. Root/target/use-point checks, Python Drive adapter and integrated transport do not exist. | Finalize per-operation executed/plan result fields and the remaining transport/SDK bounds. Finalize closed result schemas and runtime PS/Python root/target/use-point validators; implement one-API-attempt and PS retry orchestration tests. | Pure semantics and schema tests are partial evidence; closed response schemas, transport and adapter integration must pass corresponding tests before IPC acceptance. |
-| P0-006 | P0-B | 仕様差分・テスト不足 | `.github/scripts/Build-ReleasePackage.ps1`、`tests/Test-ReleasePackage.ps1` | The role-aware builder and synthetic package tests exist; official scripts/SyncLogs.ps1 and scripts/ArchiveLogs.ps1 are absent. The existing 0.1.0 non-deployable review artifact has a documented 40-file inventory. It is not the final per-PC release manifest. | After official entry points and dependencies exist, implement the selected per-PC/per-version explicit JSON file manifest with schema validation. Preserve role guards and review-only marker separation. | Required/forbidden files, role separation and non-deployability are checked against the final exact manifest; runtime safety still needs separate evidence. |
+| P0-005 | P0-B | 仕様未確定・テスト不足 | `docs/design/powershell-python-contract.md`、`contracts/drive-request.schema.json`、`contracts/drive-response.schema.json`、`tests/test_contract_schemas.py` | C-01 P1/V1/L1 およびインプレース IPC 1.0 締め付け、C-02 R1/N1/D1 および 4 つの操作のレビューが承認されています。応答スキーマと DriveResponseSemantics.ps1 は、4 つのオペレーション/9 つのコードの合成テストを使用して、固定された再試行可能なテーブルを強制するようになりました。 C-01 パス文法は、リクエスト スキーマと共有コーパスを備えた純粋な PS/Python ヘルパーによって強制されます。結果は依然として寛容です。ルート/ターゲット/ユースポイント チェック、Python ドライブ アダプターおよび統合トランスポートが存在しません。 | オペレーションごとの実行/計画結果フィールドと残りのトランスポート/SDK 境界を確定します。クローズされた結果スキーマとランタイム PS/Python ルート/ターゲット/ユースポイント バリデータを完成させます。 1 回の API 試行と PS 再試行オーケストレーション テストを実装します。 | 純粋なセマンティクスとスキーマのテストは部分的な証拠です。クローズド レスポンス スキーマ、トランスポート、およびアダプターの統合は、IPC の受け入れ前に対応するテストに合格する必要があります。 |
+| P0-006 | P0-B | 仕様差分・テスト不足 | `.github/scripts/Build-ReleasePackage.ps1`、`tests/Test-ReleasePackage.ps1` | 役割を認識したビルダーと合成パッケージのテストが存在します。公式の scripts/SyncLogs.ps1 と scripts/ArchiveLogs.ps1 はありません。既存の 0.1.0 非デプロイ可能レビュー 成果物には、文書化された 40 ファイル インベントリがあります。これは、PC ごとの最終的なリリース マニフェストではありません。 | 公式のエントリ ポイントと依存関係が存在したら、選択した PC ごと/バージョンごとの明示的な JSON ファイル マニフェストをスキーマ検証とともに実装します。ロールガードとレビュー専用マーカーの分離を維持します。 | 必須/禁止されたファイル、役割の分離、および展開不可能性が、最終的な正確なマニフェストに対してチェックされます。実行時の安全性については、依然として別の証拠が必要です。 |
 | P0-007 | P0-B | テスト不足 | `.github/workflows/validate.yml` | PR #10で `tests/Test-LogFunctions.ps1` をCIに組み込み済み。PR #10のValidate #57は成功 | CI実行を維持し、P0-001のバージョンガードテストと境界値テストを継続拡充する | CIログにPowerShellテストの結果が出て、失敗時にCIが失敗する。既存テストのCI組み込みはPR #10で確認済み |
-| P0-008 | P0-C | テスト不足 | `Common/LogFunctions.ps1`、`tests/Test-LogFunctions.ps1` | Filename/date and month-boundary helpers have synthetic tests. OSD-03 aggregation and B2 V1/G1 report-time policies are selected, with source producer, report builder and referenced-artifact validator aligned under synthetic tests; full runtime selection/aggregation remains unimplemented. | Maintain synthetic tests for invalid inputs, historical incomplete evidence, immutable-time ties and deterministic output; integrate into the official runtime with trusted publication when it exists. | Helper and report tests cover approved semantics; complete runtime coverage remains pending until official entry points exist. |
-| P0-009 | P0-C | 仕様差分・テスト不足 | `.github/scripts/Build-ReleasePackage.ps1`、パッケージテスト | PC-A/PC-B review-package role guards and safe example-config checks exist. E1 release event/manual approval followed by Actions publication, all-version retention, JSON exact-file manifests and confirmed separate PS migration are selected. Distribution identity, final runtime files and migration mapping remain open. | Specify release CI identity/provenance, final PC/version file sets, explicit migration mapping and rollback controls; keep active config unchanged on normal updates. | Final deployable packages and release controls pass package/provenance tests; review ZIP and its historical 40-file inventory do not count as a release. |
-| P0-010 | P0-C | 確認待ち | 全仕様・実装・テスト・設定ファイル | Current main is PR #38 merge 179787f. The selected policy ledger closes questions 1–32 at policy level and fixes four implementation-grounded details. Official Sync/Archive entry points, Drive adapter, manifest and checkpoint writers, full IPC validators, credential provider and integration remain absent. Earlier audit history and partial helper evidence are not current runtime acceptance; timestamp numeric values were approved in later OSD-02 record even where older rows say pending. | Reconcile requirement IDs, current source, executable tests and objective evidence using this ledger, selected decisions and first-release readiness. Keep missing runtime and Tier B/C evidence explicit; do not upgrade helper/schema/package CI to runtime proof. | Every applicable requirement has implementation or blocked/incomplete status, executable test or reason not run, and exact evidence. P0-010 remains open until the complete crosswalk is verified. |
+| P0-008 | P0-C | テスト不足 | `Common/LogFunctions.ps1`、`tests/Test-LogFunctions.ps1` | ファイル名/日付および月境界ヘルパーには合成テストがあります。 OSD-03 集計および B2 V1/G1 レポート時ポリシーが選択され、ソース プロデューサー、レポート ビルダー、および参照成果物 バリデーターが合成テストの下で調整されます。完全なランタイム選択/集約は未実装のままです。 | 無効な入力、歴史的不完全な証拠、不変の時間の関係、および決定論的な出力に対する総合テストを維持します。信頼できるパブリケーションが存在する場合は、それを使用して公式ランタイムに統合します。 | ヘルパー テストとレポート テストは、承認されたセマンティクスをカバーします。完全なランタイム カバレッジは、正式なエントリ ポイントが存在するまで保留のままです。 |
+| P0-009 | P0-C | 仕様差分・テスト不足 | `.github/scripts/Build-ReleasePackage.ps1`、パッケージテスト | PC-A/PC-B review-package ロール ガードと安全な example-config チェックが存在します。 E1 リリース イベント/手動承認に続いて、アクションの公開、全バージョンの保持、JSON の正確なファイル マニフェスト、および確認された個別の PS 移行が選択されます。ディストリビューション ID、最終ランタイム ファイル、および移行マッピングは開いたままになります。 | リリース CI の同一性/来歴、最終的な PC/バージョン ファイル セット、明示的な移行マッピングおよびロールバック制御を指定します。通常のアップデートではアクティブな設定を変更せずに維持します。 | 最終的な展開可能なパッケージとリリース コントロールはパッケージ/来歴テストに合格します。レビュー ZIP とその履歴 40 ファイル インベントリはリリースとしてカウントされません。 |
+| P0-010 | P0-C | 確認待ち | 全仕様・実装・テスト・設定ファイル | 現在のメインは PR #38 と 179787f のマージです。選択された方針台帳は、方針レベルで質問 1–32 を解決し、実装に基づいた 4 つの詳細を修正します。公式の同期/アーカイブ エントリ ポイント、ドライブ アダプタ、マニフェストおよびチェックポイント ライター、完全な IPC バリデータ、認証情報プロバイダー、および統合は依然として存在しません。以前の監査履歴と部分的なヘルパー証拠は、現在実行時に受け入れられません。タイムスタンプ数値は、古い行が保留中と表示されている場合でも、後の OSD-02 レコードで承認されました。 | この台帳、選択された決定事項、および最初のリリースの準備状況を使用して、要件 ID、現在のソース、実行可能なテスト、および客観的な証拠を調整します。ランタイムと Tier B/C の証拠が見つからないことを明示的に保ちます。ヘルパー/スキーマ/パッケージ CI を実行時証明にアップグレードしないでください。 | 該当するすべての要件には、実装またはブロック/不完全ステータス、実行可能なテストまたは実行されない理由、および正確な証拠が含まれています。 P0-010 は、完全な対応表が確認されるまで開いたままになります。 |
 | P0-011 | P0-B | 仕様差分・確認待ち | `docs/development/implementation-workflow.md` §4、README、`docs/decisions/decision-register-c18-c32.md`、`docs/requirements/p0-open-specification-decisions.md`、本台帳 | PR #101時点で `docs/development/implementation-workflow.md` §4 にP0 readiness/acceptance gateが存在し、READMEも同節を参照する。ゲートはP0-001〜012のcomplete/blocked/incomplete分類、未決OSD、runtime evidence不足、docs-only evidenceの限界を明記する。一方、decision registerの先頭ステータスとgap registerのP0-011説明がゲートの存在・P0未受入れ状態を明確に反映していなかった | §4を規範的なP0受け入れゲートとして維持し、README、decision register、gap register、traceabilityの状態説明を同期する。全P0とOSDの実態に合うよう、P0未受入れと未完了のruntime evidenceを明示する | P0-001〜012が証拠付きでcomplete、または理由付きblocked/incompleteに分類され、未解決OSDと実行時証拠不足が明示される。README・workflow・decision register・gap registerに矛盾がない。P0受け入れは未完了であり、文書追加だけで完了扱いにしない |
-| P0-012 | P0-A | 安全性確認 | 全ランタイム処理、テスト、配布物 | PR #84の `docs/validation/p0-runtime-entrypoint-safety-audit.md` は限定的なtracked-path static review。PR #91のC-28更新も、PR #78のrole-aware example-config/package-builder testsと、未実装のruntime archive/no-delete evidenceを区別する。Drive request schemaは4つの非削除操作のみでschema testsがdelete操作を拒否し、`allowDelete`例示設定もbuilderで拒否する。一方、正式runtime入口・Python Drive adapter・runtime package acceptance・実行可能before/after mutation testsは存在せず、完全なsource/config/package/runtime negative-capability proofではない | 削除API・削除コマンドを追加しない。正式入口とPython adapterが実装される段階で、source/config/contracts/package全体のnegative testsとbefore/after mutation testsを追加し、生成パッケージの実際の内容を検査する | 元ログ削除／Drive削除の実行経路・設定がないことを実装済みソース、設定、契約、配布物、runtime境界にわたる検査とCIで確認すること。現状は限定的な静的部分証拠のみ |
+| P0-012 | P0-A | 安全性確認 | 全ランタイム処理、テスト、配布物 | 2026-10-27要件改訂。現1.0 request schemaは4操作でdeleteを拒否し、設定例は汎用allowDeleteを拒否する。これらは現インターフェースの限定証拠で、新しい2経路のruntime完了ではない。正式入口・条件付き元削除・before/after runtime検証は未実装。過去PRの全面削除禁止監査は当時の範囲に保持。 | 2経路/Q5/役割と対象同一性・期間を契約化し、実装再開指示後に対応するsource/config/contract/package/runtimeの正負試験を追加する。文書見直し中は削除コード/schemaを追加しない。 | 許可した元だけ削除し、内容不一致/元変更/確認不能/対象外/誤役割は保全・拒否。Bのarchive/cloud削除拒否、Dry Run無変更、再実行/結果不明照合を隔離合成データで検証する。実データ削除/本番適用は別の具体的指示が必要。 |
 
 ## 仕様書で既に明確な基準
 
@@ -85,203 +87,203 @@
 完了にする際は、変更ファイル、テストコマンド／CI実行結果、関連PRを記録する。文書を更新しただけではランタイム動作の検証完了としない。
 
 
-## Current audit disposition — PR #70 merge baseline
+## 現在の監査処理 — PR #70 ベースラインをマージ
 
-- Tracked-tree baseline: `2b5d4266df9130ad532707dec8727a7623b3c9e2` (PR #70 merge).
+- 追跡ツリー ベースライン: `2b5d4266df9130ad532707dec8727a7623b3c9e2` (PR #70 マージ)。
 - P0-010: **作業中／未完了**。The source audit §2.1 currently has no source-section row marked `Unmapped`, but this only records source-to-requirement ID coverage. Remaining Partial rows need clause-level disposition across implementation state, executable test state, and objective evidence. Runtime entry points, orchestration, and IPC harness remain absent; SEL-RT-01–10 and IPC-01–06 are not implemented/not run. Documentation CI is not runtime acceptance evidence.
 - P0-012: **未完了**。The current static safety audit is partial evidence only. Python Drive adapter and official runtime entry points are absent; no full runtime/package negative-capability proof exists. Keep deletion functionality excluded; do not close this item based on schema or source scans alone.
-- Status consistency rule: use each requirement row's actual evidence state; never promote a requirement to verified based only on documentation, schema shape, or package-builder checks when the requirement concerns runtime behavior.
-- Next focus: reconcile the highest-risk traceability rows for CFG-001/004/005/006/007, ARC-001–006, DRV-011–016, MAN-004–012 against the source audit and open-specification decisions. Preserve blocked decisions and do not infer schemas, status aggregation, freshness, auth, release, or scheduler policies.
+- ステータスの一貫性ルール: 各要件行の実際の証拠の状態を使用します。要件が実行時の動作に関するものである場合、ドキュメント、スキーマ形状、またはパッケージ ビルダーのチェックのみに基づいて要件を 確認済み に昇格させないでください。
+- 次の焦点: CFG-001/004/005/006/007、ARC-001–006、DRV-011–016、MAN-004–012 の最もリスクの高いトレーサビリティ行を、ソース監査およびオープン仕様の決定と照合します。ブロックされた決定を保持し、スキーマ、ステータス集約、鮮度、認証、リリース、またはスケジューラ ポリシーを推測しません。
 
 
-### P0-010 follow-up — C-29 retry and unknown upload outcome (PR #95 scope)
+### P0-010 フォローアップ — C-29 再試行および 不明 アップロード結果 (PR #95 スコープ)
 
-- Source audit and runtime scenario catalogue cross-reference EOLM-DRV-001/002/003/006/008/009/010 and RETRY-01–06.
-- The current tree still has no Python Drive adapter, official PowerShell retry orchestrator, complete Drive listing/reconciliation, or executable retry/unknown-outcome tests. This is a documentation and traceability improvement only.
-- A failed or partial Drive query is unknown, not proof of absence. Retry is permitted only after complete reconciliation establishes the contract-defined safe condition; OSD-01 still blocks trust decisions for pre-existing unmarked objects.
+- ソース監査およびランタイム シナリオ カタログの相互参照 EOLM-DRV-001/002/003/006/008/009/010 および RETRY-01–06。
+- 現在のツリーには、Python ドライブ アダプター、公式の PowerShell 再試行オーケストレーター、完了 ドライブのリスト/調整、または実行可能な再試行/不明 結果テストがまだありません。これは文書化とトレーサビリティの改善のみです。
+- 失敗した または部分的なドライブ クエリは 不明 であり、不在の証明ではありません。再試行は、完了 調整によって契約で定義された安全な条件が確立された後にのみ許可されます。 OSD-01 は、既存のマークされていないオブジェクトに対する信頼の決定を依然としてブロックします。
 - P0-010 remains **作業中／未完了**. P0-012 remains **未完了**; no deletion-capability claim is upgraded by this change.
 
 
-### P0-010 follow-up — C-26 manifest schema and status evidence (PR #100 scope)
+### P0-010 フォローアップ — C-26 マニフェスト スキーマとステータス証拠 (PR #100 スコープ)
 
-- The maintenance manifest is specified in prose, but no dedicated manifest schema, reader/writer, latest-run resolver, transition validator, or runtime archive gate exists.
-- contracts/drive-response.schema.json is the Drive adapter response envelope; it is not the maintenance manifest schema.
-- OSD-02 blocks the schema/transition baseline; OSD-03 blocks exhaustive run/period aggregation; EOLM-MAN-011 blocks freshness-dependent archive acceptance. Do not infer values or transitions.
-- P0-010 and P0-012 remain open. This audit update is not runtime acceptance evidence.
+- メンテナンス マニフェストは散文で指定されていますが、専用のマニフェスト スキーマ、リーダー/ライター、最新実行リゾルバー、遷移バリデーター、またはランタイム アーカイブ ゲートは存在しません。
+- contracts/drive-response.schema.json はドライブ アダプターの応答エンベロープです。これはメンテナンス マニフェスト スキーマではありません。
+- OSD-02 はスキーマ/遷移ベースラインをブロックします。 OSD-03 は、徹底的な実行/期間の集計をブロックします。 EOLM-MAN-011 は、鮮度に依存するアーカイブの受け入れをブロックします。値や遷移を推測しないでください。
+- P0-010 と P0-012 は開いたままです。この監査更新は、実行時の受け入れの証拠ではありません。
 
 
-### P0-010 follow-up — manifest and IPC evidence reconciliation (PR #124 scope)
+### P0-010 フォローアップ — マニフェストと IPC 証拠の調整 (PR #124 範囲)
 
-- The maintenance manifest v1 field specification and narrow policy clarifications are approved; the complete transition table is not fully normative. EOLM-MAN-011 numeric policy is approved: configurable 5-minute future tolerance, configurable 24-hour freshness threshold applied to current-execution timestamps only, and fail-closed behavior when reliable current UTC is unavailable. Runtime enforcement and executable tests remain pending.
-- OSD-03 aggregation policy and the separate derived-report representation are approved. Report schema, frozen-inventory canonicalization, atomic publication/recovery/consistency validation, implementation, and executable tests remain pending. PR #116 remains proposal-only and has a stale base.
-- MAN-01–10 and IPC-01–06 remain not implemented/not run. Drive request/response schema tests are not maintenance-manifest validation or process-boundary tests.
-- P0-010/P0-012 remain open; no runtime acceptance or deletion-capability absence is inferred from docs CI.
+- メンテナンス マニフェスト v1 のフィールド仕様と狭いポリシーの明確化が承認されました。 完了 遷移表は完全に規範的なものではありません。 EOLM-MAN-011 数値ポリシーが承認されました: 構成可能な 5 分の将来の許容範囲、現在の実行タイムスタンプのみに適用される構成可能な 24 時間の鮮度しきい値、および信頼できる現在の UTC が 利用不能 の場合のフェールクローズ動作。ランタイム強制と実行可能テストは 未確定 のままです。
+- OSD-03 集計ポリシーと個別の派生レポート表現が承認されています。レポート スキーマ、凍結されたインベントリの正規化、アトミックな公開/回復/整合性検証、実装、および実行可能テストは 未確定 のままです。 PR #116 は提案のみであり、ベースが古いです。
+- MAN-01–10 および IPC-01–06 は実装されていない/実行されていないままです。ドライブのリクエスト/レスポンス スキーマ テストは、メンテナンス マニフェストの検証やプロセス境界のテストではありません。
+- P0-010/P0-012 は開いたままです。ドキュメント CI からは、ランタイムの受け入れまたは削除機能の欠如が推測されます。
 
 
-### P0-010 follow-up — diagnostic C-45–C-54 helper evidence (PRs #140/#141)
+### P0-010 フォローアップ — 診断 C-45–C-54 補助証拠 (PR #140/#141)
 
-- docs/validation/diagnostic-contract-test-evidence.md now maps the approved C-45–C-54 clauses to current helper code, synthetic tests, CI evidence, and explicit gaps.
-- PR #140 implements a standalone schema-v1 finalizer and the approved 1024-Unicode-scalar path cap; PR #141 implements a per-run event-ID counter helper. Neither integrates these helpers into runtime orchestration.
-- PR #144 adds the pure C-50 token-to-code helper under approved Option A; PR #146 adds the pure C-51 operation-to-phase resolver under approved input Option C and synthetic CI tests. Producer-side precedence enforcement, semantic operation selection, event ID propagation, conflicting event identity detection, raw JSON duplicate-property rejection, runtime sink non-disclosure, and end-to-end diagnostic evidence remain unimplemented/not run.
-- Exact-head helper/schema/package CI does not close P0-008 or P0-010; P0-012 remains open because complete source/config/contract/package/runtime no-delete proof is absent.
+- docs/archive/validation/diagnostic-contract-test-evidence.md は、承認された C-45–C-54 句を現在のヘルパー コード、合成テスト、CI 証拠、および明示的なギャップにマップするようになりました。
+- PR #140 は、スタンドアロンの schema-v1 ファイナライザーと承認された 1024-Unicode-scalar パス キャップを実装します。 PR #141 は、実行ごとのイベント ID カウンター ヘルパーを実装します。どちらも、これらのヘルパーをランタイム オーケストレーションに統合しません。
+- PR #144 は、承認されたオプション A に純粋な C-50 トークンからコードへのヘルパーを追加します。 PR #146 は、承認された入力オプション C および合成 CI テストの下で、純粋な C-51 動作対位相リゾルバーを追加します。プロデューサー側の優先順位の強制、セマンティック操作の選択、イベント ID の伝播、競合するイベント ID の検出、未加工の JSON 重複プロパティの拒否、ランタイム シンクの非公開、およびエンドツーエンドの診断証拠は未実装のまま/実行されません。
+- 正確なヘッドのヘルパー/スキーマ/パッケージ CI は P0-008 または P0-010 を閉じません。 完了 ソース/config/contract/package/実行時の削除禁止 証明がないため、P0-012 は開いたままになります。
 
 
-### OSD-02 timestamp/freshness policy decision — PR scope (2026-10-21)
+### OSD-02 タイムスタンプ/鮮度ポリシーの決定 — PR スコープ (2026-10-21)
 
-- Resolved by maintainer approval: UTC ISO 8601 `Z` timestamps; reject malformed, offset-form, timezone-less, and unparseable values; reject finish-before-start.
-- Approved configurable defaults: future-time tolerance 5 minutes; freshness threshold 24 hours.
-- Freshness checks cover timestamps generated/updated during the current execution only. Historical manifests are not rejected solely due to age.
-- Assume host OS time synchronization is configured; if current UTC cannot be obtained reliably, time-dependent operations fail closed. No separate monitoring service is required.
-- Remaining gap: executable fixed-clock tests and runtime validation are not implemented/evidenced. OSD-02 still has crash/concurrency/latest-manifest and transition work; OSD-03/P0-008/P0-010/P0-012 remain open.
+- メンテナの承認により解決されました: UTC ISO 8601 `Z` タイムスタンプ。不正な形式、オフセット形式、タイムゾーンのない、解析不可能な値を拒否します。開始前に終了を拒否します。
+- 承認された構成可能なデフォルト: 将来の許容範囲 5 分。鮮度閾値24時間。
+- 鮮度チェックでは、現在の実行中に生成/更新されたタイムスタンプのみが対象となります。歴史的なマニフェストは、経過時間だけを理由に拒否されるわけではありません。
+- ホスト OS の時刻同期が構成されていると仮定します。現在の UTC を確実に取得できない場合、時間依存の操作はフェールクローズされます。個別の監視サービスは必要ありません。
+- 残りのギャップ: 実行可能な固定クロック テストとランタイム検証が実装されておらず、証明されていません。 OSD-02 にはクラッシュ/同時実行/最新マニフェストと移行作業がまだ残っています。 OSD-03/P0-008/P0-010/P0-012 は開いたままになります。
 
 
-## OSD-02 approved crash/concurrency/latest-manifest policy (2026-10-21)
+## OSD-02 がクラッシュ/同時実行/最新マニフェスト ポリシーを承認しました (2026-10-21)
 
-Maintainer approved C1-A/C2-C/C3-B/C4-A. C1-A requires validated same-directory temporary writes, atomic create-if-absent, compare-before-replace, and fail-closed behavior when guarantees are unavailable. C2-C requires a per-scope OS named mutex plus exclusive ownership-token lock record; stale lock recovery is explicit and must verify the owner is gone. C3-B preserves crash-left `running` history and creates a new `run_id` only after recovery checks, with a fresh inventory and reconciliation of uncertain uploads. C4-A selects only a unique maximum validated `started_at_utc` for the exact PC/log-type/period scope; ties, malformed/conflicting candidates, read errors, or incomplete enumeration block operation, and there is no fallback to an older success. Timestamp freshness/future tolerance are not lock or retry timeouts.
+メンテナは C1-A/C2-C/C3-B/C4-A を承認しました。 C1-A では、保証が 利用不能 の場合、検証済みの同じディレクトリへの一時書き込み、アトミックな存在しない場合の作成、置換前の比較、およびフェールクローズ動作が必要です。 C2-C には、mutex という名前のスコープごとの OS と排他的所有権トークン ロック レコードが必要です。古いロックの回復は明示的であり、所有者がいなくなっていることを確認する必要があります。 C3-B は、クラッシュ時に残された `running` 履歴を保存し、回復チェック後にのみ、新しいインベントリと不確実なアップロードの調整を使用して、新しい `run_id` を作成します。 C4-A は、正確な PC/ログタイプ/期間スコープに対して、検証された一意の最大値 `started_at_utc` のみを選択します。同点、不正な形式/競合する候補、読み取りエラー、または 未完了 列挙ブロック操作が発生し、古い 成功 へのフォールバックはありません。タイムスタンプの鮮度/将来の許容範囲は、ロックまたは再試行タイムアウトではありません。
 
-Synthetic tests for crash points, concurrent create/update, lock ownership/recovery, interrupted runs, uncertain uploads, and resolver ambiguity are required but **not yet executed/evidenced**. These decisions do not claim runtime implementation or close P0-008/P0-010/P0-012.
+クラッシュ時点、同時作成・更新、ロックの所有権と復旧、処理の中断、アップロード結果不明、候補選択の曖昧さを扱う合成試験が必要である。この判断を記録した時点では、これらの試験は**実行されておらず、結果の証拠も記録されていなかった**。仕様の決定だけで、実行時の処理を実装済みとしたり、P0-008/P0-010/P0-012を完了扱いにしたりしてはならない。
 
 
-## Maintainer-approved OSD-03 report contract (2026-10-21)
+## メンテナ承認の OSD-03 レポート契約 (2026-10-21)
 
-The maintainer explicitly approved **R1-B, R2-A, R3-B, R4-A, R5-A, R6-A, R7-A**. This settles the report-contract options but does not constitute an executable JSON Schema, runtime implementation, or test evidence.
+メンテナは、**R1-B、R2-A、R3-B、R4-A、R5-A、R6-A、R7-A** を明示的に承認しました。これはレポート契約オプションを決定しますが、実行可能 JSON Schema、ランタイム実装、またはテスト証拠を構成するものではありません。
 
-- **R1-B — summaries only:** period entries contain counts and completion state, not duplicated per-target rows. Validate the eligible inventory and per-file outcomes against immutable run-input evidence and the originating manifest.
-- **R2-A — tuple identity:** report identity is exactly (pc_id, log_type, run_id, report_schema_version). Omit report_id; derive the canonical filename from that tuple. Do not add fields to manifest v1.
-- **R3-B — content-bound references:** manifest_ref and evidence_ref each include canonical relative path, schema version, and lowercase 64-character SHA-256 of exact validated bytes. Validate referenced artifact identity against the report tuple. Reject absolute paths, traversal, identity mismatch, malformed digest, or changed bytes.
-- **R4-A — reuse OSD-02 controls:** use unique same-directory temp files, flush/close, read-back validation, and atomic create-if-absent; reuse the existing per-PC maintenance lock during normal publication. Regeneration/recovery must acquire the same named mutex plus ownership-token lock record. Existing same-identity identical bytes are idempotent; different bytes are a conflict and are never overwritten. Remove a temp file only when ownership is proven; orphan temp files are non-authoritative and must not be removed based on age alone.
-- **R5-A — deterministic regeneration:** regenerate only from the exact validated manifest plus immutable B2 run-input evidence. Never re-scan mutable source directories to reconstruct historical inventory. Validate identity, inventory digest, all counts, and error scope. If inputs are incomplete/unavailable, remain unresolved. Identical output is idempotent; different content for the same identity is a conflict.
-- **R6-A — three-state period completion:** complete only if all eligible targets for the period are verified and no relevant error affects it; incomplete for known failed/unknown targets or known relevant errors; indeterminate if required evidence is missing, malformed, conflicting, or unverifiable. Never map indeterminate to complete. These are report-only values and must not be added to manifest run-status enums.
-- **R7-A — separate local/Drive states:** local validated publication is authoritative. Drive replication is a separate verified step; replication failure does not invalidate/delete the local artifact. Do not claim cross-PC availability until the Drive copy's identity and exact content are verified.
-- Recompute all summary counts from the referenced manifest and B2 evidence. Reject missing/duplicate period rows, target accounting mismatch, inventory digest/count mismatch, report/manifest/evidence identity mismatch, and inconsistent error scope. generated_at_utc uses UTC ISO 8601 uppercase Z and approved future-time validation; report age alone does not invalidate immutable historical evidence.
-- Required synthetic acceptance tests are specified but **not yet executed/evidenced**. Runtime implementation, executable schema, and operational evidence remain pending. No P0 item is closed by this documentation change.
+- **R1-B — 概要のみ:** 期間エントリには、ターゲットごとの重複した行ではなく、カウントと完了状態が含まれます。不変の実行入力証拠および元のマニフェストに対して、適格なインベントリとファイルごとの結果を検証します。
+- **R2-A — タプル ID:** レポート ID は正確に (pc_id、log_type、run_id、report_schema_version) です。 report_id を省略します。そのタプルから正規のファイル名を導出します。マニフェスト v1 にはフィールドを追加しないでください。
+- **R3-B — コンテンツ バインドされた参照:** manifest_ref および evidence_ref にはそれぞれ、正規の相対パス、スキーマ バージョン、および正確に検証されたバイトの小文字の 64 文字 SHA-256 が含まれます。参照された成果物の ID をレポート タプルに対して検証します。絶対パス、トラバーサル、同一性 不一致、不正な形式のダイジェスト、または変更されたバイトを拒否します。
+- **R4-A — OSD-02 コントロールを再利用します。** は、同じディレクトリにある一意の一時ファイル、フラッシュ/クローズ、リードバック検証、およびアトミックな存在しない場合の作成を使用します。通常の公開中に既存の PC ごとのメンテナンス ロックを再利用します。再生成/回復では、同じ名前のミューテックスと所有権トークンのロック レコードを取得する必要があります。既存の同一性の同一バイトは冪等です。異なるバイトは競合し、上書きされることはありません。一時ファイルは、所有権が証明された場合にのみ削除してください。孤立した一時ファイルには権限がないため、経過時間だけを理由に削除してはなりません。
+- **R5-A — 決定論的再生成:** 正確に検証されたマニフェストと不変の B2 実行入力証拠からのみ再生成します。過去のインベントリを再構築するために、変更可能なソース ディレクトリを再スキャンしないでください。 ID、インベントリダイジェスト、すべてのカウント、およびエラー範囲を検証します。入力が 未完了/利用不能 の場合は、未解決のままになります。同一の出力は冪等です。同じ同一性に対する異なるコンテンツは競合です。
+- **R6-A — 3 状態の期間完了:** 完了 期間のすべての適格なターゲットが 確認済み であり、それに影響する関連エラーがない場合のみ。既知の 失敗した/不明 ターゲットまたは既知の関連エラーの場合は 未完了。 確定不能 必要な証拠が欠落している、形式が間違っている、矛盾している、または検証できない場合。 確定不能 を 完了 にマップしないでください。これらはレポート専用の値であり、マニフェストの実行ステータス列挙型に追加しないでください。
+- **R7-A — ローカル/ドライブの個別の状態:** ローカルで検証されたパブリケーションが信頼可能です。ドライブのレプリケーションは別の 確認済み ステップです。レプリケーション 失敗 はローカル 成果物を無効化/削除しません。ドライブ コピーの ID と正確なコンテンツが 確認済み になるまで、PC 間での可用性を主張しないでください。
+- 参照されたマニフェストと B2 証拠からすべてのサマリー カウントを再計算します。欠落/重複した期間行、ターゲット会計 不一致、一覧ダイジェスト/カウント 不一致、レポート/マニフェスト/証拠 ID 不一致、および一貫性のないエラー範囲を拒否します。 generated_at_utc は UTC ISO 8601 大文字の Z と承認された将来の検証を使用します。報告の経過時間だけでは、不変の歴史的証拠が無効になるわけではありません。
+- 必要な合成受け入れテストが指定されていますが、**まだ実行/証明されていません**。ランタイム実装、実行可能スキーマ、および運用上の証拠は 未確定 のままです。このドキュメントの変更によって閉じられる P0 項目はありません。
 
 
-## OSD-03 executable schema implementation slice — PR #150 (2026-10-21)
+## OSD-03 実行可能スキーマ実装スライス — PR #150 (2026-10-21)
 
-- Added `contracts/aggregation-report-v1.schema.json` as a strict Draft 2020-12 structural schema candidate for the approved R1–R7 report shape. It rejects unknown properties, `report_id`, unsupported/non-integer report schema versions, invalid enums/count types, non-UTC-Z timestamps, malformed lowercase SHA-256 values, and non-canonical relative paths.
-- Added schema-definition and synthetic structural-contract tests in `tests/test_contract_schemas.py`. They cover partial-failure and zero-work examples, all three period completion values, strict versioning, unknown fields, reference path/hash validation, timestamp form, enums/counts, and run-scope error shape.
-- These tests are authored but **not yet executed/evidenced** in this PR. CI must pass on the exact latest PR HEAD before merge. No runtime report reader/writer, cross-artifact digest verification, tuple/path binding, count recomputation, deterministic regeneration, atomic publication, lock integration, or Drive replication implementation is included in this slice.
-- The JSON Schema validates structure only. Cross-field and cross-artifact invariants remain mandatory fail-closed runtime checks; schema acceptance alone is not proof of report correctness or authorization for any side effect.
-- No manifest v1 fields, B2 evidence contract, A2 digest contract, or OSD-02 safety boundaries are changed. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion.
+- 承認された R1 ～ R7 レポート形式の厳密なドラフト 2020-12 構造スキーマ候補として `contracts/aggregation-report-v1.schema.json` を追加しました。 不明 プロパティ、`report_id`、サポートされていない/非整数のレポート スキーマ バージョン、無効な列挙型/カウント タイプ、非 UTC-Z タイムスタンプ、不正な形式の小文字 SHA-256 値、および非正規相対パスは拒否されます。
+- `tests/test_contract_schemas.py` にスキーマ定義と合成構造契約テストを追加しました。部分的な 失敗 およびゼロ作業の例、3 つの期間完了値すべて、厳密なバージョン管理、不明 フィールド、参照パス/ハッシュ検証、タイムスタンプ形式、列挙型/カウント、および実行スコープのエラー形状をカバーしています。
+- これらのテストは作成されていますが、この PR では **まだ実行も証拠化もされていません** が証明されています。 CI は、マージ前に正確な最新の PR HEAD を渡す必要があります。このスライスには、ランタイム レポート リーダー/ライター、クロス 成果物 ダイジェスト検証、タプル/パス バインディング、カウント再計算、確定的再生成、アトミック パブリケーション、ロック統合、またはドライブ レプリケーションの実装は含まれません。
+- JSON Schema は構造のみを検証します。クロスフィールドおよびクロス成果物の不変条件は引き続き必須のフェールクローズ実行時チェックです。スキーマの受け入れだけでは、レポートの正確性や副作用の承認の証拠にはなりません。
+- マニフェスト v1 フィールド、B2 証拠コントラクト、A2 ダイジェスト コントラクト、または OSD-02 安全境界は変更されません。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。
 
 
-## PR #151 status note — OSD-03 internal consistency slice (2026-10-22)
+## PR #151 ステータスメモ — OSD-03 内部整合性スライス (2026-10-22)
 
-PR #150 merged the structural aggregation-report v1 JSON Schema and its synthetic schema tests; PR-head and post-merge CI passed. PR #151 adds a report-local PowerShell consistency validator and synthetic tests for period uniqueness, safe reference paths/digest shape, summary count reconciliation, completion consistency, run-scope error count, and zero-work/success consistency. Until PR #151 CI passes on its exact latest HEAD, these tests are authored but not yet verified. This slice does not validate exact referenced manifest/evidence bytes, B2/A2 integrity, full target-set completeness, cross-artifact identity, deterministic regeneration, atomic publication, lock ownership, or Drive replication. P0 acceptance remains open.
+PR #150 は、構造集約レポート v1 JSON Schema とその合成スキーマ テストをマージしました。 PR ヘッドとマージ後の CI が合格しました。 PR #151 は、レポートローカルの PowerShell 一貫性検証機能と、期間の一意性、安全な参照パス/ダイジェスト形状、要約数の調整、完了の一貫性、実行スコープのエラー数、およびゼロ作業/成功 の一貫性についての合成テストを追加します。 PR #151 CI がその正確な最新の HEAD を渡すまで、これらのテストは作成されますが、まだ 確認済み は作成されていません。このスライスは、正確に参照されるマニフェスト/証拠バイト、B2/A2 整合性、完全なターゲット セットの完全性、クロス成果物 ID、決定論的再生成、アトミック パブリケーション、ロック所有権、またはドライブ レプリケーションを検証しません。 P0 の受付は引き続き受け付けております。
 
-## OSD-03 status correction — 2026-10-22
+## OSD-03 ステータス修正 — 2026-10-22
 
-PR #151 is merged at `e93f0ea552496831c69efb1e8dd2818ac86f4e5b`. Validate and Package Validation passed on exact PR HEAD `846cfdbb1ce76f3ec1363460c4f0576b7c10a2b6` (runs `39635268289`, `39635268115`) and on the post-merge commit (runs `39636402422`, `39636402408`). The report-local consistency validator is now implemented and CI-verified within its stated scope. PR #152 adds a narrow exact-byte reference verifier; its tests are not yet CI-verified. Neither PR implements full manifest/B2 schema validation, identity binding, A2 digest recomputation, exhaustive target/count reconciliation, deterministic report regeneration, atomic publication, lock recovery, or Drive replication. P0 acceptance remains open.
+PR #151 は `e93f0ea552496831c69efb1e8dd2818ac86f4e5b` にマージされます。検証およびパッケージ検証は、正確な PR HEAD `846cfdbb1ce76f3ec1363460c4f0576b7c10a2b6` (`39635268289`、`39635268115` を実行) およびマージ後のコミット (`39636402422`、`39636402408` を実行) に渡されます。レポートローカル整合性検証機能が実装され、CI ～ 確認済み はその指定された範囲内に収まります。 PR #152 は、狭い正確なバイト参照検証機能を追加します。そのテストはまだ CI-確認済み ではありません。どちらの PR も、完全なマニフェスト/B2 スキーマ検証、ID バインディング、A2 ダイジェスト再計算、徹底的なターゲット/カウント調整、決定論的レポート再生成、アトミック パブリケーション、ロック回復、またはドライブ レプリケーションを実装していません。 P0 の受付は引き続き受け付けております。
 
-## PR #155 update — referenced-artifact schema and identity validation
+## PR #155 更新 — 参照される成果物のスキーマと ID 検証
 
-PR #155 introduces a standalone validation path for derived aggregation reports: it validates the report and the exact manifest/evidence bytes referenced by it, checks raw-byte SHA-256 values, and compares `run_id`, `pc_id`, and `log_type`. The runtime package builder is extended to include the validator, three schemas, and the declared `jsonschema` dependency. This is a bounded runtime helper, not completion of the corresponding P0 acceptance gate: official entry-point integration, live Drive revalidation, locks/recovery, A2/B2 canonical digest computation and exhaustive count reconciliation, and production-like end-to-end acceptance remain open. No deletion capability is added.
+PR #155 は、派生集計レポート用のスタンドアロン検証パスを導入します。レポートとそれが参照する正確なマニフェスト/証拠バイトを検証し、生バイトの SHA-256 値をチェックし、`run_id`、`pc_id`、および `log_type` を比較します。ランタイム パッケージ ビルダーは、バリデータ、3 つのスキーマ、および宣言された `jsonschema` 依存関係を含むように拡張されています。これは制限されたランタイム ヘルパーであり、対応する P0 受け入れゲートの完了ではありません。公式のエントリ ポイント統合、ライブ ドライブの再検証、ロック/リカバリ、A2/B2 正規ダイジェスト計算と徹底的なカウント調整、および運用環境のようなエンドツーエンドの受け入れは開いたままになります。削除機能は追加されません。
 
 
-## OSD-03 / B2 evidence integrity update — 2026-10-22
+## OSD-03 / B2 証拠完全性更新 — 2026-10-22
 
-PR #155 is merged at `2cd982ddd19cb3b1d19dec0051b1d8a0cf0993c0`; its report-referenced artifact schema/identity helper passed exact-head Validate and Package Validation. PR #156 adds a separate validation-only helper for A2 inventory digest recomputation, B2 canonical evidence digest recomputation, strict evidence schema validation, and completed-enumeration count reconciliation. Its CI and merge status must be verified from the exact PR head. Neither helper currently proves source enumeration completeness, reconciles the embedded evidence inventory against the originating manifest, integrates with official sync/archive entry points, or provides lock/recovery/Drive revalidation. P0 remains open.
+PR #155 は `2cd982ddd19cb3b1d19dec0051b1d8a0cf0993c0` にマージされます。そのレポート参照成果物 スキーマ/同一性 ヘルパーは、正確な対象HEADのValidate と Package Validation を渡しました。 PR #156 は、A2 インベントリ ダイジェストの再計算、B2 正規証拠ダイジェストの再計算、厳密な証拠スキーマの検証、および完了列挙数の調整のための別個の検証専用ヘルパーを追加します。その CI およびマージ ステータスは、正確な PR ヘッドからの 確認済み である必要があります。現在、どちらのヘルパーも、ソース列挙の完全性を証明したり、埋め込まれた証拠インベントリを元のマニフェストと照合したり、公式の同期/アーカイブ エントリ ポイントと統合したり、ロック/回復/ドライブの再検証を提供したりすることはありません。 P0 は開いたままになります。
 
 
-## OSD-03 cross-artifact inventory binding update — 2026-10-22
+## OSD-03 クロス成果物インベントリバインディング更新 — 2026-10-22
 
-PR #156 merged at `7881fe0f74699dd8aceb1e72e48a4c583c6597cd`. Exact-head Validate run `39644692787` and Package Validation run `39644693181` succeeded on `21fa869f222f2b88b7c0ecef20f2313b9ce7c515`. PR #157 connects A2/B2 digest and count validation to the report-referenced artifact verifier and compares the embedded B2 target set against manifest `files` by relative path, filename, size, and SHA-256. PR #157 CI is pending; verify its exact latest head before merge. This still does not prove complete source enumeration or implement official sync/archive entry points, atomic publication, locks/recovery, or Drive revalidation. P0 remains open.
+PR #156 は `7881fe0f74699dd8aceb1e72e48a4c583c6597cd` にマージされました。正確なヘッド検証の実行 `39644692787` とパッケージ検証の実行 `39644693181` が `21fa869f222f2b88b7c0ecef20f2313b9ce7c515` で成功しました。 PR #157 は、A2/B2 ダイジェストとカウント検証をレポート参照成果物検証器に接続し、埋め込まれた B2 ターゲット セットを相対パス、ファイル名、サイズ、SHA-256 によってマニフェスト `files` と比較します。 PR #157 CI は 未確定 です。マージ前に正確な最新のヘッドを確認してください。これはまだ、完了 ソースの列挙を証明したり、公式の同期/アーカイブ エントリ ポイント、アトミック パブリケーション、ロック/リカバリ、またはドライブの再検証を実装したりするものではありません。 P0 は開いたままになります。
 
 
-## PR #157 verified; runtime entry-point gate — 2026-10-22
+## PR #157 確認済み;ランタイムエントリポイントゲート — 2026-10-22
 
-PR #157 merged at `33eb450e226914130c34e80cb3bd140776195fd5`. Exact-head Validate run `39645428388` and Package Validation run `39645428425` both passed on `a6efdeb4fc31e1f5be1607cc15bd44a229fbed98`. Post-merge main workflows `39645706354` and `39645706352` require final-status confirmation.
+PR #157 は `33eb450e226914130c34e80cb3bd140776195fd5` にマージされました。 正確な対象HEADのValidate 実行 `39645428388` と Package Validation 実行 `39645428425` は両方とも `a6efdeb4fc31e1f5be1607cc15bd44a229fbed98` に合格しました。マージ後のメイン ワークフロー `39645706354` および `39645706352` では、最終ステータスの確認が必要です。
 
-The repository still has no official `scripts/SyncLogs.ps1` or `scripts/ArchiveLogs.ps1`; the artifact/report validators remain standalone helpers. PR #158 documents the minimum runtime integration gate, validation ordering, sync/archive separation, failure behavior, locking/publication/recovery requirements, and synthetic acceptance criteria. This is a design contract, not an implementation. Source enumeration/frozen inventory, evidence writer, lock/recovery, atomic publication, current Drive verification, and official runtime integration remain open. P0 remains open.
+リポジトリにはまだ正式な `scripts/SyncLogs.ps1` または `scripts/ArchiveLogs.ps1` がありません。成果物/レポートバリデーターはスタンドアロンのヘルパーのままです。 PR #158 には、最小限のランタイム統合ゲート、検証の順序、同期/アーカイブの分離、失敗 の動作、ロック/公開/回復要件、総合的な受け入れ基準が文書化されています。これは設計契約であり、実装ではありません。ソースの列挙/凍結インベントリ、証拠ライター、ロック/リカバリ、アトミック パブリケーション、現在のドライブの検証、および公式のランタイム統合はオープンなままです。 P0 は開いたままになります。
 
 
-## PR #159 — read-only source inventory and B2 evidence construction (2026-10-22)
+## PR #159 — 読み取り専用ソース インベントリと B2 証拠構築 (2026-10-22)
 
-PR #159 adds `Common/SourceInventoryEvidenceBuilder.py` and synthetic tests for deterministic source traversal, filename/date eligibility, SHA-256 target records, invalid filename diagnostics, safe relative paths, and B2 evidence serialization. The builder marks enumeration incomplete when traversal, file reads, or stable-hash checks fail; `serialize_evidence` validates the existing strict schema plus A2/B2 integrity and count invariants, then returns bytes without writing them. This does not yet implement atomic publication, locking/recovery, official entry-point integration, Drive operations, archive, or deletion. Exact-head CI and post-merge CI must be verified before considering this slice complete. P0 remains open.
+PR #159 は、確定的なソース トラバーサル、ファイル名/日付の適格性、SHA-256 ターゲット レコード、無効なファイル名診断、安全な相対パス、および B2 証拠シリアル化のための `Common/SourceInventoryEvidenceBuilder.py` および合成テストを追加します。ビルダーは、トラバーサル、ファイル読み取り、または安定したハッシュ チェックが失敗した場合、列挙型 未完了 をマークします。 `serialize_evidence` は、既存の厳密なスキーマと A2/B2 の整合性およびカウントの不変条件を検証し、バイトを書き込まずに返します。これには、アトミックな公開、ロック/リカバリ、公式のエントリポイント統合、ドライブ操作、アーカイブ、または削除はまだ実装されていません。このスライス 完了 を考慮する前に、正確なヘッド CI とマージ後の CI は 確認済み である必要があります。 P0 は開いたままになります。
 
 
-## PR #160 — atomic no-overwrite artifact publication primitive (2026-10-22)
+## PR #160 — アトミックな上書きなしの成果物 パブリケーション プリミティブ (2026-10-22)
 
-PR #160 adds a single-artifact publication helper that writes a same-directory temporary file, flushes and fsyncs it, then uses atomic hard-link creation to expose complete bytes without replacing an existing destination. An exact-byte retry is idempotent; conflicting bytes, non-regular destinations, and unsupported atomic-link behavior fail closed. Synthetic tests cover success, idempotency, conflict preservation, atomic-link failure, and symlink rejection. This is not a multi-artifact transaction and does not implement run locks, crash recovery, directory durability guarantees, official entrypoint integration, Drive operations, archive, or deletion. Exact-head and post-merge CI remain mandatory. P0 remains open.
+PR #160 は、同じディレクトリの一時ファイルを書き込み、フラッシュして fsync し、アトミック ハードリンク作成を使用して、既存の宛先を置き換えることなく 完了 バイトを公開する単一成果物 パブリケーション ヘルパーを追加します。正確なバイトの再試行はべき等です。競合するバイト、非正規の宛先、およびサポートされていないアトミック リンクの動作はフェール クローズされます。合成テストは、成功、冪等性、競合保存、アトミック リンク 失敗、およびシンボリックリンクの拒否をカバーします。これはマルチ 成果物 トランザクションではなく、実行ロック、クラッシュ回復、ディレクトリ耐久性保証、公式エントリポイント統合、ドライブ操作、アーカイブ、削除は実装されていません。正確なヘッドとマージ後の CI は引き続き必須です。 P0 は開いたままになります。
 
 
-## PR #161 — lock ownership and crash-recovery acceptance gate (2026-10-22)
+## PR #161 — ロックの所有権とクラッシュ回復承認ゲート (2026-10-22)
 
-`docs/validation/lock-recovery-acceptance-gate.md` records the approved OSD-02 lock/recovery safety boundary and a synthetic acceptance matrix. It requires a per-PC OS named mutex paired with an exclusive ownership-token record, bounded acquisition, fail-closed ownership mismatch handling, no age/PID-only stale-lock takeover, immutable crash-left `running` manifests, new `run_id` and fresh inventory after validated recovery, and reconciliation of uncertain Drive outcomes before retry. This PR is documentation/planning only: no lock implementation, recovery mutation, Drive operations, archive, deletion, or official entry-point integration. P0 remains open; runtime acceptance is not established.
+`docs/validation/lock-recovery-acceptance-gate.md` は、承認された OSD-02 ロック/リカバリの安全境界と合成許容マトリックスを記録します。これには、排他的所有権トークン レコードとペアになった mutex という名前の PC ごとの OS、制限付き取得、フェイルクローズされた所有権 不一致 処理、経過時間/PID のみの古いロックの引き継ぎなし、不変のクラッシュ左 `running` マニフェスト、検証済みの回復後の新しい `run_id` と新しいインベントリ、および再試行前の不確実なドライブ結果の調整が必要です。この PR はドキュメント/計画のみです。ロックの実装、回復の変更、ドライブの操作、アーカイブ、削除、または公式のエントリポイントの統合はありません。 P0 は開いたままです。実行時の受け入れが確立されていません。
 
 
-## PR #162 — isolated owned-run lock primitive (2026-10-22; pending CI)
+## PR #162 — 分離された所有実行ロック プリミティブ (2026-10-22; 未確定 CI)
 
-Adds `Common/OwnedRunLock.py` and synthetic tests for a Windows named mutex paired with an exclusive owner-token record. It uses a maximum 60-second acquisition timeout, strict record shape/token validation, and only removes the record when its token still matches the current owner. Existing records and abandoned-mutex state fail closed; this slice does not recover stale/crash-left records, mutate manifests, enumerate sources, call Drive, archive/delete, or integrate official entry points. CI must be checked on the exact PR HEAD. P0 remains open.
+`Common/OwnedRunLock.py` と、排他的な所有者トークン レコードとペアになった Windows 名前付きミューテックスの合成テストを追加します。最大 60 秒の取得タイムアウト、厳格なレコード形状/トークン検証を使用し、トークンが現在の所有者とまだ一致する場合にのみレコードを削除します。既存のレコードと放棄されたミューテックス状態はフェールクローズされます。このスライスは、古い/クラッシュしたままになったレコードの回復、マニフェストの変更、ソースの列挙、ドライブの呼び出し、アーカイブ/削除、または公式エントリ ポイントの統合を行いません。 CI は正確な PR HEAD で確認する必要があります。 P0 は開いたままになります。
 
 
-## PR #163 — pure crash-recovery decision gate (2026-10-22; pending CI)
+## PR #163 — 純粋なクラッシュ回復決定ゲート (2026-10-22; 未確定 CI)
 
-Adds `Common/CrashRecoveryDecision.py` and synthetic tests. Recovery is eligible only when the mutex is abandoned, the lock record is structurally valid and matches the expected scope/host, prior-owner termination is confirmed, the latest manifest candidate is unique, the prior manifest passes strict Manifest v1 schema validation and identity checks as a crash-left `running` record, and Drive reconciliation is complete or not required with zero unresolved uploads. The helper only returns a decision; it does not mutate records/manifests, create runs, enumerate sources, call Drive, archive/delete, or integrate entry points. P0 remains open.
+`Common/CrashRecoveryDecision.py` および合成テストを追加します。リカバリの対象となるのは、ミューテックスが破棄され、ロック レコードが構造的に有効で、予想されるスコープ/ホストと一致し、以前の所有者の終了が確認され、最新のマニフェスト候補が一意で、以前のマニフェストが厳格なマニフェスト v1 スキーマ検証とクラッシュ放置された `running` レコードとしての ID チェックに合格し、ドライブの調整が 完了 であるか、未解決のアップロードがゼロで不要である場合にのみ適格です。ヘルパーは決定を返すだけです。レコード/マニフェストの変更、実行の作成、ソースの列挙、ドライブの呼び出し、アーカイブ/削除、エントリ ポイントの統合は行いません。 P0 は開いたままになります。
 
 
-## PR #164 — pure artifact-set recovery classifier (2026-10-22; pending CI)
+## PR #164 — 純粋な成果物セットのリカバリ分類子 (2026-10-22; 未確定 CI)
 
-Adds `Common/ArtifactSetRecovery.py` and synthetic tests to classify expected, staged, published, and commit-marker evidence using SHA-256 values. It reports committed only when the marker is strict and matches the complete published artifact set. Partial publication or marker-missing states remain uncommitted, require reconciliation, and preserve existing artifacts. This is not a finalized multi-artifact transaction protocol and performs no filesystem publication/recovery, manifest writes, Drive calls, archive, deletion, or entry-point integration. P0 remains open.
+`Common/ArtifactSetRecovery.py` および合成テストを追加し、SHA-256 値を使用して予想証拠、段階証拠、公開証拠、およびコミットマーカー証拠を分類します。マーカーが厳密で、完了 公開された成果物 セットと一致する場合にのみ、コミット済みと報告されます。部分的な公開またはマーカー欠落状態はコミットされないままとなり、調整が必要となり、既存の成果物が保存されます。これは最終的なマルチ 成果物 トランザクション プロトコルではなく、ファイル システムの公開/回復、マニフェストの書き込み、ドライブの呼び出し、アーカイブ、削除、またはエントリ ポイントの統合は実行されません。 P0 は開いたままになります。
 
 
-## PR #165 — marker-last artifact-set publication helper (2026-10-22; pending CI)
+## PR #165 — マーカー最後の成果物 セットのパブリケーション ヘルパー (2026-10-22; 未確定 CI)
 
-Adds a bounded helper composing the single-artifact atomic no-overwrite primitive. It publishes named artifacts in deterministic order and publishes a transaction marker last. Synthetic filesystem tests cover normal completion, injected mid-set failure, idempotent retry, content conflict, invalid input, and concurrent identical publishers. Failure preserves already-published artifacts; there is no rollback/cleanup and no cross-file atomicity. The helper is not integrated with manifests, Drive, archive/delete, or official entry points. P0 remains open.
+単一成果物のアトミックな上書きなしプリミティブを構成する境界付きヘルパーを追加します。名前付き成果物を決定的な順序で公開し、トランザクション マーカーを最後に公開します。合成ファイルシステムのテストでは、正常な完了、挿入されたミッドセット 失敗、冪等の再試行、コンテンツの競合、無効な入力、および同一のパブリッシャーの同時実行が対象になります。失敗すると、すでに公開された成果物が保持されます。ロールバック/クリーンアップやファイル間のアトミック性はありません。ヘルパーは、マニフェスト、ドライブ、アーカイブ/削除、または公式エントリ ポイントとは統合されていません。 P0 は開いたままになります。
 
 
-## PR #166 — artifact-set directory verification evidence (2026-10-22)
+## PR #166 — 成果物 セット ディレクトリ検証証拠 (2026-10-22)
 
-The isolated `Common/ArtifactSetDirectoryVerification.py` helper verifies a single on-disk directory snapshot using observed file bytes and strict marker parsing; synthetic tests cover valid, missing-marker, partial, tampered, malformed, unexpected-entry, and symlink states. It is read-only and does not close P0 runtime safety gaps. Verification is point-in-time only; lock-protected use, target-filesystem durability/concurrency, official entrypoint integration, Drive revalidation, end-to-end acceptance, archive, and deletion remain open. Do not mark P0 complete from these helper tests.
+分離された `Common/ArtifactSetDirectoryVerification.py` ヘルパーは、監視されたファイル バイトと厳密なマーカー解析を使用して、単一のディスク上のディレクトリ スナップショットを検証します。合成テストは、有効な状態、マーカーの欠落状態、部分的な状態、改ざんされた状態、不正な形式の状態、予期しないエントリの状態、およびシンボリックリンクの状態をカバーします。これは読み取り専用であり、P0 ランタイムの安全性のギャップを埋めることはできません。検証は特定の時点のみで行われます。ロック保護された使用、ターゲット ファイル システムの耐久性/同時実行性、公式エントリポイントの統合、ドライブの再検証、エンドツーエンドの受け入れ、アーカイブ、および削除はオープンなままです。これらのヘルパー テストから P0 完了 をマークしないでください。
 
 
-## Cross-process artifact publication evidence (PR #167; verified 2026-10-22)
+## クロスプロセス成果物の公開証拠 (PR #167; 確認済み 2026-10-22)
 
-The spawned-process synthetic test for competing marker-last publishers with conflicting bytes is merged. PR-head Validate `39701085065` and Package Validation `39701084975` succeeded; post-merge main Validate `39702034526` and Package Validation `39702034521` succeeded on merge commit `f979a5200d48a7ccccfed6ad31de07529bd340df`. This evidence is limited to the hosted Windows runner's temporary local filesystem. It does not close network/Drive semantics, power-loss durability, lock integration, verification-to-use race prevention, official entrypoint integration, runtime no-deletion proof, or E2E acceptance.
+競合するバイトを持つ競合するマーカー最後のパブリッシャーに対する生成されたプロセス合成テストがマージされます。 PR ヘッドの検証 `39701085065` とパッケージの検証 `39701084975` は成功しました。マージ後のメイン検証 `39702034526` とパッケージ検証 `39702034521` がマージ コミット `f979a5200d48a7ccccfed6ad31de07529bd340df` で成功しました。この証拠は、ホストされた Windows ランナーの一時ローカル ファイル システムに限定されます。ネットワーク/ドライブのセマンティクス、電力損失の耐久性、ロックの統合、検証から使用までの競合防止、公式のエントリポイントの統合、ランタイムの非削除証明、または E2E の受け入れを終了するものではありません。
 
-## Target-filesystem acceptance gate (2026-10-22)
+## ターゲット ファイルシステムの受け入れゲート (2026-10-22)
 
-`docs/validation/target-filesystem-acceptance.md` defines Tier A hosted CI, Tier B disposable local-volume tests on each operator PC, and Tier C separately gated synchronized/network target qualification. Tier B and Tier C have not been run. Do not treat CI success as proof of operator-PC, Google Drive for desktop, network filesystem, remote visibility, or power-loss durability. P0 remains open.
+`docs/validation/target-filesystem-acceptance.md` は、各オペレーター PC 上の Tier A ホスト型 CI、Tier B 使い捨てローカル ボリューム テスト、および個別にゲートされた同期/ネットワーク ターゲット認定 Tier C を定義します。 Tier B および Tier C は実行されていません。 CI 成功 をオペレーター PC の証明として、Google Drive をデスクトップ、ネットワーク ファイル システム、リモート可視性、または停電耐久性の証明として扱わないでください。 P0 は開いたままになります。
 
-## Actual process-crash boundary evidence (2026-10-23)
+## 実際のプロセスとクラッシュの境界証拠 (2026-10-23)
 
-P0-010/P0-012 remain open. The test-only crash harness adds fresh-process verification and idempotent retry after actual termination at each completed-file publication boundary. No runtime module, Drive operation, archive or source/Drive deletion is introduced. This is synthetic OS-temp evidence only, not Tier B/C or power-loss qualification.
+P0-010/P0-012 は開いたままです。テスト専用のクラッシュ ハーネスでは、完了したファイルのパブリケーション境界ごとに実際の終了後にフレッシュ プロセスの検証と冪等な再試行が追加されます。ランタイム モジュール、ドライブ操作、アーカイブ、またはソース/ドライブの削除は導入されていません。これは総合的な OS 温度の証拠のみであり、Tier B/C や電力損失の認定ではありません。
 
-## Owned publication/recovery integration evidence (2026-10-23)
+## 所有する出版物/リカバリ統合証拠 (2026-10-23)
 
-Real Windows mutex tests now compose ownership, publication, directory revalidation and pure recovery decisions using synthetic temporary files. Contention, abandonment, owner mismatch and changed bytes fail closed; prior manifests/records remain intact. This does not implement operational stale-record adoption or close P0-010/P0-012. Tier B/C and official runtime integration remain open.
+実際の Windows ミューテックス テストは、合成一時ファイルを使用して、所有権、公開、ディレクトリの再検証、および純粋な回復の決定を構成するようになりました。競合、放棄、所有者 不一致 および変更されたバイトはフェールクローズされます。以前のマニフェスト/記録はそのまま残ります。これは、運用上の古いレコードの採用や P0-010/P0-012 の終了を実装するものではありません。 Tier B/C と公式ランタイム統合は引き続きオープンです。
 
-## Read-only active configuration structure slice (2026-10-23)
+## 読み取り専用のアクティブな構成構造スライス (2026-10-23)
 
-Common/MachineConfiguration.ps1 adds a shared strict structure parser/read-only UTF-8 reader and 285 synthetic assertions for required fields, duplicate/unknown/type/role failures, maintenanceLocal overlap and non-mutation. P0-006/P0-009/P0-010/P0-012 remain open: no physical approved-root gate, actual-volume authorization, bootstrap/migration or official runtime integration is established. Template defaults remain separately restricted.
+Common/MachineConfiguration.ps1 は、共有厳密構造パーサー/読み取り専用 UTF-8 リーダーと、必須フィールド、重複/不明/タイプ/ロールの失敗、メンテナンスローカルの重複および非突然変異に対する 285 合成アサーションを追加します。 P0-006/P0-009/P0-010/P0-012 は開いたままになります。物理的に承認されたルート ゲート、実際のボリュームの認証、ブートストラップ/移行、または公式のランタイム統合は確立されていません。テンプレートのデフォルトは個別に制限されたままになります。
 
-Create-only bootstrap helper (2026-10-23): Common/MachineConfigurationBootstrap.ps1 adds opt-in safe-example initialization and byte-preservation for existing settings. Tests cover both PC roles and sanitized failures. This is not a production installer, migration/OSD-09 approval, physical runtime gate, or P0 closure; the earlier read-only-loader note describes PR #9 scope.
+作成専用ブートストラップ ヘルパー (2026-10-23): Common/MachineConfigurationBootstrap.ps1 は、既存の設定に対するオプトインのセーフ サンプル初期化とバイト保存を追加します。テストは、PC の役割とサニタイズされた障害の両方を対象としています。これは、実稼働インストーラー、移行/OSD-09 承認、物理的なランタイム ゲート、または P0 クロージャではありません。前述の読み取り専用ローダー ノートでは、PR #9 のスコープについて説明しています。
 
-Source inventory follow-up (2026-10-23): opened-handle identity checks (PR #12) and lstat root/ancestor/entry reparse rejection close reproduced read/traversal gaps. They do not establish an atomic source snapshot, cross-root physical separation or protection through later use. P0 acceptance and full Tier B/C remain open.
+ソース インベントリ フォローアップ (2026-10-23): オープン ハンドル ID チェック (PR #12) および lstat ルート/祖先/エントリ再解析拒否により、再現された読み取り/トラバーサル ギャップが閉じられます。これらは、アトミックなソース スナップショット、クロスルートの物理的分離、または後で使用する際の保護を確立しません。 P0 の受け入れと完全な Tier B/C はオープンのままです。
 
-Existing-root inspection slice (2026-10-23): a read-only PowerShell helper adds existing-directory/reparse checks and maintenanceLocal comparison in normalized volume-GUID paths. This is partial metadata evidence, not approved-root authority, filesystem qualification, later-use protection, official runtime integration or P0 closure. OS-temp root tests do not extend the recorded intended-volume Tier B suite.
+既存のルート検査スライス (2026-10-23): 読み取り専用の PowerShell ヘルパーは、正規化されたボリューム GUID パスでの既存のディレクトリ/再解析チェックとメンテナンス ローカル比較を追加します。これは部分的なメタデータの証拠であり、承認されたルート権限、ファイルシステムの認定、後で使用する保護、公式のランタイム統合、または P0 クロージャではありません。 OS-temp ルート テストは、記録された対象ボリューム Tier B スイートを拡張しません。
 
-Latest selection slice (2026-10-23): [C4 selection core](../design/latest-manifest-selection.md) adds defined filename/JSON identity checks, unique-start-time selection and no older-success fallback, with 32 supplied-observation tests. The separate directory adapter below adds bounded enumeration/read checks; approved-root authority, protection through later use, full semantic/Drive checks and operational recovery remain incomplete. P0-010/P0-012 remain open.
+最新の選択スライス (2026-10-23): [C4 選択コア](../design/reference/latest-manifest-selection.md) は、定義されたファイル名/JSON の ID チェック、一意の開始時間の選択、および古い 成功 フォールバックなしを追加します。32 は提供された観察テストを備えています。以下の別個のディレクトリ アダプタは、制限された列挙/読み取りチェックを追加します。承認されたルート権限、後の使用による保護、完全なセマンティック/ドライブ チェック、および操作上の回復は 未完了 のままです。 P0-010/P0-012 は開いたままになります。
 
-Read-only directory slice (2026-10-23): ManifestDirectoryReader adds fixed per-PC directory observations, descriptor/path identity checks, final rescan and an exact validated byte snapshot. Nineteen synthetic tests cover bounded failures; approved-root authority, protection through later use, full semantic/Drive validation and operational recovery remain incomplete. P0-010/P0-012 remain open.
+読み取り専用ディレクトリ スライス (2026-10-23): ManifestDirectoryReader は、PC ごとの固定ディレクトリ監視、記述子/パス ID チェック、最終再スキャン、および正確に検証されたバイト スナップショットを追加します。 19 の総合テストは限界のある失敗をカバーします。承認されたルート権限、後の使用による保護、完全なセマンティック/ドライブ検証、および操作上の回復は 未完了 のままです。 P0-010/P0-012 は開いたままになります。
 
-Recovery composition slice (2026-10-23): seven synthetic latest-directory/classifier tests and the existing real Windows abandonment scenario now use checked byte snapshots. Read ambiguity and latest failure block classification; stale acquisition still blocks after a positive decision. Snapshot-to-use protection and actual disposition/new-run creation remain incomplete. P0-010/P0-012 stay open.
+リカバリ構成スライス (2026-10-23): 7 つの合成最新ディレクトリ/分類子テストと既存の実際の Windows 放棄シナリオでは、チェックされたバイトのスナップショットが使用されるようになりました。曖昧さと最新の 失敗 ブロック分類を読み取ります。古い買収は肯定的な決定の後でもブロックされます。使用するスナップショットの保護と実際の処理/新しい実行の作成は 未完了 のままです。 P0-010/P0-012 は開いたままにしてください。
 
-Explicit recovery design (2026-10-23): the dedicated-command direction is approved, with normal sync refusal retained. [Diagnosis/planning contract](../design/explicit-recovery-command-design.md) defines DIAG-01 through DIAG-10 as pending tests, not executed evidence. No stale-lock state change or runtime entrypoint is added. P0-010/P0-012 remain open.
+明示的リカバリ設計 (2026-10-23): 専用コマンドの方向が承認され、通常の同期拒否は維持されます。 [診断・プランニング契約](../design/explicit-recovery-command-design.md) は、実行された証拠ではなく、DIAG-01 から DIAG-10 までを 未確定 テストとして定義します。古いロック状態の変更やランタイム エントリポイントは追加されません。 P0-010/P0-012 は開いたままになります。
 
-Recovery diagnostic model slice (2026-10-23): a pure non-authorizing result model accepts explicit fixed gate observations and exports allowlisted scope/reasons only. Twelve synthetic boundary tests do not establish real evidence acquisition, diagnostic mutex lifecycle, the full DIAG command matrix, runtime acceptance or P0 closure.
+回復診断モデル スライス (2026-10-23): 純粋な非承認結果モデルは、明示的な固定ゲートの観察を受け入れ、ホワイトリストに登録されたスコープ/理由のみをエクスポートします。 12 の合成境界テストでは、実際の証拠の取得、診断ミューテックスのライフサイクル、完全な DIAG コマンド マトリックス、実行時の受け入れ、または P0 クロージャは確立されません。
 
-Diagnostic lease slice (2026-10-23): record-free mutex helper and 13 synthetic tests add bounded DIAG-03/04/05 evidence. Existing normal ownership refusal, old records, formal entrypoint/role guards and P0 gaps remain. Legacy v1 records still lack persistent process identity; the proposed v2-only recovery direction needs maintainer judgment.
+診断リース スライス (2026-10-23): レコードフリーのミューテックス ヘルパーと 13 合成テストにより、制限付きの DIAG-03/04/05 証拠が追加されます。既存の通常の所有権の拒否、古いレコード、正式なエントリポイント/ロール ガード、および P0 ギャップが残ります。レガシー v1 レコードには依然として永続的なプロセス ID がありません。提案されている v2 のみのリカバリの方向性については、保守者の判断が必要です。
 
-Owner-evidence design (2026-10-23): approved v1-preserve/v2-only direction now has a logical evidence contract and pending OWNER-01 through OWNER-06. No executable provider/schema/migration or production recovery is added. Private evidence storage/ACL/retention policy is the next maintainer decision; P0 remains open.
+所有者証拠設計 (2026-10-23): 承認された v1 保持/v2 のみの方向には、論理証拠契約と 未確定 OWNER-01 から OWNER-06 が含まれるようになりました。実行可能なプロバイダー/スキーマ/移行または運用リカバリは追加されません。プライベート証拠ストレージ/ACL/保持ポリシーは、次に管理者が決定することになります。 P0 は開いたままになります。
 
-Private evidence slice (2026-10-23): approved private maintenanceLocal/no-auto-deletion design now has strict metadata schema and in-memory raw-size/SHA-256 validation (13 synthetic tests). Static schema is packaged; synthetic private originals are excluded. Actual persistence, ACLs, protected publication, execution-account policy, STORE matrix and P0/Tier B acceptance remain incomplete.
+プライベート証拠スライス (2026-10-23): 承認されたプライベート メンテナンスローカル/自動削除なしの設計には、厳密なメタデータ スキーマとメモリ内生サイズ/SHA-256 検証 (13 合成テスト) が含まれるようになりました。静的スキーマはパッケージ化されています。合成の私的オリジナルは除外されます。実際の永続性、ACL、保護されたパブリケーション、実行アカウント ポリシー、STORE マトリックス、および P0/Tier B の受け入れは、未完了 のままです。
 
-Private ACL profile slice (2026-10-23): same-account-per-PC direction is approved. A pure conservative file-ACL profile adds 13 synthetic observation tests, without real descriptor/token queries, effective access, directory ancestry or safe creation. Matching is non-authorizing; actual ACL/STORE-01/P0/Tier B acceptance remains incomplete.
+プライベート ACL プロファイル スライス (2026-10-23): PC ごとに同じアカウントの方向が承認されています。純粋に保守的なファイル ACL プロファイルには、実際の記述子/トークンのクエリ、効果的なアクセス、ディレクトリの祖先、または安全な作成を行わない、13 合成観察テストが追加されます。マッチングは承認されていません。実際の ACL/STORE-01/P0/Tier B の受け入れは 未完了 のままです。
 
-Descriptor normalization slice (2026-10-23): six PowerShell/Python tests use sixteen synthetic binary descriptors to connect normalization to the conservative file ACL profile. SID-bearing observations remain internal; real OS ACL/token acquisition, effective access, ancestors, safe creation and STORE-01 remain unimplemented. Initial logged-on-only operation is approved; exact C-24 staggered monthly times remain a maintainer decision.
+記述子正規化スライス (2026-10-23): 6 つの PowerShell/Python テストでは、16 個の合成バイナリ記述子を使用して、正規化を保守的なファイル ACL プロファイルに接続します。 SID を伴う観測は内部に残ります。実際の OS ACL/トークンの取得、有効なアクセス、祖先、安全な作成、および STORE-01 は未実装のままです。初期のログオンのみの操作は承認されます。正確な C-24 月次時間をずらすかどうかは、引き続きメンテナーの決定によって決まります。
 
-Monthly-time observation slice (2026-10-23): C-24 monthly dates/times are approved and a pure non-authorizing boundary helper has 12 fixed-clock tests. Task/completion records, missed-run compensation, PC-A hourly budget, retry and runtime rollout remain incomplete. No P0/Tier B closure.
+月次時間観測スライス (2026-10-23): C-24 月次日付/時刻が承認され、純粋な非承認境界ヘルパーには 12 固定クロック テストがあります。タスク/完了レコード、実行ミスの補正、PC-A 時間予算、再試行およびランタイム ロールアウトは 未完了 のままです。 P0/Tier B クロージャーはありません。
 
-PC-A confirmation-budget slice (2026-10-23): the 24-hour/25-attempt upper bound is approved and a pure assessment/immutable-history helper has 16 synthetic tests. Runtime persistence/binding, atomic attempt accounting, latest-manifest/Drive integration, actual hourly tasks and explicit resume remain incomplete. Deadline expiry only holds; P0/Tier B stay open.
+PC-A 確認予算スライス (2026-10-23): 24 時間/25 試行の上限が承認され、純粋な評価/不変履歴ヘルパーには 16 合成テストがあります。ランタイム永続性/バインディング、アトミック試行アカウンティング、最新マニフェスト/ドライブ統合、実際の時間単位のタスク、および明示的な再開は 未完了 のままです。期限の有効期限のみが適用されます。 P0/Tier B は開いたままにしてください。

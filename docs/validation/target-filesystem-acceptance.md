@@ -1,220 +1,142 @@
-# Target-Filesystem and Crash-Recovery Acceptance Plan
+# ターゲット ファイル システムとクラッシュ リカバリの受け入れ計画
 
-- Status: required acceptance gate; planning only.
-- Date: 2026-10-22.
-- Scope: local publication primitives, artifact-set marker protocol, directory verification, and eventual official entrypoint integration.
-- This document authorizes no production-log access, Google Drive writes, archive, or deletion.
+- ステータス: 受け入れゲートが必要です。企画のみ。
+- 日付: 2026-10-22。
+- 範囲: ローカル パブリケーション プリミティブ、成果物 セット マーカー プロトコル、ディレクトリ検証、および最終的な公式エントリポイント統合。
+- この文書では、運用ログへのアクセス、Google Drive の書き込み、アーカイブ、削除は許可されていません。
 
-## 1. Evidence boundary
+## 1. 証拠の境界線
 
-Current CI exercises temporary directories on the hosted Windows runner. It provides useful evidence for the tested runner/filesystem and code path only. It does not establish behavior on either operator PC, a Google Drive for desktop mount, a network filesystem, after power loss, or across an actual host restart. Do not infer these properties from a green workflow.
+現在の CI は、ホストされている Windows ランナー上で一時ディレクトリを実行します。これは、テストされたランナー/ファイルシステムとコード パスのみに関する有用な証拠を提供します。停電後、または実際のホストの再起動後のオペレータ PC、デスクトップ マウント用の Google Drive、ネットワーク ファイル システムの動作は確立されません。これらのプロパティをグリーン ワークフローから推測しないでください。
 
-Acceptance evidence must identify the exact environment, not just say "Windows":
-- PC role (PC-A or PC-B), Windows build, PowerShell/Python versions, and repository commit.
-- Volume and filesystem type for the test root; whether it is a local fixed disk, removable disk, network path, or Google Drive for desktop sync folder.
-- Google Drive for desktop version and sync state if a mounted/synchronized path is ever tested.
-- Test timestamp, scenario ID, process exit outcomes, observed directory entries, artifact SHA-256 values, marker contents, and sanitized failure code.
-- Whether the run is a CI synthetic test, local disposable-directory test, or actual target-filesystem test.
+受け入れ証拠では、単に「Windows」と言うだけでなく、正確な環境を特定する必要があります。
+- PC ロール (PC-A または PC-B)、Windows ビルド、PowerShell/Python バージョン、およびリポジトリ コミット。
+- テスト ルートのボリュームとファイルシステムのタイプ。それがローカルの固定ディスク、リムーバブル ディスク、ネットワーク パス、またはデスクトップ同期フォルダーの Google Drive であるかどうか。
+- マウント・同期されたパスを試験する場合は、デスクトップ版 Google Drive のバージョンと同期状態。
+- テストのタイムスタンプ、シナリオ ID、プロセス終了結果、観察されたディレクトリ エントリ、成果物 SHA-256 値、マーカーの内容、およびサニタイズされた 失敗 コード。
+- 実行が CI 合成テスト、ローカルの使い捨てディレクトリ テスト、または実際のターゲット ファイルシステム テストのいずれであるか。
 
-Never put credentials, user paths outside the explicitly approved test root, or production log names/content in acceptance evidence.
+認証情報、明示的に承認されたテスト ルート外のユーザー パス、または運用ログ名/コンテンツを受け入れ証拠に含めないでください。
 
-## 2. Required test tiers
+## 2. 必要なテスト層
 
-### Tier A — deterministic synthetic CI tests
+### Tier A — 決定論的合成 CI テスト
 
-Continue to run the current marker-last publication, directory verification, recovery classification, and spawned-process conflict tests on the Windows CI runner. These tests must be deterministic, bounded, use temporary directories, and never touch production paths. Inject failures at each publication boundary: before the first artifact, between every adjacent artifact pair, immediately before marker publication, and immediately after marker publication. After each injected failure, inspect on-disk state and verify that no incomplete set is classified as committed.
+Windows CI ランナー上で、現在のマーカーの最後のパブリケーション、ディレクトリ検証、リカバリ分類、および生成されたプロセスの競合テストの実行を続行します。これらのテストは決定的であり、制限されており、一時ディレクトリを使用し、運用パスには決して触れないようにする必要があります。各パブリケーション境界 (最初の成果物の前、すべての隣接する成果物 ペアの間、マーカー パブリケーションの直前、およびマーカー パブリケーションの直後) で障害を挿入します。 失敗 を挿入するたびに、ディスク上の状態を検査し、コミット済みとして分類されている 未完了 セットがないことを確認します。
 
-### Tier B — disposable local-volume acceptance on each operator PC
+### Tier B — 各オペレーター PC での使い捨てのローカルボリューム受け入れ
 
-Before runtime integration, run an explicit opt-in harness against a newly created disposable directory on the same local volume intended for maintenance artifacts. Do not use the real maintenance root or log folders. Validate:
-1. Exclusive no-overwrite publication for identical and conflicting bytes.
-2. Two-process publication race: one winner for conflicting sets, marker hashes match the winning bytes, no unexpected/temp entries remain after process exit.
-3. Process termination at every publication boundary, then a fresh-process directory inspection; a missing/invalid marker or partial set must never be accepted as committed.
-4. Idempotent retry for identical existing bytes and fail-closed behavior for conflicting bytes.
-5. Directory verifier rejects symlinks/reparse points, unexpected entries, malformed marker, missing artifacts, and read failures.
-6. Run-lock ownership and recovery decision are tested together; a helper-only test does not prove integration.
-7. Record whether the filesystem supports the required same-volume hard-link/no-overwrite primitive. Unsupported behavior must fail closed, not silently fall back to overwrite-capable publication.
+ランタイム統合の前に、メンテナンス 成果物用に、同じローカル ボリューム上に新しく作成された使い捨てディレクトリに対して明示的なオプトイン ハーネスを実行します。実際のメンテナンス ルート フォルダーやログ フォルダーは使用しないでください。検証:
+1. 同一バイトおよび競合するバイトに対する排他的な上書きなしのパブリケーション。
+2. 2 プロセスのパブリケーション レース: 競合するセットの 1 つの勝者、マーカー ハッシュは勝者のバイトと一致し、プロセス終了後に予期しない/一時エントリは残りません。
+3. すべてのパブリケーション境界でプロセスが終了し、その後、新規プロセスのディレクトリ検査が行われます。欠落または無効なマーカーまたは部分的なセットは、コミットされたものとして決して受け入れてはなりません。
+4. 同一の既存バイトに対する冪等再試行と、競合するバイトに対するフェールクローズ動作。
+5. ディレクトリ検証機能は、シンボリックリンク/再解析ポイント、予期しないエントリ、不正な形式のマーカー、欠落している成果物、および読み取りエラーを拒否します。
+6. ランロックの所有権と回復の決定は一緒にテストされます。ヘルパーのみのテストは統合を証明しません。
+7. ファイルシステムが必要な同一ボリュームのハードリンク/上書き禁止プリミティブをサポートしているかどうかを記録します。サポートされていない動作は、上書き可能なパブリケーションにサイレントにフォールバックするのではなく、フェールクローズする必要があります。
 
-The harness must refuse a path unless it is explicitly supplied as a disposable test root, and must print the resolved root before any writes. It must not accept a production log root, archive root, or shared Drive sync root.
+ハーネスは、使い捨てのテスト ルートとして明示的に指定されない限りパスを拒否し、書き込みの前に解決されたルートを出力する必要があります。運用ログ ルート、アーカイブ ルート、または共有ドライブ同期ルートを受け入れてはなりません。
 
-### Tier C — synchronized/network target qualification
+### Tier C — 同期/ネットワークターゲット認定
 
-Google Drive for desktop and any network/synchronized folder require a separate qualification, only after Tier B and review of the exact test plan. Use a dedicated disposable test folder with no real logs. Record the sync client state and verify remote visibility through an approved read-only observation mechanism. A local file appearing on a mounted drive is not proof that remote content is uploaded or durable.
+デスクトップおよびネットワーク/同期フォルダーの Google Drive には、Tier B と正確なテスト計画のレビューの後でのみ、別の認定が必要です。実際のログのない専用の使い捨てテスト フォルダーを使用します。同期クライアントの状態を記録し、承認された読み取り専用監視メカニズムを通じてリモートの可視性を確認します。マウントされたドライブ上に表示されるローカル ファイルは、リモート コンテンツが アップロード済み であるか耐久性があることを証明するものではありません。
 
-Test concurrent writers, local process crash/restart, offline/network interruption, delayed synchronization, duplicate/conflicting names, and reconciliation of uncertain outcomes. Do not claim power-loss durability unless it has been tested with a defensible method. If a behavior cannot be observed reliably, mark it unverified and block dependent destructive actions.
+同時ライター、ローカル プロセスのクラッシュ/再起動、オフライン/ネットワークの中断、同期の遅延、名前の重複/競合、不確実な結果の調整をテストします。防御可能な方法でテストされていない限り、電力損失の耐久性を主張しないでください。動作を確実に観察できない場合は、その動作を未検証としてマークし、依存する破壊的なアクションをブロックします。
 
-## 3. Required invariants
+## 3. 必須の不変条件
 
-- A marker is necessary but not sufficient: verify exact marker schema, transaction identity, expected artifact names, and hashes of observed bytes.
-- A partial set, markerless set, mismatched marker, unexpected entry, ambiguous transaction, or unavailable directory is never committed.
-- Publication never overwrites conflicting bytes and never removes pre-existing artifacts to "repair" a set.
-- Recovery creates a new run identity and fresh inventory; it does not rewrite a crash-left manifest into success.
-- A directory verification result is point-in-time evidence only. Any consumer must hold the approved ownership boundary and revalidate the bytes/identity at the point of use to address verification-to-use races.
-- If lock ownership, prior-owner termination, latest-manifest uniqueness, Drive reconciliation, filesystem capability, or observed state is uncertain, stop before archive or deletion.
-- No target-filesystem result grants permission to delete local source logs or Drive files. Destructive operations remain separately gated.
+- マーカーは必要ですが、十分ではありません。正確なマーカー スキーマ、トランザクション ID、予期される成果物名、および観察されたバイトのハッシュを確認してください。
+- 部分セット、マーカーのないセット、不一致のマーカー、予期しないエントリ、曖昧 トランザクション、または 利用不能 ディレクトリはコミットされません。
+- パブリケーションは、競合するバイトを上書きしたり、セットを「修復」するために既存の成果物を削除したりすることはありません。
+- リカバリにより、新しい実行 ID と新しいインベントリが作成されます。クラッシュ放置されたマニフェストを 成功 に書き換えることはありません。
+- ディレクトリ検証結果は、特定時点の証拠のみです。すべてのコンシューマは、承認された所有権境界を保持し、検証と使用の競合に対処するために使用時にバイト/ID を再検証する必要があります。
+- ロックの所有権、以前の所有者の終了、最新のマニフェストの一意性、ドライブの調整、ファイルシステムの機能、または観察された状態が不確実な場合は、アーカイブまたは削除の前に停止してください。
+- ターゲット ファイル システムの結果がありません。ローカル ソース ログまたはドライブ ファイルを削除する権限が付与されません。破壊的な操作は個別にゲートされたままになります。
 
-## 4. Acceptance record and exit criteria
+## 4. 合格実績と退出基準
 
-For every tier, retain a concise record with commit SHA, OS/filesystem identity, test root category (never a sensitive full path), scenarios executed, pass/fail/unverified outcomes, sanitized reason codes, and artifact/marker digest comparisons. A green CI run satisfies Tier A only.
+すべての層について、コミット SHA、OS/ファイルシステム ID、テスト ルート カテゴリ (機密のフル パスは使用しないでください)、実行されたシナリオ、合格/失敗/未検証の結果、サニタイズされた理由コード、および成果物/マーカー ダイジェスト比較を含む簡潔な記録を保持します。緑色の CI 実行は Tier A のみを満たします。
 
-Do not connect official entrypoints until Tier A and Tier B pass, lock/recovery/publication/verification integration has its own tests, source-change races are covered, and the runtime-entrypoint safety gate is satisfied. Tier C remains mandatory before any behavior relies on a Google Drive/network target. Any unresolved or unobservable behavior is a blocker, not an inferred pass.
+Tier A および Tier B が合格し、ロック/リカバリ/パブリケーション/検証統合に独自のテストがあり、ソース変更の競合がカバーされ、ランタイム エントリポイントのセーフティ ゲートが満たされるまで、公式のエントリポイントに接続しないでください。 Tier C は、動作が Google Drive/ネットワーク ターゲットに依存する前に必須のままです。未解決または観察できない動作はすべてブロッカーであり、推測されたパスではありません。
 
-## 5. Current status
+## 5. 現在の状況
 
-- Tier A: historical source-repository CI passed on source commit `f979a5200d48a7ccccfed6ad31de07529bd340df`, including cross-process conflict publication. This is historical evidence, not a CI result for the new public repository or this PR; require fresh exact-head validation here.
-- Tier B: not run; no operator-PC filesystem qualification has been established.
-- Tier C: not run; Google Drive/network semantics and remote durability are unverified.
-- Official `scripts/SyncLogs.ps1` and PC-A-only `scripts/ArchiveLogs.ps1` are still absent. P0 remains open.
+- 層 A: 履歴ソース リポジトリ CI がソース コミット `f979a5200d48a7ccccfed6ad31de07529bd340df` で渡されました (プロセス間の競合パブリケーションを含む)。これは歴史的な証拠であり、新しいパブリック リポジトリまたはこの PR の CI 結果ではありません。ここでは新たなexact-head検証が必要です。
+- Tier B: 実行されていません。オペレーター PC のファイルシステム資格は確立されていません。
+- Tier C: 実行されていません。 Google Drive/ネットワーク セマンティクスとリモート耐久性は未検証です。
+- 公式の `scripts/SyncLogs.ps1` と PC-A のみの `scripts/ArchiveLogs.ps1` はまだ存在しません。 P0 は開いたままになります。
 
 
-## Synthetic crash-boundary harness (2026-10-23)
+## 合成衝突境界ハーネス (2026-10-23)
 
-`tests/crash_publication_harness.py` terminates only its own spawned publisher
-after a checkpoint before publication and after each completed atomic publish
-(two synthetic payloads, then marker). A fresh interpreter observes the directory
-before an exact-byte retry. Missing/partial sets must not be committed; only the
-complete marker-bound set is committed, and retry must preserve existing bytes.
-This covers process termination between completed single-file publications, not
-power loss or termination inside the atomic single-file primitive.
+`tests/crash_publication_harness.py` は、自分で起動した公開処理だけを、公開前のチェックポイントと、各アトミック公開の完了後（合成の2データ、続いてマーカー）に終了する。新しいインタープリターでディレクトリを観測してから、同一バイトで再試行する。欠落・部分集合を確定済みとしてはならず、マーカーで結合された完全な集合だけを確定し、再試行で既存バイトを保全する。完了した単一ファイル公開の間のプロセス終了を扱い、電源断やアトミックな単一ファイル操作の内部での終了は扱わない。
 
-The first harness slice is deliberately Tier A only: require explicit disposable
-acknowledgement and a new `eo-crash-harness-<32 lowercase hex digits>` directory
-directly beneath the resolved OS temp directory. Existing paths (including empty
-directories), relative/traversal paths, reparse ancestors, and non-fixed Windows
-temp volumes are rejected. No arbitrary target-volume/Drive/network path is
-accepted. Scenario artifacts are retained; the harness never cleans existing
-artifacts. The unittest owns and removes only its freshly created test root.
+最初のハーネスはTier Aに限定する。使い捨て領域であることの明示確認と、解決済みOS一時ディレクトリの直下にある新しい `eo-crash-harness-<32 lowercase hex digits>` ディレクトリを要求する。空ディレクトリを含む既存パス、相対・遡及パス、再解析ポイントの祖先、固定ドライブでない Windows の一時ボリュームを拒否する。任意の対象ボリューム・Drive・ネットワークのパスを受け付けない。シナリオ成果物を保持し、既存成果物は削除しない。unittestが所有・削除するのは、自分で新しく作った試験ルートだけである。
 
-Run the regression matrix using:
+以下を使用して回帰行列を実行します。
 
 ```powershell
 python -m unittest discover -s tests -p "test_crash_publication_harness.py" -v
 ```
 
-An explicit local-only invocation is also supported:
+明示的なローカルのみの呼び出しもサポートされています。
 
 ```powershell
 $disposableRoot = Join-Path ([IO.Path]::GetTempPath()) ("eo-crash-harness-" + [guid]::NewGuid().ToString("N"))
 python tests/crash_publication_harness.py --disposable-root $disposableRoot --acknowledge-disposable
 ```
 
-The CLI prints the requested root locally before writes for operator review;
-never copy that line into public evidence. Machine-readable results contain
-scenario IDs, exit codes and invariants, not private paths. Tier B/Tier C, lock
-integration, operator-volume qualification and runtime entry points remain open.
+CLIは書き込み前に、利用者の確認用として要求ルートをローカルに表示する。その行を公開証拠へ転記してはならない。機械可読な結果にはシナリオID、終了コード、不変条件を含め、個人のパスは含めない。Tier B/Tier C、ロック統合、利用者ボリュームの保証確認、正式な実行入口は未完である。
 
 
-## Opt-in intended-local-volume evidence
+## 意図されたローカル ボリュームの証拠をオプトインする
 
-`tests/run_local_volume_checks.py` requires PC role, expected local drive and
-explicit disposable acknowledgement. It accepts no arbitrary root path: the
-expected drive must match this checkout's fixed local volume. It runs the crash
-matrix and owned-publication tests using fresh UUID-named children of this
-checkout, with existing/reparse/known synchronized locations rejected.
-Default CI tests continue to use OS temp. Unknown environment modes are rejected.
+`tests/run_local_volume_checks.py` はPCの役割、予定ローカルドライブ、使い捨て領域の明示確認を要求する。任意のルートパスは受け付けず、予定ドライブがこのチェックアウトの固定ローカルボリュームと一致する必要がある。このチェックアウトの新規UUID名の子ディレクトリでクラッシュ行列・所有権付き公開試験を行い、既存・再解析・既知の同期場所を拒否する。既定の CI 試験は引き続きOS一時領域を使う。不明な環境モードは拒否する。
 
 ```powershell
 # Set $plannedVolume locally; do not commit its real value or any real paths.
 python tests/run_local_volume_checks.py --pc-role PC-B --expected-volume $plannedVolume --acknowledge-disposable
 ```
 
-Generated root directories are Git-ignored. The unittest removes only roots it
-created. JSON output includes role, source commit, UTC timestamp, Windows/Python
-versions, filesystem type, counts and sanitized result identifiers. It excludes
-absolute paths, volume letters/labels/serials, usernames, hostnames and lock tokens.
-A passing subset is explicitly recorded as incomplete Tier B acceptance:
-PC-A evidence, complete adversarial filesystem cases and remaining required
-integration/source-race acceptance are not inferred from these checks.
+生成するルートディレクトリはGitの無視対象である。unittestは自分で作成したルートだけを削除する。JSON 出力には役割、元コミット、UTC 時刻、Windows/Python の版、ファイルシステム種別、件数、匿名化した結果IDを含める。絶対パス、ボリューム文字・ラベル・シリアル、利用者名、ホスト名、ロックトークンは除外する。一部の成功は Tier B 受け入れの未完了として明記する。この検証から PC-A の証拠、敵対的ファイルシステム事例全体、残る統合・元ファイル競合の受け入れを推定しない。
 
-### Recorded partial PC-B evidence
+### PC-B の部分的な証拠を記録しました
 
-See [sanitized result](../../tests/evidence/pc-b-local-volume-20261023.json): 10 synthetic crash/ownership checks passed on the operator-confirmed intended local fixed NTFS volume, with no skips. The result names the exact tested source commit. It is not complete Tier B acceptance; PC-A and the remaining adversarial filesystem/integration/source-race matrix remain open. The evidence contains no real paths or volume letters.
+[サニタイズされた結果](../../tests/evidence/pc-b-local-volume-20261023.json) を参照してください: 10 合成クラッシュ/所有権チェックは、オペレーターが確認した意図したローカル固定 NTFS ボリュームにスキップなしで渡されました。結果は、テストされたソース コミットを正確に指定します。それは 完了 Tier B の受け入れではありません。 PC-A と残りの敵対的なファイルシステム/統合/ソース競合マトリックスは開いたままになります。証拠には実際のパスやボリューム文字は含まれていません。
 
 
-## Windows junction rejection regression (2026-10-23)
+## Windows 接合拒否回帰 (2026-10-23)
 
-The directory verifier now checks lstat-based symlink/reparse attributes on the
-requested directory, every lexical ancestor, and each observed entry before
-reading artifact bytes. This closes a reproduced Windows junction-root/ancestor
-gap where is_symlink alone did not detect junctions. Reparse uncertainty fails
-closed with sanitized reasons; no files are changed by verification.
-Checks are point-in-time defense-in-depth, not race-free path containment.
+ディレクトリ検証器は、成果物のバイトを読む前に、要求ディレクトリ、字句上の全祖先、観測した各エントリについて、lstatによるシンボリックリンク・再解析属性を確認する。is_symlink だけではジャンクションを検出できなかった、再現済みの Windows のルート・祖先の不足を補う。再解析の不確実性は匿名化した理由で安全側に拒否し、検証によってファイルを変更しない。各時点の多層防御であり、競合のないパス包含の保証ではない。
 
-The regression suite creates real junctions only inside fresh owned synthetic
-roots, asserts that root/ancestor rejection occurs before artifact read, rejects
-a junction under an expected artifact name, and injects a sanitized read failure
-without modifying existing bytes. CI runs this Windows suite; local-volume
-evidence now includes it. P0 and remaining Tier B/C gates stay open.
+回帰試験は、新しく所有する合成ルート内だけに実際のジャンクションを作る。成果物の読み取り前にルート・祖先を拒否し、予定成果物名の下のジャンクションを拒否し、既存バイトを変更せず匿名化した読み取り失敗を注入する。CI がこの Windows の試験群を実行し、ローカルボリュームの証拠にも含める。P0と残る Tier B/Cの実行条件は未完である。
 
-[PC-B reparse/read-failure follow-up](../../tests/evidence/pc-b-reparse-local-volume-20261023.json) records 14 passing checks with no skips, including actual junction roots/ancestors and injected read failure. It supersedes the earlier subset for these scenarios only; complete Tier B remains unaccepted.
+[PC-B 再解析/読み取り - 失敗 フォローアップ](../../tests/evidence/pc-b-reparse-local-volume-20261023.json) は、実際のジャンクション ルート/祖先および挿入された読み取り 失敗 を含む、スキップなしでチェックに合格した 14 を記録します。これは、これらのシナリオの場合にのみ、以前のサブセットを置き換えます。 完了 Tier B は受け入れられないままです。
 
-## Internal single-file crash boundaries (2026-10-23)
+## 単一ファイルの内部クラッシュ境界 (2026-10-23)
 
-The test-only crash harness now pauses the real single-file publisher after
-exclusive temporary creation, before/after fsync, and before/after the actual
-hard-link create. The parent terminates its own paused child without publisher
-cleanup. Each point is tested for both the first artifact and final marker:
-10 crash scenarios in 5 tests, plus invalid-scenario and missing-ack guards.
+試験専用のクラッシュハーネスは、実際の単一ファイル公開処理を、排他的な一時作成の後、fsyncの前後、実際のハードリンク作成の前後で停止させる。親は、自分の停止中の子を、公開処理の後片付けを行わせず終了する。最初の成果物と最終マーカーの両方で各箇所を試験する。5 件の試験で 10 のクラッシュシナリオを扱い、無効シナリオ・明示確認欠落の拒否も検証する。
 
-A fresh spawned observer inspects the leftovers and performs an exact-byte
-low-level retry. Each crash leaves an owned test temporary file. The directory
-verifier rejects that unexpected entry before and after retry, including when
-a complete marker was already linked. Retry preserves all observed bytes and
-does not remove the orphan. Thus a low-level publish result or visible marker
-alone is not completion/recovery authorization.
+新しく起動した観測プロセスが残存物を調べ、バイト列が完全に同じ低水準の再試行を行う。各クラッシュで、試験が所有する一時ファイルが残る。完了マーカーが既にリンクされていても、ディレクトリ検証は再試行の前後ともその想定外エントリを拒否する。再試行は観測した全バイトを保持し、孤立ファイルを削除しない。したがって、低水準の公開結果やマーカーが見えることだけでは、完了や復旧を許可できない。
 
-This supplements completed-file boundary tests; it does not change production
-publication/recovery code, authorize orphan cleanup, establish a full restart
-workflow or prove power-loss durability. Interception is limited to test child
-processes. All roots retain the existing fresh UUID/selected-parent/explicit-ack
-guards. Tests remove only their own synthetic root after assertions.
+完了ファイル境界の試験を補足する。製品の公開・復旧コードの変更、孤立ファイル削除の認可、再起動手順全体の確立、電源断耐久性の証明は行わない。割り込みは試験の子プロセス内に限る。全ルートで既存の新規UUID・選択した親・明示確認の条件を維持し、試験は検証後に自分の合成ルートだけを削除する。
 
-[PC-B internal-crash follow-up](../../tests/evidence/pc-b-internal-crash-local-volume-20261023.json) records 21 passing tests without skips on the operator-confirmed intended local fixed NTFS volume. This includes 10 internal crash scenarios and earlier boundary/ownership/reparse checks at source commit 63e5a4d5af674912940d8fa0ee26c726b06eb78b. Tier B remains incomplete; PC-A, remaining source-race and integration acceptance are still required.
+[PC-B 内部クラッシュのフォローアップ](../../tests/evidence/pc-b-internal-crash-local-volume-20261023.json) は、オペレーターが確認した意図したローカル固定 NTFS ボリュームでスキップすることなくテストに合格した 21 を記録します。これには、10 内部クラッシュ シナリオと、ソース コミット 63e5a4d5af674912940d8fa0ee26c726b06eb78b での以前の境界/所有権/再解析チェックが含まれます。 Tier B は 未完了 のままです。 PC-A、残りのソース競合と統合の承認が依然として必要です。
 
-## Source hash handle identity (2026-10-23)
+## ソース ハッシュ ハンドル ID (2026-10-23)
 
-SourceInventoryEvidenceBuilder now compares device, inode/file identity, size
-and nanosecond mtime across four observations: pathname before open, opened
-handle before read, the same handle after read, and pathname after close. A
-difference rejects the file as source_mutation_detected. Unavailable fstat
-fails as source_file_unavailable; enumeration remains incomplete with no
-eligible target for that file. Errors do not include private exception details.
+SourceInventoryEvidenceBuilderは、開く前のパス、読み取り前の開いたハンドル、読み取り後の同じハンドル、閉じた後のパスという4回の観測で、デバイス、inode・ファイル識別情報、サイズ、ナノ秒単位のmtimeを比較する。違いがあれば source_mutation_detected として拒否する。fstatが利用不能なら source_file_unavailable として失敗し、列挙を未完了とし、そのファイルを対象に含めない。エラーには個人情報を含む例外詳細を出さない。
 
-The regression reproduces an actual same-size/same-mtime replacement between
-the initial path stat and open, restoring the original after close. Before the
-fix, the wrong content hash was accepted; after the fix, it is rejected. Tests
-also cover unchanged content, both handle-stat failure points and propagation
-to schema-valid incomplete evidence without private path/exception leakage.
+回帰試験は、最初のパスstatとopenの間に、同サイズ・同mtimeの実際の置換を行い、close後に元へ戻す。修正前は異なる内容のハッシュを受け入れ、修正後は拒否する。変更のない内容、ハンドルstatの両失敗箇所、個人のパス・例外を漏らさずスキーマに適合した未完了証拠へ伝播することも試験する。
 
-This narrows an observed ABA pathname gap. It is not a filesystem snapshot,
-approved-root/reparse gate or protection until later upload/use. Same-object
-content modifications that restore all compared metadata, changes after the
-last check, directory enumeration races and arbitrary hostile filesystem
-changes remain outside this evidence. No source writes or cleanup are added
-to the helper; only tests mutate their own synthetic fixtures.
+観測されたABAによるパス名の不足を狭める。ファイルシステムのスナップショット、承認ルート・再解析の判定、後続アップロード・利用までの保護ではない。比較する全メタデータを元に戻す同一オブジェクト内の変更、最後の検査後の変更、ディレクトリ列挙の競合、任意の敵対的なファイルシステム変更は証拠範囲外である。ヘルパーに元への書き込みや後片付けを追加せず、試験だけが自分の合成データを変更する。
 
-## Source inventory reparse rejection (2026-10-23)
+## ソース インベントリ再解析拒否 (2026-10-23)
 
-SourceInventoryEvidenceBuilder inspects lstat metadata without resolving away
-links: source root and all ancestors before enumeration, each queued directory
-again before scandir, each discovered entry before classification, and file
-paths/ancestors before and after hashing. Symlinks and Windows reparse attributes
-are rejected. Invalid root/ancestor fails with source_root_invalid; unavailable
-root metadata fails with source_root_unavailable. Child rejection or uncertain
-entry metadata increments enumeration_errors and keeps enumeration incomplete.
+SourceInventoryEvidenceBuilderは、リンクを解決して消すことなくlstatのメタデータを調べる。列挙前に元ルートと全祖先、scandir直前に待機中の各ディレクトリ、分類前に発見した各エントリ、ハッシュ計算の前後にファイルパスと祖先を検査する。シンボリックリンクと Windows の再解析属性を拒否する。無効なルート・祖先は source_root_invalid、ルートメタデータの取得不能は source_root_unavailable で失敗する。子の拒否やエントリメタデータの不確実性では enumeration_errors を増やし、列挙を未完了とする。
 
-Seven regressions use freshly acknowledged synthetic roots. They reproduce
-and reject actual Windows junction roots, ancestors and children, a queued
-directory changed to a junction, unavailable root/entry metadata, and a junction
-ancestor presented directly to the hash helper. Rejected roots are not scanned;
-rejected children are not hashed; synthetic target content remains unchanged.
-The tests are registered in CI and the opt-in intended-local-volume suite.
+7件の回帰試験は、新しく作成し明示確認した合成ルートを使う。実際の Windows のジャンクションのルート・祖先・子、待機中にジャンクションへ変わったディレクトリ、取得不能なルート・エントリのメタデータ、ハッシュヘルパーへ直接渡されたジャンクション祖先を再現して拒否する。拒否したルートは走査せず、子はハッシュ計算せず、合成対象の内容を変更しない。試験は CI と、明示実行する予定ローカルボリュームの試験群へ登録済みである。
 
-These checks close observed traversal gaps, not an atomic directory snapshot,
-an approved-root/cross-root physical identity gate, or a guarantee against
-arbitrary namespace mutation between checks. Formal runtime integration,
-source revalidation until later use, PC-A evidence, Tier B completion and Tier C
-qualification remain pending. No source writes, link deletion, remote operation
-or cleanup capability is added to production helpers.
+この検証は観測された走査の不足を補うが、アトミックなディレクトリスナップショット、承認ルート・ルート間の物理的識別の判定、検査間の任意の名前空間変更への保証ではない。正式ランタイム統合、後続利用までの元の再確認、PC-A の証拠、Tier B の完了、Tier C の保証確認は未完了である。製品ヘルパーに元への書き込み、リンク削除、リモート操作、後片付けの能力は追加しない。
 
-[PC-B source-reparse follow-up](../../tests/evidence/pc-b-source-reparse-local-volume-20261023.json) records 28 passing checks with no skips at source fecffed823e5de44c4357b18d57db293e7007f70 on the intended local fixed NTFS volume. This adds source root/ancestor/entry/queued-junction checks to prior crash, ownership and artifact reparse cases. Full Tier B remains incomplete; it is not source snapshot or later-use authorization.
+[PC-B ソース再解析のフォローアップ](../../tests/evidence/pc-b-source-reparse-local-volume-20261023.json) は、対象のローカル固定 NTFS ボリューム上のソース fecffed823e5de44c4357b18d57db293e7007f70 でスキップなしでチェックに合格した 28 を記録します。これにより、以前のクラッシュ、所有権、成果物の再解析ケースに、ソース ルート/祖先/エントリ/キュー接続チェックが追加されます。完全な Tier B は 未完了 のままです。これは、ソース スナップショットや後で使用する承認ではありません。

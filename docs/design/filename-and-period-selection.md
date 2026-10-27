@@ -1,94 +1,71 @@
-﻿# Filename and Period Selection Specification
+# ファイル名と期間の選択仕様
 
-## 1. Purpose
+## 1. 目的
 
-Define deterministic filename validation and date-based eligibility rules
-for ElectronicObserver BattleLog and ErrorReport files.
+2026-10-27改訂: [要件確認の記録](../requirements/log-move-requirements.md)にあるQ1〜Q10と平坦化の指示が、コピーのみのアーカイブと両PCの完了待ちに優先する。ファイル名・日付の規則は維持する。実装と削除確認の契約は引き続き未確定である。
 
-## 2. Filename Patterns
+ElectronicObserverのBattleLogとErrorReportについて、一意に判定できるファイル名の検証規則と、日付に基づく処理対象の選択規則を定義する。
 
-Patterns are anchored to the complete filename.
+## 2. ファイル名のパターン
 
-| Log type | Pattern | Date field |
-|---|---|---|
-| BattleLog | `^(?<Date>\d{8})_\d{8}@.+\.txt$` | First eight characters |
-| ErrorReport | `^(?<Date>\d{8})_\d{8}\.txt$` | First eight characters |
+パターンはファイル名全体に対して照合する。
 
-Matching is case-sensitive for the documented `.txt` extension.
-The extracted date must parse as a real calendar date using the exact
-format `yyyyMMdd` and invariant culture.
+| ログ種別 | パターン | 日付部分 |
+| --- | --- | --- |
+| BattleLog | `^(?<Date>\d{8})_\d{8}@.+\.txt$` | 先頭8文字 |
+| ErrorReport | `^(?<Date>\d{8})_\d{8}\.txt$` | 先頭8文字 |
 
-A filename that does not match its log type's pattern, or whose extracted
-date is invalid, is a per-file validation error. Do not use LastWriteTime
-as a fallback.
+規定の `.txt` 拡張子は大文字・小文字を区別する。抽出した日付は、書式 `yyyyMMdd` とカルチャに依存しない規則を厳密に使い、実在する暦日として解析できなければならない。
 
-Unexpected files must not be silently treated as eligible log files.
-Record validation errors in the run results. A run must not report a
-period as fully successful if a relevant file validation error prevents
-the period from being verified.
+ログ種別のパターンに一致しないファイル名、または抽出した日付が無効なファイル名は、ファイル単位の検証エラーとする。LastWriteTimeで代用しない。
 
-## 3. Synchronization Eligibility
+想定外のファイルを、黙って処理対象のログとして扱わない。検証エラーを実行結果に記録する。関連するファイルの検証エラーによって対象期間を検証できない場合、その期間を完全な成功として報告してはならない。
 
-Eligibility is calculated from the filename date, not filesystem timestamps.
+## 3. 同期対象
 
-- BattleLog: include files dated on or before the final calendar day
-  of the previous month.
-- ErrorReport: include files dated on or before December 31 of the
-  previous calendar year.
-- Process every eligible backlog period, not only the most recent period.
+対象判定にはファイル名の日付を使い、ファイルシステムのタイムスタンプを使わない。
 
-## 4. Archive Eligibility
+- BattleLog: 前月末日以前の日付のファイルを対象とする。
+- ErrorReport: 前年12月31日以前の日付のファイルを対象とする。
+- 直近の期間だけでなく、未処理の対象期間すべてを処理する。
 
-Archiving is a PC-A-only operation and is subject to all archive-gate
-requirements defined elsewhere in the project.
+## 4. アーカイブ対象
 
-- BattleLog: include files dated on or before December 31 of the
-  previous calendar year.
-- ErrorReport: include files dated on or before December 31 of the
-  year two years before the current calendar year.
-- Process every eligible backlog period.
-- Archive means copy, verify, and record only. Never delete the source.
+アーカイブはPC-Aだけが行い、プロジェクトの他の文書で定めるアーカイブ実行条件をすべて満たす必要がある。
 
-## 5. Boundary Examples
+- BattleLog: 前年12月31日以前の日付のファイルを対象とする。
+- ErrorReport: 前々年12月31日以前の日付のファイルを対象とする。
+- 未処理の対象期間すべてを処理する。
+- アーカイブ完了には、コピー（または確認済みの保存先の再利用）、保存先の内容確認、削除直前に元がコピー時から変わっていないことの確認、そのクラウド上の元ファイルだけの削除を含む。確認不能・変更あり・不一致の元は残す。PC-Bの完了は前提条件にしない。
+- 両方の移動経路で、サブフォルダを再帰的に調べて対象ファイルを選ぶ。ただし保存先では元のフォルダ構成を再現せず、ログ種別ごとの共通フォルダに直接配置する。元の識別情報は別に保持する。同名であるだけでは同じ元ファイルとはみなさない。
 
-For an execution date in October 2026:
+## 5. 対象日付の境界例
 
-| Log type | Operation | Latest eligible date |
-|---|---|---|
-| BattleLog | Synchronization | 2026-09-30 |
-| BattleLog | Archive | 2025-12-31 |
-| ErrorReport | Synchronization | 2025-12-31 |
-| ErrorReport | Archive | 2024-12-31 |
+2026年10月に実行する場合:
 
-These examples illustrate the rules; implementation must calculate the
-boundaries at runtime.
+| ログ種別 | 処理 | 対象となる最も新しい日付 |
+| --- | --- | --- |
+| BattleLog | 同期 | 2026-09-30 |
+| BattleLog | アーカイブ | 2025-12-31 |
+| ErrorReport | 同期 | 2025-12-31 |
+| ErrorReport | アーカイブ | 2024-12-31 |
 
-## 6. Failure and Safety Rules
+これは規則を示す例である。実装では、実行時に日付の境界を計算する。
 
-- Invalid or unexpected filenames are errors, not automatic exclusions
-  that disappear from the run report.
-- Never substitute LastWriteTime for a missing or invalid filename date.
-- Do not overwrite a different file merely because its filename matches.
-- Period completion and archive eligibility require the manifest,
-  content-verification, and cloud-verification checks specified elsewhere.
-- Dry Run and filename selection must not modify, move, or delete source
-  files.
+## 6. 失敗時と安全上の規則
 
-## 7. Validation Errors and Completion Status
+- 無効なファイル名や想定外のファイル名はエラーとする。実行レポートから消える自動除外にはしない。
+- ファイル名の日付が欠落・無効な場合も、LastWriteTimeで代用しない。
+- ファイル名が一致するという理由だけで、別の内容のファイルを上書きしない。
+- ファイルの完了判定とアーカイブ処理には、現在の元・保存先の識別と内容確認、および他の文書で定める必要な記録が求められる。別のPCの期間完了は前提条件にしない。
+- Dry Runとファイル選択処理では、元ファイルを変更・移動・削除しない。
 
-- A filename that cannot be classified by the expected log-type pattern
-  has no trustworthy period. Record it as a validation error and prevent
-  the run from being reported as fully successful.
-- A filename whose date field is syntactically present but is not a real
-  calendar date is also a validation error. Do not silently skip it.
-- Other valid files may be processed individually if doing so is safe.
-  Processing valid files does not cancel the validation error.
-- If any relevant validation error remains unresolved, the run must not
-  produce a fully successful completion record for the affected scope.
-- If an invalid filename cannot be assigned to a period, do not certify
-  the overall synchronization run as fully successful.
-- Any incomplete, failed, stale, or ambiguous manifest state blocks
-  archival. PC-A must fail closed.
-- The exact manifest status names and transition rules are governed by
-  the manifest schema specification and must be finalized before
-  manifest implementation.
+## 7. 検証エラーと完了状態
+
+- 想定するログ種別のパターンで分類できないファイル名には、信頼できる対象期間がない。検証エラーとして記録し、実行全体を完全な成功として報告しない。
+- 日付部分の形式が合っていても、実在する暦日でなければ検証エラーとする。黙って読み飛ばさない。
+- 安全に処理できるなら、他の有効なファイルは個別に処理してよい。有効なファイルを処理しても、検証エラーは取り消されない。
+- 関連する検証エラーが未解決の間は、影響範囲について完全な成功を示す完了記録を作成しない。
+- 無効なファイル名を期間に割り当てられない場合は、同期実行全体を完全な成功と認定しない。
+- 特定のファイルの処理に必要な証拠が欠落・無効・曖昧であれば、その証拠に依存する処理を止める。別のPCの期間マニフェストが欠落・失敗していることだけを理由に、現在のクラウド上のファイルの処理を止めない。あるファイルの失敗は、独立した他のファイルの移動成功を取り消さない。
+- マニフェストの正確な状態名と遷移規則は、マニフェストのスキーマ仕様に従う。マニフェストを実装する前に確定する必要がある。

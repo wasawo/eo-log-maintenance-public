@@ -6,18 +6,21 @@ ElectronicObserver の BattleLog / ErrorReport を、Windows PC-A と PC-B 間�
 
 ファイルの配置と分野別文書は [リポジトリ構成・文書索引](docs/README.md) を参照してください。
 
-> **現在の段階:** 安全基盤・検証補助処理を実装中です。実運用可能な初回リリースには未到達です。P0受け入れは未完了で、正式な同期／アーカイブ入口とランタイム検証も未実装です。初期実装にはローカル元ファイル削除・Drive削除の機能自体を含めません。P0の判定基準は [`docs/development/implementation-workflow.md`](docs/development/implementation-workflow.md) §4 と [`docs/requirements/p0-gap-register.md`](docs/requirements/p0-gap-register.md) を参照してください。
+> **2026-10-27 正式文書へ統合:** [要件定義書](docs/requirements/log-move-requirements.md)・[設計書](docs/design/log-move-design.md)・[受け入れ条件/実装計画](docs/development/implementation-workflow.md)を現行の入口としました。初回完成は両移動経路の確認済み元の直接削除まで。具体方式の未決と実装/受け入れ未完は文書内で区別しています。
 
-2026-10-24時点の[実装棚卸しと初回配布までの作業順序](docs/status/first-release-readiness-20261024.md)、[選択済みの仕様と残る詳細](docs/decisions/selected-policy-decisions-20261024.md)を参照してください。レビュー用ZIPを生成できることと、本番導入できることは別です。
+> **現在の段階:** 既存実装は安全基盤・検証補助処理が中心で、現在は文書/詳細契約を整備しています。正式な同期／アーカイブ入口と削除経路は未完成、P0受け入れも未完了です。判定基準は[実装計画](docs/development/implementation-workflow.md) §2と[P0台帳](docs/requirements/p0-gap-register.md)を参照してください。正式文書化は本番適用の許可ではありません。
+
+[既存の実装資産と不足](docs/development/implementation-workflow.md#9-既存の実装資産と不足)と作業順序は正式な実装計画へ統合しました。過去の選択は[決定記録](docs/archive/decisions/selected-policy-decisions-20261024.md)を参照してください。レビュー用ZIPを生成できることと、本番導入できることは別です。
 
 Codexでの開発は [AGENTS.md](AGENTS.md) から開始します。[root単独運用](docs/development/agent-workflow.md) と [詳細仕様への参照表](docs/development/development-guide.md) を必要時に確認してください。進捗は [引き継ぎ](docs/handoff/next-chat.md) に記録します。
 
 ## 目的
 
-- PC-A / PC-B のログを Google Drive for desktop 配下へ同期する
+- PC-A / PC-B の対象ログを共通クラウドへ集約し、保存先確認と元不変確認ができたファイルの元を削除する
 - コピー先ファイルを SHA-256 等で検証する
 - 実行結果をマニフェストに記録し、PCごとの処理完了を判別する
-- PC-A のみが、両PCの完了記録と検証結果を確認した後にアーカイブ（コピー・検証・結果記録）する。初期実装では削除しない
+- PC-A のみが、クラウドにある古い対象をarchiveへ移し、同じ2条件を確認してクラウド元を削除する。両PCの期間完了を待たず、遅着分は次回扱う
+- 両保存先はログ種別ごとの共通フォルダ直下へ集約し、元サブフォルダを再現しない。同名同内容は再利用、異内容は元を残して競合表示する
 - README、変更履歴、バージョンと検証を GitHub で管理する
 
 ## PCごとの役割と実行パス
@@ -35,7 +38,7 @@ maintenanceLocal は各PC自身のマニフェスト・検証証拠・レポー�
 | ErrorReport 元フォルダ | `C:\Example\PCA\Source\ErrorReport` | `C:\Example\PCB\Source\ErrorReport` |
 | 同期先 | Google Drive の共有同期フォルダ | 同左 |
 | アーカイブ | 明示設定と安全条件を満たした場合のみ | **禁止** |
-| ローカル元ファイル削除・Drive削除 | **初期実装では機能自体を実装しない** | **機能自体を実装しない** |
+| 初回完成で必要な元削除（未実装） | 自端末→クラウドの元、クラウド→archiveの元。各2条件を確認した対象のみ | 自端末→クラウドの元のみ。archive・クラウド元削除は禁止 |
 
 Google Drive 同期先:
 
@@ -50,11 +53,11 @@ PC-A のアーカイブ先:
 
 ## 安全上の必須ルール
 
-1. PC-B は同期・検証・マニフェスト作成のみを担当し、アーカイブや削除を行わない。
-2. PC-A は対象期間の PC-A / PC-B 両方のマニフェストとファイル検証を確認した場合に限りアーカイブする。初期実装ではDrive上の元ファイルを削除しない。
-3. マニフェストがない、古い、破損している、対象期間・ログ種別が一致しない、ハッシュ不一致、またはクラウド反映を確認できない場合はアーカイブを保留する。
+1. PC-B は自端末→クラウドの移動と個別結果を担当し、archive・クラウド元削除は行わない。
+2. PC-A はクラウドの現在対象をファイル単位で確認してarchiveする。PC-B未実行や期間全体の失敗だけで、確認済みの別ファイルを一律に待機させない。
+3. 保存先内容と元不変を確認できない対象は元を残す。必要な対象記録の破損/不一致、内容不一致、クラウド状態不明は依存する処理を保留する。古い成功記録を現在確認の代用にしない。
 4. Drive for desktop のローカルファイルが存在することだけで、クラウドへのアップロード完了とは判定しない。
-5. 初期実装にはローカル元ファイル削除・Drive削除のコード、操作、設定を含めない。Dry Run は削除機能の代替実装ではない。
+5. 削除は合意した2経路・2条件の対象のみ。Dry Runでは元/保存先を変更しない。文書見直し中は削除コード/schemaを追加せず、実装再開・実データ操作はAGENTSの条件に従う。
 6. スクリプトは Google Drive 上の管理原本から直接実行せず、各PCのローカル実行ディレクトリへ取得した版を使用する。
 7. 実ログ、実行時マニフェスト、PC固有の実設定や秘密情報を Git に登録しない。
 

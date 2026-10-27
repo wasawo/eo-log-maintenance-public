@@ -1,1148 +1,1148 @@
-## Current continuation — public hosting and source PR #168 port (2026-10-23)
+## 現在の継続 — パブリック ホスティングおよびソース PR #168 ポート (2026-10-23)
 
-- The operator explicitly authorized Public visibility for `wasawo/eo-log-maintenance-public`; the change was applied and verified. The original `wasawo/eo-log-maintenance` remains Private. Earlier sections below describing Private-only authorization or pending visibility changes are historical.
-- One combined PR is being prepared on `fix/public-references-and-acceptance`: update current canonical repository references, package `sourceRepository`, and GitHub-based schema IDs; port the outstanding source PR #168 acceptance-plan changes without importing any source commits/history. Historical PR/CI links stay attributed to the original repository and may require access.
-- Source PR #168 (`docs: define target filesystem acceptance gate`, head `780d4d4484921b01c04f029a8b7ca8c37f185345`) was the only open source PR. Its five modified non-handoff files plus new `docs/validation/target-filesystem-acceptance.md` are preserved here, with this handoff replacing its old continuation instructions. No runtime or safety-policy changes are introduced.
-- Historical source PR #167 merged at `f979a5200d48a7ccccfed6ad31de07529bd340df`; source exact-head Validate `39701085065` / Package Validation `39701084975` and post-merge Validate `39702034526` / Package Validation `39702034521` are recorded as successful by the source PR #168 evidence. These are historical source evidence, not CI results for this public PR. Source PR #168 had failed workflows without step records/logs; the operator confirmed Private Actions quota exhaustion. Do not import its unverified status as a successful validation.
-- Acceptance plan: Tier A hosted Windows synthetic tests; Tier B explicitly opted-in disposable local-volume tests on PC-A/PC-B; separately gated Tier C synchronized/network tests. Tier B/Tier C have not run. Crash-injection boundaries, concurrent conflicting publishers, marker/hash revalidation, environment evidence, and hard-link/no-overwrite checks are required. No production paths, Drive writes, archive, or deletion are authorized; P0 remains open.
-- Combined public PR #1 is open and unmerged: https://github.com/wasawo/eo-log-maintenance-public/pull/1 . Its latest head must pass both Validate and Package Validation before any later merge; this handoff follow-up is part of the same PR.
-- Local validation passed: Python 3.11.9 unittest discovery (119 tests, 2 skipped), all PowerShell test scripts on PowerShell 7.6.7, including package metadata regression. PSScriptAnalyzer is not installed locally; exact-head public PR Validate/Package Validation remain pending. Do not merge this PR in this task.
-- Next implementation slice remains an opt-in disposable-root Tier B crash-injection harness; refuse production log/archive/shared Drive roots and do not infer target qualification from hosted CI.
-
----
-
-## Historical continuation — clean public-repository snapshot (2026-10-23)
-
-- Hosting follow-up (2026-10-23): the operator authorized GitHub repository creation and push, explicitly requiring Private visibility initially. Created https://github.com/wasawo/eo-log-maintenance-public with `private: true` and no generated files. Publish only this independent repository's `main`; keep the original repository private. Public visibility is not authorized. This handoff commit accompanies the initial push; verify the remote tip and Private visibility after pushing.
-- Exported only the 88 tracked files from verified latest source main `a0760d6e223659e8a8c62101bb0768270c7e683b` using `git archive`. PR #169 was squash-merged into that source commit; earlier sections below are historical records, not current PR/CI status.
-- This repository starts a new independent history. Source Git metadata, old branches, active configurations, local edits, and untracked files were not copied. All exported files were verified byte-for-byte before this handoff-only update.
-- Initial commit identity uses the operator's GitHub noreply address. No remote is configured and no GitHub repository creation, push, or public-visibility change is performed in this work unit. Old repository links remain historical references; select the new hosting destination before updating canonical repository/schema links.
-- Known source private-path/Drive-URL signatures and personal email addresses must be absent from this snapshot. The source repository's previous local package tests passed; no new runtime code is introduced. GitHub CI is not run here; source private Actions quota was exhausted and local verification was accepted for PR #169.
-- Next: review canonical repository/schema links for the new hosting destination before any later Public visibility change. Keep the original repository private. Runtime entry points/configuration bootstrap, Drive integration, and production acceptance remain incomplete; all existing sync/verification/archive/deletion safety gates remain in force.
+- オペレーターは `wasawo/eo-log-maintenance-public` のパブリック公開を明示的に承認しました。変更は適用され、確認済み になりました。元の `wasawo/eo-log-maintenance` は非公開のままです。プライベートのみの承認または 未確定 の可視性の変更について説明している以下の前半のセクションは、過去のものです。
+- 1 つの結合 PR が `fix/public-references-and-acceptance` で準備されています。現在の正規リポジトリ参照、パッケージ `sourceRepository`、および GitHub ベースのスキーマ ID を更新します。ソースのコミット/履歴をインポートせずに、未処理のソース PR #168 受け入れ計画の変更を移植します。歴史的な PR/CI リンクは元のリポジトリに属しており、アクセスが必要になる場合があります。
+- ソース PR #168 (`docs: define target filesystem acceptance gate`、ヘッド `780d4d4484921b01c04f029a8b7ca8c37f185345`) が唯一のオープン ソース PR でした。 5 つの変更された非ハンドオフ ファイルと新しい `docs/validation/target-filesystem-acceptance.md` がここに保存され、このハンドオフが古い継続命令を置き換えます。ランタイムや安全性ポリシーの変更は導入されません。
+- 履歴ソース PR #167 が `f979a5200d48a7ccccfed6ad31de07529bd340df` にマージされました。ソースの正確なヘッドの検証 `39701085065` / パッケージの検証 `39701084975` およびマージ後の検証 `39702034526` / パッケージの検証 `39702034521` は、ソース PR #168 の証拠によって成功として記録されます。これらは歴史的な情報源の証拠であり、この公開 PR の CI 結果ではありません。ソース PR #168 には、ステップ レコード/ログのない 失敗した ワークフローがありました。オペレーターは、プライベート アクションの割り当てが枯渇していることを確認しました。未検証ステータスを検証成功としてインポートしないでください。
+- 受け入れ計画: Tier A がホストする Windows 模擬テスト。 Tier B は、PC-A/PC-B での使い捨てローカル ボリューム テストを明示的にオプトインしました。個別にゲートされた Tier C 同期/ネットワーク テスト。 Tier B/Tier C は実行されていません。クラッシュインジェクション境界、同時競合パブリッシャー、マーカー/ハッシュの再検証、環境証拠、ハードリンク/上書きなしのチェックが必要です。本番パス、ドライブの書き込み、アーカイブ、または削除は許可されません。 P0 は開いたままになります。
+- 結合されたパブリック PR #1 はオープンされ、マージされていません: https://github.com/wasawo/eo-log-maintenance-public/pull/1 。その最新のヘッドは、後のマージの前に、検証とパッケージ検証の両方に合格する必要があります。この引き継ぎフォローアップは同じ PR の一部です。
+- ローカル検証成功: Python 3.11.9 のunittest検出（119 件、2 件スキップ）、PowerShell 7.6.7 上の全 PowerShell 試験スクリプト。パッケージメタデータの回帰も含む。PSScriptAnalyzerはローカル未導入であり、公開PRの正確なHEADに対するValidate/Package Validationは未完了。このタスクではPRをマージしない。
+- 次の実装スライスはオプトインの使い捨てルート Tier B クラッシュインジェクション ハーネスのままです。本番ログ/アーカイブ/共有ドライブのルートを拒否し、ホストされた CI からターゲットの資格を推測しません。
 
 ---
 
-## Current continuation — public-path placeholder preparation (2026-10-23)
+## 歴史の継続 — クリーンなパブリックリポジトリのスナップショット (2026-10-23)
 
-- GitHub main was verified with `git ls-remote` at `f979a5200d48a7ccccfed6ad31de07529bd340df` (PR #167 merged). Earlier continuation sections below are historical; PR #167 post-merge CI was not reverified during this task.
-- Work branch: `fix/public-path-placeholders`, based on that main. Worktree: `.worktrees/public-paths`. The original `feature/filename-period-spec` worktree has a pre-existing README table-format edit; it was preserved untouched.
-- Follow-up (2026-10-23): at the operator's request, also included that pre-existing README table separator spacing change in this worktree. The original worktree edit remains intact. This formatting-only addition passed `git diff --check`; package tests were not repeated because runtime/configuration content did not change.
-- Removed the operator-specific distribution-folder URL from both occurrences first, then replaced PC-A/PC-B and Drive paths in example configs, README, workflow design, and distribution layout with public dummy values. Package-test fixtures use the same dummy layout.
-- Installation requirement confirmed by the operator: deployment creates the target PC's active config from its example only if absent, so the only manual configuration step is entering actual paths. Preserve active configs on updates. Installer/config-loader implementation remains pending; no deployment or production readiness is implied.
-- Safety unchanged: role fields, archive defaults, package validation and exclusions, sync/cloud verification/archive/deletion gates are unchanged. No runtime code, real logs, credentials, Drive operations, or actual device configuration was changed.
-- Local validation passed with PowerShell 7.6.7: `tests/Test-ReleasePackage.ps1` (role-specific entry points, allowlist/exclusions, checksum, active-config guard, non-deployable guard); actual-source non-deployable review ZIP builds for PC-A and PC-B; ZIP inspection confirmed dummy example configs and `PACKAGE-STATUS.txt` in both. Review ZIPs were generated outside the source tree in a temporary directory and are not production releases.
-- All 88 tracked files were scanned against real-path and Drive-folder-URL signatures derived from the base commit, including JSON/backslash escaping variants; no residual matches or old distribution-root name remain. Both example JSON files parse and retain absolute Windows paths and safe role defaults. `git diff --check` passed.
-- PR preparation (2026-10-23): the operator authorized commit, push, and PR creation after verifying steps 1-4 and the existing README edit. The residual scan and PowerShell 7.6.7 package tests passed again; original-worktree README changes remain preserved. CI is pending PR creation; neither Validate nor Package Validation is claimed successful yet. This change is not merged; no public visibility change or history rewrite is authorized.
-- PR #169 is open and unmerged: https://github.com/wasawo/eo-log-maintenance/pull/169 . Initial implementation commit: `f92850f22f1a1037d73b4c72fcd66e7f60914bcc`. The initial PR-triggered workflow lookup returned no runs; Validate and Package Validation remain unverified, not successful. This handoff follow-up changes the PR head, so subsequent CI checks must use the new latest SHA.
-- Next: verify Validate and Package Validation on PR #169's exact latest head, recording outcomes without merging. Historical Git content and other branches still require a separate public-release audit; replacing current files does not remove historical values. Do not enable runtime/archive/delete behavior as part of this cleanup.
+- ホスティング フォローアップ (2026-10-23): オペレーターは GitHub リポジトリの作成とプッシュを承認し、最初は明示的にプライベート表示を要求しました。 `private: true` を使用して https://github.com/wasawo/eo-log-maintenance-public を作成しましたが、ファイルは生成されませんでした。この独立リポジトリの `main` のみを公開します。元のリポジトリを非公開にしておきます。一般公開は許可されていません。このハンドオフ コミットには、最初のプッシュが伴います。押した後のリモート ヒントとプライベート可視性を確認します。
+- `git archive` を使用して、確認済み 最新ソースのメイン `a0760d6e223659e8a8c62101bb0768270c7e683b` から 88 追跡ファイルのみをエクスポートしました。 PR #169 はそのソース コミットにスカッシュ マージされました。以下の以前のセクションは過去の記録であり、現在の PR/CI ステータスではありません。
+- このリポジトリは、新しい独立した履歴を開始します。ソース Git メタデータ、古いブランチ、アクティブな構成、ローカル編集、および追跡されていないファイルはコピーされませんでした。このハンドオフのみの更新前は、エクスポートされたすべてのファイルはバイト単位で 確認済み でした。
+- 初期コミット ID は、オペレーターの GitHub 応答アドレスを使用します。このワークユニットではリモートが構成されておらず、GitHub リポジトリの作成、プッシュ、または公開可視性の変更は実行されません。古いリポジトリ リンクは履歴参照として残ります。正規リポジトリ/スキーマ リンクを更新する前に、新しいホスティング先を選択してください。
+- このスナップショットには、既知のソースのプライベート パス/ドライブ URL の署名と個人の電子メール アドレスが含まれていない必要があります。ソース リポジトリの以前のローカル パッケージ テストに合格しました。新しいランタイム コードは導入されません。 GitHub CI はここでは実行されません。ソース プライベート アクション クォータが枯渇し、PR #169 のローカル検証が受け入れられました。
+- 次に: 公開公開設定を後で変更する前に、新しいホスティング先の正規リポジトリ/スキーマ リンクを確認します。元のリポジトリは非公開にしておきます。ランタイム エントリ ポイント/構成ブートストラップ、ドライブの統合、および製品の受け入れは 未完了 のままです。既存のすべての同期/検証/アーカイブ/削除のセーフティ ゲートは引き続き有効です。
 
 ---
 
-## Current continuation — PR #166 merged; cross-process publication test in progress (2026-10-22)
+## 現在の継続 - パブリックパスプレースホルダーの準備 (2026-10-23)
 
-### Verified PR #166
-- PR #166 `feat: verify artifact sets from directory state` merged at `0642e749e1dac55641df3ac8969839e21203897d`.
-- Exact PR-head Validate run `39695203779` and Package Validation run `39695203698` both succeeded on `8c7779a92cdfcde15b5d29c0b54d5b1a4379965f`.
-- Post-merge main Validate run `39700886549` and Package Validation run `39700886545` both succeeded on merge commit `0642e749e1dac55641df3ac8969839e21203897d`.
-
-### Current bounded slice — branch `test/cross-process-artifact-publication`
-- Extends `tests/test_artifact_set_publication.py` with a spawned-process race between two publishers sharing an identical manifest but carrying conflicting report bytes.
-- Acceptance expectation: exactly one publisher succeeds; the competing publisher receives a sanitized destination-conflict error; the commit marker and actual directory bytes classify as one complete committed set; no temporary/unexpected entries remain.
-- This is synthetic local-filesystem evidence only. It does not establish network/Drive filesystem semantics, power-loss durability, run-lock integration, verification-to-use stability, or official entrypoint safety. No production logs, Drive, archive, or deletion are accessed.
-- Exact latest PR-head Validate and Package Validation must both pass before merge; verify both post-merge main workflows and record their run IDs in this file.
-
-### Immediate next actions
-1. Review PR #167's cross-process test and ensure it passes repeatedly on the Windows CI runner.
-2. After merge, verify post-merge main Validate and Package Validation and record exact run IDs.
-3. Next, define/implement target-filesystem and crash-recovery acceptance evidence before any official entrypoint integration.
-4. Official `scripts/SyncLogs.ps1` and PC-A-only `scripts/ArchiveLogs.ps1` remain absent. Live Drive revalidation, runtime integration, E2E acceptance, archive, and deletion remain open. P0 remains open.
+- GitHub メインは 確認済み で、`f979a5200d48a7ccccfed6ad31de07529bd340df` に `git ls-remote` がありました (PR #167 がマージされました)。以下の以前の継続セクションは歴史的なものです。 PR #167 マージ後の CI は、このタスク中に再検証されませんでした。
+- 作業ブランチ: `fix/public-path-placeholders`、そのメインに基づいています。ワークツリー: `.worktrees/public-paths`。元の `feature/filename-period-spec` ワークツリーには、既存の README テーブル形式の編集があります。そのまま保存されていました。
+- フォローアップ (2026-10-23): オペレーターの要求により、このワークツリー内の既存の README テーブル区切り文字の間隔の変更も含まれています。元のワークツリーの編集はそのまま残ります。この書式設定のみの追加は `git diff --check` を渡しました。ランタイム/構成の内容が変更されなかったため、パッケージのテストは繰り返されませんでした。
+- まず、両方のオカレンスからオペレーター固有の配布フォルダー URL を削除し、次にサンプル構成、README、ワークフロー設計、配布レイアウトの PC-A/PC-B とドライブ パスをパブリックのダミー値に置き換えました。パッケージテストフィクスチャは同じダミーレイアウトを使用します。
+- オペレーターによってインストール要件が確認されました。デプロイメントでは、ターゲット PC のアクティブな構成が存在しない場合にのみサンプルから作成されるため、唯一の手動構成手順は実際のパスを入力することです。更新時にアクティブな構成を保持します。インストーラー/構成ローダーの実装は 未確定 のままです。導入や運用の準備が整っていることは意味されません。
+- 安全性は変更されていません: 役割フィールド、アーカイブのデフォルト、パッケージの検証と除外、同期/クラウド検証/アーカイブ/削除ゲートは変更されていません。ランタイム コード、実際のログ、認証情報、ドライブ操作、実際のデバイス構成は変更されていません。
+- PowerShell でローカル検証に合格しました 7.6.7: `tests/Test-ReleasePackage.ps1` (ロール固有のエントリ ポイント、許可リスト/除外、チェックサム、アクティブ構成ガード、展開不可能なガード);実際のソースのデプロイ不可能なレビュー ZIP ビルド (PC-A および PC-B)。 ZIP 検査により、両方にダミーのサンプル構成と `PACKAGE-STATUS.txt` が確認されました。レビュー ZIP はソース ツリーの外部の一時ディレクトリに生成されており、製品リリースではありません。
+- すべての 88 追跡ファイルは、JSON/バックスラッシュ エスケープのバリアントを含む、ベース コミットから派生した実際のパスとドライブ フォルダー URL の署名に対してスキャンされました。残りの一致や古いディストリビューション ルート名は残りません。両方のサンプル JSON ファイルは、絶対 Windows パスと安全なロールのデフォルトを解析して保持します。 `git diff --check` は合格しました。
+- PR の準備 (2026-10-23): オペレーターは、ステップ 1-4 と既存の README 編集を確認した後、コミット、プッシュ、および PR の作成を承認しました。残留スキャンと PowerShell 7.6.7 パッケージのテストに再び合格しました。 元の作業ツリーのREADME の変更は維持されます。 CI は 未確定 PR の作成です。 Validate も Package Validation もまだ成功したとは言えません。この変更はマージされません。一般公開の変更や履歴の書き換えは許可されていません。
+- PR #169 はオープンされておりマージされていません: https://github.com/wasawo/eo-log-maintenance/pull/169 。初期実装コミット: `f92850f22f1a1037d73b4c72fcd66e7f60914bcc`。 PR によってトリガーされた最初のワークフロー ルックアップでは実行は返されませんでした。 Validate と Package Validation は未検証のままであり、成功しません。このハンドオフのフォローアップでは PR ヘッドが変更されるため、後続の CI チェックでは新しい最新の SHA を使用する必要があります。
+- 次に、PR #169 の正確な最新ヘッドで検証とパッケージ検証を検証し、マージせずに結果を記録します。過去の Git コンテンツやその他のブランチについては、引き続き個別の公開リリース監査が必要です。現在のファイルを置き換えても、履歴値は削除されません。このクリーンアップの一環として、ランタイム/アーカイブ/削除の動作を有効にしないでください。
 
 ---
 
-## Current continuation — PR #165 merged; directory-state artifact verification in progress (2026-10-22)
+## 現在の継続 — PR #166 がマージされました。クロスプロセス公開テスト中 (2026-10-22)
 
-### Verified PR #165
-- PR #165 `feat: publish artifact sets with marker last` merged at `0a0e0fee8323c90a12abd31bde43df6da98c8344`.
-- Exact PR-head Validate run `39693330358` and Package Validation run `39693330346` both succeeded on `5be59214f6e4d70bdfde176ef85d7a87cc1eddc0`.
-- Post-merge main Validate run `39694971697` and Package Validation run `39694971734` both succeeded on merge commit `0a0e0fee8323c90a12abd31bde43df6da98c8344`.
+### 確認済み PR #166
+- PR #166 `feat: verify artifact sets from directory state` は `0642e749e1dac55641df3ac8969839e21203897d` にマージされました。
+- 正確な PR ヘッド検証の実行 `39695203779` とパッケージ検証の実行 `39695203698` は両方とも `8c7779a92cdfcde15b5d29c0b54d5b1a4379965f` で成功しました。
+- マージ後のメイン検証実行 `39700886549` とパッケージ検証実行 `39700886545` は両方ともマージ コミット `0642e749e1dac55641df3ac8969839e21203897d` で成功しました。
 
-### Current bounded slice — branch `feat/artifact-set-directory-verification`
-- Adds `Common/ArtifactSetDirectoryVerification.py`, which reads a synthetic target directory, hashes observed artifact bytes, parses a strict commit marker, rejects duplicate JSON keys, and delegates to the existing artifact-set classifier.
-- Adds filesystem tests for a valid marker/set, missing marker, partial set, tampered bytes, duplicate marker keys, unexpected entries, symlinks, invalid directory/marker inputs, and an empty directory.
-- Verification is read-only: it does not publish, repair, overwrite, or delete artifacts. A malformed/unreadable directory fails closed; partial or unmarked sets never report committed.
-- This helper currently verifies one directory snapshot only; it does not establish crash durability, cross-file atomicity, source stability, Windows/network filesystem semantics, or concurrency safety across verification and subsequent use. No official entrypoint integration, Drive, archive, or deletion.
-- PR-head Validate and Package Validation must pass on the exact latest head before merge; verify both post-merge main workflows and record their IDs in this document.
+### 現在の境界付きスライス — ブランチ `test/cross-process-artifact-publication`
+- `tests/test_artifact_set_publication.py` は、同一のマニフェストを共有しているが、競合するレポート バイトを保持している 2 つのパブリッシャー間で生成されたプロセスの競合で拡張されています。
+- 受け入れ期待: 成功するパブリッシャーは 1 人だけです。競合するパブリッシャーは、サニタイズされた宛先競合エラーを受け取ります。コミット マーカーと実際のディレクトリ バイトは 1 つの 完了 コミット セットとして分類されます。一時的/予期しないエントリは残りません。
+- これは、ローカル ファイル システムの合成証拠のみです。ネットワーク/ドライブ ファイルシステムのセマンティクス、電力損失の耐久性、ランロックの統合、検証から使用までの安定性、または公式のエントリポイントの安全性は確立されません。運用ログ、ドライブ、アーカイブ、または削除にはアクセスしません。
+- マージ前に、正確な最新の PR ヘッド検証とパッケージ検証の両方に合格する必要があります。両方のマージ後のメイン ワークフローを確認し、その実行 ID をこのファイルに記録します。
 
-### Immediate next actions
-1. Review PR #166's directory verifier and test cases; check exact-head Validate and Package Validation, repair and recheck after any change.
-2. After merge, verify post-merge main Validate and Package Validation and record exact run IDs.
-3. Continue with cross-process crash/concurrency and target-filesystem acceptance before any official entrypoint integration. Treat a directory verification result as a point-in-time observation, not a lock or transaction.
-4. Official `scripts/SyncLogs.ps1` and PC-A-only `scripts/ArchiveLogs.ps1` remain absent. Live Drive revalidation, runtime integration, E2E acceptance, archive, and deletion remain open. P0 remains open.
-
----
-
-## Current continuation — PR #164 merged; marker-last artifact-set publication in progress (2026-10-22)
-
-### Verified PR #164
-- PR #164 `feat: add pure artifact-set recovery classifier` merged at `46b4c0244d253706c78576c83face105e8507b8c`.
-- Exact PR-head Validate run `39692847593` and Package Validation run `39692847637` both succeeded on `baa1ecb3bee17f50cf60b94f8c2873f2169c9d36`.
-- Post-merge main Validate run `39693127008` and Package Validation run `39693127005` both succeeded on merge commit `46b4c0244d253706c78576c83face105e8507b8c`.
-
-### Current bounded slice — branch `feat/marker-last-artifact-set-publication`
-- Adds `Common/ArtifactSetPublication.py` to compose the existing single-file atomic no-overwrite primitive: publish each artifact in deterministic name order, then publish a transaction marker last.
-- Adds filesystem-backed synthetic tests for normal completion, injected failure after one artifact, idempotent retry, conflicting existing content, invalid input, and concurrent identical publishers.
-- Failure never rolls back or removes already-published artifacts. A partial set has no marker and remains subject to reconciliation. The helper does not make multiple files atomic as a unit and is not connected to official entry points.
-- CI must pass on the exact latest PR HEAD before merge; verify both post-merge workflows afterward.
-- This is a bounded implementation/test slice, not authorization for Drive, manifest state transitions, archive/delete, or official entry-point integration.
-
-### Immediate next actions
-1. Verify PR #164 post-merge Validate and Package Validation runs `39693127008` and `39693127005`.
-2. Verify PR #165 Validate and Package Validation on the exact latest HEAD; repair failures and rerun if needed.
-3. After PR #165 merge, verify both post-merge main workflows and record exact run IDs.
-4. Review whether marker-last plus no-overwrite meets the required crash/concurrency invariants; if accepted, next add reconciliation/verification tests around actual directory state. Do not imply cross-file atomicity.
-5. Official `scripts/SyncLogs.ps1` and PC-A-only `scripts/ArchiveLogs.ps1` remain absent. Live Drive revalidation, production crash recovery, runtime integration, E2E acceptance, archive, and deletion remain open. P0 remains open.
+### 直近の次作業
+1. PR #167 のクロスプロセス テストを確認し、Windows CI ランナーで繰り返しテストに合格することを確認します。
+2. マージ後、マージ後のメイン検証とパッケージ検証を検証し、正確な実行 ID を記録します。
+3. 次に、正式なエントリポイント統合の前に、ターゲット ファイル システムとクラッシュ リカバリの受け入れ証拠を定義/実装します。
+4. 公式の `scripts/SyncLogs.ps1` および PC-A のみの `scripts/ArchiveLogs.ps1` は存在しないままです。 Live Drive の再検証、ランタイム統合、E2E の受け入れ、アーカイブ、削除は引き続き行われます。 P0 は開いたままになります。
 
 ---
 
-## Current continuation — PR #163 merged; artifact-set recovery classifier in progress (2026-10-22)
+## 現在の継続 — PR #165 がマージされました。ディレクトリ状態成果物の検証が進行中 (2026-10-22)
 
-### Verified PR #163
-- PR #163 `feat: add fail-closed crash recovery decision gate` merged at `2ab6a2009673767860814f9ebe11170a707ae614`.
-- Exact PR-head Validate run `39692470725` and Package Validation run `39692470729` both succeeded on `dbc72bf56937f0efe39770f96a9787a2a161ee35`.
-- Post-merge main Validate run `39692654499` and Package Validation run `39692654455` both succeeded on merge commit `2ab6a2009673767860814f9ebe11170a707ae614`.
+### 確認済み PR #165
+- PR #165 `feat: publish artifact sets with marker last` は `0a0e0fee8323c90a12abd31bde43df6da98c8344` にマージされました。
+- 正確な PR ヘッド検証の実行 `39693330358` とパッケージ検証の実行 `39693330346` は両方とも `5be59214f6e4d70bdfde176ef85d7a87cc1eddc0` で成功しました。
+- マージ後のメイン検証実行 `39694971697` とパッケージ検証実行 `39694971734` は両方ともマージ コミット `0a0e0fee8323c90a12abd31bde43df6da98c8344` で成功しました。
 
-### Current bounded slice — branch `feat/artifact-set-recovery-classifier`
-- Adds `Common/ArtifactSetRecovery.py`, a pure classifier for expected/staged/published artifact SHA-256 sets and a synthetic commit marker.
-- The classifier reports `committed` only if the marker schema/transaction ID/hash map is valid and the complete published set exactly matches it. Partial publication or a missing marker remains uncommitted and requires reconciliation; existing artifacts are preserved.
-- Adds synthetic tests and wires them into Validate CI. Updates P0 register, safety audit, Common README, tests README, this handoff, and the lock/recovery acceptance gate in this PR.
-- This is a classifier/test slice only, not approval of a final multi-artifact commit protocol. No filesystem publication/recovery, manifest writes, Drive, archive/delete, or official entry-point integration.
-- Exact latest PR HEAD must pass Validate and Package Validation before merge.
+### 現在の境界付きスライス — ブランチ `feat/artifact-set-directory-verification`
+- `Common/ArtifactSetDirectoryVerification.py` を追加します。これは、合成ターゲット ディレクトリを読み取り、観察された成果物 バイトをハッシュし、厳密なコミット マーカーを解析し、重複する JSON キーを拒否し、既存の成果物 セット分類子に委任します。
+- 有効なマーカー/セット、欠落しているマーカー、部分的なセット、改ざんされたバイト、重複したマーカー キー、予期しないエントリ、シンボリック リンク、無効なディレクトリ/マーカー入力、および空のディレクトリに対するファイル システム テストを追加します。
+- 検証は読み取り専用です。成果物の公開、修復、上書き、削除は行われません。不正な形式または読み取り不能なディレクトリは安全側で拒否します。部分的なセットまたはマークされていないセットは、コミットされたことを報告しません。
+- このヘルパーは現在、1 つのディレクトリ スナップショットのみを検証します。クラッシュ耐性、ファイル間のアトミック性、ソースの安定性、Windows/ネットワーク ファイルシステムのセマンティクス、検証とその後の使用における同時実行の安全性は確立されません。公式のエントリポイントの統合、ドライブ、アーカイブ、または削除はありません。
+- PR ヘッド検証とパッケージ検証では、マージ前に正確な最新のヘッドを渡す必要があります。マージ後の両方のメイン ワークフローを確認し、その ID をこのドキュメントに記録します。
 
-### Immediate next actions
-1. Verify PR #163 post-merge main workflows `39692654499` and `39692654455`; update their final results in the handoff.
-2. Verify PR #164 Validate and Package Validation on the exact latest HEAD; repair failures and rerun if necessary.
-3. After PR #164 merge, verify both post-merge main workflows and record exact commit/run IDs.
-4. Only after the classifier slice, design and test the actual multi-artifact publication/recovery protocol under injected crashes and concurrent publishers. Do not infer atomic multi-file transactions from the single-artifact helper.
-5. Official `scripts/SyncLogs.ps1` and PC-A-only `scripts/ArchiveLogs.ps1` remain absent. Live Drive revalidation, actual crash recovery, multi-artifact transaction implementation, runtime integration, end-to-end acceptance, archive, and deletion remain open. P0 remains open.
-
----
-
-## Current continuation — PR #162 merged; crash-recovery decision gate in progress (2026-10-22)
-
-### Verified PR #162
-- PR #162 `feat: add isolated owned-run lock primitive` merged at `f35f86c8de4e1bc9a74cc19e842a784c04b153c6`.
-- Exact PR-head Validate run `39691619098` and Package Validation run `39691619026` both succeeded on `130b56f20fe67e356d35416b0cb2511a96d4fd72`.
-- Post-merge main Validate run `39692220126` and Package Validation run `39692220323` both succeeded on merge commit `f35f86c8de4e1bc9a74cc19e842a784c04b153c6`.
-- The helper is isolated and has no recovery, manifest/source mutation, Drive, archive/delete, or official entry-point integration.
-
-### Current bounded slice — branch `feat/crash-recovery-decision-gate`
-- Adds `Common/CrashRecoveryDecision.py`, a pure decision helper for crash-left manifest recovery. It requires an abandoned mutex, a structurally valid matching lock record, explicit confirmation that the prior owner terminated, a unique latest manifest candidate, strict Manifest v1 schema validation, matching PC/log/period identity, and complete or not-required Drive reconciliation with no unresolved uploads.
-- A positive decision only authorizes a *new* run with fresh inventory and immutable prior manifest. It does not edit a lock record/manifest, create a run, enumerate files, call Drive, archive, delete, or integrate operational entry points.
-- Adds synthetic tests and wires them into Validate CI; updates P0 register, safety audit, Common README, test README, and this handoff in the same PR.
-- This slice is not yet locally or CI verified. Confirm both workflows on the exact latest PR HEAD before merge.
-
-### Immediate next actions
-1. Verify PR #162 post-merge main Validate and Package Validation runs `39692220126` and `39692220323`; update the final results here when complete.
-2. Verify PR #163 Validate and Package Validation on its exact latest HEAD; fix any failures and rerun after every change.
-3. After PR #163 merge, verify both post-merge main workflows and record exact commit/run IDs.
-4. Next slice: synthetic multi-artifact publication/recovery ordering under injected crashes and concurrent publishers. Do not integrate official entry points until lock, recovery, multi-artifact publication, and source-race acceptance gates pass.
-5. Official `scripts/SyncLogs.ps1` and PC-A-only `scripts/ArchiveLogs.ps1` remain absent. Live Drive revalidation, runtime integration, end-to-end acceptance, archive, and deletion remain open. P0 remains open.
+### 直近の次作業
+1. PR #166 のディレクトリ検証ツールとテスト ケースを確認します。正確なヘッド検証とパッケージ検証をチェックし、変更があれば修復して再チェックします。
+2. マージ後、マージ後のメイン検証とパッケージ検証を検証し、正確な実行 ID を記録します。
+3. 正式なエントリポイント統合の前に、プロセス間のクラッシュ/同時実行とターゲット ファイル システムの受け入れを続行します。ディレクトリ検証の結果は、ロックやトランザクションではなく、特定時点の観察として扱います。
+4. 公式の `scripts/SyncLogs.ps1` および PC-A のみの `scripts/ArchiveLogs.ps1` は存在しないままです。 Live Drive の再検証、ランタイム統合、E2E の受け入れ、アーカイブ、削除は引き続き行われます。 P0 は開いたままになります。
 
 ---
 
-## Current continuation — PR #161 merged; isolated owned-run lock primitive (2026-10-22)
+## 現在の継続 — PR #164 がマージされました。マーカー最後の成果物 セットの公開が進行中です (2026-10-22)
 
-### Verified PR #161
-- PR #161 `docs: define lock ownership and crash recovery acceptance gate` merged at `c77a3c5ca42940eb196348387f08bd014751e254`.
-- Exact PR-head Validate run `39690933196` and Package Validation run `39690933107` both succeeded on `a957583d1c8f0186f489e3193df5ed0803844283`.
-- Post-merge workflow lookup for `c77a3c5ca42940eb196348387f08bd014751e254` returned no runs through the available lookup; post-merge main CI is **unverified**, not assumed successful.
-- PR #161 is a documentation/acceptance gate only; it does not implement lock or recovery behavior.
+### 確認済み PR #164
+- PR #164 `feat: add pure artifact-set recovery classifier` は `46b4c0244d253706c78576c83face105e8507b8c` にマージされました。
+- 正確な PR ヘッド検証の実行 `39692847593` とパッケージ検証の実行 `39692847637` は両方とも `baa1ecb3bee17f50cf60b94f8c2873f2169c9d36` で成功しました。
+- マージ後のメイン検証実行 `39693127008` とパッケージ検証実行 `39693127005` は両方ともマージ コミット `46b4c0244d253706c78576c83face105e8507b8c` で成功しました。
 
-### Current bounded slice — branch `feat/os-lock-ownership-primitive`
-- Adds `Common/OwnedRunLock.py`: Windows machine-wide named mutex plus exclusive create-only ownership-token record; 60-second maximum wait; strict record validation; token-matched cleanup only; sanitized reason codes.
-- Adds synthetic tests for acquisition/release, timeout, existing-record preservation, abandoned mutex fail-closed behavior, token mismatch, scope validation, and bounded timeout.
-- Adds the test to Validate CI and updates the P0 register, runtime safety audit, Common README, and this handoff in the same PR.
-- Deliberately does **not** adopt/remove a pre-existing record after an abandoned mutex; validated crash recovery is a separate future slice. No manifest mutation, source enumeration, Drive call, archive/delete, or official entry-point integration.
-- This code has not yet been executed locally or CI-verified. Do not claim test success until exact-head Validate and Package Validation finish.
+### 現在の境界付きスライス — ブランチ `feat/marker-last-artifact-set-publication`
+- `Common/ArtifactSetPublication.py` を追加して、既存の単一ファイルのアトミックな上書きなしプリミティブを構成します。各成果物を決定的な名前順で公開し、最後にトランザクション マーカーを公開します。
+- 正常終了、1 つの成果物の後に挿入される 失敗、冪等な再試行、既存のコンテンツの競合、無効な入力、および同一のパブリッシャーの同時実行のための、ファイルシステムに基づく合成テストを追加します。
+- 失敗してもロールバックされたり、すでに公開された成果物が削除されたりすることはありません。部分セットにはマーカーがなく、調整の対象のままになります。ヘルパーは複数のファイルを 1 つの単位としてアトミックにすることはなく、公式のエントリ ポイントに接続されません。
+- CI はマージ前に正確な最新の PR HEAD を渡す必要があります。その後、両方のマージ後のワークフローを確認します。
+- これは制限された実装/テスト スライスであり、ドライブ、マニフェスト状態の遷移、アーカイブ/削除、または公式のエントリ ポイント統合の承認ではありません。
 
-### Immediate next actions
-1. Review the lock primitive for Windows API handle correctness, scope/ownership semantics, and fail-closed cleanup.
-2. Confirm Validate and Package Validation both succeed on the exact latest PR HEAD before merge; fix failures and recheck if the head changes.
-3. After merge, verify both post-merge main workflows and record exact run IDs/results here.
-4. Next slice after this primitive: isolated crash/recovery decision helpers and tests; only then multi-artifact publication/recovery ordering. Do not connect official entry points until the acceptance gate in `docs/validation/lock-recovery-acceptance-gate.md` is met.
-5. Official `scripts/SyncLogs.ps1` and PC-A-only `scripts/ArchiveLogs.ps1` remain absent. Live Drive revalidation, crash recovery, multi-artifact commit protocol, runtime integration, end-to-end acceptance, archive, and deletion remain open. P0 remains open.
-
----
-
-## Current continuation — PR #160 merged; lock ownership/recovery acceptance gate (2026-10-22)
-
-### Verified baseline
-- PR #160 `feat: add atomic no-overwrite artifact publication` merged at `21aa528d558cddbbdd002f56f677913814cfa74e`.
-- Exact PR-head Validate run `39649267357` and Package Validation run `39649267728` succeeded on `02c75de294e712fdef675d2258736e2d34f5e135`.
-- Post-merge main Validate and Package Validation have not yet been independently verified by the available workflow-run lookup; do not infer success from PR-head CI.
-- The single-artifact publisher is a helper only; it does not provide lock ownership, multi-artifact transactions, crash recovery, or official entry-point integration.
-
-### Current bounded slice — branch `docs/lock-recovery-acceptance-gate` / PR #161
-- Adds `docs/validation/lock-recovery-acceptance-gate.md`, an implementation gate for the approved OSD-02 lock/recovery decisions: named mutex plus exclusive ownership-token record, 60-second bounded acquisition, no age/PID-only stale-lock takeover, immutable crash-left `running` manifests, fresh `run_id` and inventory after validated recovery, and reconciliation of uncertain uploads.
-- Extends runtime safety scenarios with synthetic LOCK/REC acceptance IDs and updates P0/safety audit records in the same PR.
-- Documentation and acceptance planning only: no lock implementation, recovery mutation, Drive operations, archive, deletion, or official runtime integration.
-- Require Validate and Package Validation on the exact latest PR HEAD before merge; then verify both post-merge workflows.
-
-### Immediate next actions
-1. Review PR #161 changes for consistency with approved OSD-02 C1-A/C2-C/C3-B/C4-A and existing manifest/Drive safety rules.
-2. Confirm exact-head Validate and Package Validation both succeed before merge; do not merge on stale-head results.
-3. After merge, verify post-merge main workflows and record exact commit/run IDs in this handoff.
-4. Next implementation slice: isolated named-mutex + ownership-token lock primitive and synthetic tests; do not connect official entry points until lock, recovery, multi-artifact publication, and source-race tests are complete.
-5. Official `scripts/SyncLogs.ps1` and PC-A-only `scripts/ArchiveLogs.ps1` remain absent. Live Drive revalidation, lock/recovery implementation, multi-artifact commit/recovery protocol, runtime integration, end-to-end acceptance, archive and deletion remain open. P0 remains open.
+### 直近の次作業
+1. PR #164 マージ後の検証とパッケージ検証が `39693127008` と `39693127005` を実行します。
+2. PR #165 を検証し、正確な最新の HEAD で検証およびパッケージ検証を行います。失敗を修復し、必要に応じて再実行します。
+3. PR #165 のマージ後、マージ後のメイン ワークフローの両方を確認し、正確な実行 ID を記録します。
+4. マーカー最後と上書きなしが必要なクラッシュ/同時実行の不変条件を満たしているかどうかを確認します。受け入れられた場合は、次に実際のディレクトリ状態に関する調整/検証テストを追加します。ファイル間のアトミック性を暗示しないでください。
+5. 公式の `scripts/SyncLogs.ps1` および PC-A のみの `scripts/ArchiveLogs.ps1` は存在しないままです。 Live Drive の再検証、本番環境のクラッシュからの回復、ランタイム統合、E2E の受け入れ、アーカイブ、削除は引き続き行われます。 P0 は開いたままになります。
 
 ---
 
-## Current continuation — PR #159 merged; PR #160 atomic artifact publication (2026-10-22)
+## 現在の継続 — PR #163 がマージされました。成果物セットのリカバリ分類子が進行中 (2026-10-22)
 
-### Verified PR #159
-- PR #159 `feat: build read-only source inventory and B2 evidence` merged at `386fec778e32e3afa6faec2d42602eb1d79e8455`.
-- Exact-head Validate run `39646963353` and Package Validation run `39646963300` both succeeded on `e9bcdfa1f70924efb5ecd8f182a029f0ebe37225`.
-- Post-merge Validate run `39648404914` and Package Validation run `39648405075` both succeeded on merge commit `386fec778e32e3afa6faec2d42602eb1d79e8455`.
-- Source inventory helper is read-only, builds B2 evidence in memory, and returns validated JSON bytes. It does not publish artifacts or integrate official entry points.
+### 確認済み PR #163
+- PR #163 `feat: add fail-closed crash recovery decision gate` は `2ab6a2009673767860814f9ebe11170a707ae614` にマージされました。
+- 正確な PR ヘッド検証の実行 `39692470725` とパッケージ検証の実行 `39692470729` は両方とも `dbc72bf56937f0efe39770f96a9787a2a161ee35` で成功しました。
+- マージ後のメイン検証実行 `39692654499` とパッケージ検証実行 `39692654455` は両方ともマージ コミット `2ab6a2009673767860814f9ebe11170a707ae614` で成功しました。
 
-### Current bounded slice — branch `feat/atomic-artifact-publication` / PR #160
-- Adds `Common/AtomicArtifactPublication.py`: same-directory temporary write, flush/fsync, atomic hard-link create for no-overwrite publication, exact-byte idempotent retry, and fail-closed conflict/unsupported-filesystem behavior.
-- Adds synthetic tests and wires them into Validate CI.
-- Updates Common README, P0 gap register, safety audit, and this handoff in the same PR.
-- Scope is one artifact only. No multi-file transaction, lock/recovery, directory durability guarantee, official entrypoint integration, Drive calls, archive, or deletion.
-- Exact-head Validate and Package Validation must pass before merge. Verify both post-merge workflows after merge.
+### 現在の境界付きスライス — ブランチ `feat/artifact-set-recovery-classifier`
+- `Common/ArtifactSetRecovery.py`、予期/ステージング/公開成果物 SHA-256 セットの純粋な分類子と合成コミット マーカーを追加します。
+- 分類子は、マーカー スキーマ/トランザクション ID/ハッシュ マップが有効で、完了 公開セットがそれに正確に一致する場合にのみ `committed` を報告します。部分的な公開またはマーカーの欠落はコミットされていないため、調整が必要です。既存の成果物は保存されます。
+- 合成テストを追加し、Validate CI に接続します。この PR 内の P0 レジスタ、安全性監査、共通 README、テスト README、このハンドオフ、およびロック/回復受け入れゲートを更新します。
+- これは分類子/テスト スライスのみであり、最終的なマルチ 成果物 コミット プロトコルの承認ではありません。ファイルシステムの公開/回復、マニフェストの書き込み、ドライブ、アーカイブ/削除、または公式のエントリポイント統合はありません。
+- マージ前に、正確な最新の PR HEAD が検証とパッケージ検証に合格する必要があります。
 
-### Immediate next actions
-1. Verify PR #159 post-merge Validate and Package Validation results on `386fec778e32e3afa6faec2d42602eb1d79e8455`.
-2. Inspect PR #160 CI at its latest HEAD; fix failures and recheck exact-head workflows before merge.
-3. After merge, verify both post-merge workflows. Next priority is lock ownership and crash-recovery design/tests, not enabling destructive runtime behavior.
-4. Official `scripts/SyncLogs.ps1` and PC-A-only `scripts/ArchiveLogs.ps1` remain absent. Live Drive revalidation, lock/recovery, multi-artifact publication protocol, official runtime integration, end-to-end acceptance, archive and deletion remain open. P0 remains open; do not claim production readiness.
-
----
-
-## Current continuation — PR #158 merged; PR #159 source inventory/evidence builder (2026-10-22)
-
-### Verified baseline
-- PR #158 `docs: define runtime entrypoint validation gates` merged at `7c61d76942909e6b88010da10da732816cd6d972`.
-- Exact-head Validate run `39646032186` and Package Validation run `39646032077` both succeeded on `cf64e92da626f43ce62e82cbf544ae746f73f74f`.
-- Post-merge main Validate `39646261919` and Package Validation `39646262283` both succeeded on `7c61d76942909e6b88010da10da732816cd6d972`.
-- PR #158 is a documentation/design gate only; it does not add official sync/archive entry points or authorize archive/deletion.
-
-### Current bounded slice — branch `feat/source-inventory-evidence-builder`
-- Adds `Common/SourceInventoryEvidenceBuilder.py`: read-only source-tree traversal, filename/date-based sync eligibility, SHA-256 of eligible files, sorted frozen target records, B2 evidence construction, and deterministic schema/integrity-validated JSON byte serialization.
-- Adds synthetic tests for eligibility, canonical ordering/relative paths, invalid filename diagnostics, invalid PC/scope rejection, and stable serialization; CI workflow invokes the new test file.
-- Updates Common README, P0 gap register, safety audit, and this handoff in the same PR.
-- Failure boundary: traversal/read/hash uncertainty sets enumeration to incomplete; the helper does not write files, upload to Drive, archive, or delete. Serialization returns bytes only; atomic publication and lock/recovery remain unimplemented.
-- Exact-head Validate and Package Validation must pass before merge. Then verify both post-merge main workflows.
-
-### Immediate next actions
-1. Inspect PR #159 latest HEAD and CI. Fix all failures and recheck both workflows on the newest exact HEAD.
-2. Merge only after both exact-head workflows succeed; verify post-merge main Validate and Package Validation.
-3. Next priority: separate artifact publication primitive with same-directory temporary files, no-overwrite semantics, flush/close, atomic create behavior and synthetic crash/idempotency tests. Do not integrate into official entry points until lock/recovery and source-race handling are testable.
-4. Official `scripts/SyncLogs.ps1` and PC-A-only `scripts/ArchiveLogs.ps1` are still absent. Live Drive revalidation, lock/recovery, atomic publication, official runtime integration, end-to-end acceptance, archive and deletion remain open. P0 remains open; do not claim production readiness.
+### 直近の次作業
+1. PR #163 マージ後のメイン ワークフロー `39692654499` および `39692654455` を確認します。ハンドオフで最終結果を更新します。
+2. PR #164 を検証し、正確な最新の HEAD で検証およびパッケージ検証を行います。障害を修復し、必要に応じて再実行します。
+3. PR #164 のマージ後、マージ後のメイン ワークフローの両方を確認し、正確なコミット / 実行 ID を記録します。
+4. 分類子スライスの後にのみ、挿入されたクラッシュと同時パブリッシャーの下で実際のマルチ成果物のパブリケーション/リカバリ プロトコルを設計してテストします。単一成果物 ヘルパーからアトミックな複数ファイル トランザクションを推論しないでください。
+5. 公式の `scripts/SyncLogs.ps1` および PC-A のみの `scripts/ArchiveLogs.ps1` は存在しないままです。 Live Drive の再検証、実際のクラッシュ回復、マルチ成果物 トランザクションの実装、ランタイム統合、エンドツーエンドの受け入れ、アーカイブ、および削除はオープンなままです。 P0 は開いたままになります。
 
 ---
 
-## Current continuation — PR #157 merged; runtime entry-point gate documented (2026-10-22)
+## 現在の継続 — PR #162 がマージされました。クラッシュ回復決定ゲートが進行中 (2026-10-22)
 
-### Verified latest baseline
-- PR #155 merged at `2cd982ddd19cb3b1d19dec0051b1d8a0cf0993c0`; exact-head Validate `39643551781` and Package Validation `39643551954` passed on `27037ba49acf8c767c3c969c66e5cc9a3873e563`; post-merge Validate `39644080069` and Package Validation `39644080162` passed.
-- PR #156 merged at `7881fe0f74699dd8aceb1e72e48a4c583c6597cd`; exact-head Validate `39644692787` and Package Validation `39644693181` passed; post-merge Validate `39644870405` and Package Validation `39644870386` passed.
-- PR #157 merged at `33eb450e226914130c34e80cb3bd140776195fd5`; exact-head Validate `39645428388` and Package Validation `39645428425` both passed on `a6efdeb4fc31e1f5be1607cc15bd44a229fbed98`.
-- PR #157 post-merge main Validate `39645706354` and Package Validation `39645706352` both succeeded on `33eb450e226914130c34e80cb3bd140776195fd5`.
+### 確認済み PR #162
+- PR #162 `feat: add isolated owned-run lock primitive` は `f35f86c8de4e1bc9a74cc19e842a784c04b153c6` にマージされました。
+- 正確な PR ヘッド検証の実行 `39691619098` とパッケージ検証の実行 `39691619026` は両方とも `130b56f20fe67e356d35416b0cb2511a96d4fd72` で成功しました。
+- マージ後のメイン検証実行 `39692220126` とパッケージ検証実行 `39692220323` は両方ともマージ コミット `f35f86c8de4e1bc9a74cc19e842a784c04b153c6` で成功しました。
+- ヘルパーは分離されており、回復、マニフェスト/ソースの変更、ドライブ、アーカイブ/削除、または公式のエントリ ポイント統合はありません。
 
-### Current bounded slice — branch `docs/runtime-entrypoint-validation-gate`
-- Adds `docs/design/runtime-entrypoint-validation-gate.md`, a non-normative implementation gate defining required validation order, sync/archive separation, fail-closed behavior, lock/atomic-publication/recovery boundaries, and synthetic acceptance tests before runtime side effects can be enabled.
-- Repository inventory confirms official `scripts/SyncLogs.ps1` and `scripts/ArchiveLogs.ps1` do not exist yet. Existing validators are helper modules and are not called by an official sync/archive entry point.
-- This is documentation and acceptance-contract work only. No runtime scripts, Drive operations, archive, deletion, or production log changes are added.
+### 現在の境界付きスライス — ブランチ `feat/crash-recovery-decision-gate`
+- クラッシュ放置されたマニフェストの回復のための純粋な意思決定ヘルパーである `Common/CrashRecoveryDecision.py` を追加します。これには、放棄されたミューテックス、構造的に有効な一致するロック レコード、前の所有者が終了したことの明示的な確認、一意の最新マニフェスト候補、厳密なマニフェスト v1 スキーマ検証、一致する PC/ログ/期間 ID、および未解決のアップロードがない 完了 または不要なドライブの調整が必要です。
+- 肯定的な決定は、新しいインベントリと不変の以前のマニフェストを使用した *new* の実行のみを許可します。ロック レコード/マニフェストの編集、実行の作成、ファイルの列挙、ドライブの呼び出し、アーカイブ、削除、操作エントリ ポイントの統合は行われません。
+- 合成テストを追加し、Validate CI に接続します。同じ PR 内の P0 レジスタ、安全性監査、共通 README、テスト README、およびこのハンドオフを更新します。
+- このスライスはまだローカルまたは CI 確認済み にありません。マージする前に、正確な最新の PR HEAD で両方のワークフローを確認してください。
 
-### Immediate next actions
-1. Review PR #158 on the exact latest head; ensure the handoff preserves all prior history.
-2. Run exact-head Validate and Package Validation; merge only when both succeed; then verify post-merge main CI.
-3. Next implementation slice should be the non-destructive source enumeration/frozen-inventory builder and B2 evidence writer with deterministic synthetic tests. Do not add archive/delete behavior. Integrate official entry points only after lock, publication, recovery, and live Drive verification designs are testable.
-4. P0 remains open; do not claim deployability or production readiness.
-
----
-
-## Current continuation — PR #156 merged; PR #157 manifest/B2 inventory binding (2026-10-22)
-
-### Verified latest baseline
-- PR #155 merged at `2cd982ddd19cb3b1d19dec0051b1d8a0cf0993c0`; exact-head Validate `39643551781` and Package Validation `39643551954` passed on `27037ba49acf8c767c3c969c66e5cc9a3873e563`.
-- PR #155 post-merge Validate `39644080069` and Package Validation `39644080162` both succeeded on `2cd982ddd19cb3b1d19dec0051b1d8a0cf0993c0`.
-- PR #156 merged at `7881fe0f74699dd8aceb1e72e48a4c583c6597cd`. Exact-head Validate `39644692787` and Package Validation `39644693181` both succeeded on `21fa869f222f2b88b7c0ecef20f2313b9ce7c515`.
-- PR #156 post-merge Validate `39644870405` and Package Validation `39644870386` both succeeded on `7881fe0f74699dd8aceb1e72e48a4c583c6597cd`.
-
-### PR #157 — branch `feat/manifest-evidence-inventory-binding`
-- Connect the referenced-artifact verifier to the A2/B2 digest, schema, count, and ordering validator.
-- Compare the embedded B2 target inventory against manifest `files` by relative path, filename, size, and SHA-256; reject identity or inventory divergence.
-- Check the report inventory count/digest against the validated evidence.
-- Tests and documentation are being updated in this PR, including this handoff file.
-- This is still validation-only. It does not prove the initial source traversal was complete, create or publish evidence, integrate official sync/archive entry points, implement locking/recovery or live Drive revalidation, or authorize archive/deletion.
-
-### Immediate next actions
-1. Check PR #157 Validate and Package Validation on the exact latest HEAD; inspect and fix any failures.
-2. Confirm PR #156 post-merge workflows `39644870405` and `39644870386`.
-3. Merge PR #157 only after both exact-head checks pass; then verify post-merge CI.
-4. Next priority after PR #157: bind this validation to an official runtime entry point only after entry-point design and safe failure behavior are addressed; then locking/recovery, live Drive revalidation, and synthetic end-to-end acceptance.
-5. P0 remains open. No production readiness, runtime integration, archive authorization, or deletion capability may be inferred from helper/schema CI alone.
-
+### 直近の次作業
+1. PR #162 のマージ後のメインの検証とパッケージ検証が `39692220126` と `39692220323` を実行することを確認します。 完了 のときに、最終結果をここで更新します。
+2. PR #163 を検証し、正確な最新の HEAD で検証およびパッケージ検証を行います。失敗を修正し、変更するたびに再実行します。
+3. PR #163 のマージ後、マージ後のメイン ワークフローの両方を確認し、正確なコミット / 実行 ID を記録します。
+4. 次のスライス: 挿入されたクラッシュと同時パブリッシャーの下での合成マルチ成果物のパブリケーション/リカバリの順序付け。ロック、リカバリ、マルチ成果物の公開、およびソースレースの受け入れゲートを通過するまで、公式のエントリ ポイントを統合しないでください。
+5. 公式の `scripts/SyncLogs.ps1` と PC-A のみの `scripts/ArchiveLogs.ps1` は存在しないままです。 Live Drive の再検証、ランタイム統合、エンドツーエンドの受け入れ、アーカイブ、削除は引き続き行われます。 P0 は開いたままになります。
 
 ---
 
-## Current continuation — PR #154 merged; PR #155 referenced-artifact schema validation (2026-10-22)
+## 現在の継続 — PR #161 がマージされました。分離された所有実行ロック プリミティブ (2026-10-22)
 
-### Verified baseline
-- PR #154 `feat: add strict manifest v1 schema contract` merged at `b7bb65e400d4d4c2e80ea54204ebddbba01f6870`.
-- Exact PR-head Validate `39641517689` and Package Validation `39641517941` both completed successfully on `25d87e5f8514e53f4eed057ad69ee1c7b1ddaa2f`.
-- PR #154 post-merge main Validate `39641802717` and Package Validation `39641802714` were in progress when work moved to PR #155; check final conclusions before reporting post-merge CI as successful.
-- PR #155 branch: `feat/osd03-referenced-artifact-schema-validation`, based on PR #154 merge commit.
-- PR #155 adds `Common/AggregationReferencedArtifacts.ps1`, `Common/validate_aggregation_artifacts.py`, synthetic Python tests, `requirements-runtime.txt`, runtime package allowlisting for the validator and three schemas, and updates the report proposal, P0 gap register, safety audit, Common README, and this handoff document in the same PR.
-- Initial PR #155 Validate run `39642548720` failed only in `test_unsafe_reference_path_is_rejected`: the report schema rejects the traversal path before the runtime path guard, so the actual reason is `schema_invalid:report`. Updated the assertion accordingly in commit `1fa734877c3b58da61d437824176abb53e94c936`; exact-head CI must be checked again.
+### 確認済み PR #161
+- PR #161 `docs: define lock ownership and crash recovery acceptance gate` は `c77a3c5ca42940eb196348387f08bd014751e254` にマージされました。
+- 正確な PR ヘッド検証の実行 `39690933196` とパッケージ検証の実行 `39690933107` は両方とも `a957583d1c8f0186f489e3193df5ed0803844283` で成功しました。
+- `c77a3c5ca42940eb196348387f08bd014751e254` のマージ後のワークフロー ルックアップでは、使用可能なルックアップによる実行は返されませんでした。マージ後のメイン CI は **unverified** であり、成功したとみなされません。
+- PR #161 は文書化/承認ゲートのみです。ロックや回復動作は実装されていません。
 
-### PR #155 design and boundaries
-- The Python helper validates the report against `aggregation-report-v1.schema.json`, reads the exact bytes at `manifest_ref.path` and `evidence_ref.path` under a trusted root, checks raw-byte SHA-256, validates each object against its Draft 2020-12 schema, and compares `run_id`, `pc_id`, and `log_type`.
-- Malformed JSON, duplicate keys, non-object roots, unsafe paths, symlink components, missing files, schema errors, digest mismatch, or identity mismatch reject closed with stable reason codes; no artifact content or exception/path detail is returned.
-- The helper is standalone and is **not connected to official sync/archive entry points**. It does not implement B2 digest recomputation/count reconciliation, A2 digest generation, full source enumeration proof, timestamp freshness/state transitions, locks/recovery, live Drive revalidation, or archive authorization.
-- No production logs, credentials, Drive writes, archive enablement, or deletion.
-- Runtime package inclusion is extended, but the production package is still non-deployable while official runtime entry points are absent.
+### 現在の境界付きスライス — ブランチ `feat/os-lock-ownership-primitive`
+- `Common/OwnedRunLock.py`: Windows マシン全体の名前付きミューテックスと排他的な作成専用所有権トークン レコードを追加します。 60 秒の最大待機時間。厳密な記録検証。トークン一致クリーンアップのみ。サニタイズされた理由コード。
+- 取得/解放、タイムアウト、既存レコードの保存、放棄されたミューテックスのフェイルクローズ動作、トークン 不一致、スコープ検証、および制限されたタイムアウトのための合成テストを追加します。
+- CI を検証するためのテストを追加し、同じ PR 内の P0 レジスタ、ランタイム安全性監査、共通 README、およびこのハンドオフを更新します。
+- **not** は、放棄されたミューテックスの後に既存のレコードを意図的に採用/削除します。検証されたクラッシュリカバリは将来の別のスライスです。マニフェストの変更、ソースの列挙、ドライブの呼び出し、アーカイブ/削除、または公式のエントリポイントの統合はありません。
+- このコードはローカルまたは CI-確認済み でまだ実行されていません。正確なヘッドの検証とパッケージの検証が完了するまで、テスト 成功 を要求しないでください。
 
-### Immediate next actions
-1. Check PR #155 Validate and Package Validation on the exact latest branch HEAD `1fa734877c3b58da61d437824176abb53e94c936`; inspect logs and fix failures before merge.
-2. Verify PR #154 post-merge workflow conclusions on merge commit `b7bb65e400d4d4c2e80ea54204ebddbba01f6870`.
-3. After PR #155 is merged and CI verified, continue with A2/B2 canonical digest recomputation and exhaustive inventory/count reconciliation as a separate bounded PR, updating all relevant contract/tests/audit/P0/handoff documents together.
-4. Do not report P0 complete based on schema validation helpers alone.
+### 直近の次作業
+1. Windows API ハンドルの正確性、スコープ/所有権セマンティクス、およびフェールクローズ クリーンアップのロック プリミティブを確認します。
+2. マージ前に、正確な最新の PR HEAD で検証とパッケージ検証の両方が成功したことを確認します。障害を修正し、ヘッドが変化したかどうかを再確認します。
+3. マージ後、マージ後のメイン ワークフローの両方を確認し、正確な実行 ID/結果をここに記録します。
+4. このプリミティブの次のスライス: 分離されたクラッシュ/回復意思決定ヘルパーとテスト。その後のみ、複数の成果物の公開/回復の順序付けが行われます。 `docs/validation/lock-recovery-acceptance-gate.md` の受け入れゲートに達するまで、正式なエントリ ポイントを接続しないでください。
+5. 公式の `scripts/SyncLogs.ps1` および PC-A のみの `scripts/ArchiveLogs.ps1` は存在しないままです。 Live Drive の再検証、クラッシュ回復、マルチ成果物コミットプロトコル、ランタイム統合、エンドツーエンドの受け入れ、アーカイブ、および削除はオープンなままです。 P0 は開いたままになります。
+
+---
+
+## 現在の継続 — PR #160 がマージされました。ロック所有権/回復受け入れゲート (2026-10-22)
+
+### 検証されたベースライン
+- PR #160 `feat: add atomic no-overwrite artifact publication` は `21aa528d558cddbbdd002f56f677913814cfa74e` にマージされました。
+- 正確な PR ヘッド検証の実行 `39649267357` とパッケージ検証の実行 `39649267728` が `02c75de294e712fdef675d2258736e2d34f5e135` で成功しました。
+- マージ後のメイン検証とパッケージ検証は、利用可能なワークフロー実行ルックアップによってまだ個別に 確認済み されていません。 PR ヘッド CI から 成功 を推論しないでください。
+- 単一成果物 パブリッシャーは単なるヘルパーです。ロックの所有権、複数の成果物 トランザクション、クラッシュの回復、または公式のエントリ ポイントの統合は提供されません。
+
+### 現在の境界付きスライス — ブランチ `docs/lock-recovery-acceptance-gate` / PR #161
+- 承認された OSD-02 ロック/リカバリ決定の実装ゲートである `docs/validation/lock-recovery-acceptance-gate.md` を追加します: 名前付きミューテックスと排他的所有権トークン レコード、60 秒の制限付き取得、経過時間なし/PID のみの古いロックの引き継ぎ、不変のクラッシュ左 `running` マニフェスト、検証されたリカバリ後の新しい `run_id` とインベントリ、および調整不確実なアップロード。
+- 合成 LOCK/REC 受け入れ ID を使用してランタイム安全性シナリオを拡張し、同じ PR 内の P0/安全性監査レコードを更新します。
+- ドキュメントと受け入れ計画のみ: ロックの実装、回復の変更、ドライブの操作、アーカイブ、削除、または公式のランタイム統合はありません。
+- マージ前に正確な最新の PR HEAD での検証とパッケージ検証が必要です。次に、両方のマージ後のワークフローを確認します。
+
+### 直近の次作業
+1. PR #161 の変更を確認して、承認された OSD-02 C1-A/C2-C/C3-B/C4-A および既存のマニフェスト/ドライブの安全ルールとの整合性を確認します。
+2. マージ前に、正確な対象HEADのValidate と Package Validation の両方が成功したことを確認します。古いヘッドの結果をマージしないでください。
+3. マージ後、マージ後のメイン ワークフローを確認し、このハンドオフで正確なコミット/実行 ID を記録します。
+4. 次の実装スライス: 分離された名前付きミューテックス + 所有権トークン ロックのプリミティブ テストと合成テスト。ロック、リカバリ、マルチ成果物の公開、およびソース競合テストが 完了 になるまで、公式のエントリ ポイントに接続しないでください。
+5. 公式の `scripts/SyncLogs.ps1` と PC-A のみの `scripts/ArchiveLogs.ps1` は存在しません。 Live Drive の再検証、ロック/リカバリの実装、マルチ成果物のコミット/リカバリ プロトコル、ランタイム統合、エンドツーエンドの受け入れ、アーカイブと削除はオープンなままです。 P0 は開いたままになります。
+
+---
+
+## 現在の継続 — PR #159 がマージされました。 PR #160 アトミック成果物の出版 (2026-10-22)
+
+### 確認済み PR #159
+- PR #159 `feat: build read-only source inventory and B2 evidence` は `386fec778e32e3afa6faec2d42602eb1d79e8455` にマージされました。
+- 正確なヘッド検証の実行 `39646963353` とパッケージ検証の実行 `39646963300` は両方とも `e9bcdfa1f70924efb5ecd8f182a029f0ebe37225` で成功しました。
+- マージ後の検証実行 `39648404914` とパッケージ検証実行 `39648405075` は両方ともマージ コミット `386fec778e32e3afa6faec2d42602eb1d79e8455` で成功しました。
+- ソース インベントリ ヘルパーは読み取り専用で、メモリ内に B2 証拠を構築し、検証された JSON バイトを返します。成果物を公開したり、公式のエントリ ポイントを統合したりすることはありません。
+
+### 現在の境界付きスライス — ブランチ `feat/atomic-artifact-publication` / PR #160
+- `Common/AtomicArtifactPublication.py` を追加します: 同一ディレクトリへの一時書き込み、フラッシュ/fsync、上書きなしパブリケーション用のアトミック ハードリンク作成、正確なバイトのべき等再試行、およびフェールクローズされた競合/サポートされていないファイル システムの動作。
+- 合成テストを追加し、Validate CI に接続します。
+- 同じ PR 内の共通 README、P0 ギャップ レジスタ、安全性監査、およびこのハンドオフを更新します。
+- スコープは 1 つの成果物のみです。複数ファイルのトランザクション、ロック/リカバリ、ディレクトリの耐久性の保証、公式のエントリポイントの統合、ドライブの呼び出し、アーカイブ、または削除はありません。
+- マージ前に、正確な対象HEADのValidate と Package Validation に合格する必要があります。マージ後に両方のマージ後のワークフローを確認します。
+
+### 直近の次作業
+1. PR #159 のマージ後の検証と `386fec778e32e3afa6faec2d42602eb1d79e8455` のパッケージ検証の結果を確認します。
+2. PR #160 CI を最新の HEAD で検査します。マージ前に失敗を修正し、exact-head ワークフローを再確認してください。
+3. マージ後、両方のマージ後のワークフローを確認します。次に優先されるのは、ロックの所有権とクラッシュ回復の設計/テストであり、破壊的なランタイム動作を可能にしないことです。
+4. 公式の `scripts/SyncLogs.ps1` および PC-A のみの `scripts/ArchiveLogs.ps1` は存在しないままです。 Live Drive の再検証、ロック/リカバリ、マルチ成果物公開プロトコル、公式ランタイム統合、エンドツーエンドの受け入れ、アーカイブおよび削除はオープンなままです。 P0 は開いたままです。実稼働準備が整っているとは主張しないでください。
+
+---
+
+## 現在の継続 — PR #158 がマージされました。 PR #159 ソース目録/証拠ビルダー (2026-10-22)
+
+### 検証されたベースライン
+- PR #158 `docs: define runtime entrypoint validation gates` は `7c61d76942909e6b88010da10da732816cd6d972` にマージされました。
+- 正確なヘッド検証の実行 `39646032186` とパッケージ検証の実行 `39646032077` は両方とも `cf64e92da626f43ce62e82cbf544ae746f73f74f` で成功しました。
+- マージ後のメイン検証 `39646261919` とパッケージ検証 `39646262283` は両方とも `7c61d76942909e6b88010da10da732816cd6d972` で成功しました。
+- PR #158 はドキュメント/デザイン ゲートのみです。公式の同期/アーカイブ エントリ ポイントを追加したり、アーカイブ/削除を承認したりするものではありません。
+
+### 現在の境界付きスライス — ブランチ `feat/source-inventory-evidence-builder`
+- `Common/SourceInventoryEvidenceBuilder.py`: 読み取り専用のソース ツリー トラバーサル、ファイル名/日付ベースの同期適格性、対象となるファイルの SHA-256、並べ替えられた凍結ターゲット レコード、B2 証拠構築、および決定論的スキーマ/整合性検証済み JSON バイト シリアル化を追加します。
+- 適格性、正規の順序付け/相対パス、無効なファイル名の診断、無効な PC/スコープの拒否、および安定したシリアル化のための合成テストを追加します。 CI ワークフローは新しいテスト ファイルを呼び出します。
+- 同じ PR 内の共通 README、P0 ギャップ レジスタ、安全性監査、およびこのハンドオフを更新します。
+- 障害境界: トラバーサル/読み取り/ハッシュの不確実性により、列挙が 未完了 に設定されます。ヘルパーは、ファイルの書き込み、ドライブへのアップロード、アーカイブ、削除を行いません。シリアル化はバイトのみを返します。アトミックなパブリケーションとロック/リカバリは未実装のままです。
+- マージ前に、正確な対象HEADのValidate と Package Validation に合格する必要があります。次に、マージ後の両方のメイン ワークフローを確認します。
+
+### 直近の次作業
+1. PR #159 最新の HEAD と CI を検査します。すべての障害を修正し、最新の正確な HEAD で両方のワークフローを再確認します。
+2. 両方の完全一致ワークフローが成功した後にのみマージします。マージ後のメイン検証とパッケージ検証を検証します。
+3. 次の優先順位: 同じディレクトリの一時ファイルを使用した個別の成果物 パブリケーション プリミティブ、上書きなしのセマンティクス、フラッシュ/クローズ、アトミックな作成動作、合成クラッシュ/冪等性テスト。ロック/リカバリとソース競合処理がテスト可能になるまでは、公式のエントリ ポイントに統合しないでください。
+4. 公式の `scripts/SyncLogs.ps1` と PC-A のみの `scripts/ArchiveLogs.ps1` はまだ存在しません。 Live Drive の再検証、ロック/リカバリ、アトミック パブリケーション、公式ランタイム統合、エンドツーエンドの受け入れ、アーカイブおよび削除はオープンなままです。 P0 は開いたままです。実稼働準備が整っているとは主張しないでください。
+
+---
+
+## 現在の継続 — PR #157 がマージされました。ランタイム エントリ ポイント ゲートの文書化 (2026-10-22)
+
+### 検証された最新のベースライン
+- PR #155 は `2cd982ddd19cb3b1d19dec0051b1d8a0cf0993c0` にマージされました。正確なヘッド検証 `39643551781` とパッケージ検証 `39643551954` が `27037ba49acf8c767c3c969c66e5cc9a3873e563` に渡されました。マージ後の検証 `39644080069` とパッケージ検証 `39644080162` に合格しました。
+- PR #156 は `7881fe0f74699dd8aceb1e72e48a4c583c6597cd` にマージされました。正確なヘッド検証 `39644692787` およびパッケージ検証 `39644693181` に合格しました。マージ後の検証 `39644870405` とパッケージ検証 `39644870386` に合格しました。
+- PR #157 は `33eb450e226914130c34e80cb3bd140776195fd5` にマージされました。正確なヘッド検証 `39645428388` とパッケージ検証 `39645428425` は両方とも `a6efdeb4fc31e1f5be1607cc15bd44a229fbed98` に渡されました。
+- PR #157 マージ後のメイン検証 `39645706354` とパッケージ検証 `39645706352` は両方とも `33eb450e226914130c34e80cb3bd140776195fd5` で成功しました。
+
+### 現在の境界付きスライス — ブランチ `docs/runtime-entrypoint-validation-gate`
+- `docs/design/runtime-entrypoint-validation-gate.md` を追加します。これは、実行時の副作用を有効にする前に、必要な検証順序、同期/アーカイブ分離、フェールクローズ動作、ロック/アトミック公開/リカバリ境界、および合成受け入れテストを定義する非規範的な実装ゲートです。
+- リポジトリ インベントリにより、正式な `scripts/SyncLogs.ps1` と `scripts/ArchiveLogs.ps1` がまだ存在しないことが確認されています。既存のバリデーターはヘルパー モジュールであり、公式の同期/アーカイブ エントリ ポイントによって呼び出されません。
+- これは文書化と受諾契約の作業のみです。ランタイム スクリプト、ドライブ操作、アーカイブ、削除、実稼働ログの変更は追加されません。
+
+### 直近の次作業
+1. 最新のヘッドの PR #158 を確認してください。ハンドオフで以前の履歴がすべて保存されていることを確認します。
+2. 正確なヘッド検証とパッケージ検証を実行します。両方が成功した場合にのみマージします。次に、マージ後のメイン CI を確認します。
+3. 次の実装スライスは、非破壊的なソース列挙/凍結インベントリ ビルダーおよび決定論的合成テストを備えた B2 証拠ライターである必要があります。アーカイブ/削除動作を追加しないでください。公式エントリ ポイントは、ロック、公開、リカバリ、ライブ ドライブ検証の設計がテスト可能になった後にのみ統合してください。
+4. P0 は開いたままです。導入可能性や運用準備が整っているとは主張しません。
+
+---
+
+## 現在の継続 — PR #156 がマージされました。 PR #157 マニフェスト/B2 インベントリ バインディング (2026-10-22)
+
+### 検証された最新のベースライン
+- PR #155 は `2cd982ddd19cb3b1d19dec0051b1d8a0cf0993c0` にマージされました。正確なヘッド検証 `39643551781` とパッケージ検証 `39643551954` が `27037ba49acf8c767c3c969c66e5cc9a3873e563` に渡されました。
+- PR #155 マージ後の検証 `39644080069` とパッケージ検証 `39644080162` は両方とも `2cd982ddd19cb3b1d19dec0051b1d8a0cf0993c0` で成功しました。
+- PR #156 は `7881fe0f74699dd8aceb1e72e48a4c583c6597cd` にマージされました。正確なヘッド検証 `39644692787` とパッケージ検証 `39644693181` は両方とも `21fa869f222f2b88b7c0ecef20f2313b9ce7c515` で成功しました。
+- PR #156 マージ後の検証 `39644870405` とパッケージ検証 `39644870386` は両方とも `7881fe0f74699dd8aceb1e72e48a4c583c6597cd` で成功しました。
+
+### PR #157 — ブランチ `feat/manifest-evidence-inventory-binding`
+- 参照成果物検証ツールを A2/B2 ダイジェスト、スキーマ、カウント、および順序付け検証ツールに接続します。
+- 相対パス、ファイル名、サイズ、および SHA-256 によって、埋め込み B2 ターゲット インベントリをマニフェスト `files` と比較します。同一性や一覧の相違を拒否します。
+- レポートの一覧数/ダイジェストを検証済みの証拠と照合して確認します。
+- このハンドオフ ファイルを含む、この PR のテストとドキュメントが更新されています。
+- これはまだ検証のみです。最初のソース トラバーサルが 完了 であったことの証明、証拠の作成または公開、公式同期/アーカイブ エントリ ポイントの統合、ロック/回復またはライブ ドライブ再検証の実装、またはアーカイブ/削除の承認を行うものではありません。
+
+### 直近の次作業
+1. PR #157 正確な最新の HEAD で検証およびパッケージ検証を確認します。故障を検査して修正します。
+2. PR #156 マージ後のワークフロー `39644870405` および `39644870386` を確認します。
+3. PR #157 は両方の完全一致チェックに合格した後にのみマージします。次に、マージ後の CI を確認します。
+4. PR #157 の次の優先順位: エントリ ポイントの設計と 失敗 の安全な動作が解決された後にのみ、この検証を公式のランタイム エントリ ポイントにバインドします。次に、ロック/回復、ドライブのライブ再検証、総合的なエンドツーエンドの受け入れが行われます。
+5. P0 は開いたままです。ヘルパー/スキーマ CI だけからは、運用準備、ランタイム統合、アーカイブ承認、または削除機能を推測することはできません。
 
 
 ---
 
-## Current continuation — PR #153 merged; PR #154 manifest v1 structural schema contract (2026-10-22)
+## 現在の継続 — PR #154 がマージされました。 PR #155 参照成果物 スキーマの検証 (2026-10-22)
 
-### Verified baseline
-- PR #153 merged at `73a2ade60f6da1f14732497350f627ea7fb8be2c`.
-- Exact PR-head Validate `39638672064` and Package Validation `39638672042` succeeded on `93bec84872b8a12b5b5e1ed999c4b0a3c7358d3d`.
-- Post-merge main Validate `39639971757` and Package Validation `39639971778` succeeded on the merge commit.
-- PR #154 branch: `feat/manifest-v1-schema-contract`; latest known branch commit `7829e1f1daf2eb1ecf40f3dd57f5eb994056352e`. CI has not yet been checked for this branch's final HEAD.
+### 検証されたベースライン
+- PR #154 `feat: add strict manifest v1 schema contract` は `b7bb65e400d4d4c2e80ea54204ebddbba01f6870` にマージされました。
+- 正確な PR ヘッド検証 `39641517689` とパッケージ検証 `39641517941` は両方とも `25d87e5f8514e53f4eed057ad69ee1c7b1ddaa2f` で正常に完了しました。
+- PR #154 マージ後のメイン検証 `39641802717` とパッケージ検証 `39641802714` は、作業が PR #155 に移動したときに進行中でした。マージ後の CI を成功として報告する前に、最終的な結論を確認してください。
+- PR #155 ブランチ: `feat/osd03-referenced-artifact-schema-validation`、PR #154 マージ コミットに基づく。
+- PR #155 は、`Common/AggregationReferencedArtifacts.ps1`、`Common/validate_aggregation_artifacts.py`、合成 Python テスト、`requirements-runtime.txt`、バリデーターおよび 3 つのスキーマのランタイム パッケージ ホワイトリストを追加し、同じ PR 内のレポート提案、P0 ギャップ レジスタ、安全監査、共通 README、およびこのハンドオフ ドキュメントを更新します。
+- 初期 PR #155 `test_unsafe_reference_path_is_rejected` でのみ `39642548720` 失敗した の実行を検証します。レポート スキーマはランタイム パス ガードの前にトラバーサル パスを拒否するため、実際の理由は `schema_invalid:report` です。コミット `1fa734877c3b58da61d437824176abb53e94c936` でアサーションを適宜更新しました。正確なヘッド CI を再度チェックする必要があります。
 
-### PR #154 scope
-- Add strict Draft 2020-12 structural schema `contracts/manifest-v1.schema.json` from the approved field specification.
-- Add synthetic contract coverage for valid manifests, run status/finish-time combinations, log-type-specific periods, no-work constraints, verification status/method/time/hash combinations, unknown fields/version, unsafe paths, timestamps, UUID, and SHA-256.
-- Update the manifest schema proposal to distinguish executable structural schema/tests from unimplemented runtime enforcement.
-- Structural schema does not validate manifest filename identity, finish-before-start, future/freshness policy, transitions, cross-artifact identity, locks, or archive authorization. It does not implement production runtime behavior.
-- No production logs, credentials, Drive writes, archive enablement, or deletion.
+### PR #155 デザインと境界
+- Python ヘルパーは、`aggregation-report-v1.schema.json` に対してレポートを検証し、信頼されたルートの下の `manifest_ref.path` および `evidence_ref.path` で正確なバイトを読み取り、生バイト SHA-256 をチェックし、各オブジェクトをそのドラフト 2020-12 スキーマに対して検証し、`run_id`、`pc_id`、および`log_type`。
+- 不正な形式の JSON、重複キー、非オブジェクト ルート、安全でないパス、シンボリックリンク コンポーネント、欠落ファイル、スキーマ エラー、ダイジェスト 不一致、または同一性 不一致 は、安定した理由コードでクローズを拒否します。成果物の内容や例外/パスの詳細は返されません。
+- ヘルパーはスタンドアロンであり、**公式の同期/アーカイブ エントリ ポイント** に接続されていません。 B2 ダイジェストの再計算/カウント調整、A2 ダイジェストの生成、完全なソース列挙証明、タイムスタンプの鮮度/状態遷移、ロック/リカバリ、ライブ ドライブの再検証、またはアーカイブの承認は実装されていません。
+- 運用ログ、認証情報、ドライブへの書き込み、アーカイブの有効化、または削除はありません。
+- ランタイム パッケージの組み込みは拡張されましたが、正式なランタイム エントリ ポイントが存在しないため、運用パッケージは依然として展開できません。
 
-### Next
-- Review PR #154 changes and check Validate + Package Validation on its exact final HEAD; fix failures before merge.
-- After PR #154, next runtime slice should bind report references to schema-valid manifest/evidence bytes and compare `pc_id`, `log_type`, `run_id`, and schema versions. Preserve the existing B2 evidence and report contracts; do not claim full OSD-03/P0 completion from structural schemas alone.
+### 直近の次作業
+1. PR #155 検証とパッケージ検証を正確な最新ブランチ HEAD `1fa734877c3b58da61d437824176abb53e94c936` で確認します。マージ前にログを検査し、障害を修正します。
+2. マージ コミット `b7bb65e400d4d4c2e80ea54204ebddbba01f6870` に関する PR #154 のマージ後のワークフローの結論を確認します。
+3. PR #155 と CI 確認済み がマージされた後、A2/B2 正規ダイジェストの再計算と、個別の制限付き PR としての徹底的な一覧/数量調整を続行し、関連するすべての契約/tests/audit/P0/handoff ドキュメントをまとめて更新します。
+4. スキーマ検証ヘルパーのみに基づいて P0 完了 をレポートしないでください。
 
----
-
-## Current continuation — PR #152 merged; PR #153 B2 evidence schema (2026-10-22)
-
-### Verified state
-- PR #152 merged at `d9eb935c34264893c5ae5978cd49be96c03f1e0b`.
-- PR-head Validate `39637241914` and Package Validation `39637241978` succeeded on `965d3a00de86345d6293df1a931bb8d1a556726d`.
-- Post-merge `main` Validate run `39638195110` was still in progress when this entry was written; confirm its final result before asserting post-merge CI success.
-
-### PR #153 scope
-- Add strict Draft 2020-12 structural schema `contracts/run-input-evidence-v1.schema.json` for B2 evidence, including embedded eligible-target inventory, enumeration/validation statuses and counts, sanitized validation error records, and integrity metadata.
-- Add synthetic contract tests for valid evidence, unknown fields/unsupported version, uppercase digest, unsafe path, and unknown target fields.
-- Structural schema validation does not calculate canonical inventory/evidence digests, reconcile all entry classification counts, bind identity to manifest/report, verify referenced bytes, or prove source enumeration completeness. These remain runtime acceptance work.
-- No production logs, credentials, Drive writes, archive, or deletion.
-
-### Next
-- Run PR #153 CI on exact HEAD; fix failures before merge.
-- Next bounded slice: schema-validate exact referenced manifest/evidence bytes and compare identity tuple; then implement A2/B2 digest and exhaustive count reconciliation. Do not claim full OSD-03/P0 completion.
 
 ---
 
-## Current continuation — PR #151 merged; PR #152 exact artifact-byte reference verification (2026-10-22)
+## 現在の継続 — PR #153 がマージされました。 PR #154 マニフェスト v1 構造スキーマ コントラクト (2026-10-22)
 
-### Verified baseline
-- PR #149 merged at `e05a80a743343cd77cabfbd5a22edd54a0ddff95`; post-merge Validate run `39596250705` and Package Validation run `39596250608` succeeded.
-- PR #150 merged at `7105c7c4351929bb0b8babc337b03f08aa3ef80d`; PR-head Validate `39598074191` and Package Validation `39598074158`, plus post-merge Validate `39634177513` and Package Validation `39634177859`, succeeded.
-- PR #151 merged at `e93f0ea552496831c69efb1e8dd2818ac86f4e5b`. Exact PR-head Validate `39635268289` and Package Validation `39635268115` succeeded. Post-merge Validate `39636402422` and Package Validation `39636402408` also succeeded on the merge commit.
+### 検証されたベースライン
+- PR #153 は `73a2ade60f6da1f14732497350f627ea7fb8be2c` にマージされました。
+- 正確な PR ヘッド検証 `39638672064` とパッケージ検証 `39638672042` が `93bec84872b8a12b5b5e1ed999c4b0a3c7358d3d` で成功しました。
+- マージ後のメイン検証 `39639971757` とパッケージ検証 `39639971778` がマージ コミットで成功しました。
+- PR #154 ブランチ: `feat/manifest-v1-schema-contract`;最新の既知のブランチ コミット `7829e1f1daf2eb1ecf40f3dd57f5eb994056352e`。 CI は、このブランチの最終 HEAD についてまだチェックされていません。
 
-### PR #152 current scope
-- Branch: `feat/osd03-artifact-reference-verification`, based on `e93f0ea552496831c69efb1e8dd2818ac86f4e5b`.
-- Add `Common/AggregationArtifactReference.ps1` to validate a report's artifact reference path under a configured trusted maintenance root and SHA-256 of the exact file bytes.
-- Result statuses: `verified`, `mismatch`, `unavailable`, `invalid_reference`; no file content is emitted.
-- Synthetic tests cover exact-byte hash match, digest mismatch, missing artifact, traversal, drive-qualified path, backslashes, uppercase digest, and directory references. CI runs the tests; release-package fixture verifies the helper is included.
-- This helper is intentionally a narrow path-and-byte verifier. It does not parse/validate manifest or B2 schemas, bind artifact identity fields, verify inventory/A2 digests, reconcile counts, or publish/regenerate reports. The caller must supply the trusted root and schema-valid reference data. Path/reparse checks are defensive validation, not a claim of race-free protection against a hostile local filesystem changing paths concurrently; production integration must retain approved locks and trust boundaries.
-- No real logs, credentials, production paths, Drive writes, archive enablement, or deletion are used.
+### PR #154 スコープ
+- 承認されたフィールド仕様から厳密なドラフト 2020-12 構造スキーマ `contracts/manifest-v1.schema.json` を追加します。
+- 有効なマニフェスト、実行ステータス/終了時間の組み合わせ、ログタイプ固有の期間、非作業制約、検証ステータス/メソッド/時間/ハッシュの組み合わせ、不明 フィールド/バージョン、安全でないパス、タイムスタンプ、UUID、および SHA-256 に対する合成コントラクト カバレッジを追加します。
+- マニフェスト スキーマ提案を更新して、実行可能な構造スキーマ/テストと実装されていないランタイム強制を区別します。
+- 構造スキーマは、マニフェスト ファイル名の ID、開始前終了、将来/鮮度ポリシー、遷移、成果物間の ID、ロック、またはアーカイブ承認を検証しません。運用環境のランタイム動作は実装されていません。
+- 運用ログ、認証情報、ドライブへの書き込み、アーカイブの有効化、または削除はありません。
 
-### Next
-- Wait for PR #152 Validate and Package Validation to pass on the exact latest HEAD before merge.
-- Next runtime slice should validate referenced manifest/evidence JSON and identity tuple against the approved schemas once B2 schema is executable; then implement inventory/A2 digest and count reconciliation. Do not claim full OSD-03 or P0 completion from this helper alone.
-
----
-
-## Current continuation — PR #150 merged; PR #151 report semantic validation slice (2026-10-22)
-
-### Verified baseline
-- PR #149 merged at `e05a80a743343cd77cabfbd5a22edd54a0ddff95`; post-merge Validate run `39596250705` and Package Validation run `39596250608` both succeeded.
-- PR #150 merged at `7105c7c4351929bb0b8babc337b03f08aa3ef80d`. Both PR-head workflows succeeded on `a3fba420cb84eb606090faa66931ae905968ddf2`: Validate `39598074191`, Package Validation `39598074158`.
-- Post-merge `main` workflows were also verified on `7105c7c4351929bb0b8babc337b03f08aa3ef80d`: Validate run `39634177513` and Package Validation run `39634177859` both completed successfully.
-
-### PR #151 current scope
-- Branch: `feat/osd03-report-semantic-validation`, based on PR #150 merge commit `7105c7c4351929bb0b8babc337b03f08aa3ef80d`.
-- Add `Common/AggregationReportValidation.ps1` as a pure, no-side-effect internal consistency check; add synthetic PowerShell tests and register them in Validate CI.
-- Extend release-package fixture assertions so the new common `.ps1` module is package-eligible.
-- The validator checks report-local identity basics, reference path/hash shape, unique period rows, count reconciliation, completion-state consistency, run-scope error counts, and zero-work/success consistency.
-- This slice does **not** read referenced manifest/evidence bytes, verify SHA-256 against actual files, validate B2/A2 digests, compare report identity with manifest identity, prove target universe completeness, regenerate reports, publish atomically, manage locks, or replicate to Drive. Those remain outstanding. The function assumes schema-valid input for some field access; tests/CI must determine whether this slice needs hardening before acceptance.
-- No real logs, credentials, production paths, Drive writes, archive enablement, or deletion are used.
-
-### Next
-- Review and run PR #151 Validate and Package Validation on the exact latest HEAD; fix any failures before merge.
-- Continue with exact artifact-byte/identity verification and B2/A2 cross-artifact reconciliation only as a separate, bounded runtime slice. Do not claim P0 completion from this validator alone.
+### 次の作業
+- PR #154 の変更を確認し、正確な最終 HEAD で検証 + パッケージ検証をチェックします。マージ前に失敗を修正してください。
+- PR #154 の後、次のランタイム スライスはレポート参照をスキーマ有効なマニフェスト/証拠バイトにバインドし、`pc_id`、`log_type`、`run_id`、およびスキーマのバージョンを比較する必要があります。既存の B2 証拠と報告契約を保存します。構造スキーマのみから完全な OSD-03/P0 の完成を主張しないでください。
 
 ---
 
+## 現在の継続 — PR #152 がマージされました。 PR #153 B2 証拠スキーマ (2026-10-22)
+
+### 検証済みの状態
+- PR #152 は `d9eb935c34264893c5ae5978cd49be96c03f1e0b` にマージされました。
+- PR ヘッド検証 `39637241914` とパッケージ検証 `39637241978` が `965d3a00de86345d6293df1a931bb8d1a556726d` で成功しました。
+- マージ後 `main` このエントリが書き込まれたときに実行 `39638195110` がまだ進行中であったことを検証します。マージ後の CI 成功 をアサートする前に、最終結果を確認してください。
+
+### PR #153 スコープ
+- 埋め込まれた適格ターゲット一覧、列挙/検証ステータスとカウント、サニタイズされた検証エラー レコード、整合性メタデータを含む、B2 証拠用の厳密なドラフト 2020-12 構造スキーマ `contracts/run-input-evidence-v1.schema.json` を追加します。
+- 有効な証拠、不明 フィールド/サポートされていないバージョン、大文字のダイジェスト、安全でないパス、および 不明 ターゲット フィールドの合成コントラクト テストを追加します。
+- 構造スキーマ検証では、正規のインベントリ/証拠ダイジェストの計算、すべてのエントリ分類カウントの調整、マニフェスト/レポートへの ID のバインド、参照バイトの検証、またはソース列挙の完全性の証明は行われません。これらはランタイム受け入れ作業のままです。
+- 運用ログ、認証情報、ドライブの書き込み、アーカイブ、または削除はありません。
+
+### 次の作業
+- 正確な HEAD で PR #153 CI を実行します。マージ前に失敗を修正してください。
+- 次の境界スライス: 正確に参照されたマニフェスト/証拠バイトをスキーマ検証し、ID タプルを比較します。次に、A2/B2 ダイジェストと徹底的なカウント調整を実装します。 OSD-03/P0 が完全に完了したと主張しないでください。
+
 ---
 
-## Current continuation — PR #149 OSD-03 report contract R1–R7 approved (2026-10-21)
+## 現在の継続 — PR #151 がマージされました。 PR #152 正確な成果物バイト参照検証 (2026-10-22)
 
-### Maintainer decision
-- Explicit selections: **R1=B, R2=A, R3=B, R4=A, R5=A, R6=A, R7=A**.
-- R1-B: report period rows contain summaries only; per-target inventory and outcomes are validated against immutable B2 run-input evidence and the originating manifest.
-- R2-A: identity tuple is (pc_id, log_type, run_id, report_schema_version); omit report_id; derive canonical filename from the tuple.
-- R3-B: manifest/evidence references use canonical relative path, schema version, and lowercase SHA-256 of exact validated bytes; verify artifact identity and reject path traversal/identity/digest mismatch.
-- R4-A: reuse OSD-02 atomic create-if-absent, temp write/flush/read-back validation, and existing per-PC lock. Recovery uses named mutex plus ownership-token lock record. Same bytes are idempotent; differing bytes conflict; orphan temp cleanup is never age-only.
-- R5-A: regenerate only from exact immutable validated manifest and B2 evidence; never re-scan mutable source directories.
-- R6-A: period completion is complete/incomplete/indeterminate; indeterminate never maps to complete and values are report-only, not manifest enums.
-- R7-A: local validated report remains authoritative; Drive replication is a separate state and cross-PC availability requires identity plus exact-content verification.
-- Manifest v1 fields, B2 evidence, A2 inventory digest, exhaustive count reconciliation, and OSD-02 safety boundaries remain unchanged.
-- Updated report proposal, options, run-input evidence/integrity references, decision ledger, P0 decision/gap records, source audit, source/test inventory, runtime-entrypoint safety audit, traceability, runtime safety test scenarios, lifecycle, and this handoff in the same PR. Runtime schema/implementation/tests remain pending.
+### 検証されたベースライン
+- PR #149 は `e05a80a743343cd77cabfbd5a22edd54a0ddff95` にマージされました。マージ後の検証実行 `39596250705` とパッケージ検証実行 `39596250608` は成功しました。
+- PR #150 は `7105c7c4351929bb0b8babc337b03f08aa3ef80d` にマージされました。 PR ヘッドの検証 `39598074191` とパッケージの検証 `39598074158`、さらにマージ後の検証 `39634177513` とパッケージの検証 `39634177859` が成功しました。
+- PR #151 は `e93f0ea552496831c69efb1e8dd2818ac86f4e5b` にマージされました。正確な PR ヘッド検証 `39635268289` とパッケージ検証 `39635268115` が成功しました。マージ後の検証 `39636402422` とパッケージ検証 `39636402408` もマージ コミットで成功しました。
 
-### Current PR/CI
+### PR #152 現在のスコープ
+- ブランチ: `feat/osd03-artifact-reference-verification`、`e93f0ea552496831c69efb1e8dd2818ac86f4e5b` に基づく。
+- `Common/AggregationArtifactReference.ps1` を追加して、構成された信頼できるメンテナンス ルートの下のレポートの成果物参照パスと正確なファイル バイトの SHA-256 を検証します。
+- 結果ステータス: `verified`、`mismatch`、`unavailable`、`invalid_reference`。ファイルの内容は出力されません。
+- 合成テストは、正確なバイトのハッシュ一致、ダイジェスト 不一致、欠落成果物、トラバーサル、ドライブ修飾パス、バックスラッシュ、大文字のダイジェスト、およびディレクトリ参照をカバーします。 CI はテストを実行します。 release-package フィクスチャは、ヘルパーが含まれていることを確認します。
+- このヘルパーは、意図的に狭いパスとバイトの検証ツールです。マニフェストまたは B2 スキーマの解析/検証、成果物 ID フィールドのバインド、インベントリ/A2 ダイジェストの検証、カウントの調整、レポートの公開/再生成は行いません。呼び出し元は、信頼されたルートとスキーマが有効な参照データを提供する必要があります。パス/再解析チェックは防御的な検証であり、同時にパスを変更する敵対的なローカル ファイルシステムに対する競合のない保護を主張するものではありません。運用統合では、承認されたロックと信頼境界を保持する必要があります。
+- 実際のログ、認証情報、運用パス、ドライブの書き込み、アーカイブの有効化、または削除は使用されません。
+
+### 次の作業
+- PR #152 Validate と Package Validation によって正確な最新の HEAD が渡されるまで待ってからマージしてください。
+- B2 スキーマが実行可能になったら、次の実行時スライスは、参照されたマニフェスト/証拠 JSON と ID タプルを承認されたスキーマに対して検証する必要があります。次に、一覧/A2 ダイジェストとカウント調整を実装します。このヘルパーだけで完全な OSD-03 または P0 の完了を要求しないでください。
+
+---
+
+## 現在の継続 — PR #150 がマージされました。 PR #151 レポート セマンティック検証スライス (2026-10-22)
+
+### 検証されたベースライン
+- PR #149 は `e05a80a743343cd77cabfbd5a22edd54a0ddff95` にマージされました。マージ後の検証実行 `39596250705` とパッケージ検証実行 `39596250608` は両方とも成功しました。
+- PR #150 は `7105c7c4351929bb0b8babc337b03f08aa3ef80d` にマージされました。両方の PR ヘッド ワークフローが `a3fba420cb84eb606090faa66931ae905968ddf2` で成功しました: 検証 `39598074191`、パッケージ検証 `39598074158`。
+- マージ後の `main` ワークフローも `7105c7c4351929bb0b8babc337b03f08aa3ef80d` の 確認済み でした: 検証実行 `39634177513` とパッケージ検証実行 `39634177859` は両方とも正常に完了しました。
+
+### PR #151 現在のスコープ
+- ブランチ: `feat/osd03-report-semantic-validation`、PR #150 に基づいて `7105c7c4351929bb0b8babc337b03f08aa3ef80d` をマージ コミットします。
+- 純粋で副作用のない内部整合性チェックとして `Common/AggregationReportValidation.ps1` を追加します。合成 PowerShell テストを追加し、Validate CI に登録します。
+- 新しい共通 `.ps1` モジュールがパッケージ適格となるように、リリース パッケージ フィクスチャ アサーションを拡張します。
+- バリデーターは、レポートローカル ID の基本、参照パス/ハッシュ形状、一意の期間行、カウント調整、完了状態の一貫性、実行スコープのエラー数、およびゼロ作業/成功 の一貫性をチェックします。
+- このスライスは、参照されたマニフェスト/証拠バイトの **not** の読み取り、実際のファイルに対する SHA-256 の検証、B2/A2 ダイジェストの検証、レポート ID とマニフェスト ID の比較、ターゲット ユニバースの完全性の証明、レポートの再生成、アトミックな公開、ロックの管理、またはドライブへのレプリケートを行います。それらは未解決のままです。この関数は、一部のフィールド アクセスに対してスキーマ有効な入力を前提としています。 tests/CI は、受け入れ前にこのスライスを硬化する必要があるかどうかを判断する必要があります。
+- 実際のログ、認証情報、運用パス、ドライブの書き込み、アーカイブの有効化、または削除は使用されません。
+
+### 次の作業
+- PR #151 を確認し、最新の HEAD で検証とパッケージ検証を実行します。マージ前に障害を修正してください。
+- 正確な成果物 バイト/同一性の検証と B2/A2 クロス 成果物調整は、別個の制限されたランタイム スライスとしてのみ続行します。このバリデータのみから P0 の完了を主張しないでください。
+
+---
+
+---
+
+## 現在の継続 — PR #149 OSD-03 レポート契約 R1 ～ R7 が承認されました (2026-10-21)
+
+### メンテナの決定
+- 明示的な選択: **R1=B、R2=A、R3=B、R4=A、R5=A、R6=A、R7=A**。
+- R1-B: レポート期間の行には概要のみが含まれます。ターゲットごとのインベントリと結果は、不変の B2 実行入力証拠と元のマニフェストに対して検証されます。
+- R2-A: ID タプルは (pc_id、log_type、run_id、report_schema_version); report_id を省略します。タプルから正規のファイル名を導出します。
+- R3-B: マニフェスト/証拠参照は、正規の相対パス、スキーマ バージョン、および正確に検証されたバイトの小文字の SHA-256 を使用します。成果物の同一性を検証し、パス トラバーサル/同一性/ダイジェスト 不一致 を拒否します。
+- R4-A: OSD-02 アトミックの存在しない場合の作成、一時書き込み/フラッシュ/リードバック検証、および既存の PC ごとのロックを再利用します。リカバリでは、名前付きミューテックスと所有権トークンのロック レコードを使用します。同じバイトはべき等です。異なるバイトの競合。孤立した一時クリーンアップは決して経過時間のみではありません。
+- R5-A: 正確な不変の検証済みマニフェストと B2 証拠からのみ再生成します。変更可能なソース ディレクトリを再スキャンしないでください。
+- R6-A: 期間完了は 完了/未完了/確定不能 です。 確定不能 は 完了 にマップされることはなく、値はレポートのみであり、マニフェスト列挙型ではありません。
+- R7-A: ローカルで検証されたレポートは引き続き信頼できます。ドライブのレプリケーションは別の状態であり、PC 間での可用性には ID と正確なコンテンツの検証が必要です。
+- マニフェスト v1 フィールド、B2 証拠、A2 一覧ダイジェスト、徹底的なカウント調整、OSD-02 安全境界は変更されません。
+- 同じ PR 内のレポート提案、オプション、実行入力証拠/整合性参照、意思決定台帳、P0 意思決定/ギャップ レコード、ソース監査、ソース/テスト インベントリ、実行時エントリポイント安全性監査、トレーサビリティ、実行時安全性テスト シナリオ、ライフサイクル、およびこのハンドオフを更新しました。ランタイム スキーマ/実装/テストは 未確定 のままです。
+
+### 現在の PR/CI
 - PR #149: https://github.com/wasawo/eo-log-maintenance/pull/149
-- Final PR HEAD `9f194b5cef35aadb68c8a426bd4722d9f28a0962` passed both Validate and Package Validation. PR #149 merged at `e05a80a743343cd77cabfbd5a22edd54a0ddff95`.
-- Post-merge combined-status query returned no status entries; do not infer that main CI passed from that empty response. Verify the main-branch workflow run independently if available.
-- P0-008/P0-010/P0-012, executable report schema/runtime acceptance, and other outstanding transition work remain open as applicable.
+- 最終 PR HEAD `9f194b5cef35aadb68c8a426bd4722d9f28a0962` は検証とパッケージ検証の両方に合格しました。 PR #149 は `e05a80a743343cd77cabfbd5a22edd54a0ddff95` にマージされました。
+- マージ後の結合ステータス クエリはステータス エントリを返しませんでした。メインの CI がその空の応答から渡されたとは推測しないでください。可能であれば、メインブランチのワークフローが独立して実行されることを確認します。
+- P0-008/P0-010/P0-012、実行可能レポート スキーマ/ランタイムの受け入れ、およびその他の未解決の移行作業は、該当する場合は引き続きオープンです。
 
-### Safety boundary
-- Documentation/specification/test-plan update only. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion. Tests described here are not executed evidence.
-
----
-
-## Current continuation — PR #148 merged; next task OSD-03 report contract (2026-10-21)
-
-### Verified latest repository state
-- PR #148 merged after both `Validate` and `Package Validation` succeeded on exact HEAD `4796c8bcf69f09f50ef79f5a7ab7a7b371e00dc2`.
-- Merge commit: `d02231bfb675071ecce22aadf8f8db96cc498253`.
-- The merged PR records C1-A atomic publication, C2-C named mutex plus ownership-token lock record, C3-B immutable crash-left `running` history/new `run_id` recovery, and C4-A unique maximum `started_at_utc` with fail-closed ambiguity.
-- Runtime implementation and OSD-02 crash/concurrency acceptance tests remain pending. Do not claim implementation or executed tests.
-- The combined-status query for the merge commit returned no status entries; this is not evidence that post-merge main CI passed. Verify main-branch workflow state separately if a suitable workflow-run listing is available.
-
-### Next work: OSD-03 report contract
-- The approved aggregation policy and derived-report representation remain distinct from the not-yet-approved exact report schema/operational contract.
-- Draft options are in `docs/decisions/osd-03-report-contract-options.md`; maintainer decisions are required for R1–R7 before normative schema changes.
-- Proposed next PR should record approved selections in the aggregation report proposal, decision register, test plan, traceability/P0 records, and this handoff together.
-- Preserve manifest v1 fields. Run-input evidence remains a separate immutable artifact. Local report is authoritative; Drive replication is not considered available until verified.
-- OSD-03, P0-008, P0-010, and P0-012 remain open as applicable. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion.
+### 安全境界
+- ドキュメント/仕様/テスト計画の更新のみ。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。ここで説明されているテストは、実行された証拠ではありません。
 
 ---
 
-## Current continuation — OSD-02 C1–C4 approved; normative updates in PR #148 (2026-10-21)
+## 現在の継続 — PR #148 がマージされました。次のタスク OSD-03 レポート契約 (2026-10-21)
 
-### Maintainer decision
-- Explicit approval received: **C1=A, C2=C, C3=B, C4=A**.
-- C1-A: validated same-directory temporary write, atomic create-if-absent for first publication, compare-before-atomic-replace for updates; fail closed if guarantees are unavailable.
-- C2-C: per-scope OS named mutex plus exclusive ownership-token lock record; never release another owner's record; stale lock requires explicit recovery and owner verification.
-- C3-B: preserve crash-left `running` manifest as immutable history; after explicit owner/lock recovery create a new run with a new `run_id` and fresh inventory; reconcile uncertain upload before retry.
-- C4-A: select unique maximum validated `started_at_utc` within exact PC/log-type/period scope; ties, malformed/conflicting candidates, read errors, or incomplete enumeration fail closed; no fallback to older success.
-- The approved 5-minute future tolerance and 24-hour freshness threshold are not lock leases or retry timeouts.
-- Updated the option proposal, OSD backlog, decision register, transition/lifecycle specifications, test scenarios, traceability, P0 gap register, and this handoff in the same PR.
-- Required synthetic tests are specified but not yet executed; no runtime acceptance is claimed.
+### 最新のリポジトリの状態を確認しました
+- PR #148 は、`Validate` と `Package Validation` の両方が正確な HEAD `4796c8bcf69f09f50ef79f5a7ab7a7b371e00dc2` で成功した後にマージされました。
+- コミットをマージします: `d02231bfb675071ecce22aadf8f8db96cc498253`。
+- マージされた PR レコードは、C1-A アトミック パブリケーション、C2-C 名前付きミューテックスと所有権トークン ロック レコード、C3-B 不変クラッシュ左 `running` 履歴/新しい `run_id` リカバリ、およびフェールクローズ曖昧性のある C4-A の一意の最大値 `started_at_utc` を記録します。
+- ランタイム実装と OSD-02 クラッシュ/同時実行受け入れテストは 未確定 のままです。実装または実行されたテストを主張しないでください。
+- マージ コミットの結合ステータス クエリはステータス エントリを返しませんでした。これは、マージ後のメイン CI が合格したという証拠ではありません。適切なワークフロー実行リストが利用可能な場合は、メインブランチのワークフロー状態を個別に確認します。
 
-### Current PR/CI status
+### 次の作業: OSD-03 レポート契約
+- 承認された集計ポリシーと派生レポートの表現は、まだ承認されていない正確なレポート スキーマ/運用契約とは区別されます。
+- ドラフト オプションは `docs/archive/decisions/osd-03-report-contract-options.md` にあります。 R1 ～ R7 については、規範的なスキーマを変更する前にメンテナの決定が必要です。
+- 提案された次の PR は、承認された選択内容を集計レポート提案、意思決定記録簿、テスト計画、トレーサビリティ/P0 レコード、およびこの引き継ぎに一緒に記録する必要があります。
+- マニフェスト v1 フィールドを保持します。実行入力の証拠は、別の不変の成果物として残ります。現地レポートは信頼できるものです。ドライブのレプリケーションは、確認済み まで利用可能とみなされません。
+- OSD-03、P0-008、P0-010、および P0-012 は、該当する場合は開いたままになります。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。
+
+---
+
+## 現在の継続 — OSD-02 C1 ～ C4 が承認されました。 PR #148 (2026-10-21) の規範の更新
+
+### メンテナの決定
+- 明示的な承認を受け取りました: **C1=A、C2=C、C3=B、C4=A**。
+- C1-A: 同じディレクトリへの一時書き込み、最初のパブリケーションの場合はアトミック作成 (存在しない場合)、更新の場合はアトミック置換前の比較を検証しました。保証が 利用不能 の場合はフェイルクローズします。
+- C2-C: スコープごとの OS という名前の mutex と排他的所有権トークン ロック レコード。決して他の所有者の記録を公開しないでください。古いロックには明示的な回復と所有者の検証が必要です。
+- C3-B: クラッシュ左の `running` マニフェストを不変の履歴として保存します。明示的な所有者/ロックの回復後、新しい `run_id` と新しいインベントリを使用して新しい実行を作成します。再試行する前に、不確実なアップロードを調整してください。
+- C4-A: 正確な PC/ログタイプ/期間の範囲内で、検証済みの一意の最大値 `started_at_utc` を選択します。同点、不正な形式/競合する候補、読み取りエラー、または 未完了 列挙のフェールクローズ。古い 成功 へのフォールバックはありません。
+- 承認された 5 分の将来の許容範囲と 24 時間の鮮度しきい値は、ロック リースや再試行タイムアウトではありません。
+- 同じ PR 内のオプション提案、OSD バックログ、デシジョン レジスタ、移行/ライフサイクル仕様、テスト シナリオ、トレーサビリティ、P0 ギャップ レジスタ、およびこのハンドオフを更新しました。
+- 必要な合成テストが指定されていますが、まだ実行されていません。実行時の受け入れは要求されません。
+
+### 現在の PR/CI ステータス
 - PR #148: https://github.com/wasawo/eo-log-maintenance/pull/148
-- HEAD `9763e6a92b41d68951019e1041bb76aea29b4afb` had both Validate and Package Validation succeed, and changed-file review found the OSD-02 row in the P0 decision table had not been updated consistently. This correction creates a new HEAD; re-run/recheck both workflows on that exact latest SHA before merge consideration.
-- Next: verify both checks on the corrected latest HEAD, then merge only if both succeed; independently verify merge and main CI.
-- P0-008/P0-010/P0-012, OSD-02 runtime/transition acceptance, and OSD-03 remain open as applicable.
+- HEAD `9763e6a92b41d68951019e1041bb76aea29b4afb` は検証とパッケージ検証の両方に成功し、変更されたファイルのレビューにより、P0 デシジョン テーブルの OSD-02 行が一貫して更新されていないことが判明しました。この修正により、新しい HEAD が作成されます。マージを検討する前に、正確に最新の SHA で両方のワークフローを再実行/再確認してください。
+- 次に、修正された最新の HEAD で両方のチェックを検証し、両方が成功した場合にのみマージします。マージとメイン CI を個別に検証します。
+- P0-008/P0-010/P0-012、OSD-02 ランタイム/遷移の受け入れ、および OSD-03 は該当する場合は開いたままになります。
 
-### Safety boundary
-- Design/specification and synthetic-test planning only. No real logs, credentials, production paths, Google Drive operations, archive enablement, or deletion.
-- `scripts/SyncLogs.ps1` remains a sentinel; `scripts/ArchiveLogs.ps1` is absent.
-
----
-
-## Current continuation — OSD-02 crash/concurrency/latest-manifest options proposed (2026-10-21)
-
-### Verified baseline
-- PR #147 merged at `be57d6933929e666c414b59ad446e8eb02d6a7a0`; its PR-HEAD Validate and Package Validation passed before merge. Post-merge main CI still needs independent verification.
-- No open PRs were returned by the live GitHub PR search at the start of this task.
-- The approved timestamp policy remains: UTC ISO 8601 uppercase `Z`; reject malformed/offset/timezone-less timestamps and finish-before-start; configurable 5-minute future tolerance; configurable 24-hour freshness for current-execution timestamps only; fail closed when reliable current UTC is unavailable.
-- No runtime manifest writer/resolver, atomic publication, lock implementation, or executable lifecycle tests are claimed.
-
-### This PR's proposal
-- Added `docs/decisions/osd-02-crash-concurrency-options.md` as a non-normative decision aid. It compares atomic manifest publication (C1), same-PC writer exclusion (C2), crash-left `running` recovery (C3), and latest-manifest selection (C4).
-- Recommended options for maintainer decision only: **C1-A, C2-C, C3-B, C4-A**. These are not approved until explicitly selected by the maintainer.
-- Updated `docs/requirements/p0-open-specification-decisions.md` to link the proposal and preserve OSD-02 as partially open.
-- Next step: obtain explicit approval/revision/rejection for C1–C4. After approval, update normative lifecycle/decision records, transition proposal, acceptance tests, audit/traceability/P0 records, and this handoff in the same PR.
-
-### Safety and acceptance boundary
-- Synthetic/design-only work. No real logs, credentials, production paths, Google Drive operations, archive enablement, or deletion behavior.
-- `scripts/SyncLogs.ps1` remains a sentinel; `scripts/ArchiveLogs.ps1` is absent.
-- OSD-02 transition enforcement and executable tests, OSD-03 report contract/tests, and P0-008/P0-010/P0-012 remain open. Do not infer runtime implementation or acceptance from documentation changes or CI alone.
-
-> Priority: verify current PR/main/CI facts live on GitHub, consult this handoff before older entries, and keep handoff updates inside the same PR.
+### 安全境界
+- 設計/仕様および総合テスト計画のみ。実際のログ、認証情報、運用パス、Google Drive 操作、アーカイブの有効化、または削除はありません。
+- `scripts/SyncLogs.ps1` は引き続き監視員です。 `scripts/ArchiveLogs.ps1` がありません。
 
 ---
 
-## Current continuation — OSD-02 timestamp/freshness policy approved (2026-10-21)
+## 現在の継続 — OSD-02 クラッシュ/同時実行/最新マニフェスト オプションが提案されました (2026-10-21)
 
-### Decision adopted
-- Maintainer explicitly approved numeric option A: maximum future-time tolerance **5 minutes**, configurable; freshness threshold **24 hours**, configurable; freshness scope **current-execution timestamps only**; clock policy **assume host OS synchronization is configured and fail closed for time-dependent operations if reliable current UTC is unavailable**. A separate external monitoring/alerting service is not required.
-- All manifest timestamps must be parseable UTC ISO 8601 with uppercase `Z`. Reject timezone-less, offset-form, malformed, or unparseable values. Reject `finished_at_utc < started_at_utc`; never repair timestamps.
-- Freshness checks apply to timestamps generated or updated during the current execution (run start/finish and verification-attempt timestamps). Do not invalidate historical manifests solely because they are older than 24 hours.
-- Invalid, negative, non-finite, or unparseable tolerance/threshold configuration must be rejected; do not silently default.
-- Same-PR document updates cover OSD backlog/decision record, state-transition proposal, manifest field spec cross-reference, traceability, source audit, test-evidence crosswalk, P0 gap/source-test inventories, and this handoff.
-- Required executable tests remain outstanding: fixed-clock boundary cases (5 minutes and 24 hours), malformed/timezone/ordering rejection, invalid config, unavailable-clock fail-closed, and historical-age behavior. This PR is policy documentation only; do not claim runtime implementation or passing tests.
-- OSD-02 remains partially open for crash/concurrency/latest-manifest policy, complete transition enforcement, executable schema/transition tests, and runtime evidence. OSD-03 and P0-008/P0-010/P0-012 remain open. `scripts/SyncLogs.ps1` remains a sentinel; `scripts/ArchiveLogs.ps1` is absent.
-- Safety boundaries unchanged: no real logs, credentials, production paths, Google Drive operations, archive enablement, or deletion behavior.
+### 検証されたベースライン
+- PR #147 は `be57d6933929e666c414b59ad446e8eb02d6a7a0` にマージされました。マージ前に PR-HEAD Validate と Package Validation に合格しました。マージ後のメイン CI にはまだ独立した​​検証が必要です。
+- このタスクの開始時に、ライブ GitHub PR 検索によってオープン PR が返されませんでした。
+- 承認されたタイムスタンプ ポリシーは残ります: UTC ISO 8601 大文字 `Z`;不正な形式/オフセット/タイムゾーンのないタイムスタンプと開始より前の終了を拒否します。 5 分の将来の許容範囲を構成可能。現在の実行タイムスタンプの場合のみ、24 時間の鮮度を構成可能。信頼できる現在の UTC が 利用不能 の場合にフェイルクローズします。
+- ランタイム マニフェスト ライター/リゾルバー、アトミック パブリケーション、ロック実装、または実行可能ライフサイクル テストは要求されていません。
 
-> Priority: verify current PR/main/CI facts live on GitHub, consult this handoff before older entries, and keep handoff updates inside the same PR.
+### この PR の提案
+- 非規範的な意思決定支援として `docs/archive/decisions/osd-02-crash-concurrency-options.md` を追加しました。アトミック マニフェストの公開 (C1)、同一 PC ライターの除外 (C2)、クラッシュ放置された `running` の回復 (C3)、および最新のマニフェストの選択 (C4) を比較します。
+- メンテナの決定のみに推奨されるオプション: **C1-A、C2-C、C3-B、C4-A**。これらは、メンテナによって明示的に選択されるまで承認されません。
+- `docs/requirements/p0-open-specification-decisions.md` を更新して提案をリンクし、OSD-02 を部分的にオープンとして保存しました。
+- 次のステップ: C1 ～ C4 の明示的な承認/改訂/拒否を取得します。承認後、同じ PR 内で規範的なライフサイクル/意思決定記録、移行提案、受け入れテスト、監査/トレーサビリティ/P0 記録、およびこの引き継ぎを更新します。
 
----
+### 安全性と許容境界
+- 合成/デザインのみの作品。実際のログ、認証情報、運用パス、Google Drive 操作、アーカイブの有効化、または削除動作はありません。
+- `scripts/SyncLogs.ps1` は引き続き監視員です。 `scripts/ArchiveLogs.ps1` がありません。
+- OSD-02 移行の強制および実行可能テスト、OSD-03 レポート契約/テスト、および P0-008/P0-010/P0-012 は開いたままです。ドキュメントの変更や CI だけから実行時の実装や受け入れを推測しないでください。
 
-## Current continuation — PR #145 C-45 Option A approved (2026-10-21)
-
-### Verified baseline
-- Main is at `7e67f413723104522419a227c9dbd365bb8cda29` after PR #146 C-51 Option C resolver merged.
-- Post-merge main Validate run [39584117474](https://github.com/wasawo/eo-log-maintenance/actions/runs/39584117474) and Package Validation run [39584117770](https://github.com/wasawo/eo-log-maintenance/actions/runs/39584117770) both succeeded on that merge SHA.
-- Maintainer approved PR #145 C-45 Option A: fail closed on conflicting immutable/core attributes under the same `error_id`.
-
-### Approved C-45 conflict policy
-- A conflict produces a fixed, non-disclosing internal-consistency failure and rejects finalization/publication of the affected diagnostic evidence artifact.
-- Do not serialize either conflicting variant as valid completed evidence; do not count the conflicting observation as an independent event. Preserve the first observation only as safe in-memory context and never mutate already-published evidence.
-- The run/evidence remains incomplete or failed under the separately approved run-state contract. Do not invent a manifest status, new `error_code`, schema-v1 field, or reporting channel.
-- This is policy/specification only. Runtime event creation, propagation/deduplication, conflict detection/enforcement, raw JSON duplicate-key rejection, sink non-disclosure, and end-to-end evidence remain unimplemented/not run.
-
-### PR #145 scope / next work
-- Update the options document, normative C-45 decision text, evidence crosswalk, traceability/audit inventories, P0 gap register, and this handoff in the same PR.
-- Do not mark P0-008, P0-010, or P0-012 complete. `scripts/SyncLogs.ps1` remains a sentinel and `scripts/ArchiveLogs.ps1` is absent.
-- No real logs, credentials, production paths, Google Drive operations, archive enablement, or deletion behavior.
-
-> Priority: verify current PR/main/CI facts live on GitHub, consult this handoff before older entries, and keep future handoff updates inside the same PR.
+> 優先度: 現在の PR/main/CI ファクトが GitHub に存在することを確認し、古いエントリの前にこのハンドオフを参照し、ハンドオフの更新を同じ PR 内に保持します。
 
 ---
 
-## Previous continuation — PR #146 C-51 Option C resolver (2026-10-21)
+## 現在の継続 — OSD-02 タイムスタンプ/鮮度ポリシーが承認されました (2026-10-21)
 
-### Live baseline verified before continuation
-- PR #144 C-50 classifier is merged at `480aa1a4e02f2f2ef69fd1946c6a2f19ee96d8a5`. Exact-head Validate run `39516209827` and Package Validation run `39516209664` succeeded on PR HEAD `67f0b028e36283a07244153e3b337ffcee8b4f83` before merge. Post-merge main workflow runs were not independently confirmed in the previous check.
-- PR #146 was opened as a non-normative C-51 input-model proposal; the maintainer subsequently approved Option C. The same PR is being expanded to include the implementation, tests, normative contract, audit updates, and this handoff update.
-- P0-008, P0-010, and P0-012 remain open. `scripts/SyncLogs.ps1` remains a sentinel and `scripts/ArchiveLogs.ps1` is absent. No runtime event producer/orchestrator is implemented.
+### 決定が採択されました
+- メンテナが明示的に承認した数値オプション A: 将来の最大許容範囲 **5 分**、構成可能。鮮度しきい値 **24 時間**、構成可能。鮮度スコープ **現在の実行タイムスタンプのみ**;クロック ポリシー ** は、信頼できる現在の UTC が unavailable** の場合、ホスト OS の同期が構成され、時間依存の操作に対してフェールクローズされると想定します。別の外部監視/アラート サービスは必要ありません。
+- すべてのマニフェスト タイムスタンプは、大文字の `Z` を含む UTC ISO 8601 で解析可能である必要があります。タイムゾーンのない値、オフセット形式の値、不正な形式の値、または解析不可能な値を拒否します。 `finished_at_utc < started_at_utc` を拒否します。タイムスタンプを決して修復しないでください。
+- 最新性チェックは、現在の実行中に生成または更新されたタイムスタンプ (実行の開始/終了および検証試行のタイムスタンプ) に適用されます。 24 時間より古いという理由だけで履歴マニフェストを無効にしないでください。
+- 無効、負、非有限、または解析不可能な許容値/しきい値設定は拒否する必要があります。黙ってデフォルトしないでください。
+- 同じ PR ドキュメントの更新には、OSD バックログ/意思決定記録、状態遷移提案、マニフェスト フィールド仕様の相互参照、トレーサビリティ、ソース監査、テスト証拠のクロスウォーク、P0 ギャップ/ソースとテストのインベントリ、およびこのハンドオフが含まれます。
+- 必要な実行可能テストは未処理のままです: 固定クロック境界ケース (5 分および 24 時間)、不正な形式/タイムゾーン/順序付けの拒否、無効な構成、利用不能 クロックのフェールクローズ、および過去の経過時間の動作。この PR はポリシーの文書化のみを目的としています。ランタイム実装やテストの合格を主張しないでください。
+- OSD-02 は、クラッシュ/同時実行/最新マニフェスト ポリシー、完了 移行の強制、実行可能スキーマ/移行テスト、および実行時の証拠に対して部分的にオープンのままです。 OSD-03 および P0-008/P0-010/P0-012 は開いたままになります。 `scripts/SyncLogs.ps1` は引き続き監視員です。 `scripts/ArchiveLogs.ps1` がありません。
+- 安全境界は変更されていません: 実際のログ、認証情報、運用パス、Google Drive 操作、アーカイブの有効化、または削除動作はありません。
 
-### C-51 approved decision and implementation
-- Approved input model: Option C. The trusted event producer supplies exactly one required, case-sensitive scalar `Operation` identifier from the existing C-51 operation allowlist. `Resolve-DiagnosticPhaseOperation -Operation` centrally derives the unique approved phase and preserves the exact operation value.
-- Accepted operations are the 13 exact values in the normative C-51 table, including `unknown`. `unknown` is reserved for trusted producer context where the actual failed processing context genuinely cannot be established; missing instrumentation and invalid/missing input reject rather than silently falling back.
-- Resolver is a pure helper; it does not allocate `error_id`, classify `error_code`, inspect exception text/classes, stack traces, paths, ambient observer context, or orchestrate event creation/propagation.
-- Synthetic table-driven tests are in `tests/Test-DiagnosticPhaseOperationResolver.ps1` and wired into `.github/workflows/validate.yml`.
-- Normative C-51 contract, option/decision document, diagnostic evidence crosswalk, requirements traceability, P0 source/test inventory, requirements source audit, gap register, and this handoff are updated in this PR.
-
-### Validation and acceptance boundary
-- PR #146 head is changing as files are added. Verify latest HEAD SHA and require both Validate and Package Validation to succeed on that exact SHA before merge. If a run is pending, failed, or tied to an older SHA, do not merge.
-- After merge, independently verify both main workflows on the exact merge SHA if the available GitHub tools permit; do not infer post-merge CI from PR checks.
-- This is helper-level evidence only. Producer semantic correctness/precedence, event identity creation and propagation/deduplication, raw JSON duplicate-key rejection, runtime sink non-disclosure, and end-to-end diagnostic evidence remain unimplemented/not run. P0-008/P0-010/P0-012 remain open.
-- No real logs, credentials, production paths, Google Drive operations, archive enablement, or deletion behavior were touched.
-
-> Priority: verify live GitHub/CI facts first, consult this handoff before older entries, and keep future handoff updates inside the same PR.
+> 優先度: 現在の PR/main/CI ファクトが GitHub に存在することを確認し、古いエントリの前にこのハンドオフを参照し、ハンドオフの更新を同じ PR 内に保持します。
 
 ---
 
-## Current continuation — PR #144 C-50 Option A classifier (2026-10-21)
+## 現在の継続 — PR #145 C-45 オプション A が承認されました (2026-10-21)
 
-### Live baseline verified before work
-- PR #143 merged at cee8eaaef6e76a841f0e3074a23b5c42f72925aa; it only proposed non-normative C-50 input models.
-- PR #140 onward requires docs/handoff/next-chat.md to be updated in the same PR as related implementation/specification/tests.
-- P0-008, P0-010, and P0-012 remain open. Runtime entry points remain incomplete; scripts/SyncLogs.ps1 is a sentinel and scripts/ArchiveLogs.ps1 is absent.
-- Maintainer selected C-50 structured input model Option A: one required condition identifier selected by the trusted event producer.
+### 検証されたベースライン
+- PR #146 C-51 オプション C リゾルバーがマージされた後、メインは `7e67f413723104522419a227c9dbd365bb8cda29` にあります。
+- マージ後のメイン検証実行 [39584117474](https://github.com/wasawo/eo-log-maintenance/actions/runs/39584117474) とパッケージ検証実行 [39584117770](https://github.com/wasawo/eo-log-maintenance/actions/runs/39584117770) は両方ともそのマージ SHA で成功しました。
+- メンテナが PR #145 C-45 を承認しました。 オプション A: 同じ `error_id` の下で競合する不変/コア属性でフェールクローズされます。
 
-### PR #144 scope
-- Implement pure Resolve-DiagnosticErrorCode -Condition using one scalar token and the existing C-49 error_code allowlist.
-- Define exact internal condition tokens, structured-evidence prerequisites, and invalid-input behavior in the normative C-50 section.
-- Add synthetic table-driven tests and wire them into Validate CI.
-- This helper does not allocate IDs, select phase/operation, inspect exception text/classes, or orchestrate producers. Under Option A, producers remain responsible for selecting the highest-priority applicable condition.
-- No real logs, credentials, production paths, Google Drive operations, archive enablement, or deletion behavior.
+### C-45 競合ポリシーが承認されました
+- 競合により、固定された非開示の内部一貫性 失敗 が生成され、影響を受ける診断証拠成果物の最終化/公開が拒否されます。
+- 競合するバリアントを有効な完全な証拠としてシリアル化しないでください。矛盾する観察を独立したイベントとしてカウントしないでください。最初の観察は安全なメモリ内コンテキストとしてのみ保存し、すでに公開されている証拠を決して変更しないでください。
+- 実行/証拠は、別途承認された実行状態契約に基づいて 未完了 または 失敗した のままです。マニフェスト ステータス、新しい `error_code`、schema-v1 フィールド、またはレポート チャネルを作成しないでください。
+- これはポリシー/仕様のみです。ランタイム イベントの作成、伝播/重複排除、競合検出/強制、生の JSON 重複キーの拒否、シンクの非公開、およびエンドツーエンドの証拠は未実装のまま/実行されません。
 
-### Validation / acceptance boundary
-- Exact-head Validate run 39516012816 and Package Validation run 39516012547 both succeeded on 2599f7eff949faa1f0e341aecc53d9d1a980159a before this audit-crosswalk refresh. This PR is receiving additional documentation updates; CI must be re-run on the new HEAD SHA before merge.
-- Before merge, Validate and Package Validation must both succeed on the exact same latest PR HEAD SHA. Do not merge if either fails or is pending.
-- After merge, verify both main workflows on the exact merge SHA.
-- P0-008/P0-010/P0-012 remain open until runtime producer integration, propagation/deduplication, raw-JSON duplicate-key rejection, sink non-disclosure, and end-to-end evidence tests are implemented and verified.
+### PR #145 範囲 / 次回作
+- 同じ PR 内のオプション文書、規範 C-45 決定テキスト、証拠対応表、トレーサビリティ/監査インベントリ、P0 ギャップ レジスタ、およびこのハンドオフを更新します。
+- P0-008、P0-010、または P0-012 完了 をマークしないでください。 `scripts/SyncLogs.ps1` は引き続き監視員であり、`scripts/ArchiveLogs.ps1` は不在です。
+- 実際のログ、認証情報、運用パス、Google Drive 操作、アーカイブの有効化、または削除動作はありません。
 
-> Priority: verify live GitHub/CI state first, consult this handoff before older entries, and keep future handoff updates inside the same PR.
+> 優先度: 現在の PR/main/CI ファクトが GitHub に存在することを確認し、古いエントリの前にこのハンドオフを参照し、将来のハンドオフの更新を同じ PR 内に保持します。
 
 ---
 
-## Current continuation — PR #143 C-50 condition-input model proposal (2026-10-21)
+## 前の続き — PR #146 C-51 オプション C リゾルバー (2026-10-21)
 
-### Verified baseline
-- PR #142 diagnostic evidence reconciliation merged at 8481437e339cc1769751c80be4801edf209ece8c.
-- Exact-head Validate run 39510208141 and Package Validation run 39510207993 both succeeded on 0563a6c17d35ee7415d2b86a8af9b5700a965ee0.
-- PR #141 post-merge main Validate run 39509903050 and Package Validation run 39509903012 both succeeded on 58aeb10e3661b7cd893e1a6bfed0469e29e4089f.
-- PR #140 onward handoff updates remain in the same PR as implementation/docs/tests; no separate handoff-only PRs.
+### 継続前のライブベースライン 確認済み
+- PR #144 C-50 分類子は `480aa1a4e02f2f2ef69fd1946c6a2f19ee96d8a5` にマージされます。マージ前の PR HEAD `67f0b028e36283a07244153e3b337ffcee8b4f83` で、正確な対象HEADのValidate 実行 `39516209827` と Package Validation 実行 `39516209664` が成功しました。マージ後のメイン ワークフローの実行は、以前のチェックでは個別に確認されませんでした。
+- PR #146 は、非規範的な C-51 入力モデル提案としてオープンされました。その後、メンテナはオプション C を承認しました。同じ PR は、実装、テスト、規範的契約、監査更新、およびこのハンドオフ更新を含むように拡張されています。
+- P0-008、P0-010、および P0-012 は開いたままになります。 `scripts/SyncLogs.ps1` は引き続き監視員であり、`scripts/ArchiveLogs.ps1` は不在です。ランタイム イベント プロデューサー/オーケストレーターは実装されていません。
 
-### PR #143 scope
-- Branch: docs/c50-condition-input-proposal.
-- Add docs/decisions/c50-condition-input-model-options.md comparing three non-normative input models for the already-approved C-50 failure-condition precedence table.
-- Recommended proposal is Option B: a set of exact, trusted, positively observed condition identifiers, with central priority selection. This is not approved and does not change normative behavior or add error/phase/operation enum values.
-- No classifier implementation until the maintainer approves a model and its exact tokens/invalid-input behavior. The current runtime entrypoint does not exist, so avoid inventing an implicit DTO or claiming C-50 integration.
-- P0-008, P0-010, and P0-012 remain open.
+### C-51 承認された決定と実装
+- 承認された入力モデル: オプション C。信頼できるイベント プロデューサーは、既存の C-51 操作許可リストから、必須で大文字と小文字が区別されるスカラー `Operation` 識別子を 1 つだけ提供します。 `Resolve-DiagnosticPhaseOperation -Operation` は、一意の承認済みフェーズを一元的に導き出し、正確な動作値を保存します。
+- 受け入れられる操作は、`unknown` を含む、標準の C-51 テーブル内の 13 の正確な値です。 `unknown` は、実際の 失敗した 処理コンテキストを実際には確立できない、信頼できるプロデューサー コンテキスト用に予約されています。サイレントフォールバックではなく、インストルメンテーションの欠落と無効/欠落した入力の拒否。
+- リゾルバーは純粋なヘルパーです。 `error_id` の割り当て、`error_code` の分類、例外テキスト/クラス、スタック トレース、パス、アンビエント オブザーバー コンテキストの検査、またはイベントの作成/伝播の調整は行いません。
+- 合成テーブル駆動テストは `tests/Test-DiagnosticPhaseOperationResolver.ps1` にあり、`.github/workflows/validate.yml` に接続されています。
+- 標準 C-51 契約、オプション/決定文書、診断証拠クロスウォーク、要件トレーサビリティ、P0 ソース/テスト インベントリ、要件ソース監査、ギャップ レジスタ、およびこのハンドオフがこの PR で更新されます。
 
-### Decision needed next
-- Choose A, B, or C in docs/decisions/c50-condition-input-model-options.md. If B or C, approve the proposed field/token names and invalid-input behavior; then update normative decision records and implement a pure classifier with table-driven tests in the same implementation PR.
-- No real logs, credentials, production paths, Google Drive operations, archive enablement, or deletion behavior.
+### 検証と許容境界
+- PR #146 ファイルが追加されるとヘッドが変更されます。最新の HEAD SHA を検証し、マージ前にその正確な SHA で検証とパッケージ検証の両方が成功することを要求します。実行が 未確定、失敗した、または古い SHA に関連付けられている場合は、マージしないでください。
+- 利用可能な GitHub ツールが許可する場合、マージ後、正確なマージ SHA で両方のメイン ワークフローを個別に検証します。 PR チェックからマージ後の CI を推測しないでください。
+- これはヘルパーレベルの証拠のみです。プロデューサーのセマンティックの正確性/優先順位、イベント ID の作成と伝播/重複排除、生の JSON 重複キーの拒否、ランタイム シンクの非公開、およびエンドツーエンドの診断証拠は未実装のまま/実行されません。 P0-008/P0-010/P0-012 は開いたままになります。
+- 実際のログ、認証情報、運用パス、Google Drive 操作、アーカイブの有効化、または削除動作には触れていません。
 
-> Priority: read this handoff first, verify current PR/main/CI facts live on GitHub, then consult normative decision records. Keep handoff updates inside the same PR.
-
----
-
-## Current continuation — PR #142 diagnostic evidence reconciliation (2026-10-21)
-
-### Verified baseline
-- PR #140 merged at 454041f4337d5f22550a288dfd74afecde76635a. Exact-head Validate/Package Validation runs 39509321771/39509321735 and post-merge main runs 39509466949/39509467065 all succeeded.
-- PR #141 merged at 58aeb10e3661b7cd893e1a6bfed0469e29e4089f. Exact-head Validate/Package Validation runs 39509756240/39509756267 and post-merge main runs 39509903050/39509903012 all succeeded.
-- PR #140 selected and implemented the C-47 path maximum of 1024 Unicode scalar values. PR #141 added a caller-owned per-run monotonic diagnostic event-ID allocator.
-- **PR grouping rule:** from PR #140 onward, update this handoff in the same PR as the implementation/docs/tests being handed off; do not create a separate handoff-only PR for routine continuation updates.
-
-### PR #142 scope
-- Branch: docs/diagnostic-test-evidence-audit.
-- Add docs/validation/diagnostic-contract-test-evidence.md, a non-normative C-45–C-54 clause-to-helper/test/CI crosswalk.
-- Refresh docs/validation/p0-source-test-inventory.md, docs/validation/requirements-source-audit.md, docs/requirements/requirements-traceability.md, and docs/requirements/p0-gap-register.md to include the newly implemented helper tests and accurately state the remaining gaps.
-- The audit explicitly distinguishes helper/schema tests from runtime acceptance. C-50 failure-condition mapping remains specification-only because a supported structured runtime condition input model is not defined. Event-ID propagation/conflict detection, raw JSON duplicate-property rejection, runtime sink non-disclosure, and end-to-end diagnostic evidence remain unimplemented/not run.
-- No normative behavior or new EOLM requirement ID is introduced by the crosswalk. P0-008, P0-010, and P0-012 remain open.
-
-### Next bounded task
-- Review and propose explicit alternatives for the structured runtime condition input contract needed to implement C-50's approved failure-condition precedence. Do not implement a classifier or invent a DTO until the maintainer selects a contract. Keep OSD-02/OSD-03 and other open operational decisions unchanged.
-- No real logs, credentials, production paths, Google Drive operations, archive enablement, or deletion behavior.
-
-> Priority: read this handoff first, verify current PR/main/CI facts live on GitHub, then consult normative decision records. Keep handoff updates inside the same PR.
+> 優先度: 最初にライブ GitHub/CI 事実を確認し、古いエントリの前にこのハンドオフを参照し、将来のハンドオフの更新を同じ PR 内に保持します。
 
 ---
 
-## Current continuation — PR #141 diagnostic event ID allocator (2026-10-21)
+## 現在の継続 — PR #144 C-50 オプション A 分類子 (2026-10-21)
 
-### Verified PR #140 completion
-- PR #140 [feat: finalize schema-v1 diagnostic records](https://github.com/wasawo/eo-log-maintenance/pull/140) merged at 454041f4337d5f22550a288dfd74afecde76635a.
-- Exact-head Validate [run 39509321771](https://github.com/wasawo/eo-log-maintenance/actions/runs/39509321771) and Package Validation [run 39509321735](https://github.com/wasawo/eo-log-maintenance/actions/runs/39509321735) passed on PR head 6a7222db4387019c6dc598c2b9bf38b6efca3c4c.
-- Post-merge main Validate [run 39509466949](https://github.com/wasawo/eo-log-maintenance/actions/runs/39509466949) and Package Validation [run 39509467065](https://github.com/wasawo/eo-log-maintenance/actions/runs/39509467065) passed on merge SHA 454041f4337d5f22550a288dfd74afecde76635a.
-- C-47 path maximum is approved Option A: 1024 Unicode scalar values. PR #140 updated the normative specification and implementation/tests accordingly.
-- **PR grouping rule:** from PR #140 onward, update this handoff in the same PR as the implementation/docs/tests being handed off. Do not create a separate handoff-only PR for routine continuation updates.
+### 作業前のライブベースライン 確認済み
+- PR #143 は cee8eaaef6e76a841f0e3074a23b5c42f72925aa にマージされました。非規範的な C-50 入力モデルのみを提案しました。
+- PR #140 以降では、関連する実装/仕様/テストと同じ PR で docs/handoff/next-chat.md を更新する必要があります。
+- P0-008、P0-010、および P0-012 は開いたままです。ランタイム エントリ ポイントは 未完了 のままです。 scripts/SyncLogs.ps1 は監視員ですが、scripts/ArchiveLogs.ps1 は不在です。
+- メンテナが選択した C-50 構造化入力モデル オプション A: 信頼できるイベント プロデューサーによって選択された 1 つの必須条件識別子。
 
-### PR #141 scope
-- Branch: feat/diagnostic-event-id-allocation.
-- Add New-DiagnosticErrorId to Common/LogFunctions.ps1 for the approved C-45/C-46 per-run monotonic sequence: ERR-000001 through ERR-999999, then fail closed without wrap/reuse/truncation.
-- Caller passes a reference to a per-run Int32/Int64 next-sequence value. The function allocates exactly one ID and advances the caller-owned counter. The runtime event creator must call it once per distinct event and propagate the ID unchanged; this helper does not correlate events or provide thread safety.
-- Add synthetic tests for sequential uniqueness, exact fixed-width format, final valid ID, exhaustion, invalid counter values, no state mutation on rejection, and culture-invariant formatting. Wire into Validate CI and update test documentation.
-- Keep this as a helper only. Do not add runtime orchestration or infer event identity from paths/error codes.
+### PR #144 スコープ
+- 1 つのスカラー トークンと既存の C-49 error_code ホワイトリストを使用して、純粋な Resolve-DiagnosticErrorCode -Condition を実装します。
+- 規範的な C-50 セクションで、正確な内部条件トークン、構造化証拠の前提条件、および無効な入力動作を定義します。
+- 合成テーブル駆動テストを追加し、Validate CI に接続します。
+- このヘルパーは、ID の割り当て、フェーズ/操作の選択、例外テキスト/クラスの検査、プロデューサの調整を行いません。オプション A では、プロデューサーは引き続き、最も優先度の高い適用条件を選択する責任を負います。
+- 実際のログ、認証情報、運用パス、Google Drive 操作、アーカイブの有効化、または削除動作はありません。
 
-### P0 disposition and next task
-- P0 remains not accepted. P0-010/P0-012 remain open; P0-008 runtime coverage remains incomplete. scripts/SyncLogs.ps1 remains a sentinel and scripts/ArchiveLogs.ps1 is absent.
-- After PR #141, review the remaining C-50 failure-condition mapping integration gap and the current P0 gap register. C-50's precedence rules are approved, but the runtime event-condition input model is not implemented; do not invent a runtime context schema or mark event classification as integrated without an explicit supported caller contract.
+### 検証/許容境界
+- この監査クロスウォーク更新の前に、正確な対象HEADのValidate 実行 39516012816 と Package Validation 実行 39516012547 が両方とも 2599f7eff949faa1f0e341aecc53d9d1a980159a で成功しました。この PR は追加のドキュメント更新を受信して​​います。 CI は、マージ前に新しい HEAD SHA で再実行する必要があります。
+- マージ前に、検証とパッケージ検証の両方が、まったく同じ最新の PR HEAD SHA で成功する必要があります。どちらかが失敗するか 未確定 の場合はマージしないでください。
+- マージ後、正確なマージ SHA で両方のメイン ワークフローを確認します。
+- P0-008/P0-010/P0-012 は、ランタイム プロデューサーの統合、伝播/重複排除、raw-JSON 重複キーの拒否、シンクの非公開、およびエンドツーエンドの証拠テストが実装され、確認済み されるまでオープンのままです。
 
-> Priority: read this handoff first, verify current PR/main/CI facts live on GitHub, then consult normative decision records. Keep handoff updates inside the same PR.
-
----
-
-## Current continuation — PR #140 diagnostic record finalizer (2026-10-21)
-
-### Verified baseline before PR #140
-- PR #139 merged at 70590a6d63c365ea34900ca2dc2a95b27008aaaa.
-- Post-merge main Validate [run 39506286398](https://github.com/wasawo/eo-log-maintenance/actions/runs/39506286398) and Package Validation [run 39506286505](https://github.com/wasawo/eo-log-maintenance/actions/runs/39506286505) both succeeded on 70590a6d63c365ea34900ca2dc2a95b27008aaaa.
-
-### Maintainer decisions and PR grouping rule
-- C-47 target_relative_path maximum: **Option A approved** — 1024 Unicode scalar values. Paths over the limit must become JSON null; do not truncate or partially mask.
-- **Starting with PR #140, update docs/handoff/next-chat.md within the same PR as the implementation/docs/tests being handed off. Do not create a separate handoff-only PR for routine continuation updates.** Verify and record exact-head CI before merge, then post-merge main CI afterward when available.
-
-### PR #140 scope
-- Initial PR #140 CI attempts exposed a malformed event-ID regex edit and a duplicated trailing fragment in Common/LogFunctions.ps1; both are now corrected. Validate [run 39509112746](https://github.com/wasawo/eo-log-maintenance/actions/runs/39509112746) and Package Validation [run 39509112754](https://github.com/wasawo/eo-log-maintenance/actions/runs/39509112754) passed on implementation commit 94eb0fd8d4aea2e9acbcee8d576df6ffb1785247. The handoff update itself changes the PR head, so re-check exact-head Validate and Package Validation before merging.
-- Branch: feat/diagnostic-record-finalizer.
-- Add C-47 path scalar-length enforcement (1024 Unicode scalar values) and pure ConvertTo-FinalizedDiagnosticJson schema-v1 finalization to Common/LogFunctions.ps1.
-- The finalizer requires exactly seven keys: schema_version, error_id, error_code, phase, operation, target_relative_path, message. It validates integer schema version 1, ERR-###### event IDs, exact C-49 error codes, valid C-51 phase/operation pairs, and the exact C-52 message template. It creates a fresh ordered output record and serializes compact JSON deterministically.
-- Unsafe, absent, non-string, or over-limit optional paths become explicit JSON null; the event ID and classification remain unchanged. Required invalid fields fail closed with fixed non-disclosing errors.
-- Synthetic tests cover all error-code templates, all valid phase/operation pairs, exact schema fields, invalid versions/IDs/enums/pairs/messages, explicit JSON null, 1024/1025 Unicode scalar boundaries, stable event identity/classification, determinism, and non-disclosure.
-- Boundary: the API accepts an already-structured dictionary, not raw JSON; duplicate property names must be rejected at any future raw-JSON ingestion boundary before materialization. This does not implement error-event ID allocation or C-50 failure-condition inference.
-- No real logs, credentials, production paths, Google Drive operations, archive enablement, or deletion behavior.
-
-### P0 disposition and next steps
-- This is a pure finalizer/helper, not an end-to-end diagnostic/evidence pipeline. P0 remains not accepted; P0-010/P0-012 and other recorded runtime blockers remain open. scripts/SyncLogs.ps1 remains a sentinel and scripts/ArchiveLogs.ps1 is absent.
-- Next bounded task after PR #140: review the remaining C-50 event classification / C-45 ID allocation integration gap and P0 gap register; do not add runtime orchestration until the required operational decisions and entrypoint contract are explicit.
-
-> Priority: read this handoff first, verify current PR/main/CI facts live on GitHub, then consult normative decision records. From PR #140 onward, keep this handoff update in the same PR as the work.
+> 優先度: 最初にライブ GitHub/CI 状態を確認し、古いエントリの前にこのハンドオフを参照し、将来のハンドオフの更新を同じ PR 内に保持します。
 
 ---
 
-## Current continuation — PR #138 merged; standalone C-53/C-54 sanitizer implemented (2026-10-21)
+## 現在の継続 — PR #143 C-50 条件入力モデル提案 (2026-10-21)
 
-### Verified baseline
-- PR #138 [feat: implement C-53/C-54 diagnostic path sanitization](https://github.com/wasawo/eo-log-maintenance/pull/138) merged at `17831324fadac347e3b618f94e5c814c1e949664`.
-- Exact-head Validate [run 39505778564](https://github.com/wasawo/eo-log-maintenance/actions/runs/39505778564) and Package Validation [run 39505778768](https://github.com/wasawo/eo-log-maintenance/actions/runs/39505778768) both succeeded on `a587b3c6d162286f556a8e05eb7dea716d0a7737`.
-- Post-merge main Validate [run 39505922816](https://github.com/wasawo/eo-log-maintenance/actions/runs/39505922816) and Package Validation [run 39505922855](https://github.com/wasawo/eo-log-maintenance/actions/runs/39505922855) both succeeded on merge SHA `17831324fadac347e3b618f94e5c814c1e949664`.
+### 検証されたベースライン
+- PR #142 診断証拠の調整は 8481437e339cc1769751c80be4801edf209ece8c にマージされました。
+- 正確なヘッド検証の実行 39510208141 とパッケージ検証の実行 39510207993 は両方とも 0563a6c17d35ee7415d2b86a8af9b5700a965ee0 で成功しました。
+- PR #141 マージ後のメイン検証実行 39509903050 とパッケージ検証実行 39509903012 は両方とも 58aeb10e3661b7cd893e1a6bfed0469e29e4089f で成功しました。
+- PR #140 以降のハンドオフ更新は、実装/docs/tests と同じ PR に残ります。個別のハンドオフ専用 PR はありません。
 
-### Implemented scope
-- `Common/LogFunctions.ps1` now provides `ConvertTo-SafeDiagnosticRelativePath`: C-53 syntax validation precedes C-54 fixed sensitive-path checks; safe paths are returned with `/` separators, and unsafe/missing/non-string paths return null without emitting rejected input.
-- `tests/Test-DiagnosticPathSanitization.ps1` is included in Validate CI and covers path syntax, invalid Unicode scalar sequences, all fixed sensitive names, every approved sensitive token, secret-format examples, and negative controls such as `tokenizer.txt`.
-- The Validate workflow now registers the default `PSGallery` repository if absent before installing PSScriptAnalyzer. The first CI attempt on the initial PR head failed at analyzer installation because PSGallery was not registered; the updated workflow passed on the final PR head.
-- No real logs, credentials, production paths, Google Drive operations, archive enablement, or deletion behavior were used.
+### PR #143 スコープ
+- ブランチ: docs/c50-condition-input-proposal.
+- すでに承認された C-50 失敗 条件優先順位テーブルの 3 つの非規範的入力モデルを比較する docs/archive/decisions/c50-condition-input-model-options.md を追加します。
+- 推奨される提案はオプション B です。つまり、中心的な優先順位を選択した、正確で信頼できる、確実に観察された条件識別子のセットです。これは承認されておらず、規範的な動作を変更したり、エラー/フェーズ/操作の列挙値を追加したりするものではありません。
+- メンテナがモデルとその正確なトークン/無効な入力動作を承認するまで、分類子は実装されません。現在のランタイム エントリポイントは存在しないため、暗黙的な DTO を作成したり、C-50 統合を要求したりすることは避けてください。
+- P0-008、P0-010、および P0-012 は開いたままです。
 
-### Evidence boundary and next task
-- This is a standalone sanitizer helper, not an end-to-end diagnostic-record pipeline. Still unverified: C-47/C-48 full record validation/version handling, C-49 allowlist enforcement in record finalization, C-50/C-51 deterministic error and phase/operation mapping integration, C-52 exact message-template generation, JSON serialization of unsafe path as literal `null`, preservation of event identity/classification, and end-to-end non-disclosure.
-- Next bounded task: implement a pure diagnostic-record finalizer/serializer from the approved C-47–C-52 contract, with strict `schema_version: 1`, exact required/allowed fields, `ERR-000001`-style ID validation, allowlisted code/phase/operation values and valid phase-operation pairs, fixed C-52 message templates, optional path nulling via `ConvertTo-SafeDiagnosticRelativePath`, and deterministic JSON serialization. Add synthetic table-driven tests for valid/invalid records, every allowlist/template, invalid pairs, unknown fields, explicit JSON `null`, stable identity/classification, and non-disclosure. Do not add new schema fields or enum values; do not build an implicit runtime orchestrator.
-- Keep OSD-02/OSD-03 and P0-008/P0-010/P0-012 open as applicable. P0 remains not accepted; `scripts/SyncLogs.ps1` remains a sentinel and `scripts/ArchiveLogs.ps1` is absent. Helper/schema/docs CI is not end-to-end runtime acceptance.
+### 次に決定が必要です
+- docs/archive/decisions/c50-condition-input-model-options.md. で A、B、または C を選択してください。B または C の場合は、提案されたフィールド/トークン名と無効な入力動作を承認します。次に、規範的意思決定レコードを更新し、同じ実装 PR でテーブル駆動テストを使用して純粋な分類子を実装します。
+- 実際のログ、認証情報、運用パス、Google Drive 操作、アーカイブの有効化、または削除動作はありません。
 
-> Priority: read this handoff first, verify live GitHub/CI facts, then consult normative decision records before implementation.
-
----
-## Current continuation — PR #137 merged; implement C-53/C-54 path sanitizer (2026-10-21)
-
-### Verified baseline
-- PR #137 merged at `4ae7c30535aeba84da732b49f7340a75a635e2bf`.
-- Exact-head Validate [run 39504431065](https://github.com/wasawo/eo-log-maintenance/actions/runs/39504431065) and Package Validation [run 39504430993](https://github.com/wasawo/eo-log-maintenance/actions/runs/39504430993) succeeded on `0d3ff2adbe52e32ddf9f99bb7c5abff413e30ff9`.
-- Post-merge main Validate [run 39505235957](https://github.com/wasawo/eo-log-maintenance/actions/runs/39505235957) and Package Validation [run 39505236040](https://github.com/wasawo/eo-log-maintenance/actions/runs/39505236040) succeeded on merge SHA `4ae7c30535aeba84da732b49f7340a75a635e2bf`.
-
-### Current PR work
-- First Validate attempt on initial implementation head `3ccfa58c99ae9e61240249b3681670567be279f2`: sanitizer tests passed (43 assertions), but the workflow failed before static analysis because the isolated PowerShell installation did not have `PSGallery` registered. The workflow step now registers the default repository if absent before installing PSScriptAnalyzer; only the latest-head rerun can count.
-- Branch: `feat/diagnostic-path-sanitizer`; implement the standalone optional diagnostic path sanitizer in `Common/LogFunctions.ps1` and add synthetic tests `tests/Test-DiagnosticPathSanitization.ps1`, integrated into Validate.
-- Contract source: `docs/decisions/aggregation-inventory-integrity-options.md`, C-53 section; `docs/decisions/decision-record-c54-sensitive-path-detection.md`, approved P1–P6 grammar table.
-- Expected behavior: return a canonical relative path only when C-53 syntax and C-54 fixed sensitive policy both pass; otherwise return null without logging or echoing rejected input. No filesystem, symlink, locale, or current-directory access.
-- URI-like full paths are expected to fail C-53 colon syntax before C-54 URI detection; do not claim that the C-54 URI matcher caused the rejection.
-- Test boundary: the standalone function tests do not yet prove diagnostic-record finalization, JSON literal null serialization, event identity/classification preservation, or end-to-end diagnostic non-disclosure. Keep those gaps explicit.
-- No real logs, credentials, production paths, Google Drive operations, archive enablement, or deletion behavior.
-
-### P0 disposition
-P0 remains not accepted. P0-010 and P0-012 remain open. `scripts/SyncLogs.ps1` remains a sentinel and `scripts/ArchiveLogs.ps1` is absent. This sanitizer/helper and its CI tests are not end-to-end runtime acceptance evidence.
-
-> Priority: read this handoff first, then verify current PR/main/CI facts live on GitHub and consult normative records before changing behavior.
+> 優先度: 最初にこのハンドオフを読み、現在の PR/main/CI の事実が GitHub に存在することを確認してから、規範的な決定記録を参照します。ハンドオフの更新を同じ PR 内に保持します。
 
 ---
 
-# Current project state — 2026-10-21
+## 現在の継続 — PR #142 診断証拠の調整 (2026-10-21)
 
-## Current continuation — PR #136 merged; C-54 P1–P6 approved (2026-10-21)
+### 検証されたベースライン
+- PR #140 は 454041f4337d5f22550a288dfd74afecde76635a にマージされました。正確なヘッド検証/パッケージ検証は 39509321771/39509321735 を実行し、マージ後のメイン実行は 39509466949/39509467065 をすべて成功しました。
+- PR #141 は 58aeb10e3661b7cd893e1a6bfed0469e29e4089f にマージされました。正確なヘッド検証/パッケージ検証は 39509756240/39509756267 を実行し、マージ後のメイン実行は 39509903050/39509903012 をすべて成功しました。
+- PR #140 は、1024 Unicode スカラー値の最大の C-47 パスを選択して実装しました。 PR #141 は、呼び出し元が所有する実行ごとの単調診断イベント ID アロケーターを追加しました。
+- **PR グループ化ルール: PR #140 以降の **、ハンドオフされる実装/docs/tests と同じ PR でこのハンドオフを更新します。ルーチン継続更新用に個別のハンドオフ専用 PR を作成しないでください。
 
-### Verified live state
+### PR #142 スコープ
+- ブランチ: docs/diagnostic-test-evidence-audit.
+- docs/archive/validation/diagnostic-contract-test-evidence.md (非規範的な C-45–C-54 句からヘルパー/テスト/CI へのクロスウォーク) を追加します。
+- docs/archive/validation/p0-source-test-inventory.md、docs/archive/validation/requirements-source-audit.md、docs/requirements/requirements-traceability.md、および docs/requirements/p0-gap-register.md を更新して、新しく実装されたヘルパー テストを含め、残りのギャップを正確に示します。
+- 監査では、ヘルパー/スキーマ テストとランタイムの受け入れを明示的に区別します。 C-50 失敗 条件マッピングは、サポートされる構造化実行時条件入力モデルが定義されていないため、仕様のみのままです。イベント ID の伝播/競合の検出、生の JSON 重複プロパティの拒否、ランタイム シンクの非公開、およびエンドツーエンドの診断証拠は未実装のまま/実行されません。
+- 対応表では、規範的な動作や新しい EOLM 要件 ID は導入されません。 P0-008、P0-010、および P0-012 は開いたままになります。
 
-- PR #136, [spec: approve C-54 P1-P6 secret grammars](https://github.com/wasawo/eo-log-maintenance/pull/136), is merged. Merge commit / main SHA: `c84d1315a1fe94425fc2f3ce894f7e923ca9963e`.
-- Final PR-head Validate [run 39504094186](https://github.com/wasawo/eo-log-maintenance/actions/runs/39504094186) and Package Validation [run 39504094396](https://github.com/wasawo/eo-log-maintenance/actions/runs/39504094396) both succeeded on `2f95db2d36ce702e1bf767fc959be9935a9b4fee`.
-- Post-merge main Validate [run 39504337263](https://github.com/wasawo/eo-log-maintenance/actions/runs/39504337263) and Package Validation [run 39504337225](https://github.com/wasawo/eo-log-maintenance/actions/runs/39504337225) are still in progress as of this handoff update. Recheck them against the exact main SHA before claiming post-merge CI success.
-- PR #135 is merged at `2af46d485cf558e8f0d4f9fac189e1ec82e5d4f7`; its exact-head checks succeeded. Its post-merge main checks [Validate 39503737582](https://github.com/wasawo/eo-log-maintenance/actions/runs/39503737582) and [Package Validation 39503737600](https://github.com/wasawo/eo-log-maintenance/actions/runs/39503737600) succeeded on that SHA.
+### 次のバインドされたタスク
+- C-50 の承認された 失敗 条件の優先順位を実装するために必要な、構造化された実行時条件入力コントラクトの明示的な代替案を検討して提案します。保守者がコントラクトを選択するまでは、分類子を実装したり、DTO を考案したりしないでください。 OSD-02/OSD-03 およびその他の未解決の運用上の決定は変更しないでください。
+- 実際のログ、認証情報、運用パス、Google Drive 操作、アーカイブの有効化、または削除動作はありません。
 
-### Explicit maintainer decisions now normative
-
-On 2026-10-21 the maintainer selected A for each C-54 decision P1–P6, with no supplemental notes. Canonical details are in `docs/decisions/decision-record-c54-sensitive-path-detection.md`, section “C-54 approved secret-format grammars — P1–P6”:
-
-- P1 URI user-info regex and exact scheme/username/password character restrictions.
-- P2 case-insensitive Bearer scheme; non-empty ASCII token alphabet with optional trailing equals padding.
-- P3 case-sensitive `ghp_` and `github_pat_` prefixes, respective ASCII suffix alphabets, minimum suffix length 20.
-- P4 exactly uppercase `AKIA` plus 16 uppercase ASCII alphanumeric characters; other AWS access-key prefixes remain out of scope absent new approval.
-- P5 five fixed, case-sensitive PEM markers: generic, RSA, EC, DSA, and OPENSSH PRIVATE KEY.
-- P6 exact ASCII boundaries and case-sensitivity rules embedded in the approved patterns.
-
-### PR #136 change set and test boundary
-
-- Normative C-54 decision record, inventory/integrity specification, decision register, proposal status, and C-53/C-54 test matrix updated.
-- `tests/Test-C54PatternContract.ps1` added with synthetic positive, negative, minimum-length, boundary, and case fixtures; Validate CI invokes it.
-- This is a regex contract test only. It does not prove runtime C-53/C-54 path sanitization, whole-field JSON `null`, or diagnostic non-disclosure. URI-like full-path input may fail C-53 before C-54 is reached; direct regex tests must not be confused with full-path integration tests.
-
-### Next work and blockers
-
-1. Recheck post-merge main Validate and Package Validation for SHA `c84d1315a1fe94425fc2f3ce894f7e923ca9963e`; record final outcomes in this handoff.
-2. Continue P0 work only within approved policies. Do not infer unresolved operational choices. Review `docs/requirements/p0-open-specification-decisions.md` and `docs/requirements/p0-gap-register.md` before selecting the next implementation task; unresolved operator approvals include contract path/response scope, Dry Run side effects, OAuth scope, release authorization/retention, and scheduler/lock recovery policy.
-3. P0 remains **not accepted**. P0-010 and P0-012 remain open. Runtime manifest/IPC/orchestration/archive entry points and end-to-end no-deletion evidence remain missing or unverified. `scripts/SyncLogs.ps1` remains a sentinel; `scripts/ArchiveLogs.ps1` is absent. Documentation, schema/package CI, and regex contract CI are not runtime acceptance evidence.
-4. Do not perform real-log or Google Drive mutation/destructive testing without explicit approval.
-
-> **Priority rule:** Consult `docs/handoff/next-chat.md` first when resuming, then verify mutable facts live on GitHub and use normative records for approved behavior. This handoff is a continuity index, not a substitute for specifications or live verification.
-
-## Historical continuation — post-PR #131 C-53/C-54 test-matrix audit (superseded 2026-10-21)
-
-### Verified latest baseline
-
-- PR #130 merged at `5b258fbdc775e5aa5db2dc2903108d7a4461bd29`; post-merge main Validate [run 39499966171](https://github.com/wasawo/eo-log-maintenance/actions/runs/39499966171) and Package Validation [run 39499965819](https://github.com/wasawo/eo-log-maintenance/actions/runs/39499965819) succeeded.
-- PR #131, [Audit C-53/C-54 path policy test coverage](https://github.com/wasawo/eo-log-maintenance/pull/131), merged at `417c5cb7d34d5ceae667932bdda33fd9b70ca997`. Exact PR-head Validate [run 39500312571](https://github.com/wasawo/eo-log-maintenance/actions/runs/39500312571) and Package Validation [run 39500312696](https://github.com/wasawo/eo-log-maintenance/actions/runs/39500312696) both succeeded on `b92082d464861bbf158b5604290e4069c5239bfd`.
-- Post-merge main Validate [run 39500501480](https://github.com/wasawo/eo-log-maintenance/actions/runs/39500501480) and Package Validation [run 39500501483](https://github.com/wasawo/eo-log-maintenance/actions/runs/39500501483) were queued at last check on merge SHA `417c5cb7d34d5ceae667932bdda33fd9b70ca997`. Recheck exact SHA and results before describing these as passed.
-- PR #131 adds `docs/validation/c53-c54-policy-test-matrix.md`, a non-normative deterministic fixture matrix and audit. It does not change the approved C-53/C-54 policy and does not implement sanitization.
-
-### Current findings and next bounded task
-
-- The C-53/C-54 high-level policy remains: validate path syntax, apply fixed sensitive-path policy, emit canonical relative path only if safe, otherwise null the whole optional path; never partially redact or echo rejected input. Invalid required diagnostic fields reject finalization.
-- Tracked runtime currently has no executable diagnostic sanitization function or dedicated C-53/C-54 tests. Existing helper/CI success is not runtime evidence.
-- Concrete unresolved grammars: URI user-info credentials; Bearer credential token syntax; provider-token prefixes/suffix boundaries (including `ghp_`, `github_pat_`, `AKIA` examples); PEM private-key marker set; and exact boundary/false-positive behavior.
-- **Next:** recheck post-merge main CI for PR #131. Then draft a non-normative pattern proposal with explicit candidate grammar, positive/negative synthetic fixtures, false-positive tradeoffs, and coverage limits. Do not change normative decision records or implement policy until the user explicitly approves the concrete patterns. C-54 Option A itself is already approved; do not reopen that overall choice.
-- Safety: synthetic examples only; no actual secrets, real logs, user paths, Google Drive operations, deletion behavior, or archive enablement.
-
-### P0 status
-
-P0 remains unaccepted. Runtime manifest/IPC/orchestration/archive entry points and end-to-end no-deletion evidence remain missing or unverified. P0-010 and P0-012 remain open. Do not count this documentation PR or its CI as runtime acceptance.
-
-> **Priority rule:** This file, `docs/handoff/next-chat.md`, is the first project document to consult when resuming work. Read it before asking the user to repeat prior decisions or choosing a next task. Then verify mutable claims against live GitHub state (main SHA, PRs, CI, and normative records). This is the continuity index, not a substitute for specifications or live verification.
-
-## Current continuation — PR #116 derived aggregation report proposal review
-
-### Verified latest baseline
-
-- PR #117, [Record approved C-54 sensitive path detection policy](https://github.com/wasawo/eo-log-maintenance/pull/117), merged; historical PR-head CI only.
-- PR #118, [Record P0 status and agreed continuation sequence](https://github.com/wasawo/eo-log-maintenance/pull/118), merged; documentation-only.
-- PR #119 merged at `2faf4069d9d91455adda9303df70bad7ec5464c2`.
-- PR #120 merged at `4889663f4eddb94ed967a8a192d271850b272220`; exact-head Validate and Package Validation succeeded.
-- PR #122 merged at `458da591a4e92de519ee486c84c1f913cdb88c94`; exact-head Validate [run 39489485097](https://github.com/wasawo/eo-log-maintenance/actions/runs/39489485097) and Package Validation [run 39489485077](https://github.com/wasawo/eo-log-maintenance/actions/runs/39489485077) succeeded.
-- PR #123, [Refresh P0 handoff after PR #122](https://github.com/wasawo/eo-log-maintenance/pull/123), merged at `6b543930f9a9805f50693bd6333a8278c416fe05`. Exact-head Validate [run 39489901295](https://github.com/wasawo/eo-log-maintenance/actions/runs/39489901295) and Package Validation [run 39489901338](https://github.com/wasawo/eo-log-maintenance/actions/runs/39489901338) succeeded.
-- PR #124, [Reconcile manifest and IPC evidence](https://github.com/wasawo/eo-log-maintenance/pull/124), merged at `bb75eb14e32880e12590e4c6aa62ebc6847c705b`. Exact-head Validate [run 39492010024](https://github.com/wasawo/eo-log-maintenance/actions/runs/39492010024) and Package Validation [run 39492010017](https://github.com/wasawo/eo-log-maintenance/actions/runs/39492010017) succeeded on `0cf9127346c32fe4583edf2f3f25ca2fe3abf35e`. Post-merge main Validate [run 39492843105](https://github.com/wasawo/eo-log-maintenance/actions/runs/39492843105) and Package Validation [run 39492843074](https://github.com/wasawo/eo-log-maintenance/actions/runs/39492843074) both succeeded on exact main SHA `bb75eb14e32880e12590e4c6aa62ebc6847c705b`.
-- PR #125, [Record PR #116 proposal review findings](https://github.com/wasawo/eo-log-maintenance/pull/125), merged at `0d2d128f6fdb3226560a337aba133e526bdf2671` after exact-head Validate [run 39493096101](https://github.com/wasawo/eo-log-maintenance/actions/runs/39493096101) and Package Validation [run 39493096077](https://github.com/wasawo/eo-log-maintenance/actions/runs/39493096077) succeeded. Post-merge main Validate [run 39496019890](https://github.com/wasawo/eo-log-maintenance/actions/runs/39496019890) and Package Validation [run 39496019925](https://github.com/wasawo/eo-log-maintenance/actions/runs/39496019925) were in progress at last check.
-- PR #121 is closed unmerged as a stale duplicate superseded by PR #122: [PR #121](https://github.com/wasawo/eo-log-maintenance/pull/121).
-- PR #116, [Propose derived aggregation report v1 contract](https://github.com/wasawo/eo-log-maintenance/pull/116), remains open, draft, unmerged, and based on stale SHA `f3df62e3b9579ff14a0367e7dfbcb5b881f216cc`; head is `217fe9bbf354ad8db5da3fca95a43c76b80c8810`. Review comment `5591359277` records stale-base/path issues, contradictions about approved A2/B2 inventory/evidence rules, `partial_failure` conflict for zero verified targets plus run-scope error, duplicate C-44 text/numbering, and unrelated C-46–C-53 decision material appended to the proposal. A reconciliation branch `docs/reconcile-aggregation-report-proposal` now contains cleaned versions of the single canonical proposal path `docs/design/aggregation-report-v1-proposal.md`, the approved inventory-integrity decision reference, and the run-input evidence proposal with duplicated diagnostic decision text removed. The proposed report schema and publication/recovery details remain unapproved. Do not merge PR #116 or promote its schema to normative; use the new reconciliation PR once opened and keep OSD-02/OSD-03 and P0-008/P0-010 open.
-- C-54 is approved: **Option A — fixed patterns combined with sensitive path-segment checks**. Decision record: [`docs/decisions/decision-record-c54-sensitive-path-detection.md`](../../decisions/decision-record-c54-sensitive-path-detection.md).
-
-### P0 disposition — not accepted
-
-The PR #124 evidence reconciliation is documentation-only. MAN-01–10 and IPC-01–06 remain not implemented/not run; P0 is not accepted. Documentation CI does not establish manifest lifecycle, IPC process-boundary behavior, archive eligibility, or deletion safety.
-
-P0 is **not complete and has not been accepted**. Consult `docs/requirements/p0-gap-register.md`, `docs/validation/p0-source-test-inventory.md`, `docs/validation/requirements-source-audit.md`, `docs/requirements/requirements-traceability.md`, `docs/requirements/p0-open-specification-decisions.md`, and `docs/development/implementation-workflow.md`. The P0-001–012 summary recorded below is a working index only.
-
-| ID | Working status | Main remaining condition |
-|---|---|---|
-| P0-001 | Partial | Apply the PowerShell 7.6.7 guard to every official runtime entry point |
-| P0-002 | Complete for existing CI environment gate | Preserve regression coverage; not runtime acceptance |
-| P0-003 | Incomplete | Official launch/batch entry points and runtime startup checks |
-| P0-004 | Incomplete | Sync, verification, manifest, archive and orchestration runtime functions |
-| P0-005 | Incomplete | Contract review/resolution and adapter integration/semantic tests |
-| P0-006 | Partial | Official entry points, final role allowlists and release gates |
-| P0-007 | Complete for existing PowerShell test CI integration | Keep tests in CI; runtime coverage remains separate |
-| P0-008 | Partial | Runtime enumeration, mixed-input aggregation and run-level behavior tests |
-| P0-009 | Partial | Runtime config validation, release authorization/provenance and related gates |
-| P0-010 | Incomplete | Clause-by-clause requirement → implementation → executable test → objective evidence reconciliation |
-| P0-011 | Partial | Acceptance gate is documented; overall P0 acceptance criteria remain unmet |
-| P0-012 | Incomplete | End-to-end evidence that source logs and Drive objects cannot be deleted |
-
-**Critical evidence boundary:** `scripts/SyncLogs.ps1` remains a sentinel and `scripts/ArchiveLogs.ps1` is absent. Operational manifest schema/reader/writer, Python Drive adapter, retry orchestration, runtime lock/orchestration and process-boundary IPC acceptance are not established as implemented. Helper, schema, package-builder and documentation CI do not count as runtime acceptance evidence. P0-010 and P0-012 remain open.
-
-### Agreed execution sequence
-
-The user explicitly approved this order on 2026-10-21:
-
-1. **Resolve PR #117:** complete; merge and exact-head CI were verified.
-2. **Reconcile P0-010:** in progress. Reconcile remaining rows across normative source, requirement ID, actual implementation state, executable test, and objective evidence. Record absent, unrun, and blocked states honestly.
-3. **Separate by dependency:** distinguish safe changes independent of unresolved policy from work blocked by OSD/contract approvals. Do not infer decisions.
-4. **Before runtime implementation (P0-004):** verify prerequisites for contract, manifest, IPC, authentication, role/package, archive gate and safety. Add executable runtime tests and evidence with implementation; do not implement blocked behavior.
-5. **Update this handoff in each substantive PR whenever practical**, including exact HEAD and CI links/status before merge, then verified merge SHA and exact-head results in the next PR or follow-up update.
-
-### Completed P0-010 slice — configuration/archive/deletion-safety evidence
-
-- PR #119 refreshed source-audit and source/test inventory baselines and corrected package-evidence descriptions; it did not add runtime implementation.
-- PR #120 refreshed the P0-010 handoff/baseline and merged at `4889663f4eddb94ed967a8a192d271850b272220` after exact-head Validate and Package Validation succeeded.
-- PR #122 reconciled EOLM-CFG-004–007, EOLM-ARC-001–006, and EOLM-SAF-001–006 against package-builder tests, request schema, runtime inventory, and bounded static safety audit. It merged at `458da591a4e92de519ee486c84c1f913cdb88c94` after exact-head Validate and Package Validation succeeded.
-- Package-builder evidence covers example role/field/path semantics, active-config exclusion from release source, PC-A/PC-B entry-point package rules, and rejection of `allowDelete` in example configs. It does not prove active-config authorization, approved-root containment, runtime archive eligibility, Dry Run side-effect invariance, or whole-system absence of deletion capability.
-- `scripts/SyncLogs.ps1` remains a sentinel; `scripts/ArchiveLogs.ps1`, active-config loader, operational manifest, archive gate, and runtime negative-capability harness remain absent. OSD-09 final role allowlists/deployment policy remains unresolved.
-- P0-010 and P0-012 remain open. No runtime code, real credentials, Google Drive operations, real logs, production paths, deletion behavior, or archive enablement was added.
-
-### Completed bounded task — manifest and IPC evidence reconciliation (documentation only)
-
-- PR #124 will update the source audit, IPC audit, source/test inventory, traceability register, P0 gap register, and this handoff against the current `main` baseline.
-- The manifest field specification and several narrow policy clarifications are approved, but the complete transition table is not normative; EOLM-MAN-011 numeric freshness/future-time tolerance and applicability remain open; crash/concurrency implementation and evidence remain absent.
-- OSD-03 aggregation policy and the separate derived-report representation are approved. The report schema, frozen-inventory canonicalization, atomic publication/recovery/consistency contract, implementation, and executable tests remain pending. PR #116 is only a proposal and has a stale base; do not merge it as an implicit approval.
-- IPC-01–06 remain not implemented/not run. `tests/test_contract_schemas.py` verifies JSON schema shape/examples only; it does not launch PowerShell/Python processes or prove stdout/stderr, exit-code consistency, request correlation, timeout, retry behavior, or secret redaction.
-- The scenario crosswalk is a mapping, not evidence. No runtime implementation, acceptance result, or safety capability is inferred from documentation CI.
-
-### Next bounded task — review the derived aggregation report proposal
-
-Review PR #116 against the approved OSD-03 policy and OSD-02/manifest constraints. Compare every proposed field, inventory identity/digest rule, publication and atomicity rule, crash recovery, freshness/consistency validation, and executable acceptance test against normative records. Because PR #116 is explicitly a proposal with a stale base, do not merge or promote it to normative status without explicit maintainer approval. Report the concrete unresolved choices for approval rather than selecting them autonomously. Keep OSD-02/OSD-03, P0-008, and P0-010 open until the contract is approved and runtime evidence exists.
+> 優先度: 最初にこのハンドオフを読み、現在の PR/main/CI の事実が GitHub に存在することを確認してから、規範的な決定記録を参照します。ハンドオフの更新を同じ PR 内に保持します。
 
 ---
 
-## Source-of-truth and continuation priority
+## 現在の継続 — PR #141 診断イベント ID アロケーター (2026-10-21)
 
-Use this order when resuming work:
+### PR #140 の完了を確認しました
+- PR #140 [偉業: schema-v1 診断レコードを完成させる](https://github.com/wasawo/eo-log-maintenance/pull/140) は 454041f4337d5f22550a288dfd74afecde76635a にマージされました。
+- 正確なヘッド検証 [39509321771 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39509321771) とパッケージ検証 [39509321735 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39509321735) が PR ヘッド 6a7222db4387019c6dc598c2b9bf38b6efca3c4c に渡されました。
+- マージ後のメイン検証 [39509466949 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39509466949) とパッケージ検証 [39509467065 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39509467065) がマージ SHA 454041f4337d5f22550a288dfd74afecde76635a に渡されました。
+- C-47 パスの最大値が承認されます。 オプション A: 1024 Unicode スカラー値。 PR #140 は、それに応じて規範仕様と実装/テストを更新しました。
+- **PR グループ化ルール:** PR #140 以降、ハンドオフされる実装/docs/tests と同じ PR でこのハンドオフを更新します。ルーチン継続更新用に個別のハンドオフ専用 PR を作成しないでください。
 
-1. **This handoff** — starting point for current task, last verified baseline, open PR/CI status, safety constraints, and next bounded action.
-2. **Live GitHub state** — authoritative for current branch/main SHA, PR status, workflow status, and merge status. Re-fetch it before acting; this handoff can become stale.
-3. **Normative decision/specification records** — authoritative for approved behavior and unresolved choices, especially `docs/requirements/p0-open-specification-decisions.md`, individual decision records, `docs/design/powershell-python-contract.md`, and relevant manifest/IPC proposals.
-4. **Requirement/source/test inventories and gap registers** — authoritative for traceability and evidence gaps, including `docs/validation/requirements-source-audit.md`, `docs/requirements/requirements-traceability.md`, `docs/validation/p0-source-test-inventory.md`, and `docs/requirements/p0-gap-register.md`.
-5. **Older continuation sections and chat history** — historical context only; they must not override this current section, current GitHub state, or normative records.
+### PR #141 スコープ
+- ブランチ: feat/diagnostic-event-id-allocation。
+- 承認された C-45/C-46 実行ごとの単調シーケンス: ERR-000001 から ERR-999999 の Common/LogFunctions.ps1 に New-DiagnosticErrorId を追加し、ラップ/再利用/切り捨てなしでフェール クローズします。
+- 呼び出し元は、実行ごとの Int32/Int64 の次のシーケンス値への参照を渡します。この関数は、正確に 1 つの ID を割り当て、呼び出し元が所有するカウンターを進めます。ランタイム イベント作成者は、個別のイベントごとに 1 回呼び出して、ID を変更せずに伝播する必要があります。このヘルパーはイベントを関連付けたり、スレッド セーフを提供したりしません。
+- 逐次的な一意性、正確な固定幅形式、最終的な有効な ID、枯渇、無効なカウンター値、拒否時の状態変化なし、およびカルチャ不変の形式に関する合成テストを追加します。 Validate CI に接続し、テスト ドキュメントを更新します。
+- これはヘルパーとしてのみ使用してください。ランタイム オーケストレーションを追加したり、パス/エラー コードからイベント ID を推測したりしないでください。
 
-At the start of each continuation, read this file first, then inspect the live repository and the specific referenced records needed for the task. If any source disagrees, do not silently choose: follow live GitHub for mutable status, follow approved normative records for behavior, and update this handoff to record the reconciliation.
+### P0 の処理と次のタスク
+- P0 は受け入れられないままです。 P0-010/P0-012 は開いたままになります。 P0-008 ランタイム カバレッジは 未完了 のままです。 scripts/SyncLogs.ps1 は引き続き監視員であり、scripts/ArchiveLogs.ps1 は不在です。
+- PR #141 の後、残りの C-50 失敗 条件マッピング統合ギャップと現在の P0 ギャップ レジスタを確認します。 C-50 の優先ルールは承認されていますが、ランタイム イベント条件入力モデルは実装されていません。明示的にサポートされる呼び出し側コントラクトなしで、ランタイム コンテキスト スキーマを発明したり、イベント分類を統合としてマークしたりしないでください。
 
-## Required per-change handoff update
-
-Every PR that changes project artifacts must update `docs/handoff/next-chat.md` in that same PR whenever practical. Before merge, record the current PR/head SHA and actual CI URLs/statuses without claiming completion. After merge, verify the merged commit and update the record with the actual merge SHA and exact-head workflow results in the next PR or a follow-up handoff update. Never describe queued/in-progress workflows as passed. Keep the current status block at the top, and demote older snapshots to historical context rather than leaving stale directions looking current.
-
----
-
-## Historical continuation — post-PR #80 (superseded by current status above)
-
-- PR #78 merged after Validate and Package Validation passed on exact HEAD `ca1b9c2b97495f358ad0bebe4c5d584af67af2fe`.
-- PR #79 merged after both CI workflows passed on exact HEAD `c43c34d9b528fec4c4bb97f6187e8721e150eb6c`.
-- PR #80 merged at `4c9f16caf2c464bcc5720b98acb6656d5d95060a` after Validate and Package Validation passed on exact HEAD `fd23828093b4c5464bd5d2a7e585e5ba90627c5b`.
-- This bounded follow-up refreshes the P0-010 gap row and source/test inventory to the PR #80 baseline. It does not close P0-010 or P0-012.
-- Runtime entry points (`scripts/SyncLogs.ps1`, `scripts/ArchiveLogs.ps1`), manifest schema, orchestration, and process-boundary IPC harness remain absent. SEL-RT-01–10 and IPC-01–06 are not implemented/run. OSD-02/03 and EOLM-MAN-011 remain blocked; distribution/Dry Run decisions remain subject to the open-decision register.
-- Next bounded task: continue clause-level P0-010 reconciliation for a small set of manifest/IPC requirements, cross-checking each against normative source clauses, tracked files, named executable tests, and current CI evidence. Keep blocked/not_started/partial where runtime proof is absent.
-- Safety: no credentials, Drive operations, real logs, production paths, or deletion behavior. Merge only after Validate and Package Validation both succeed on the exact latest PR HEAD SHA.
+> 優先度: 最初にこのハンドオフを読み、現在の PR/main/CI の事実が GitHub に存在することを確認してから、規範的な決定記録を参照します。ハンドオフの更新を同じ PR 内に保持します。
 
 ---
 
-## Current continuation — post-PR #74
+## 現在の継続 — PR #140 診断レコード ファイナライザー (2026-10-21)
 
-- PR #74 (`fix: require official SyncLogs entry point for deployable packages`) merged; merge commit: `dfc68a46d82ada6ecd87c630b514748bb4a01506`.
-- Validate succeeded on exact PR #74 HEAD `fd36f85d25407896ed61725bce4d0b807694c237`: https://github.com/wasawo/eo-log-maintenance/actions/runs/39410321989
-- Package Validation succeeded on the same HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39410321883
-- The package builder no longer treats `scripts/ArchiveAndUploadLogs.ps1` as the deployability sentinel and excludes it from packages; `scripts/SyncLogs.ps1` is now required. Regression coverage verifies that the legacy entry point alone is rejected and omitted from the ZIP.
-- This is a narrow packaging guard correction, not runtime implementation. No official `SyncLogs.ps1` or `ArchiveLogs.ps1` exists in the tracked tree; production packages remain non-deployable. P0-006 is still open for PC-A/PC-B-specific allowlists, ArchiveLogs role control, and release marker conditions. P0-010/P0-012 remain open.
-- Current inventory: `scripts/` contains only its README; `contracts/` has Drive request/response schemas but no manifest schema; `tests/` has helper, schema-contract, and package-builder tests but no runtime orchestration/IPC acceptance harness.
-- Next bounded task: audit `.github/scripts/Build-ReleasePackage.ps1` and `tests/Test-ReleasePackage.ps1` against fixed C-20 role constraints and the release design. Separate directly implementable allowlist safety gaps from items blocked by unresolved OSD decisions. Do not invent release lifecycle choices, add runtime entry points, or implement manifest behavior as part of the audit.
-- Safety: no real credentials, Google Drive operations, real logs, production paths, deletion behavior, or archive enablement.
+### PR #140 の前にベースラインを検証しました
+- PR #139 は 70590a6d63c365ea34900ca2dc2a95b27008aaaa にマージされました。
+- マージ後のメイン検証 [39506286398 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39506286398) とパッケージ検証 [39506286505 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39506286505) は両方とも 70590a6d63c365ea34900ca2dc2a95b27008aaaa で成功しました。
 
-## Current continuation — post-PR #72
+### メンテナの決定と PR グループ化ルール
+- C-47 target_relative_path 最大: **オプション A 承認済み** — 1024 Unicode スカラー値。制限を超えるパスは JSON null になる必要があります。切り詰めたり、部分的にマスクしたりしないでください。
+- **PR #140 から始めて、引き渡される実装/docs/tests と同じ PR 内の docs/handoff/next-chat.md を更新します。ルーチン継続更新用に個別のハンドオフ専用 PR を作成しないでください。** マージ前に正確なヘッド CI を検証して記録し、使用可能な場合はマージ後のメイン CI を記録します。
 
-- PR #72 (`docs: reconcile high-risk evidence gaps`) merged; merge commit: `829fcf8dd38c71a2e39ef6afbee3a2092cae99e6`.
-- Validate succeeded on PR #72 HEAD `bde8d4b2b00f6376bc00a6db171b687001c31f3c`: https://github.com/wasawo/eo-log-maintenance/actions/runs/39407699242
-- Package Validation succeeded on the same HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39407699205
-- Updated `docs/requirements/requirements-traceability.md` with a high-risk evidence summary and refreshed `docs/validation/requirements-source-audit.md` to the PR #71 baseline. This is documentation-only and does not implement runtime behavior or close P0 gaps.
-- Next bounded task: compare the current traceability/source-audit claims with the actual tracked implementation, tests, package builder, and CI workflows; identify one approval-independent executable gap. Start by inventorying official runtime entry points, manifest schema artifacts, and tests, without assuming missing artifacts exist.
-- Keep helper/schema/package CI evidence distinct from runtime proof. P0-010 and P0-012 remain open; SEL-RT-01–10 are design-only and IPC-01–06 remain not implemented/not run. Do not infer OSD-02/03/04/06/07/08/09 decisions.
-- Safety: no real credentials, Google Drive operations, real logs, production paths, deletion behavior, or archive enablement.
+### PR #140 スコープ
+- 初期 PR #140 CI の試みにより、不正な形式のイベント ID 正規表現編集と、Common/LogFunctions.ps1 内の重複した末尾フラグメントが公開されました。現在は両方とも修正されています。実装コミット 94eb0fd8d4aea2e9acbcee8d576df6ffb1785247 で渡された [39509112746 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39509112746) とパッケージ検証 [39509112754 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39509112754) を検証します。ハンドオフ更新自体は PR ヘッドを変更するため、マージする前に、正確な対象HEADのValidate と Package Validation を再確認してください。
+- ブランチ: feat/diagnostic-record-finalizer。
+- C-47 パスのスカラー長の強制 (1024 Unicode スカラー値) と純粋な ConvertTo-FinalizedDiagnosticJson スキーマ v1 ファイナライズを Common/LogFunctions.ps1. に追加します。
+- ファイナライザーには、schema_version、error_id、error_code、フェーズ、操作、target_relative_path、メッセージの 7 つのキーが必要です。整数スキーマ バージョン 1、ERR-###### イベント ID、正確な C-49 エラー コード、有効な C-51 フェーズ/操作ペア、および正確な C-52 メッセージ テンプレートを検証します。新しく順序付けされた出力レコードを作成し、コンパクトな JSON を決定的にシリアル化します。
+- 安全でない、存在しない、文字列ではない、または制限を超えるオプション パスが明示的になります JSON null;イベント ID と分類は変更されません。必須の無効なフィールドは、修正された非公開エラーによりフェールクローズされます。
+- 合成テストは、すべてのエラー コード テンプレート、すべての有効なフェーズ/操作のペア、正確なスキーマ フィールド、無効なバージョン/ID/列挙型/ペア/メッセージ、明示的な JSON null、1024/1025 Unicode スカラー境界、安定したイベントの ID/分類、決定論、および非公開をカバーします。
+- 境界: API は、生の JSON ではなく、すでに構造化された辞書を受け入れます。重複するプロパティ名は、具体化する前に、将来の raw-JSON 取り込み境界で拒否する必要があります。これは、エラー イベント ID の割り当てや C-50 失敗 条件の推論を実装しません。
+- 実際のログ、認証情報、運用パス、Google Drive 操作、アーカイブの有効化、または削除動作はありません。
 
-## Current continuation — post-PR #71 / high-risk evidence reconciliation
+### P0 の処理と次のステップ
+- これは純粋なファイナライザー/ヘルパーであり、エンドツーエンドの診断/証拠パイプラインではありません。 P0 は受け入れられないままです。 P0-010/P0-012 およびその他の記録されたランタイム ブロッカーは開いたままになります。 scripts/SyncLogs.ps1 は引き続き監視員であり、scripts/ArchiveLogs.ps1 は不在です。
+- PR #140 の次のバインドされたタスク: 残りの C-50 イベント分類 / C-45 ID 割り当て統合ギャップおよび P0 ギャップ レジスタを確認します。必要な運用上の決定とエントリポイントのコントラクトが明確になるまで、ランタイム オーケストレーションを追加しないでください。
 
-- PR #71 (`docs: reconcile current P0 status baseline`) merged; merge commit: `951601f20a45f653723cf134f955ce25c35e3e68`.
-- Validate succeeded on PR #71 HEAD `71b0a1cdf4ccd55379736b4d2732d6a8c8e728d6`: https://github.com/wasawo/eo-log-maintenance/actions/runs/39406874515
-- Package Validation succeeded on the same HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39406874533
-- This bounded change adds a high-risk evidence summary to `docs/requirements/requirements-traceability.md` and refreshes `docs/validation/requirements-source-audit.md` to the PR #71 merge baseline. It does not implement runtime code or close P0 gaps.
-- Next bounded task after this PR: verify the current source audit and traceability rows against the tracked runtime/test/package artifacts, then select one executable, approval-independent gap. Keep the next batch within 3 PRs or 20 minutes.
-- P0-010 and P0-012 remain open. SEL-RT-01–10 are design scenarios; IPC-01–06 remain not implemented/not run. OSD-02/03/04/06/07/08/09 remain blocked as applicable. No tracked `contracts/manifest.schema.json` has been established.
-- Safety: docs-only; no real credentials, Google Drive operations, real logs, production paths, deletion behavior, archive enablement, or inferred decisions.
+> 優先度: 最初にこのハンドオフを読み、現在の PR/main/CI の事実が GitHub に存在することを確認してから、規範的な決定記録を参照します。 PR #140 以降、このハンドオフ更新を作業と同じ PR に保持します。
 
-# Next-Chat Handoff
+---
+
+## 現在の継続 — PR #138 がマージされました。スタンドアロン C-53/C-54 サニタイザーの実装 (2026-10-21)
+
+### 検証されたベースライン
+- PR #138 [機能: C-53/C-54 診断パスのサニタイズを実装](https://github.com/wasawo/eo-log-maintenance/pull/138) は `17831324fadac347e3b618f94e5c814c1e949664` にマージされました。
+- 正確なヘッド検証 [39505778564 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39505778564) とパッケージ検証 [39505778768 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39505778768) は両方とも `a587b3c6d162286f556a8e05eb7dea716d0a7737` で成功しました。
+- マージ後のメイン検証 [39505922816 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39505922816) とパッケージ検証 [39505922855 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39505922855) は両方とも SHA `17831324fadac347e3b618f94e5c814c1e949664` のマージに成功しました。
+
+### 実装されたスコープ
+- `Common/LogFunctions.ps1` は `ConvertTo-SafeDiagnosticRelativePath` を提供するようになりました。C-53 構文検証は C-54 修正された機密パスのチェックに先行します。安全なパスは `/` 区切り文字とともに返され、安全でない/欠落している/非文字列パスは拒否された入力を出力せずに null を返します。
+- `tests/Test-DiagnosticPathSanitization.ps1` は Validate CI に含まれており、パス構文、無効な Unicode スカラー シーケンス、すべての固定機密名、すべての承認された機密トークン、シークレット形式の例、および `tokenizer.txt` などのネガティブ コントロールをカバーします。
+- Validate ワークフローは、PSScriptAnalyzer をインストールする前にデフォルトの `PSGallery` リポジトリが存在しない場合に登録するようになりました。 PSGallery が登録されていなかったため、アナライザーのインストール時に初期 PR ヘッド 失敗した で最初の CI が試行されました。更新されたワークフローは最終 PR ヘッドに渡されます。
+- 実際のログ、認証情報、運用パス、Google Drive 操作、アーカイブの有効化、または削除動作は使用されませんでした。
+
+### 証拠の境界と次のタスク
+- これはスタンドアロンのサニタイザー ヘルパーであり、エンドツーエンドの診断レコード パイプラインではありません。まだ未検証: C-47/C-48 完全なレコード検証/バージョン処理、C-49 レコードのファイナライゼーションにおける許可リストの適用、C-50/C-51 確定的エラーとフェーズ/操作マッピングの統合、C-52 正確なメッセージ テンプレートの生成、JSON リテラル `null` としての安全でないパスのシリアル化、イベント ID/分類の保存、エンドツーエンドの非開示。
+- 次のバインドされたタスク: 承認された C-47–C-52 コントラクトから純粋な診断レコード ファイナライザー/シリアライザーを実装します。厳密な `schema_version: 1`、厳密な必須/許可フィールド、`ERR-000001` スタイルの ID 検証、許可リストに登録されたコード/フェーズ/操作値と有効なフェーズ操作ペア、固定 C-52 メッセージ テンプレート、オプションのパスのヌル化を使用します。 `ConvertTo-SafeDiagnosticRelativePath`、および決定的 JSON シリアル化。有効/無効なレコード、すべてのホワイトリスト/テン​​プレート、無効なペア、不明 フィールド、明示的な JSON `null`、安定した ID/分類、および非公開に対する合成テーブル駆動テストを追加します。新しいスキーマ フィールドや列挙値を追加しないでください。暗黙的なランタイム オーケストレーターを構築しないでください。
+- OSD-02/OSD-03 および P0-008/P0-010/P0-012 は必要に応じて開いたままにしてください。 P0 は受け入れられないままです。 `scripts/SyncLogs.ps1` は引き続き監視員であり、`scripts/ArchiveLogs.ps1` は不在です。ヘルパー/スキーマ/ドキュメント CI は、エンドツーエンドのランタイム受け入れではありません。
+
+> 優先度: 最初にこのハンドオフを読み、実際の GitHub/CI 事実を確認してから、実装前に規範的な決定記録を参照してください。
+
+---
+## 現在の継続 — PR #137 がマージされました。 C-53/C-54 パス サニタイザーを実装する (2026-10-21)
+
+### 検証されたベースライン
+- PR #137 は `4ae7c30535aeba84da732b49f7340a75a635e2bf` にマージされました。
+- 正確なヘッド検証 [39504431065 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39504431065) とパッケージ検証 [39504430993 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39504430993) が `0d3ff2adbe52e32ddf9f99bb7c5abff413e30ff9` で成功しました。
+- マージ後のメイン検証 [39505235957 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39505235957) とパッケージ検証 [39505236040 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39505236040) が SHA `4ae7c30535aeba84da732b49f7340a75a635e2bf` のマージで成功しました。
+
+### 現在の PR 作業
+- 初期実装ヘッド `3ccfa58c99ae9e61240249b3681670567be279f2` での最初の検証試行: サニタイザー テストに合格しました (43 アサーション) が、分離された PowerShell インストールには `PSGallery` が登録されていなかったため、静的分析の前にワークフロー 失敗した が行われました。ワークフロー ステップでは、PSScriptAnalyzer をインストールする前にデフォルト リポジトリが存在しない場合にそれを登録するようになりました。最新ヘッドの再実行のみがカウントされます。
+- ブランチ: `feat/diagnostic-path-sanitizer`;スタンドアロンのオプションの診断パス サニタイザーを `Common/LogFunctions.ps1` に実装し、Validate に統合された合成テスト `tests/Test-DiagnosticPathSanitization.ps1` を追加します。
+- 契約ソース: `docs/archive/decisions/aggregation-inventory-integrity-options.md`、C-53 セクション; `docs/archive/decisions/decision-record-c54-sensitive-path-detection.md`、承認された P1 ～ P6 文法表。
+- 予期される動作: C-53 構文と C-54 固定機密ポリシーの両方が合格した場合にのみ、正規の相対パスを返します。それ以外の場合は、拒否された入力をログに記録したりエコーしたりせずに null を返します。ファイルシステム、シンボリックリンク、ロケール、または現在のディレクトリへのアクセスはありません。
+- URI のようなフルパスは、C-54 URI が検出される前に C-53 コロン構文が失敗することが予想されます。 C-54 URI マッチャーが拒否の原因であるとは主張しないでください。
+- テスト境界: スタンドアロン関数テストでは、診断レコードのファイナライゼーション、JSON リテラル null シリアル化、イベント ID/分類の保存、またはエンドツーエンドの診断の非開示はまだ証明されていません。それらのギャップを明示的に保ちます。
+- 実際のログ、認証情報、運用パス、Google Drive 操作、アーカイブの有効化、または削除動作はありません。
+
+### P0 の性質
+P0 は受け入れられないままです。 P0-010 と P0-012 は開いたままになります。 `scripts/SyncLogs.ps1` は引き続き監視員であり、`scripts/ArchiveLogs.ps1` は不在です。このサニタイザー/ヘルパーとその CI テストは、エンドツーエンドのランタイム受け入れの証拠ではありません。
+
+> 優先度: 最初にこのハンドオフを読み、次に現在の PR/main/CI の事実が GitHub に存在することを確認し、動作を変更する前に規範的な記録を参照します。
+
+---
+
+# 現在のプロジェクトの状態 — 2026-10-21
+
+## 現在の継続 — PR #136 がマージされました。 C-54 P1 ～ P6 承認 (2026-10-21)
+
+### 検証されたライブ状態
+
+- PR #136、[仕様: C-54 P1 ～ P6 シークレット文法を承認](https://github.com/wasawo/eo-log-maintenance/pull/136) がマージされます。コミット/メイン SHA: `c84d1315a1fe94425fc2f3ce894f7e923ca9963e` をマージします。
+- 最終 PR ヘッド検証 [39504094186 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39504094186) とパッケージ検証 [39504094396 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39504094396) は両方とも `2f95db2d36ce702e1bf767fc959be9935a9b4fee` で成功しました。
+- このハンドオフ更新の時点では、マージ後のメイン検証 [39504337263 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39504337263) とパッケージ検証 [39504337225 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39504337225) がまだ進行中です。マージ後の CI 成功 を主張する前に、正確なメイン SHA に対してそれらを再チェックしてください。
+- PR #135 は `2af46d485cf558e8f0d4f9fac189e1ec82e5d4f7` にマージされます。その正確なヘッドチェックは成功しました。マージ後のメイン チェック [39503737582 を検証します](https://github.com/wasawo/eo-log-maintenance/actions/runs/39503737582) および [パッケージの検証 39503737600](https://github.com/wasawo/eo-log-maintenance/actions/runs/39503737600) は、その SHA で成功しました。
+
+### 明示的なメンテナの決定が規範になりました
+
+2026-10-21 で、保守者は補足メモなしで、C-54 の各決定 P1 ～ P6 に対して A を選択しました。正規の詳細は、`docs/archive/decisions/decision-record-c54-sensitive-path-detection.md` のセクション「C-54 承認された秘密形式の文法 - P1 ～ P6」にあります。
+
+- P1 URI ユーザー情報の正規表現と正確なスキーム/ユーザー名/パスワードの文字制限。
+- P2 大文字と小文字を区別しないベアラー スキーム。空ではない ASCII トークンのアルファベット。オプションの末尾に等しいパディングが付いています。
+- P3 大文字と小文字を区別する `ghp_` および `github_pat_` 接頭辞、それぞれの ASCII 接尾辞アルファベット、最小接尾辞長 20。
+- P4 正確に大文字の `AKIA` と 16 大文字の ASCII 英数字。他の AWS アクセスキー プレフィックスは、新たに承認されない限り対象外のままです。
+- P5 5 つの固定、大文字と小文字を区別する PEM マーカー: 汎用、RSA、EC、DSA、OPENSSH PRIVATE KEY。
+- P6 の正確な ASCII 境界と、承認されたパターンに埋め込まれた大文字と小文字の区別ルール。
+
+### PR #136 セットとテスト境界を変更します
+
+- 基準 C-54 決定記録、一覧/完全性仕様、決定記録簿、提案ステータス、および C-53/C-54 テスト マトリックスが更新されました。
+- `tests/Test-C54PatternContract.ps1` に合成の正、負、最小長、境界、およびケースのフィクスチャが追加されました。 Validate CI invokes it.
+- これは正規表現コントラクトのテストのみです。ランタイム C-53/C-54 パスのサニタイズ、フィールド全体 JSON `null`、または診断の非公開を証明するものではありません。 URI のようなフルパス入力は、C-54 に到達する前に C-53 で失敗する可能性があります。直接正規表現テストをフルパス統合テストと混同しないでください。
+
+### 次の作業とブロッカー
+
+1. SHA `c84d1315a1fe94425fc2f3ce894f7e923ca9963e` のマージ後のメイン検証とパッケージ検証を再確認します。この引き継ぎの最終結果を記録します。
+2. 承認されたポリシー内でのみ P0 作業を続行してください。未解決の運用上の選択肢を推測しないでください。次の実装タスクを選択する前に、`docs/requirements/p0-open-specification-decisions.md` と `docs/requirements/p0-gap-register.md` を確認してください。未解決のオペレーター承認には、契約パス/応答範囲、Dry Run 副作用、OAuth 範囲、リリース許可/保持、およびスケジューラ/ロック回復ポリシーが含まれます。
+3. P0 は **受け入れられない** のままです。 P0-010 と P0-012 は開いたままになります。ランタイム マニフェスト/IPC/オーケストレーション/アーカイブ エントリ ポイントおよびエンドツーエンドの非削除証拠は、欠落しているか未検証のままです。 `scripts/SyncLogs.ps1` は引き続き監視員です。 `scripts/ArchiveLogs.ps1` がありません。ドキュメント、スキーマ/パッケージ CI、および正規表現コントラクト CI は、実行時の受け入れ証拠ではありません。
+4. 明示的な承認なしに、実ログまたは Google Drive 変異/破壊テストを実行しないでください。
+
+> **優先ルール:** 再開するときはまず `docs/handoff/next-chat.md` を参照し、その後、変更可能な事実が GitHub に存在することを確認し、承認された行動についての規範的な記録を使用します。このハンドオフは継続性の指標であり、仕様やライブ検証の代わりとなるものではありません。
+
+## 歴史的継続 - PR後 #131 C-53/C-54 テストマトリックス監査 (2026-10-21 に置き換えられます)
+
+### 検証された最新のベースライン
+
+- PR #130 は `5b258fbdc775e5aa5db2dc2903108d7a4461bd29` にマージされました。マージ後のメイン検証 [39499966171 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39499966171) とパッケージ検証 [39499965819 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39499965819) が成功しました。
+- PR #131、[C-53/C-54 パス ポリシー テスト カバレッジの監査](https://github.com/wasawo/eo-log-maintenance/pull/131)、`417c5cb7d34d5ceae667932bdda33fd9b70ca997` にマージされました。正確な PR ヘッド検証 [39500312571 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39500312571) とパッケージ検証 [39500312696 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39500312696) は両方とも `b92082d464861bbf158b5604290e4069c5239bfd` で成功しました。
+- マージ後のメイン検証 [39500501480 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39500501480) とパッケージ検証 [39500501483 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39500501483) は、マージ SHA `417c5cb7d34d5ceae667932bdda33fd9b70ca997` の最後のチェックでキューに入れられました。合格したと説明する前に、正確な SHA と結果を再確認してください。
+- PR #131 は、非規範的な決定論的フィクスチャ マトリックスと監査である `docs/validation/c53-c54-policy-test-matrix.md` を追加します。承認された C-53/C-54 ポリシーは変更されず、サニタイズも実装されません。
+
+### 現在の調査結果と次の制限付きタスク
+
+- C-53/C-54 の高レベル ポリシーは残ります。パス構文を検証し、固定の機密パス ポリシーを適用し、安全な場合にのみ正規の相対パスを出力し、それ以外の場合は null オプションのパス全体を出力します。拒否された入力を部分的に編集したりエコーしたりしないでください。無効な必須診断フィールドはファイナライズを拒否します。
+- 追跡対象ランタイムには現在、実行可能な診断サニタイズ関数や専用の C-53/C-54 テストがありません。既存のヘルパー/CI 成功 は実行時の証拠ではありません。
+- 具体的な未解決の文法: URI ユーザー情報認証情報。ベアラー認証情報トークンの構文。プロバイダー トークンのプレフィックス/サフィックス境界 (`ghp_`、`github_pat_`、`AKIA` の例を含む)。 PEM 秘密鍵マーカー セット。および正確な境界/false 肯定的な動作。
+- **次:** PR #131 のマージ後のメイン CI を再確認します。次に、明示的な候補文法、肯定的/否定的な合成器具、false と肯定的なトレードオフ、および適用範囲の制限を備えた非規範的なパターン提案の草案を作成します。ユーザーが具体的なパターンを明示的に承認するまでは、規範的な決定記録を変更したり、ポリシーを実装したりしないでください。 C-54 オプション A 自体はすでに承認されています。その全体的な選択を再開しないでください。
+- 安全性: 合成例のみ。実際のシークレット、実際のログ、ユーザー パス、Google Drive 操作、削除動作、またはアーカイブの有効化はありません。
+
+### P0 ステータス
+
+P0 は受け入れられないままです。ランタイム マニフェスト/IPC/オーケストレーション/アーカイブ エントリ ポイントおよびエンドツーエンドの非削除証拠は、欠落しているか未検証のままです。 P0-010 と P0-012 は開いたままになります。このドキュメント PR またはその CI を実行時の受け入れとしてカウントしないでください。
+
+> **優先ルール:** このファイル `docs/handoff/next-chat.md` は、作業を再開するときに参照する最初のプロジェクト ドキュメントです。ユーザーに以前の決定を繰り返すよう求めたり、次のタスクを選択したりする前に、この文書をお読みください。次に、ライブ GitHub 状態 (メイン SHA、PR、CI、および標準レコード) に対して可変クレームを検証します。これは継続性の指標であり、仕様やライブ検証の代わりとなるものではありません。
+
+## 現在の継続 — PR #116 派生集計レポート提案のレビュー
+
+### 検証された最新のベースライン
+
+- PR #117、[レコードが承認された C-54 機密性の高いパス検出ポリシー](https://github.com/wasawo/eo-log-maintenance/pull/117)、マージされました。歴史的な PR ヘッド CI のみ。
+- PR #118、[P0 ステータスと合意された継続シーケンスを記録します](https://github.com/wasawo/eo-log-maintenance/pull/118)、マージされました。ドキュメントのみ。
+- PR #119 は `2faf4069d9d91455adda9303df70bad7ec5464c2` にマージされました。
+- PR #120 は `4889663f4eddb94ed967a8a192d271850b272220` にマージされました。正確なヘッドの検証とパッケージの検証が成功しました。
+- PR #122 は `458da591a4e92de519ee486c84c1f913cdb88c94` にマージされました。正確なヘッド検証 [39489485097 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39489485097) とパッケージ検証 [39489485077 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39489485077) が成功しました。
+- PR #123、[PR #122 後の P0 ハンドオフをリフレッシュします](https://github.com/wasawo/eo-log-maintenance/pull/123)、`6b543930f9a9805f50693bd6333a8278c416fe05` にマージされました。正確なヘッド検証 [39489901295 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39489901295) とパッケージ検証 [39489901338 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39489901338) が成功しました。
+- PR #124、[マニフェストと IPC 証拠を照合する](https://github.com/wasawo/eo-log-maintenance/pull/124)、`bb75eb14e32880e12590e4c6aa62ebc6847c705b` にマージされました。正確なヘッド検証 [39492010024 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39492010024) とパッケージ検証 [39492010017 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39492010017) が `0cf9127346c32fe4583edf2f3f25ca2fe3abf35e` で成功しました。マージ後のメイン検証 [39492843105 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39492843105) とパッケージ検証 [39492843074 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39492843074) はどちらも正確なメイン SHA `bb75eb14e32880e12590e4c6aa62ebc6847c705b` で成功しました。
+- PR #125、[PR #116 提案のレビュー結果を記録します](https://github.com/wasawo/eo-log-maintenance/pull/125)、正確な対象HEADのValidate [39493096101 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39493096101) およびパッケージ検証 [39493096077 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39493096077) が成功した後、`0d2d128f6fdb3226560a337aba133e526bdf2671` でマージされました。前回のチェックでは、マージ後のメイン検証 [39496019890 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39496019890) とパッケージ検証 [39496019925 を実行](https://github.com/wasawo/eo-log-maintenance/actions/runs/39496019925) が進行中でした。
+- PR #121 は、PR #122: [PR #121](https://github.com/wasawo/eo-log-maintenance/pull/121) に置き換えられた古い重複としてマージされずに閉じられています。
+- PR #116、[派生集計レポート v1 コントラクトを提案する](https://github.com/wasawo/eo-log-maintenance/pull/116)、オープンのまま、ドラフト、マージされていない、古い SHA `f3df62e3b9579ff14a0367e7dfbcb5b881f216cc` に基づいています。ヘッドは`217fe9bbf354ad8db5da3fca95a43c76b80c8810`です。レビューコメント `5591359277` には、古いベース/パスの問題、承認された A2/B2 一覧/証拠ルールに関する矛盾、`partial_failure` ゼロの 確認済み ターゲットと実行範囲エラーの競合、重複した C-44 テキスト/番号付け、および提案に追加された無関係の C-46 – C-53 決定資料が記録されます。調整ブランチ `docs/reconcile-aggregation-report-proposal` には、単一の正規提案パス `docs/design/reference/aggregation-report-v1-proposal.md`、承認された一覧整合性決定参照、および重複した診断決定テキストが削除された実行入力証拠提案のクリーンなバージョンが含まれるようになりました。提案されたレポート スキーマと公開/回復の詳細は未承認のままです。 PR #116 をマージしたり、そのスキーマを標準に昇格したりしないでください。開いたら新しい調整 PR を使用し、OSD-02/OSD-03 および P0-008/P0-010 を開いたままにしてください。
+- C-54 が承認されています: **オプション A — 機密パス セグメント チェックと組み合わせた固定パターン**。決定記録: [`docs/archive/decisions/decision-record-c54-sensitive-path-detection.md`](../../archive/decisions/decision-record-c54-sensitive-path-detection.md)。
+
+### P0 処理 — 受け入れられません
+
+PR #124 証拠調整は文書化のみです。 MAN-01–10 および IPC-01–06 は実装されていない/実行されていないままです。 P0は受け付けられません。ドキュメント CI は、マニフェストのライフサイクル、IPC プロセス境界の動作、アーカイブの適格性、または削除の安全性を確立していません。
+
+P0 は 完了 ではなく ** であり、受け入れられていません**。 `docs/requirements/p0-gap-register.md`、`docs/archive/validation/p0-source-test-inventory.md`、`docs/archive/validation/requirements-source-audit.md`、`docs/requirements/requirements-traceability.md`、`docs/requirements/p0-open-specification-decisions.md`、`docs/development/implementation-workflow.md` にお問い合わせください。以下に記録されている P0-001–012 の概要は、作業用のインデックスのみです。
+
+| ID | 動作ステータス | 主な残りの状態 |
+| --- | --- | --- |
+| P0-001 | 部分的 | PowerShell 7.6.7 ガードをすべての公式ランタイム エントリ ポイントに適用します |
+| P0-002 | 既存の CI 環境ゲートを完了 | 回帰カバレッジを維持します。実行時に受け入れられない |
+| P0-003 | 未完了 | 公式の起動/バッチ エントリ ポイントとランタイム起動チェック |
+| P0-004 | 未完了 | 同期、検証、マニフェスト、アーカイブ、およびオーケストレーションのランタイム関数 |
+| P0-005 | 未完了 | 契約のレビュー/解決およびアダプターの統合/セマンティック テスト |
+| P0-006 | 部分的 | 公式エントリ ポイント、最終的な役割の許可リスト、およびリリース ゲート |
+| P0-007 | 既存の PowerShell テスト CI 統合を完了 | テストを CI に保持します。ランタイム カバレッジは分離されたままになります |
+| P0-008 | 部分的 | ランタイム列挙、混合入力集計、および実行レベルの動作テスト |
+| P0-009 | 部分的 | ランタイム構成の検証、リリースの承認/来歴、および関連するゲート |
+| P0-010 | 未完了 | 条項ごとの要件 → 実装 → 実行可能なテスト → 客観的証拠の調整 |
+| P0-011 | 部分的 | 受け入れゲートは文書化されています。全体的な P0 許容基準は満たされていないままです |
+| P0-012 | 未完了 | ソース ログとドライブ オブジェクトが削除できないことを示すエンドツーエンドの証拠 |
+
+**重要な証拠の境界:** `scripts/SyncLogs.ps1` は監視員のままで、`scripts/ArchiveLogs.ps1` は不在です。操作マニフェスト スキーマ/リーダー/ライター、Python ドライブ アダプター、再試行オーケストレーション、ランタイム ロック/オーケストレーション、およびプロセス境界 IPC 受け入れが実装どおりに確立されていません。ヘルパー、スキーマ、パッケージ ビルダー、およびドキュメント CI は、実行時の受け入れ証拠としてカウントされません。 P0-010 と P0-012 は開いたままになります。
+
+### 合意された実行シーケンス
+
+ユーザーは 2026-10-21 でこの注文を明示的に承認しました:
+
+1. **PR #117:** 完了; を解決します。マージと正確なヘッド CI は 確認済み でした。
+2. **P0-010:** の調整が進行中です。残りの行を、規範ソース、要件 ID、実際の実装状態、実行可能なテスト、および客観的証拠にわたって調整します。不在、未実行、およびブロックされた状態を正直に記録します。
+3. **依存関係によって分離:** 未解決のポリシーに依存しない安全な変更を、OSD/契約の承認によってブロックされた作業から区別します。決断を推測しないでください。
+4. **ランタイム実装前 (P0-004):** コントラクト、マニフェスト、IPC、認証、ロール/パッケージ、アーカイブ ゲート、安全性の前提条件を確認します。実行可能なランタイム テストと証拠を実装に追加します。ブロックされた動作を実装しないでください。
+5. **実際的な場合は常に、各実質的な PR でこのハンドオフを更新します** (マージ前の正確な HEAD および CI リンク/ステータスを含む)、次に 確認済み SHA と正確なヘッドの結果を次の PR またはフォローアップ更新でマージします。
+
+### 完了した P0-010 スライス — 構成/アーカイブ/削除の安全性の証拠
+
+- PR #119 ソース監査およびソース/テスト一覧ベースラインを更新し、パッケージ証拠の説明を修正しました。ランタイム実装は追加されませんでした。
+- PR #120 は、正確なヘッド検証とパッケージ検証が成功した後、P0-010 ハンドオフ/ベースラインを更新し、`4889663f4eddb94ed967a8a192d271850b272220` でマージしました。
+- PR #122 は、EOLM-CFG-004–007、EOLM-ARC-001–006、および EOLM-SAF-001–006 を、パッケージ ビルダー テスト、リクエスト スキーマ、ランタイム インベントリ、および制限された静的安全性監査に対して調整しました。これは、正確な対象HEADのValidate と Package Validation が成功した後、`458da591a4e92de519ee486c84c1f913cdb88c94` でマージされました。
+- パッケージ ビルダーの証拠には、ロール/フィールド/パス セマンティクスの例、リリース ソースからのアクティブ構成の除外、PC-A/PC-B エントリポイント パッケージ ルール、およびサンプル構成での `allowDelete` の拒否が含まれています。これは、アクティブ構成の承認、承認されたルートの封じ込め、ランタイム アーカイブの適格性、Dry Run の副作用の不変性、またはシステム全体の削除機能の欠如を証明するものではありません。
+- `scripts/SyncLogs.ps1` は引き続き監視員です。 `scripts/ArchiveLogs.ps1`、アクティブ構成ローダー、運用マニフェスト、アーカイブ ゲート、およびランタイム ネガティブ ケイパビリティ ハーネスは存在しないままです。 OSD-09 最終的なロールのホワイトリスト/展開ポリシーは未解決のままです。
+- P0-010 と P0-012 は開いたままになります。ランタイム コード、実際の認証情報、Google Drive 操作、実際のログ、運用パス、削除動作、またはアーカイブの有効化は追加されていません。
+
+### 完了した限定タスク — マニフェストと IPC 証拠の調整 (文書のみ)
+
+- PR #124 は、ソース監査、IPC 監査、ソース/テスト インベントリ、トレーサビリティ レジスタ、P0 ギャップ レジスタ、および現在の `main` ベースラインに対するこのハンドオフを更新します。
+- マニフェスト フィールドの仕様といくつかの狭いポリシーの明確化は承認されていますが、完了 遷移テーブルは規範的なものではありません。 EOLM-MAN-011 数値の鮮度/将来の許容範囲と適用性は未解決のままです。クラッシュ/同時実行の実装とその証拠は依然として存在しません。
+- OSD-03 集計ポリシーと個別の派生レポート表現が承認されています。レポート スキーマ、凍結されたインベントリの正規化、アトミックな公開/回復/一貫性契約、実装、および実行可能テストは 未確定 のままです。 PR #116 は単なる提案であり、ベースは古いです。暗黙の承認としてマージしないでください。
+- IPC-01–06 は実装されていない/実行されていないままです。 `tests/test_contract_schemas.py` は JSON スキーマの形状/例のみを検証します。 PowerShell/Python プロセスを起動したり、stdout/stderr、終了コードの一貫性、リクエストの相関関係、タイムアウト、再試行動作、またはシークレットの編集を証明したりすることはありません。
+- シナリオの対応表はマッピングであり、証拠ではありません。ドキュメント CI からは、実行時の実装、承認結果、または安全機能は推測されません。
+
+### 次の制限付きタスク — 派生集計レポートの提案を確認します
+
+承認された OSD-03 ポリシーおよび OSD-02/マニフェスト制​​約に照らして PR #116 を確認します。提案されたすべてのフィールド、インベントリの同一性/ダイジェスト ルール、パブリケーションとアトミック ルール、クラッシュ リカバリ、鮮度/一貫性の検証、および実行可能な受け入れテストを規範レコードと比較します。 PR #116 は明示的にベースが古い提案であるため、明示的なメンテナーの承認なしにマージしたり標準ステータスに昇格したりしないでください。自主的に選択するのではなく、具体的な未解決の選択肢を承認のために報告します。契約が承認され、実行時の証拠が存在するまで、OSD-02/OSD-03、P0-008、および P0-010 を開いたままにしておきます。
+
+---
+
+## 真実の情報源と継続の優先順位
+
+作業を再開する場合は、次の順序を使用してください。
+
+1. **このハンドオフ** — 現在のタスクの開始点、最後の 確認済み ベースライン、オープン PR/CI ステータス、安全制約、および次の限定されたアクション。
+2. **Live GitHub state** — 現在のブランチ/メイン SHA、PR ステータス、ワークフロー ステータス、およびマージ ステータスに対して権限があります。実行する前に再フェッチします。このハンドオフは古くなってしまう可能性があります。
+3. **規範的決定/仕様記録** — 承認された動作および未解決の選択、特に `docs/requirements/p0-open-specification-decisions.md`、個別の決定記録、`docs/design/powershell-python-contract.md`、および関連するマニフェスト/IPC 提案に対して権限があります。
+4. **要件/ソース/テスト インベントリとギャップ レジスタ** — `docs/archive/validation/requirements-source-audit.md`、`docs/requirements/requirements-traceability.md`、`docs/archive/validation/p0-source-test-inventory.md`、`docs/requirements/p0-gap-register.md` などのトレーサビリティと証拠のギャップを管理します。
+5. **古い継続セクションとチャット履歴** — 歴史的コンテキストのみ。この現在のセクション、現在の GitHub 状態、または標準レコードをオーバーライドしてはなりません。
+
+各継続の開始時に、最初にこのファイルを読み取り、次にライブ リポジトリとタスクに必要な特定の参照レコードを検査します。ソースが同意しない場合は、黙って選択しないでください。変更可能なステータスについてはライブ GitHub に従い、動作については承認された規範記録に従い、この引き継ぎを更新して調整を記録します。
+
+## 変更ごとに必要なハンドオフ更新
+
+プロジェクトの成果物を変更するすべての PR は、実際には同じ PR 内の `docs/handoff/next-chat.md` を更新する必要があります。マージする前に、完了を主張せずに、現在の PR/ヘッド SHA と実際の CI URL/ステータスを記録します。マージ後、マージされたコミットを確認し、実際のマージ SHA と次の PR またはフォローアップのハンドオフ更新での正確なヘッド ワークフローの結果でレコードを更新します。キューに入れられた/進行中のワークフローを通過したものとして記述しないでください。現在のステータス ブロックを最上部に保持し、古い方向を現在のように見せるのではなく、古いスナップショットを歴史的コンテキストに降格させます。
+
+---
+
+## 歴史的継続 — PR #80 後 (上記の現在のステータスに置き換えられます)
+
+- PR #78 は、正確な HEAD `ca1b9c2b97495f358ad0bebe4c5d584af67af2fe` で検証およびパッケージ検証が渡された後にマージされました。
+- PR #79 は、両方の CI ワークフローが正確な HEAD `c43c34d9b528fec4c4bb97f6187e8721e150eb6c` に渡された後にマージされました。
+- PR #80 は、正確な HEAD `fd23828093b4c5464bd5d2a7e585e5ba90627c5b` で検証およびパッケージ検証が渡された後、`4c9f16caf2c464bcc5720b98acb6656d5d95060a` でマージされました。
+- この限定フォローアップでは、P0-010 ギャップ行とソース/テスト インベントリが PR #80 ベースラインに更新されます。 P0-010 または P0-012 は閉じません。
+- 実行入口（`scripts/SyncLogs.ps1`、`scripts/ArchiveLogs.ps1`）、マニフェストスキーマ、統括処理、プロセス境界のIPC試験ハーネスは存在しない。SEL-RT-01〜10 と IPC-01〜06 は未実装・未実行。OSD-02/03 と EOLM-MAN-011 は未解決であり、配布/Dry Run の判断は未決台帳に従う。
+- 次のバインドされたタスク: マニフェスト/IPC 要件の小さなセットに対する句レベルの P0-010 調整を続行し、規範的なソース句、追跡されたファイル、名前付き実行可能テスト、および現在の CI 証拠と照合してそれぞれをクロスチェックします。実行時の証明が存在しない場合は、ブロックされたままにしておきます/not_started/partial。
+- 安全性: 認証情報、ドライブ操作、実際のログ、運用パス、または削除動作はありません。 Validate と Package Validation の両方が正確な最新の PR HEAD SHA で成功した後にのみマージします。
+
+---
+
+## 現在の継続 — PR 後 #74
+
+- PR #74 (`fix: require official SyncLogs entry point for deployable packages`) がマージされました。マージコミット: `dfc68a46d82ada6ecd87c630b514748bb4a01506`。
+- 正確な PR #74 で検証が成功しました。 HEAD `fd36f85d25407896ed61725bce4d0b807694c237`: https://github.com/wasawo/eo-log-maintenance/actions/runs/39410321989
+- 同じ HEAD でパッケージの検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39410321883
+- パッケージ ビルダーは `scripts/ArchiveAndUploadLogs.ps1` をデプロイアビリティ センチネルとして扱わなくなり、パッケージから除外されます。 `scripts/SyncLogs.ps1` が必須になりました。回帰カバレッジにより、レガシー エントリ ポイントのみが拒否され、ZIP から除外されることが検証されます。
+- これはナローパッケージングガードの修正であり、ランタイム実装ではありません。追跡されるツリーには公式の `SyncLogs.ps1` または `ArchiveLogs.ps1` は存在しません。実稼働パッケージはデプロイできないままになります。 P0-006 は、PC-A/PC-B 固有の許可リスト、ArchiveLogs ロール制御、およびリリース マーカー条件に対してまだオープンです。 P0-010/P0-012 は開いたままになります。
+- 現在のインベントリ: `scripts/` には README のみが含まれています。 `contracts/` にはドライブのリクエスト/レスポンス スキーマがありますが、マニフェスト スキーマはありません。 `tests/` にはヘルパー、スキーマ コントラクト、およびパッケージ ビルダー テストがありますが、ランタイム オーケストレーション/IPC 受け入れハーネスはありません。
+- 次のバインドされたタスク: 固定された C-20 ロール制約およびリリース設計に対して `.github/scripts/Build-ReleasePackage.ps1` および `tests/Test-ReleasePackage.ps1` を監査します。直接実装可能な許可リストの安全ギャップを、未解決の OSD 決定によってブロックされている項目から分離します。リリース ライフサイクルの選択を考え出したり、ランタイム エントリ ポイントを追加したり、監査の一部としてマニフェストの動作を実装したりしないでください。
+- 安全性: 実際の認証情報、Google Drive 操作、実際のログ、運用パス、削除動作、またはアーカイブの有効化はありません。
+
+## 現在の継続 — PR 後 #72
+
+- PR #72 (`docs: reconcile high-risk evidence gaps`) がマージされました。マージコミット: `829fcf8dd38c71a2e39ef6afbee3a2092cae99e6`。
+- PR #72 HEAD `bde8d4b2b00f6376bc00a6db171b687001c31f3c`: https://github.com/wasawo/eo-log-maintenance/actions/runs/39407699242 で検証が成功しました。
+- 同じ HEAD でパッケージの検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39407699205
+- `docs/requirements/requirements-traceability.md` を高リスク証拠の概要で更新し、`docs/archive/validation/requirements-source-audit.md` を PR #71 ベースラインに更新しました。これはドキュメントのみであり、実行時の動作を実装したり、P0 ギャップを埋めたりするものではありません。
+- 次のバインドされたタスク: 現在のトレーサビリティ/ソース監査の主張を、実際に追跡されている実装、テスト、パッケージ ビルダー、および CI ワークフローと比較します。承認に依存しない実行可能なギャップを 1 つ特定します。不足している成果物が存在すると仮定せずに、公式のランタイム エントリ ポイント、マニフェスト スキーマ 成果物、およびテストのインベントリを作成することから始めます。
+- ヘルパー/スキーマ/パッケージ CI の証拠を実行時の証明とは区別して保持します。 P0-010 と P0-012 は開いたままになります。 SEL-RT-01–10 は設計のみであり、IPC-01–06 は実装されておらず、実行されていません。 OSD-02/03/04/06/07/08/09 の決定を推測しないでください。
+- 安全性: 実際の認証情報、Google Drive 操作、実際のログ、運用パス、削除動作、またはアーカイブの有効化はありません。
+
+## 現在の継続 — PR #71 後 / 高リスク証拠の調整
+
+- PR #71 (`docs: reconcile current P0 status baseline`) がマージされました。マージコミット: `951601f20a45f653723cf134f955ce25c35e3e68`。
+- PR #71 HEAD `71b0a1cdf4ccd55379736b4d2732d6a8c8e728d6`: https://github.com/wasawo/eo-log-maintenance/actions/runs/39406874515 で検証が成功しました。
+- 同じ HEAD でパッケージの検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39406874533
+- この制限付き変更は、高リスク証拠の概要を `docs/requirements/requirements-traceability.md` に追加し、`docs/archive/validation/requirements-source-audit.md` を PR #71 マージ ベースラインに更新します。ランタイム コードを実装したり、P0 ギャップを埋めたりすることはありません。
+- この PR の後の次の制限付きタスク: 追跡されたランタイム/テスト/パッケージ 成果物に対して現在のソース監査およびトレーサビリティ行を検証し、承認に依存しない実行可能なギャップを 1 つ選択します。次のバッチは 3 PR または 20 分以内に続けてください。
+- P0-010 と P0-012 は開いたままになります。 SEL-RT-01–10 は設計シナリオです。 IPC-01–06 は実装されていない/実行されていないままです。 OSD-02/03/04/06/07/08/09 は、該当する場合はブロックされたままになります。追跡された `contracts/manifest.schema.json` は確立されていません。
+- 安全性: ドキュメントのみ。実際の認証情報、Google Drive 操作、実際のログ、運用パス、削除動作、アーカイブの有効化、または推測された決定はありません。
+
+# 次のチャットの引き継ぎ
 
 この文書は、チャットをまたいで `wasawo/eo-log-maintenance` の作業を再開するための運用引き継ぎ記録です。**作業開始時は、ここに書かれた状態を鵜呑みにせず、GitHub上のPR・main・CIの実状態を再確認してください。**
 
 最終更新: 2026-10-21
 
-## Current continuation — post-PR #49
+## 現在の継続 — PR 後 #49
 
-- PR #49 (`docs: audit IPC contract-to-test evidence`) merged; merge commit: `3642a2729a8930dccae1e61ed431e5db88265dc2`.
-- Validate succeeded on PR #49 HEAD `f3d709fc51d042e719977c4e54b99c9b8ff1eaa9`: https://github.com/wasawo/eo-log-maintenance/actions/runs/39395202164
-- Package Validation succeeded on the same HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39395202155
-- Added `docs/validation/ipc-contract-evidence-audit.md`; IPC-01–06 remain not implemented/not run because no process-boundary runtime harness or official sync/archive entry points exist.
-- Next bounded task: refresh `docs/validation/p0-source-test-inventory.md` baselines and artifact/evidence rows to current main, reconciling PRs #47–#49. Keep runtime evidence distinct from helper/schema/package CI.
-- P0-010 remains open. OSD-02, OSD-03, EOLM-MAN-011, and other deferred decisions remain blocked. No real logs, production paths, Google Drive operations, or deletion capability are authorized.
+- PR #49 (`docs: audit IPC contract-to-test evidence`) がマージされました。マージコミット: `3642a2729a8930dccae1e61ed431e5db88265dc2`。
+- PR #49 HEAD `f3d709fc51d042e719977c4e54b99c9b8ff1eaa9`: https://github.com/wasawo/eo-log-maintenance/actions/runs/39395202164 で検証が成功しました。
+- 同じ HEAD でパッケージの検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39395202155
+- `docs/archive/validation/ipc-contract-evidence-audit.md` を追加しました。 IPC-01–06 は、プロセス境界のランタイム ハーネスや公式の同期/アーカイブ エントリ ポイントが存在しないため、実装されず、実行されないままになります。
+- 次のバインドされたタスク: `docs/archive/validation/p0-source-test-inventory.md` ベースラインと成果物/証拠行を現在のメインに更新し、PR #47–#49 を調整します。実行時の証拠をヘルパー/スキーマ/パッケージ CI とは区別してください。
+- P0-010 は開いたままです。 OSD-02、OSD-03、EOLM-MAN-011、およびその他の延期された決定はブロックされたままになります。実際のログ、運用パス、Google Drive 操作、または削除機能は許可されません。
 
-## Current continuation — post-PR #48 / IPC evidence audit
+## 現在の継続 — PR #48 後 / IPC 証拠監査
 
-- PR #48 (`docs: refresh source audit evidence after PR47`) merged; merge commit: `f689d020d1384d54260d87dd37c3bb208e3f7fd7`.
-- Validate succeeded on PR #48 HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39394695292
-- Package Validation succeeded on PR #48 HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39394695287
-- Next bounded task: audit IPC-01–06 against the PowerShell/Python contract, JSON schemas, schema tests, and CI evidence. Keep all runtime IPC cases not implemented/not run until a process-boundary harness exists; do not treat schema tests as runtime evidence.
-- P0-010 remains open. OSD-02, OSD-03, and EOLM-MAN-011 remain blocked. No real logs, production paths, Google Drive operations, or deletion capability are authorized.
+- PR #48 (`docs: refresh source audit evidence after PR47`) がマージされました。マージコミット: `f689d020d1384d54260d87dd37c3bb208e3f7fd7`。
+- PR #48 の検証が成功しました。 HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39394695292
+- PR #48 でパッケージの検証が成功しました。 HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39394695287
+- 次のバインドされたタスク: IPC-01–06 を PowerShell/Python コントラクト、JSON スキーマ、スキーマ テスト、および CI 証拠と照合して監査します。プロセス境界ハーネスが存在するまで、すべてのランタイム IPC ケースを実装せず、実行しないようにします。スキーマ テストを実行時の証拠として扱わないでください。
+- P0-010 は開いたままです。 OSD-02、OSD-03、および EOLM-MAN-011 はブロックされたままです。実際のログ、運用パス、Google Drive 操作、または削除機能は許可されません。
 
 対象リポジトリ: https://github.com/wasawo/eo-log-maintenance
 既定ブランチ: `main`
 
-- PR #17「docs: add next-chat handoff and PR update policy」: **merged**
+- PR #17「ドキュメント: 次のチャットのハンドオフと PR 更新ポリシーを追加」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/17
   - マージコミット: `9a370ce858cd75229bc4a048768cf65cc77dc795`
-  - Validate #76: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39368386657
-  - Package Validation #68: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39368386673
+  - #76 を検証します: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39368386657
+  - パッケージ検証 #68: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39368386673
 
-- PR #18「docs: reconcile P0-010 test and CI traceability」: **merged**
+- PR #18「ドキュメント: P0-010 テストと CI トレーサビリティを調整する」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/18
   - マージコミット: `2120922472b1dde9fecebbb202d851ab80b624fc`
-  - Validate #80: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39368943032
-  - Package Validation #72: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39368942821
+  - #80 を検証します: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39368943032
+  - パッケージ検証 #72: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39368942821
   - 変更は監査・トレーサビリティ文書のみ。ランタイム実装やP0-010完了を意味しない。
 
-- PR #19「docs: map filename helper tests to requirements」: **merged**
+- PR #19「ドキュメント: ファイル名ヘルパー テストを要件にマップする」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/19
   - マージコミット: `158e3b1fec3a780c5f513d9d44bade34720f6092`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39369603610
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39369603615
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39369603610
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39369603615
   - 既存helper assertionをEOLM要件IDに対応付けた。ランタイムテスト未実装の状態は変わらず、P0-008/P0-010は未完了。
 
-- PR #20「docs: reconcile runtime scenario traceability matrices」: **merged**
+- PR #20「ドキュメント: ランタイム シナリオのトレーサビリティ マトリックスの調整」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/20
   - マージコミット: `2f4ee243e00b2df440935601b3fa7f2de8f8f405`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39370131678
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39370131680
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39370131678
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39370131680
   - §3.1 / §3.10 の37シナリオ要件IDを照合。ランタイムテストは追加しておらず、P0-010は未完了。
 
-- PR #21「docs: map README and decision clauses to requirements」: **merged**
+- PR #21「ドキュメント: README と決定条項を要件にマップする」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/21
   - マージコミット: `cd2525ec6bb040b04f3d560359ce88091267608e`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39370809186
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39370809203
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39370809186
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39370809203
   - READMEおよびC-18〜C-32の条項を要件IDへ照合し、EOLM-SYN-009とEOLM-REL-009を追加。ランタイム実装は変更していない。
 
-- PR #22「docs: map PowerShell Python contract clauses to requirements」: **merged**
+- PR #22「ドキュメント: PowerShell Python 契約条項を要件にマッピング」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/22
   - マージコミット: `418974c77e79d02458e8154830daaa437500e804`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39371327692
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39371327716
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39371327692
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39371327716
   - PowerShell/Python契約§1–10の条項を照合し、EOLM-DRV-014〜016とEOLM-TST-011を追加。ランタイム実装は変更していない。
 
-- PR #23「docs: reconcile staging lifecycle traceability」: **merged**
+- PR #23「ドキュメント: ステージング ライフサイクル トレーサビリティを調整する」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/23
   - マージコミット: `d5c43793f7f85b72bf835b5e9630c0b2231512fd`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39371705822
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39371705903
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39371705822
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39371705903
   - Staging lifecycle条項を既存要件IDへ照合し、旧 `ArchiveAndUploadLogs.ps1` 例をplanned `SyncLogs.ps1` の明示的な例へ修正。ランタイム実装は変更していない。
 
-- PR #24「docs: reconcile implementation workflow traceability」: **merged**
+- PR #24「ドキュメント: 実装ワークフローのトレーサビリティを調整する」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/24
   - マージコミット: `40792022c7b74e26eb9dfa1d188d0bb08cf4a625`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39372313204
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39372313187
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39372313204
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39372313187
   - Implementation workflowを要件IDへ照合し、期間判定をfilename-date-onlyに修正。ランタイム実装は変更していない。
 
 ## 直近の確定状態
 
-- PR #45「Audit filename and period clauses against helper evidence」: **merged**
+- PR #45「ヘルパー証拠に照らしてファイル名と期間句を監査する」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/45
   - マージコミット: `3820efd6b00df6fd56635adee2652b1c64237c39`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39393722691
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39393722868
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39393722691
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39393722868
   - `docs/design/filename-and-period-selection.md` §§2–4、§§6–7をFIL要件ID・helper tests・実際のCI証跡に条項単位で照合。case-sensitive `.txt`、InvariantCulture、月末・年跨ぎのhelper assertionsを反映した。
   - Runtime enumeration、混在する正常／異常ファイルのrun-status、全backlog periodの処理、LastWriteTimeとの不一致、zero-target manifestは未実装／未検証。OSD-03はBlockedのまま。P0-010未完了。
 
 - 次工程候補：`docs/validation/filename-period-test-plan.md` のSEL-RT-01–10 fixture matrixと、要件ID・実行可能テスト・実際のCI証跡を条項単位で照合する。entrypointが存在しないため、設計上のfixtureを実行済みruntime coverageとして扱わない。OSD-02/03を推測で確定せず、削除処理・実ログ・Google Drive操作を追加しない。
 
 
-- PR #42「docs: record PR41 merge and next audit task」: **merged**
+- PR #42「ドキュメント: PR41 マージと次の監査タスクを記録する」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/42
   - マージコミット: `45b703b8907e9aca6a1d2cfc0672d53af3de0fdb`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39384288557
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39384288385
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39384288557
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39384288385
   - 次工程は、最新のinventory/source audit/runtime safety auditの証跡・baselineを現行tracked treeと照合すること。
 
-- PR #43「docs: reconcile current audit evidence」: **merged**
+- PR #43「ドキュメント: 現在の監査証拠を調整する」: **merged**
   - PR #31/#34/#38/#40/#42の実際の変更とCI証跡をinventoryへ反映し、source-clause baselineとtracked-tree review baselineを区別する。
   - runtime entrypointsがないこと、SEL-RT-01–10が設計のみであること、OSD-02/03が未承認であることを明示。P0-010は未完了のまま。
 
-- PR #41「docs: record PR40 merge and approval gate」: **merged**
+- PR #41「ドキュメント: PR40 マージと承認ゲートの記録」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/41
   - マージコミット: `a65819c907905736571d8d29e386ac5ce3e680c6`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39380246809
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39380246811
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39380246809
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39380246811
   - OSD-03の候補方針は提案段階。OSD-03/OSD-02ともに承認待ちで、実装決定ではない。
 
 - 次工程候補：承認不要で可能な仕様・テスト証跡の整合性確認
-  - `docs/validation/filename-period-test-plan.md`、`docs/validation/requirements-source-audit.md`、`docs/validation/p0-source-test-inventory.md`、`docs/requirements/p0-gap-register.md`、公式runtime entrypoints/テスト実装の実態を照合する。
+  - `docs/validation/filename-period-test-plan.md`、`docs/archive/validation/requirements-source-audit.md`、`docs/archive/validation/p0-source-test-inventory.md`、`docs/requirements/p0-gap-register.md`、公式runtime entrypoints/テスト実装の実態を照合する。
   - helper-onlyテストをruntime coverageと誤認しない。runtime entrypointが存在しない要件は明示的な未実装ギャップとして残す。
   - OSD-02/03の未承認ポリシーをコードやテストで推測しない。削除処理、実ログ、Google Driveへの操作は追加しない。
 
-- PR #39「docs: record PR38 merge and next decision task」: **merged**
+- PR #39「ドキュメント: PR38 マージと次の決定タスクを記録」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/39
   - マージコミット: `bc8afdc28b4c2a99c77fa393718d4ca57691828e`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39379489610
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39379489572
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39379489610
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39379489572
   - PR #38のマージ記録・CI証跡をハンドオフに反映するPR。
 
-- PR #40「docs: propose OSD-03 status aggregation options」: **merged**
+- PR #40「ドキュメント: OSD-03 ステータス集計オプションの提案」: **merged**
   - OSD-03の既存確定ルールと未決事項を分離し、3つの候補方針、影響、承認が必要な判断、必要なテスト証跡を比較する。
   - これは提案であり決定ではない。OSD-03はユーザー／メンテナーの明示承認までBlocked。OSD-02のmanifest schema/state-transition approvalも別途必要。
 
-- PR #37「docs: record PR36 merge and next handoff」: **merged**
+- PR #37「ドキュメント: PR36 マージと次のハンドオフを記録する」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/37
   - マージコミット: `fb61582c418b10e46c874a2426a1ae578c20e9a5`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39378536603
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39378536347
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39378536603
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39378536347
   - PR #36の実マージコミットとCI証跡を記録。
 
-- PR #38「docs: add runtime target-selection fixture matrix」: **merged**
+- PR #38「ドキュメント: ランタイム ターゲット選択フィクスチャ マトリックスの追加」: **merged**
   - 目的：SEL-RT-01–10の合成fixture設計を`docs/validation/filename-period-test-plan.md`へ追加し、helper-level evidenceとruntime coverageを明確に分離する。
   - 対象：EOLM-FIL-004–010、EOLM-SYN-001、EOLM-SAF-005、EOLM-TST-003。
   - 制約：runtime enumeration entrypoint未実装のため、設計文書のみでは実行時カバレッジを完了扱いにしない。OSD-03のrun/period status aggregationをテストコードで推測しない。
 
-- PR #36「docs: distinguish test isolation spec from proof」: **merged**
+- PR #36「ドキュメント: テスト分離仕様と証明を区別する」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/36
   - マージコミット: `54e48f4586c18e8e9796894d7cdbf9247f64aaa8`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39378158957
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39378158999
-  - test scenario spec already mandates synthetic fixtures/temp dirs/mocked APIs/fixed time/no real logs or production paths; audit now distinguishes this specification from missing automated isolation guards/runtime evidence.
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39378158957
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39378158999
+  - テスト シナリオ仕様では、合成フィクスチャ/一時ディレクトリ/モック API/固定時間/実際のログや運用パスなしがすでに義務付けられています。監査は、この仕様を、不足している自動分離ガード/実行時の証拠と区別するようになりました。
 
-- PR #35「docs: record PR34 merge and runtime test gaps」: **merged**
+- PR #35「ドキュメント: PR34 マージとランタイム テストのギャップを記録する」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/35
   - マージコミット: `2f8214971cc0b72746fd0d0758865cb1e4553b28`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377836285
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377836295
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377836285
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377836295
   - PR #34のcutoff helper境界値テストとPR #33の差し戻し経緯を記録。runtime testsは未実装と明記。
 
-- PR #34「test: cover month-end cutoff boundaries」: **merged**
+- PR #34「テスト: 月末締め切り境界をカバーする」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/34
   - マージコミット: `e3806e24c17be6b1815a681454d33ee3ba89b83a`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377619535
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377619696
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377619535
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377619696
   - 非うるう年2月28日、うるう年2月29日、4月30日、6月30日のcutoff helper assertionと、30日／31日月末で当日包含・翌日除外の検証を追加。
   - helper-level testのみ。directory enumeration、LastWriteTimeとの不一致、mixed-directory selection、run-status、同期／アーカイブruntimeは未実装。
 
-- PR #33「revert: restore main after unvalidated direct file updates」: **merged**
+- PR #33「元に戻す: 未検証の直接ファイル更新後にメインを復元」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/33
   - マージコミット: `cb39441f8567591a63d7d04543a5ae577482f19e`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377371804
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377371779
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377371804
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377371779
   - 作業ブランチ指定漏れによる未検証の直接変更を差し戻した。後続変更はPR branch指定を明示して作成。
 
-- PR #33「revert: restore main after unvalidated direct file updates」: **merged**
+- PR #33「元に戻す: 未検証の直接ファイル更新後にメインを復元」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/33
   - マージコミット: `cb39441f8567591a63d7d04543a5ae577482f19e`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377371804
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377371779
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377371804
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39377371779
   - 作業ブランチ指定漏れでmainへ直接反映された未検証編集をPRで差し戻し、PR #32の検証済みツリーに復帰。次の境界値テストは専用ブランチで再作成する。
 
-- PR #31「fix: enforce case-sensitive log filename extensions」: **merged**
+- PR #31「修正: 大文字と小文字を区別するログ ファイル名拡張子を強制する」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/31
   - マージコミット: `6aa627f1160e31a75dc2f683df254d2200acd73f`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39376077352
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39376077340
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39376077352
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39376077340
   - `Get-LogFileDate` の拡張子照合を `-cnotmatch` に変更し、BattleLog/ErrorReportの`.TXT`拒否テストと`th-TH`下の日付解析テストを追加。
   - P0-008/P0-010は継続。ファイル列挙、filename dateとLastWriteTimeの不一致、広範な月末境界、run-status統合、同期／アーカイブ実行時テストは未完了。
 
-- PR #30「docs: link open decisions to source audit crosswalks」: **merged**
+- PR #30「ドキュメント: オープンな決定をソース監査クロスウォークにリンクする」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/30
   - マージコミット: `ea1e5529618b55516fbccaf9ce078b4a725cbe64`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39375347519
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39375347634
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39375347519
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39375347634
   - OSD-01〜09をsource/phase crosswalkから追跡可能にした。未決事項はすべてblocked。
 
-- PR #29「docs: track deferred specification decisions and blockers」: **merged**
+- PR #29「ドキュメント: 遅延された仕様の決定と阻害要因を追跡する」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/29
   - マージコミット: `2cd9eba0dfe7ba7a43dae2e08952dbce576c03c8`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39374829187
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39374829183
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39374829187
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39374829183
   - `docs/requirements/p0-open-specification-decisions.md` に未決事項9件を集約。すべてblockedのまま。
 
-- PR #28「docs: map implementation phase acceptance gates」: **merged**
+- PR #28「ドキュメント: マップ実装フェーズの受け入れゲート」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/28
   - マージコミット: `7f879b52d505ba120163528421f2839803d2b582`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39374352642
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39374352675
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39374352642
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39374352675
   - Implementation workflow Phase 0–8のexit gateを要件ID・実装/test artifact・証拠状態に対応付け。P0-010は未完了。
 
-- PR #27「docs: align distribution coverage matrix with clause audit」: **merged**
+- PR #27「ドキュメント: 監査条項と配布カバレッジ マトリックスを調整する」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/27
   - マージコミット: `a6808946a422a5a2fe775ca532a0985626c304fd`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39373986586
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39373986582
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39373986586
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39373986582
   - distribution-designの上位coverage matrixと§3.8条項crosswalkを整合。実装・配布承認は未完了。
 
-- PR #26「docs: reconcile artifact inventory after PR25」: **merged**
+- PR #26「ドキュメント: PR25 後に成果物 インベントリを調整する」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/26
   - マージコミット: `44ddba2852ad1a4699b651355953c070dbb5a62a`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39373621988
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39373622016
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39373621988
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39373622016
   - PR #25 baselineで実装・schema・test・CI artifact inventoryと静的entry-point/deletion-surface auditを更新。P0-010は未完了。
 
-- PR #25「docs: map distribution release gates to requirements」: **merged**
+- PR #25「ドキュメント: 配布リリース ゲートを要件にマップする」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/25
   - マージコミット: `097e962a1636419ceb428182da2a6a91f6380273`
-  - Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39372725014
-  - Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39372724979
+  - 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39372725014
+  - パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39372724979
   - 配布要件 EOLM-REL-010〜015を追加。リリース認証・承認・配布の実装は未完了。
 
-- PR #16「docs: align P0 audit baseline after PR #15」: **merged**
+- PR #16「ドキュメント: PR #15 の後に P0 監査ベースラインを調整」: **merged**
   - PR: https://github.com/wasawo/eo-log-maintenance/pull/16
   - マージコミット: `48c0481f07b71a20860df7085f03ba2e70e8a873`
-  - PR head: `ddef31be48b5c01c35462a96253c357ee0e21fcc`
-  - Validate #74: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39367932600
-  - Package Validation #66: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39367932748
+  - PR ヘッド: `ddef31be48b5c01c35462a96253c357ee0e21fcc`
+  - #74 を検証します: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39367932600
+  - パッケージ検証 #66: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39367932748
 - PR #16 は監査ベースラインを PR #15 マージ後へ更新した文書変更です。ランタイム実装を追加したものではありません。
 - 監査対象ソースのbaseline: PR #25 merge commit `097e962a1636419ceb428182da2a6a91f6380273`。監査文書の最新更新はPR #31 merge commit `6aa627f1160e31a75dc2f683df254d2200acd73f`。PR #28 (`7f879b52d505ba120163528421f2839803d2b582`)でPhase 0–8 acceptance crosswalkを追加し、PR #29でOSD-01〜09を明文化。PR #26 (`44ddba2852ad1a4699b651355953c070dbb5a62a`)でartifact inventoryとstatic safety auditを更新し、PR #27でdistribution source matrixを§3.8 crosswalkに整合。PR #19〜#24でfilename/date helper、SYNC/MAN/ARC/IPC、README/decision register、PowerShell/Python契約、staging lifecycle、implementation workflowを照合し、PR #25でdistribution release gatesをID化、PR #26で実装・schema・test・CI artifact inventoryを更新。
 - **P0-010 は未完了**。Partial / Unmapped 項目の条項単位の処置、要件・実装・テスト・CI証跡の完全照合が残っています。
@@ -1150,7 +1150,7 @@ Every PR that changes project artifacts must update `docs/handoff/next-chat.md` 
 ## 次に行う作業
 
 1. GitHubで `main` の最新SHA、open PR、最新CIを確認する。
-2. `docs/validation/requirements-source-audit.md` のPartial/Unmapped/Artifact-only項目を対象に、原文の条項・要件ID・実装・テスト・CI証跡を照合する。最初の単位では一部の項目だけを扱い、未確認は未確認として残す。OSD-02/03は明示承認までBlockedを維持する。
+2. `docs/archive/validation/requirements-source-audit.md` のPartial/Unmapped/Artifact-only項目を対象に、原文の条項・要件ID・実装・テスト・CI証跡を照合する。最初の単位では一部の項目だけを扱い、未確認は未確認として残す。OSD-02/03は明示承認までBlockedを維持する。
 3. 各項目で requirement mapping、実装有無、テスト実行有無、objective evidenceを分ける。公式entry points、Python Drive adapter、runtime sync/archive testsが未実装である事実を変えずに記録する。
 4. CIは開始から約1分後に再取得し、最新HEAD SHAに対する Validate と Package Validation の両方が成功したことを確認してからマージする。
 5. マージ後、PR状態・実マージコミット・CI結果を確認し、次のPRで引き継ぎ文書を更新する。文書照合だけを理由にランタイム要件を完了扱いしない。
@@ -1189,390 +1189,390 @@ Every PR that changes project artifacts must update `docs/handoff/next-chat.md` 
 マージ後の次回作業開始時にはGitHubで前PRのマージコミットを確認する。必要に応じて次のPRでその実SHAを引き継ぎ文書へ反映する。引き継ぎ文書の更新だけでP0項目を完了扱いにしない。
 
 
-## Current continuation — post-PR #47
+## 現在の継続 — PR 後 #47
 
-- PR #47 (`docs: audit SEL-RT fixture traceability`) merged successfully.
+- PR #47 (`docs: audit SEL-RT fixture traceability`) は正常にマージされました。
 - PR: https://github.com/wasawo/eo-log-maintenance/pull/47
-- Merge commit: `d4868cff78be487c2112514b8b653786be7cce66`.
-- Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39394374900
-- Package Validation (`test-package-builder`): success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39394374905
-- Added `docs/validation/sel-rt-fixture-traceability.md`, cross-referenced from the source audit and P0 source/test inventory. SEL-RT-01–10 remain design-only/not run because official runtime entry points are absent.
-- P0-010 remains open. OSD-02/03 and EOLM-MAN-011 remain blocked; do not infer status policy, add deletion paths, or access real logs/Google Drive.
-- Follow-up audit completed in the current working branch: corrected the stale claim that Validate does not invoke `tests/Test-LogFunctions.ps1`, refreshed evidence links to the successful PR #47 CI runs, and separated the unchanged normative source baseline (PR #25) from the tracked-tree/artifact baseline (PR #47 merge).
-- Next bounded task after this documentation PR: continue P0-010 clause-by-clause reconciliation from the remaining Partial/Unmapped rows. Start with a small set of source clauses and verify each against the traceability register, actual tracked artifacts, named executable tests, and current CI evidence. Do not close rows based only on prose cross-references.
-- Do not mark runtime requirements verified based on documentation-only changes or helper/package CI.
+- コミットをマージします: `d4868cff78be487c2112514b8b653786be7cce66`。
+- 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39394374900
+- パッケージ検証 (`test-package-builder`): 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39394374905
+- ソース監査および P0 ソース/テスト インベントリから相互参照された `docs/archive/validation/sel-rt-fixture-traceability.md` を追加しました。 SEL-RT-01–10 はデザインのみのままであり、公式のランタイム エントリ ポイントがないため実行されません。
+- P0-010 は開いたままです。 OSD-02/03 および EOLM-MAN-011 はブロックされたままです。ステータス ポリシーの推測、削除パスの追加、実際のログ/Google Drive へのアクセスは行わないでください。
+- 現在の作業ブランチでフォローアップ監査が完了しました。Validate が `tests/Test-LogFunctions.ps1` を呼び出さないという古い主張を修正し、成功した PR #47 CI 実行への証拠リンクを更新し、未変更の規範的ソース ベースライン (PR #25) を追跡対象ツリー/成果物 ベースライン (PR #47 マージ) から分離しました。
+- このドキュメントの後の次のバインドされたタスク PR: P0-010 残りの部分/非マップ行からの句ごとの調整を続行します。少数のソース句のセットから始めて、それぞれをトレーサビリティ レジスタ、実際に追跡された成果物、名前付きの実行可能テスト、および現在の CI 証拠と照合して検証します。散文の相互参照のみに基づいて行を閉じないでください。
+- ドキュメントのみの変更またはヘルパー/パッケージ CI に基づいて、ランタイム要件 確認済み をマークしないでください。
 
 
-## Current continuation — post-PR #50
+## 現在の継続 — PR 後 #50
 
-- PR #50 ([docs: refresh inventory baseline after PR49](https://github.com/wasawo/eo-log-maintenance/pull/50)) merged successfully.
-- Merge commit: `e711e54c45a253ddbb7a491404ecfcfa822b7f5b`.
-- PR #50 head: `dda840b8f3d943cc6e6ae299460ccf50ada092ca`.
-- Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39395439176.
-- Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39395439152.
-- Follow-up PR #51 is a documentation-only reconciliation of `docs/validation/p0-source-test-inventory.md`: refreshes the tracked-tree baseline to PR #50 merge, records both successful PR #50 CI runs, and clarifies that clause-level reconciliation is still pending.
-- The current tracked tree has no official `SyncLogs.ps1`, `ArchiveLogs.ps1`, operational batch entry points, or process-boundary IPC harness. Schema/helper/package CI must not be treated as runtime evidence.
-- P0-010 remains open; IPC-01–06 and SEL-RT-01–10 remain not implemented/not run. OSD-02, OSD-03, and EOLM-MAN-011 remain blocked. Do not add deletion paths or use real logs/production paths/Google Drive.
-- Next bounded task after PR #51: reconcile a small, explicitly identified subset of source-audit rows against the exact normative clauses, stable requirement IDs, current tracked implementation, executable tests, and CI evidence. Keep unknown or runtime-unimplemented coverage explicitly open.
-
-
-## Operating rules for continued work (added 2026-10-20)
-
-Apply these rules to each user instruction that asks to continue PR/CI work:
-
-1. **CI polling:** if either required CI workflow is still running, wait about 1 minute and check again. Repeat the delayed recheck at most 2 times after the initial check (initial check + no more than two rechecks). If either workflow remains incomplete after the second recheck, stop polling this turn, report the exact states and links, and do not merge.
-2. **Bounded work batch:** within one user instruction, continue the create PR → verify both CI workflows on the exact same latest HEAD SHA → merge → verify merge → consume the next bounded remaining task cycle until reaching the earlier of (a) 3 PRs created/handled in this batch or (b) 20 minutes elapsed. Do not exceed either limit. Keep each PR small and documentation-only when runtime prerequisites/decisions are absent.
-3. **Stop at P0 completion boundary:** once the scoped tasks for a given P0 item are genuinely complete, stop the batch and report completion; do not automatically move on to another P0 item in the same instruction. Do not call a P0 item complete based on docs-only reconciliation, helper/schema CI, or absent runtime evidence. P0-010 remains open until its clause-to-requirement-to-implementation-to-executable-test-to-objective-evidence reconciliation is actually complete.
-4. **Merge gate:** merge only after Validate and Package Validation both succeed for the same current PR HEAD SHA. A stale run, successful workflow on another SHA, or merely queued/in-progress checks is not sufficient.
-5. **Handoff discipline:** each PR should update this file in the same PR with actual run URLs/statuses, exact head and merge SHAs, what changed, remaining work, and safety constraints. Never write future or unconfirmed CI/merge outcomes as completed.
-
-## Current continuation — post-PR #51
-
-- PR #51 ([docs: reconcile P0 inventory baseline and CI evidence](https://github.com/wasawo/eo-log-maintenance/pull/51)) merged.
-- Merge commit: `f417ac98e36e6cc8b01119074f1b7450a6a023f0`; PR head: `bde6ec8791101e205c73b55276f266620862c1de`.
-- Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39395744201.
-- Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39395744306.
-- Current bounded work: reconcile the filename/period test-plan artifact row with the SEL-RT fixture crosswalk and the IPC schema-vs-runtime evidence statement; refresh the source audit tracked-tree baseline to PR #51.
-- Runtime enumeration and process-boundary IPC harness remain absent. SEL-RT-01–10 and IPC-01–06 are not implemented/not run. OSD-02/03 and EOLM-MAN-011 remain blocked. P0-010 remains open.
+- PR #50 ([ドキュメント: PR49 後に一覧ベースラインを更新](https://github.com/wasawo/eo-log-maintenance/pull/50)) は正常にマージされました。
+- コミットをマージします: `e711e54c45a253ddbb7a491404ecfcfa822b7f5b`。
+- PR #50 ヘッド: `dda840b8f3d943cc6e6ae299460ccf50ada092ca`。
+- 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39395439176.
+- パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39395439152.
+- フォローアップ PR #51 は、`docs/archive/validation/p0-source-test-inventory.md` のドキュメントのみの調整です。追跡されたツリー ベースラインを PR #50 マージに更新し、成功した PR #50 CI の両方の実行を記録し、句レベルの調整が依然として 未確定 であることを明確にします。
+- 現在追跡されているツリーには、公式の `SyncLogs.ps1`、`ArchiveLogs.ps1`、運用バッチ エントリ ポイント、またはプロセス境界 IPC ハーネスがありません。スキーマ/ヘルパー/パッケージ CI を実行時の証拠として扱ってはなりません。
+- P0-010 は開いたままです。 IPC-01–06 および SEL-RT-01–10 は実装されていない/実行されていないままです。 OSD-02、OSD-03、および EOLM-MAN-011 はブロックされたままです。削除パスを追加したり、実際のログ/運用パス/Google Drive を使用したりしないでください。
+- PR #51 の次の有界タスク: 明示的に識別されたソース監査行の小さなサブセットを、正確な規範条項、安定した要件 ID、現在追跡されている実装、実行可能なテスト、および CI 証拠と照合します。 不明 またはランタイムに実装されていないカバレッジを明示的に開いたままにしておきます。
 
 
-## Current continuation — post-PR #52
+## 継続作業の運用ルール（2026-10-20追加）
 
-- PR #52 ([docs: reconcile filename test-plan evidence crosswalk](https://github.com/wasawo/eo-log-maintenance/pull/52)) merged successfully.
-- Merge commit: `48a0cf35399ef4f34079754e314ec23000b8c50a`; PR head: `cdb1353a522b501361986611cdc3060639aa7213`.
-- Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39396308946.
-- Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39396308916.
-- PR #52 linked the filename-period test plan to the SEL-RT evidence crosswalk and clarified that schema tests do not prove process-boundary IPC behavior. The operating rules above are now part of this handoff.
-- PR #53 is a documentation-only check of PC-A/PC-B example configuration claims against the actual `validate.yml`: current CI uses `ConvertFrom-Json` to check JSON syntax, not semantic role/path/capability validation. Correct the audit so it does not claim a PC-B `allowArchive` negative test that is not present.
-- P0-010 remains open. No runtime config loader or official operational entry points are present; no real logs, production paths, Google Drive actions, or deletion paths may be introduced in this bounded documentation task.
-- After PR #53 is verified and merged, stop this instruction's batch (three PRs handled: #51, #52, #53) and report the remaining P0-010 work rather than opening a fourth PR.
+PR/CI 作業の続行を求める各ユーザー指示に次のルールを適用します。
 
+1. **CI の状態確認:** 必須の CI ワークフローのどちらかが実行中なら、約 1 分待って再確認する。初回の後の遅延再確認は最大 2 回（初回確認＋最大2回の再確認）。2回目の再確認後も未完了なら、そのターンの確認を止め、正確な状態とリンクを報告してマージしない。
+2. **境界のある作業バッチ:** 1 つのユーザー命令内で、PR の作成を続行 → まったく同じ最新の HEAD SHA で両方の CI ワークフローを検証 → マージ → マージの検証 → (a) このバッチで作成/処理された 3 PR、または (b) 20 分の経過時間のいずれか早い方に達するまで、次の境界のある残りのタスク サイクルを消費します。どちらの制限も超えないようにしてください。実行時の前提条件や決定事項がない場合は、各 PR を小さくし、ドキュメントのみに保ちます。
+3. **P0 完了境界で停止:** 指定された P0 項目のスコープ タスクが実際に 完了 になったら、バッチを停止して完了を報告します。同じ命令内の別の P0 項目に自動的に移動しないでください。ドキュメントのみのリコンシリエーション、ヘルパー/スキーマ CI、または実行時の証拠の欠如に基づいて P0 項目 完了 を呼び出さないでください。 P0-010 は、条項、要件、実装、実行可能テスト、客観的証拠の調整が実際に 完了 になるまで、オープンのままになります。
+4. **マージ ゲート:** マージは、同じ現在の PR HEAD SHA に対して検証とパッケージ検証の両方が成功した後にのみ行われます。古い実行、別の SHA でのワークフローの成功、または単にキューに入れられた/進行中のチェックだけでは十分ではありません。
+5. **ハンドオフ規律:** 各 PR は、実際の実行 URL/ステータス、正確なヘッド SHA とマージ SHA、変更内容、残りの作業、および安全制約を使用して、同じ PR 内のこのファイルを更新する必要があります。今後の、または未確認の CI/merge 結果を完了として書き込まないでください。
 
-## Current continuation — post-PR #53
+## 現在の継続 — PR 後 #51
 
-- PR #53 merged successfully: https://github.com/wasawo/eo-log-maintenance/pull/53.
-- PR head: `c1bd253bd83cc07958bc99c79cf425dc126f7824`; merge commit / tracked-tree baseline: `1a54cafb2e444cc4d778a64dca0bd1439dfeff6d`.
-- Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39396579155.
-- Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39396579172.
-- Current bounded task: refresh `docs/validation/p0-source-test-inventory.md` to the PR #53 merge baseline and record the exact recent CI evidence without treating documentation/helper/package CI as runtime proof.
-- The config example audit confirms that Validate parses JSON syntax only; semantic PC-role/capability enforcement is not present. PC-A example has `allowArchive: false`; PC-B example omits the property.
-- P0-010 remains open. Official sync/archive entry points and process-boundary IPC harness remain absent; SEL-RT-01–10 and IPC-01–06 are not implemented/not run. OSD-02/03 and EOLM-MAN-011 remain blocked. No real logs, production paths, Google Drive actions, or deletion paths may be introduced.
+- PR #51 ([ドキュメント: P0 一覧ベースラインと CI 証拠を調整する](https://github.com/wasawo/eo-log-maintenance/pull/51)) がマージされました。
+- コミットをマージ: `f417ac98e36e6cc8b01119074f1b7450a6a023f0`; PR 責任者: `bde6ec8791101e205c73b55276f266620862c1de`。
+- 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39395744201.
+- パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39395744306.
+- 現在の制限付き作業: ファイル名/期間のテスト計画成果物行と、SEL-RT フィクスチャのクロスウォークおよび IPC スキーマ対ランタイムの証拠ステートメントを調整します。ソース監査追跡ツリーのベースラインを PR #51 に更新します。
+- 実行時の列挙とプロセス境界のIPC試験ハーネスは存在しない。SEL-RT-01〜10 と IPC-01〜06 は未実装・未実行。OSD-02/03 と EOLM-MAN-011 は未解決。P0-010 も未完である。
 
 
-## Current continuation — post-PR #54
+## 現在の継続 — PR 後 #52
 
-- PR #54 merged: https://github.com/wasawo/eo-log-maintenance/pull/54.
-- PR head: `4dc447dc36463fe38fa5bf4a5e444be60933978f`; merge commit / current baseline at task start: `7abd2e557243de94fb4fc69d16cfe441e3f07ac3`.
-- Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397102337.
-- Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397102298.
-- Current bounded task: reconcile the `EOLM-CFG-001/004/005` and `EOLM-ARC-001/006` status notes against the actual example configs and `.github/workflows/validate.yml`. Specifically distinguish JSON syntax parsing from semantic role/capability enforcement.
-- The official runtime config loader and archive/sync entry points remain absent. This documentation crosswalk must not claim semantic tests exist or mark any runtime requirement verified.
-- P0-010 remains open; SEL-RT-01–10 and IPC-01–06 remain not implemented/not run. OSD-02/03 and EOLM-MAN-011 remain blocked. No deletion paths, real logs, production paths, or Google Drive operations may be introduced.
-
-
-## Current continuation — post-PR #55
-
-- PR #55 merged successfully: https://github.com/wasawo/eo-log-maintenance/pull/55.
-- PR head: `da77fe28f8fd05b1ef8f58d6569ea49d36b7c1df`; merge commit / current baseline: `3bfe6e6681223b02fae954909eb50340a03242c1`.
-- Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327426.
-- Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327464.
-- Current bounded task: refresh `docs/validation/requirements-source-audit.md` to PR #55 and record the config-role evidence crosswalk for EOLM-CFG-001/004/005 and EOLM-ARC-001/006, including exact current CI evidence.
-- The evidence remains syntax-only for example JSON; no runtime config loader or semantic role/capability validator exists. Do not mark these requirements verified.
-- P0-010 remains open. SEL-RT-01–10 and IPC-01–06 remain not implemented/not run; OSD-02/03 and EOLM-MAN-011 remain blocked. No deletion paths, real logs, production paths, or Google Drive operations may be introduced.
+- PR #52 ([ドキュメント: ファイル名を調整するテスト計画の証拠のクロスウォーク](https://github.com/wasawo/eo-log-maintenance/pull/52)) は正常にマージされました。
+- コミットをマージ: `48a0cf35399ef4f34079754e314ec23000b8c50a`; PR 責任者: `cdb1353a522b501361986611cdc3060639aa7213`。
+- 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39396308946.
+- パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39396308916.
+- PR #52 は、ファイル名期間のテスト計画を SEL-RT 証拠対応表にリンクし、スキーマ テストはプロセス境界の IPC 動作を証明しないことを明確にしました。上記の運用ルールは、この引き継ぎの一部になりました。
+- PR #53 は、実際の `validate.yml` に対する PC-A/PC-B 構成クレームのサンプルのドキュメントのみのチェックです。現在の CI は、セマンティックなロール/パス/機能の検証ではなく、`ConvertFrom-Json` を使用して JSON 構文をチェックします。存在しない PC-B `allowArchive` 陰性テストが主張されないように監査を修正します。
+- P0-010 は開いたままです。実行時設定ローダーや公式の運用エントリ ポイントは存在しません。この限定された文書化タスクでは、実際のログ、実稼働パス、Google Drive アクション、または削除パスを導入することはできません。
+- PR #53 が 確認済み でマージされた後、この命令のバッチ (処理された 3 つの PR: #51、#52、#53) を停止し、4 番目の PR を開くのではなく、残りの P0-010 の動作を報告します。
 
 
-## Current continuation — post-PR #56
+## 現在の継続 — PR 後 #53
 
-- PR #56 merged successfully: https://github.com/wasawo/eo-log-maintenance/pull/56.
-- PR head: `a0ecc3c2d4d291a6558f22eb0b1ef3fc3da2fe64`; merge commit / current baseline: `46d4abab90e2b9a4abd58ca7feabe072f2005bb5`.
-- Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397556050.
-- Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397556030.
-- Current bounded task: reconcile decision clauses C-20/C-21/C-28 and related C-19/C-22 against the actual config examples, Validate workflow, package-builder state, and requirement IDs. Explicitly separate policy/example state from executable enforcement evidence.
-- Known evidence boundary: example JSON syntax parsing and package-builder tests do not establish runtime role authorization, PC-B capability absence, cloud/manifest freshness, copy-only archive behavior, or deletion-capability absence.
-- P0-010 remains open; SEL-RT-01–10 and IPC-01–06 remain not implemented/not run. OSD-02/03 and EOLM-MAN-011 remain blocked. Do not add deletion, real logs, production paths, or Google Drive operations.
-
-
-## Current continuation — post-PR #57
-
-- PR #57 merged: https://github.com/wasawo/eo-log-maintenance/pull/57.
-- PR head SHA: `d34ad777451274531f881bdc225c1648b9da6ec7`; merge commit / baseline: `8112f4c12d4b52b440af03c4d8b587e0bca1f5cb`.
-- Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39398340496.
-- Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39398340472.
-- PR #57 added a focused static evidence crosswalk for C-20/C-21/C-28 and related C-19/C-22. It confirms that example JSON syntax checks and package-builder tests do not establish semantic role enforcement, PC-B archive capability absence, cloud/manifest freshness, copy-only archive behavior, or deletion-capability absence.
-- Current bounded task: reconcile C-23 / OSD-05 to its concrete artifacts and evidence limits. The identity/scope remains unselected and unvalidated; schemas and mocks do not prove least-privilege access to intended My Drive folders.
-- P0-010 remains open; SEL-RT-01–10 and IPC-01–06 remain not implemented/not run. OSD-02/03 and EOLM-MAN-011 remain blocked. Do not use real credentials, real Drive operations, real logs, production paths, or deletion behavior in this documentation task.
+- PR #53 は正常にマージされました: https://github.com/wasawo/eo-log-maintenance/pull/53.
+- PR ヘッド: `c1bd253bd83cc07958bc99c79cf425dc126f7824`;コミット/追跡ツリー ベースラインをマージします: `1a54cafb2e444cc4d778a64dca0bd1439dfeff6d`。
+- 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39396579155.
+- パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39396579172.
+- 現在のバインドされたタスク: `docs/archive/validation/p0-source-test-inventory.md` を PR #53 マージ ベースラインにリフレッシュし、ドキュメント/ヘルパー/パッケージ CI を実行時証拠として扱うことなく、正確な最近の CI 証拠を記録します。
+- 構成サンプル監査では、Validate が JSON 構文のみを解析することを確認しています。セマンティックな PC ロール/機能の強制は存在しません。 PC-A の例には `allowArchive: false` があります。 PC-B の例ではプロパティが省略されています。
+- P0-010 は未完のまま。正式な同期・アーカイブ入口とプロセス境界のIPCハーネスは存在しない。SEL-RT-01〜10 と IPC-01〜06 は未実装・未実行。OSD-02/03 と EOLM-MAN-011 は未解決である。実ログ、本番パス、Google Drive 操作、削除経路を導入しない。
 
 
-## Current continuation — post-PR #58
+## 現在の継続 — PR 後 #54
 
-- PR #58 merged: https://github.com/wasawo/eo-log-maintenance/pull/58.
-- PR head SHA: `438ea52e52b2ad0309a7edf46ca365b25a0047b5`; merge commit / baseline: `b4b1b390cceab137f3bb42836a8e0dddc8a52be4`.
-- Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39398777874.
-- Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39398777906.
-- PR #58 mapped C-23 to its contract/schema artifacts and OSD-05. OAuth identity/scope remains unselected and unvalidated; schemas/mocks do not prove least-privilege access to intended My Drive folders.
-- Current bounded task: reconcile C-24 / OSD-08 to the operations requirements and concrete artifacts. Scheduler timing and stale-lock/lease policy remain deferred; no scheduler, lock implementation, or executable overlap/missed-run/recovery tests exist.
-- P0-010 remains open; SEL-RT-01–10 and IPC-01–06 remain not implemented/not run. OSD-02/03 and EOLM-MAN-011 remain blocked. Do not use real credentials, Drive operations, real logs, production paths, or deletion behavior.
-
-
-## Current continuation — post-PR #59
-
-- PR #59 merged: https://github.com/wasawo/eo-log-maintenance/pull/59.
-- PR head SHA: `5ebba2e4b511f9292c51e0e8f51a97534b1619b4`; merge commit / baseline: `86f9f2d774e86c715d75da7a6ac59f6ebba0ba66`.
-- Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39399004810.
-- Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39399004898.
-- PR #59 reconciled C-24 to the operations/lock/test requirements and documented that scheduler intent is not operational evidence. OSD-08 remains blocked pending approved quiet/staggered schedule times and stale-lock/lease recovery policy; no scheduler, lock implementation, or executable overlap/missed-run/recovery tests exist.
-- Current bounded task: reconcile C-25 filename parsing and failure-status requirements against the filename specification, test-plan/scenario artifacts, requirement register, and actual executable CI tests. Distinguish specified behavior and helper-level checks from end-to-end runtime acceptance.
-- P0-010 remains open; SEL-RT-01–10 and IPC-01–06 remain not implemented/not run. OSD-02/03 and EOLM-MAN-011 remain blocked. Do not use real credentials, Drive operations, real logs, production paths, or deletion behavior.
+- PR #54 が結合されました: https://github.com/wasawo/eo-log-maintenance/pull/54.
+- PR ヘッド: `4dc447dc36463fe38fa5bf4a5e444be60933978f`;タスク開始時にコミット/現在のベースラインをマージ: `7abd2e557243de94fb4fc69d16cfe441e3f07ac3`。
+- 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397102337.
+- パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397102298.
+- 現在のバインドされたタスク: `EOLM-CFG-001/004/005` および `EOLM-ARC-001/006` ステータス メモを実際のサンプル構成および `.github/workflows/validate.yml` と照合します。 JSON 構文解析とセマンティックな役割/機能の強制を明確に区別します。
+- 公式のランタイム構成ローダーとアーカイブ/同期エントリ ポイントは存在しないままです。このドキュメント クロスウォークでは、セマンティック テストの存在を主張したり、実行時要件 確認済み をマークしたりしてはなりません。
+- P0-010 は未完のまま。SEL-RT-01〜10 と IPC-01〜06 は未実装・未実行。OSD-02/03 と EOLM-MAN-011 は未解決である。削除経路、実ログ、本番パス、Google Drive 操作を導入しない。
 
 
-## Current continuation — post-PR #60
+## 現在の継続 — PR 後 #55
 
-- PR #60 merged: https://github.com/wasawo/eo-log-maintenance/pull/60.
-- PR HEAD SHA: `4f297d78886c8127de311683648fbfe0693395e6`; merge SHA / baseline: `bddfc544308ff67e8699c1ae04520320184dd0e0`.
-- Validate: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39399504290.
-- Package Validation: success — https://github.com/wasawo/eo-log-maintenance/actions/runs/39399504141.
-- PR #60 reconciled C-25 filename validation and failure-status requirements against the specification and test-design artifacts. It explicitly records that these artifacts do not prove end-to-end runtime selection/status behavior; OSD-03 and EOLM-MAN-011 remain unresolved.
-- Current bounded task: reconcile C-26 / OSD-02 manifest schema and state-transition decision against tracked artifacts, schemas, tests, and requirement statuses. Do not treat a decision register or lifecycle prose as an approved schema or executable transition evidence.
-- P0-010 remains open; SEL-RT-01–10 and IPC-01–06 remain not implemented/not run. OSD-02/03 and EOLM-MAN-011 remain blocked. No real credentials, Drive operations, real logs, production paths, or deletion behavior.
-
-
-## Current continuation — post-PR #61 / C-27 release-control evidence audit
-
-- PR #60 (`docs: reconcile C-25 filename evidence boundary`) merged: HEAD `4f297d78886c8127de311683648fbfe0693395e6`; merge commit `bddfc544308ff67e8699c1ae04520320184dd0e0`.
-  - Validate succeeded: https://github.com/wasawo/eo-log-maintenance/actions/runs/39399504290
-  - Package Validation succeeded: https://github.com/wasawo/eo-log-maintenance/actions/runs/39399504141
-- PR #61 (`docs: reconcile C-26 manifest schema evidence boundary`) merged: HEAD `f8d1700a2fc339ce8204bc7492673bb49e3a3edc`; merge commit `fb26877b6fc341c79d442f0a4b1c61044e42e6ea`.
-  - Validate succeeded on the exact HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39400604790
-  - Package Validation succeeded on the same HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39400604921
-- Next bounded task: crosswalk C-27 distribution release controls against C-27/OSD-06/OSD-07/OSD-09, the proposed distribution design, package builder/tests, and current workflow inventory. Distinguish package-builder CI from release authorization, Drive upload, and retention runtime evidence.
-- C-27 remains deferred; OSD-06, OSD-07, and OSD-09 remain blocked. P0-010 remains open. No production credentials, Drive operations, real logs, production paths, or deletion behavior is authorized.
+- PR #55 は正常にマージされました: https://github.com/wasawo/eo-log-maintenance/pull/55.
+- PR ヘッド: `da77fe28f8fd05b1ef8f58d6569ea49d36b7c1df`;コミット/現在のベースラインをマージ: `3bfe6e6681223b02fae954909eb50340a03242c1`。
+- 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327426.
+- パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327464.
+- 現在のバインド タスク: `docs/archive/validation/requirements-source-audit.md` を PR #55 に更新し、正確な現在の CI 証拠を含む、EOLM-CFG-001/004/005 および EOLM-ARC-001/006 の構成ロール証拠クロスウォークを記録します。
+- 証拠は、JSON などの構文のみのままです。実行時設定ローダーやセマンティックな役割/機能検証ツールは存在しません。これらの要件に 確認済み をマークしないでください。
+- P0-010 は未完のまま。SEL-RT-01〜10 と IPC-01〜06 は未実装・未実行。OSD-02/03 と EOLM-MAN-011 は未解決である。削除経路、実ログ、本番パス、Google Drive 操作を導入しない。
 
 
-## Current continuation — post-PR #62 / C-29 retry evidence audit
+## 現在の継続 — PR 後 #56
 
-- PR #62 (`docs: audit C-27 release-control evidence`) merged: https://github.com/wasawo/eo-log-maintenance/pull/62.
-- PR HEAD SHA: `63bd27ca649b8e2571d4d589783ea847d58d47f7`; verified merge SHA / main baseline: `cb63e5ead941fd82d6f741b1b63306cb9380c4b0`.
-- Validate succeeded on the exact HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39401014890.
-- Package Validation succeeded on the same HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39401015306.
-- PR #62 crosswalked C-27 to its proposed distribution design, package-builder tests, and blocked release authorization/retention gates. C-27 remains deferred; OSD-06, OSD-07, and OSD-09 remain blocked.
-- Next bounded task: reconcile C-29 / C-18 retry ownership and idempotency against the fixed decision, PowerShell/Python contract, available schemas/tests, and actual runtime inventory. Keep contract/design statements separate from executable retry/process-boundary evidence.
-- **CI recheck rule updated by user:** after the initial status check, perform up to **5 delayed CI rechecks** (instead of 2), approximately 60 seconds apart. Merge only when Validate and Package Validation both succeed on the same latest PR HEAD SHA. If still incomplete after the fifth delayed recheck, stop without merging.
-- P0-010 remains open; IPC-01–06 and SEL-RT-01–10 remain not implemented/not run. No production credentials, Google Drive operations, real logs, production paths, or deletion behavior.
-
-
-## Current continuation — post-PR #63 / C-30 Dry Run side-effect audit
-
-- PR #63 (`docs: audit C-29 retry evidence boundary`) merged: https://github.com/wasawo/eo-log-maintenance/pull/63.
-- PR HEAD SHA: `ccf72cb2e1338da8b01a50ab3c8bdac48de34790`; verified merge SHA / main baseline: `bb0c38ea2837ab3690f6003f86e7e0f750400d5b`.
-- Validate succeeded on the exact HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39401445582.
-- Package Validation succeeded on the same HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39401445585.
-- PR #63 reconciled C-29/C-18 retry ownership and recorded that runtime retry/process-boundary evidence remains absent; IPC-01–06 and P0-010 remain open.
-- Current bounded task: reconcile C-30 / OSD-04 Dry Run side effects against the PowerShell/Python contract, runtime-safety scenarios, requirements, and runtime inventory. Do not infer runtime safety from design-only scenarios.
-- **CI recheck rule:** initial check plus up to 5 delayed rechecks, approximately 60 seconds apart. Merge only if Validate and Package Validation both succeed on the exact same latest PR HEAD SHA; otherwise stop after recheck 5.
-- No production credentials, Google Drive operations, real logs, production paths, or deletion behavior.
+- PR #56 は正常にマージされました: https://github.com/wasawo/eo-log-maintenance/pull/56.
+- PR ヘッド: `a0ecc3c2d4d291a6558f22eb0b1ef3fc3da2fe64`;コミット/現在のベースラインをマージ: `46d4abab90e2b9a4abd58ca7feabe072f2005bb5`。
+- 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397556050.
+- パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397556030.
+- 現在のバインドされたタスク: 決定句 C-20/C-21/C-28 および関連する C-19/C-22 を実際の構成例、検証ワークフロー、パッケージ ビルダーの状態、および要件 ID と照合します。ポリシー/サンプルの状態を実行可能な強制証拠から明示的に分離します。
+- 既知の証拠境界: 例 JSON 構文解析とパッケージ ビルダー テストでは、ランタイム ロールの承認、PC-B 機能の欠如、クラウド/マニフェストの鮮度、コピーのみのアーカイブ動作、または削除機能の欠如が確立されません。
+- P0-010 は未完のまま。SEL-RT-01〜10 と IPC-01〜06 は未実装・未実行。OSD-02/03 と EOLM-MAN-011 は未解決である。削除、実ログ、本番パス、Google Drive 操作を追加しない。
 
 
-## Current continuation — post-PR #64 / C-31 period-selection evidence audit
+## 現在の継続 — PR 後 #57
 
-- PR #64 (`docs: audit C-30 Dry Run side effects`) merged: https://github.com/wasawo/eo-log-maintenance/pull/64.
-- PR HEAD SHA: `a7302714fd15671c397b1f631d62eca81c433a7d`; verified merge SHA / main baseline: `5af88c5a8561498b1f1d7f29478d80147fc88bd0`.
-- Validate succeeded on the exact HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39401658111.
-- Package Validation succeeded on the same HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39401658097.
-- PR #64 reconciled C-30/OSD-04: the Drive/content-write prohibitions are documented, but the full local side-effect matrix and before/after runtime snapshots remain unapproved/unimplemented. OSD-04 remains blocked.
-- Current bounded task: reconcile C-31 filename-derived sync/archive eligibility against the specification, SEL-RT-01–10 design matrix, helper assertions, requirement IDs, and exact CI evidence. Helper tests must not be represented as runtime enumeration coverage.
-- **CI recheck rule:** initial check plus up to 5 delayed rechecks, approximately 60 seconds apart. Merge only if Validate and Package Validation both succeed on the exact same latest PR HEAD SHA; otherwise stop after recheck 5.
-- P0-010 remains open. SEL-RT-01–10 and IPC-01–06 remain not implemented/not run; OSD-02/03 and EOLM-MAN-011 remain blocked. No production credentials, Google Drive operations, real logs, production paths, or deletion behavior.
-
-
-## Current continuation — post-PR #65 / C-32 inventory evidence audit
-
-- PR #65 (`docs: audit C-31 period-selection evidence`) merged: https://github.com/wasawo/eo-log-maintenance/pull/65.
-- PR HEAD SHA: `f1069a88af0c16d1997c5e50519a689973040cb7`; verified merge SHA / main baseline: `d09efa7b7918de3759420786668b4dfbdd061c4f`.
-- Validate succeeded on the exact HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39402126761.
-- Package Validation succeeded on the same HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39402126688.
-- PR #65 reconciled C-31 filename-derived sync/archive eligibility. Helper-level pattern/date/cutoff tests exist, but runtime enumeration, mixed-input aggregation, LastWriteTime non-fallback at orchestration level, and source immutability during runtime selection remain unverified. SEL-RT-01–10 remain design-only.
-- Current bounded task: reconcile C-32 initial inventory/restore policy against README, decision register, requirement IDs, implementation workflow, runtime inventory and available tests. Do not invent an inventory report format or treat inventory completion as sync/archive success.
-- **CI recheck rule:** initial check plus up to 5 delayed rechecks, approximately 60 seconds apart. Merge only if Validate and Package Validation both succeed on the exact same latest PR HEAD SHA; otherwise stop after recheck 5.
-- P0-010 remains open. OSD-01 (provenance/trust) and OSD-04 (Dry Run side effects) remain blocked; SEL-RT-01–10 and IPC-01–06 remain not implemented/not run. No production credentials, real Google Drive operations, real logs, production paths, or deletion behavior.
+- PR #57 が結合されました: https://github.com/wasawo/eo-log-maintenance/pull/57.
+- PR ヘッド SHA: `d34ad777451274531f881bdc225c1648b9da6ec7`;コミット/ベースラインをマージ: `8112f4c12d4b52b440af03c4d8b587e0bca1f5cb`。
+- 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39398340496.
+- パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39398340472.
+- PR #57 は、C-20/C-21/C-28 および関連する C-19/C-22 に焦点を当てた静的証拠の対応表を追加しました。これは、例の JSON 構文チェックとパッケージ ビルダー テストでは、セマンティックな役割の強制、PC-B アーカイブ機能の不在、クラウド/マニフェストの鮮度、コピーのみのアーカイブ動作、または削除機能の不在が確立されていないことを確認します。
+- 現在の制限付きタスク: C-23 / OSD-05 を具体的な成果物および証拠の制限に合わせて調整します。 ID/スコープは選択も検証もされないままです。スキーマとモックは、目的のマイ ドライブ フォルダーへの最小特権アクセスを証明するものではありません。
+- P0-010 は未完のまま。SEL-RT-01〜10 と IPC-01〜06 は未実装・未実行。OSD-02/03 と EOLM-MAN-011 は未解決である。この文書作業では、実際の認証情報、実Drive操作、実ログ、本番パス、削除動作を使わない。
 
 
-## Current continuation — C-28 archive-gate evidence reconciliation
+## 現在の継続 — PR 後 #58
 
-- Starting baseline: main at PR #66 merge SHA `e5593f7e6eed5766c3af796eeef750d23c722017`; PR #66 was the C-32 inventory/restore evidence audit.
-- Current bounded task: reconcile C-28 archive authorization against the actual PC-A/PC-B example configs, Validate workflow, package builder/tests, requirement IDs, and runtime inventory.
-- Static evidence: PC-A example has `allowArchive: false`; PC-B example omits `allowArchive`. Validate parses JSON syntax only. The package builder has an allowlist and active-config guard, but does not enforce per-role archive authorization. Existing package tests do not test the C-28 semantic config matrix or runtime archive behavior.
-- C-28 remains policy-mapped but not runtime-accepted. Tests still needed include PC-A true/false/missing/invalid and PC-B forbidden-property cases; after official runtime entry points exist, test latest-manifest no-fallback, both-PC manifest/cloud content verification, stale/changed cloud content rejection, copy/hash/record ordering, and source non-deletion.
-- P0-010 remains open. OSD-02/03 and official runtime entry points block archive acceptance; OSD-04 remains a Dry Run side-effect gate. Do not enable archive in the example config, use real credentials/Drive/logs/production paths, or add deletion behavior.
-- **CI recheck rule:** initial status check plus up to 5 delayed rechecks approximately 60 seconds apart. Merge only when Validate and Package Validation both succeed on the exact same latest PR HEAD SHA; if either remains incomplete after recheck 5, stop without merging.
-
-
-## Current continuation — P0 acceptance gate reconciliation
-
-- Starting main baseline: PR #67 merge SHA `d0c9543220d835cb037ecdd4304ff32056e8749f`.
-- Current bounded task: make P0 acceptance criteria explicit across the implementation workflow, README, and P0 gap register.
-- Added a dedicated readiness/acceptance gate. It requires clause-to-requirement/test/evidence traceability; PowerShell 7.6.7 and official-entrypoint coverage; approved IPC contract; role-specific package gates; distinction between helper/schema/package evidence and runtime evidence; explicit OSD blockers; and verification that source/Drive deletion remains absent.
-- The gate explicitly records the current repository as **not accepted**: official sync/archive entry points and runtime orchestration are absent, OSD-02/03 and other decisions remain unresolved. This is a criteria/documentation change, not a claim that P0 is complete.
-- P0-011 is updated to record the missing cross-document acceptance gate and its completion criteria. P0-010 and P0-012 remain open.
-- Safety: no runtime code, real credentials, Google Drive operations, real logs, production paths, or deletion behavior.
-- **CI recheck rule:** initial status check plus up to 5 delayed rechecks approximately 60 seconds apart. Merge only if Validate and Package Validation both succeed on the exact same latest PR HEAD SHA; if either remains incomplete after recheck 5, stop without merging.
+- PR #58 が結合されました: https://github.com/wasawo/eo-log-maintenance/pull/58.
+- PR ヘッド SHA: `438ea52e52b2ad0309a7edf46ca365b25a0047b5`;コミット/ベースラインをマージ: `b4b1b390cceab137f3bb42836a8e0dddc8a52be4`。
+- 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39398777874.
+- パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39398777906.
+- PR #58 は、C-23 をそのコントラクト/スキーマ 成果物および OSD-05 にマップしました。 OAuth ID/スコープは選択されておらず、検証されていないままです。スキーマ/モックは、目的のマイ ドライブ フォルダーへの最小特権アクセスを証明するものではありません。
+- 現在のバインドされたタスク: C-24 / OSD-08 を操作要件および具体的な成果物と調整します。スケジューラのタイミングと古いロック/リース ポリシーは延期されたままになります。スケジューラ、ロックの実装、または実行可能なオーバーラップ/ミスラン/リカバリ テストは存在しません。
+- P0-010 は未完のまま。SEL-RT-01〜10 と IPC-01〜06 は未実装・未実行。OSD-02/03 と EOLM-MAN-011 は未解決である。実際の認証情報、Drive操作、実ログ、本番パス、削除動作を使わない。
 
 
-## Verified completion — PR #68 P0 acceptance gate
+## 現在の継続 — PR 後 #59
+
+- PR #59 が結合されました: https://github.com/wasawo/eo-log-maintenance/pull/59.
+- PR ヘッド SHA: `5ebba2e4b511f9292c51e0e8f51a97534b1619b4`;コミット/ベースラインをマージ: `86f9f2d774e86c715d75da7a6ac59f6ebba0ba66`。
+- 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39399004810.
+- パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39399004898.
+- PR #59 は、C-24 を操作/ロック/テストの要件と調整し、スケジューラーの意図が運用上の証拠ではないことを文書化しました。 OSD-08 はブロックされたままです 未確定 は、静かな/時差のあるスケジュール時間と古いロック/リースの回復ポリシーを承認しました。スケジューラ、ロックの実装、または実行可能なオーバーラップ/ミスラン/リカバリ テストは存在しません。
+- 現在のバインドされたタスク: C-25 ファイル名の解析および 失敗 ステータス要件を、ファイル名仕様、テスト計画/シナリオ成果物、要件レジスタ、および実際の実行可能な CI テストに対して調整します。指定された動作とヘルパー レベルのチェックを、エンドツーエンドのランタイムの受け入れから区別します。
+- P0-010 は未完のまま。SEL-RT-01〜10 と IPC-01〜06 は未実装・未実行。OSD-02/03 と EOLM-MAN-011 は未解決である。実際の認証情報、Drive操作、実ログ、本番パス、削除動作を使わない。
+
+
+## 現在の継続 — PR 後 #60
+
+- PR #60 が結合されました: https://github.com/wasawo/eo-log-maintenance/pull/60.
+- PR ヘッド SHA: `4f297d78886c8127de311683648fbfe0693395e6`; SHA / ベースラインをマージします: `bddfc544308ff67e8699c1ae04520320184dd0e0`。
+- 検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39399504290.
+- パッケージの検証: 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39399504141.
+- PR #60 は、C-25 ファイル名の検証と 失敗 ステータス要件を仕様およびテスト設計成果物と照合しました。これらの成果物はエンドツーエンドのランタイム選択/ステータスの動作を証明するものではないことを明示的に記録しています。 OSD-03 と EOLM-MAN-011 は未解決のままです。
+- 現在のバインドされたタスク: C-26 / OSD-02 マニフェスト スキーマと状態遷移の決定を、追跡された成果物、スキーマ、テスト、要件ステータスと照合します。意思決定記録やライフサイクル散文を、承認されたスキーマや実行可能な移行証拠として扱わないでください。
+- P0-010 は未完のまま。SEL-RT-01〜10 と IPC-01〜06 は未実装・未実行。OSD-02/03 と EOLM-MAN-011 は未解決である。実際の認証情報、Drive操作、実ログ、本番パス、削除動作は導入しない。
+
+
+## 現在の継続 — PR #61 / C-27 リリース管理証拠監査後
+
+- PR #60 (`docs: reconcile C-25 filename evidence boundary`) がマージされました: HEAD `4f297d78886c8127de311683648fbfe0693395e6`;コミット`bddfc544308ff67e8699c1ae04520320184dd0e0`をマージします。
+  - 検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39399504290
+  - パッケージの検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39399504141
+- PR #61 (`docs: reconcile C-26 manifest schema evidence boundary`) がマージされました: HEAD `f8d1700a2fc339ce8204bc7492673bb49e3a3edc`;コミット`fb26877b6fc341c79d442f0a4b1c61044e42e6ea`をマージします。
+  - 正確な HEAD で検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39400604790
+  - 同じ HEAD でパッケージの検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39400604921
+- 次のバインドされたタスク: C-27/OSD-06/OSD-07/OSD-09 に対するクロスウォーク C-27 ディストリビューション リリース制御、提案されたディストリビューション設計、パッケージ ビルダー/テスト、および現在のワークフロー インベントリ。パッケージ ビルダー CI を、リリース承認、ドライブのアップロード、および保持ランタイム証拠から区別します。
+- C-27 は延期されたままです。 OSD-06、OSD-07、および OSD-09 はブロックされたままです。 P0-010 は開いたままです。実稼働認証情報、ドライブ操作、実際のログ、実稼働パス、または削除動作は許可されません。
+
+
+## 現在の継続 - PR #62 / C-29 証拠監査の再試行
+
+- PR #62 (`docs: audit C-27 release-control evidence`) がマージされました: https://github.com/wasawo/eo-log-maintenance/pull/62.
+- PR ヘッド SHA: `63bd27ca649b8e2571d4d589783ea847d58d47f7`; 確認済み SHA / メイン ベースラインをマージします: `cb63e5ead941fd82d6f741b1b63306cb9380c4b0`。
+- 正確な HEAD で検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39401014890.
+- 同じ HEAD でパッケージの検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39401015306.
+- PR #62 は、C-27 を提案された配布設計、パッケージ ビルダー テスト、およびブロックされたリリース承認/保持ゲートに横断しました。 C-27 は延期されたままです。 OSD-06、OSD-07、および OSD-09 はブロックされたままです。
+- 次のバインドされたタスク: C-29 / C-18 の所有権と固定決定に対する冪等性の再試行、PowerShell/Python コントラクト、利用可能なスキーマ/テスト、および実際の実行時インベントリを調整します。契約/設計ステートメントを、実行可能な再試行/プロセス境界の証拠から分離してください。
+- **CI の再確認規則を利用者が更新:** 初回確認の後、遅延した CI の再確認を最大 **5 回**、約 60 秒間隔で行う（従来の 2 回に代わる）。ValidateとPackage Validationが同じ最新PR HEAD SHAでともに成功した場合だけマージする。5回目の遅延再確認後も未完了ならマージせず停止する。
+- P0-010 は開いたままです。 IPC-01–06 および SEL-RT-01–10 は実装されていない/実行されていないままです。実稼働認証情報、Google Drive 操作、実際のログ、実稼働パス、または削除動作はありません。
+
+
+## 現在の継続 — PR 後 #63 / C-30 Dry Run 副作用監査
+
+- PR #63 (`docs: audit C-29 retry evidence boundary`) がマージされました: https://github.com/wasawo/eo-log-maintenance/pull/63.
+- PR ヘッド SHA: `ccf72cb2e1338da8b01a50ab3c8bdac48de34790`; 確認済み SHA / メイン ベースラインをマージします: `bb0c38ea2837ab3690f6003f86e7e0f750400d5b`。
+- 正確な HEAD で検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39401445582.
+- 同じ HEAD でパッケージの検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39401445585.
+- PR #63 は C-29/C-18 再試行の所有権を調整し、実行時再試行/プロセス境界の証拠が存在しないままであることを記録しました。 IPC-01–06 および P0-010 は開いたままになります。
+- 現在のバインドされたタスク: C-30 / OSD-04 Dry Run の副作用を PowerShell/Python 契約、ランタイム安全性シナリオ、要件、およびランタイム インベントリと照合します。設計のみのシナリオから実行時の安全性を推測しないでください。
+- **CI 再チェック ルール:** の初期チェックと最大 5 の遅延再チェック (約 60 秒間隔)。 Validate と Package Validation の両方がまったく同じ最新の PR HEAD SHA で成功した場合にのみマージします。それ以外の場合は、5 を再確認した後に停止します。
+- 本番環境の認証情報、Google Drive 操作、実際のログ、本番パス、または削除動作はありません。
+
+
+## 現在の継続 — PR #64 / C-31 期間選択証拠監査後
+
+- PR #64 (`docs: audit C-30 Dry Run side effects`) がマージされました: https://github.com/wasawo/eo-log-maintenance/pull/64.
+- PR ヘッド SHA: `a7302714fd15671c397b1f631d62eca81c433a7d`; 確認済み SHA / メイン ベースラインをマージします: `5af88c5a8561498b1f1d7f29478d80147fc88bd0`。
+- 正確な HEAD で検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39401658111.
+- 同じ HEAD でパッケージの検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39401658097.
+- PR #64 は C-30/OSD-04 を調整しました: ドライブ/コンテンツ書き込みの禁止は文書化されていますが、完全なローカル副作用マトリックスと実行前/実行後のスナップショットは未承認/未実装のままです。 OSD-04 はブロックされたままです。
+- 現在のバインドされたタスク: C-31 ファイル名由来の同期/アーカイブ適格性を、仕様、SEL-RT-01–10 設計マトリックス、ヘルパー アサーション、要件 ID、および正確な CI 証拠と照合します。ヘルパー テストは、ランタイム列挙カバレッジとして表されてはなりません。
+- **CI 再チェック ルール:** の初期チェックと最大 5 の遅延再チェック (約 60 秒間隔)。 Validate と Package Validation の両方がまったく同じ最新の PR HEAD SHA で成功した場合にのみマージします。それ以外の場合は、5 を再確認した後に停止します。
+- P0-010 は未完のまま。SEL-RT-01〜10 と IPC-01〜06 は未実装・未実行。OSD-02/03 と EOLM-MAN-011 は未解決である。本番認証情報、Google Drive 操作、実ログ、本番パス、削除動作は導入しない。
+
+
+## 現在の継続 — PR #65 / C-32 一覧証拠監査後
+
+- PR #65 (`docs: audit C-31 period-selection evidence`) がマージされました: https://github.com/wasawo/eo-log-maintenance/pull/65.
+- PR ヘッド SHA: `f1069a88af0c16d1997c5e50519a689973040cb7`; 確認済み SHA / メイン ベースラインをマージします: `d09efa7b7918de3759420786668b4dfbdd061c4f`。
+- 正確な HEAD で検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39402126761.
+- 同じ HEAD でパッケージの検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39402126688.
+- PR #65 は、C-31 ファイル名由来の同期/アーカイブ適格性を調整しました。ヘルパー レベルのパターン/日付/カットオフ テストは存在しますが、ランタイム列挙、混合入力集計、オーケストレーション レベルでの LastWriteTime 非フォールバック、およびランタイム選択中のソースの不変性は未検証のままです。 SEL-RT-01–10 はデザインのみのままです。
+- 現在のバインドされたタスク: C-32 初期インベントリ/復元ポリシーを README、デシジョン レジスタ、要件 ID、実装ワークフロー、ランタイム インベントリ、および利用可能なテストと照合します。一覧レポート形式を発明したり、一覧完了を同期/アーカイブ 成功 として扱ったりしないでください。
+- **CI 再チェック ルール:** の初期チェックと最大 5 の遅延再チェック (約 60 秒間隔)。 Validate と Package Validation の両方がまったく同じ最新の PR HEAD SHA で成功した場合にのみマージします。それ以外の場合は、5 を再確認した後に停止します。
+- P0-010 は未完のまま。OSD-01（出所・信頼）と OSD-04（Dry Run の副作用）は未解決。SEL-RT-01〜10 と IPC-01〜06 は未実装・未実行である。本番認証情報、実際の Google Drive 操作、実ログ、本番パス、削除動作は導入しない。
+
+
+## 現在の継続 — C-28 アーカイブゲート証拠の調整
+
+- 開始ベースライン: PR #66 でのメイン、SHA `e5593f7e6eed5766c3af796eeef750d23c722017` のマージ。 PR #66 は C-32 インベントリ/復元証拠監査でした。
+- 現在のバインドされたタスク: C-28 アーカイブ承認を実際の PC-A/PC-B サンプル構成と照合し、ワークフロー、パッケージ ビルダー/テスト、要件 ID、およびランタイム インベントリを検証します。
+- 静的証拠: PC-A の例には `allowArchive: false` があります。 PC-B の例では `allowArchive` が省略されています。 JSON 構文のみを解析して検証します。パッケージ ビルダーにはホワイトリストとアクティブ構成ガードがありますが、ロールごとのアーカイブ承認は強制されません。既存のパッケージ テストでは、C-28 セマンティック構成マトリックスやランタイム アーカイブの動作はテストされません。
+- C-28 はポリシーマップされたままですが、ランタイムには受け入れられません。引き続き必要なテストには、PC-A true/false/欠落/無効および PC-B 禁止プロパティのケースが含まれます。公式のランタイム エントリ ポイントが存在した後、最新マニフェストのフォールバックなし、PC マニフェストとクラウド コンテンツの両方の検証、古い/変更されたクラウド コンテンツの拒否、コピー/ハッシュ/レコードの順序付け、およびソースの非削除をテストします。
+- P0-010 は開いたままです。 OSD-02/03 および公式のランタイム エントリ ポイントは、アーカイブの受け入れをブロックします。 OSD-04 は Dry Run 副作用ゲートのままです。構成例でアーカイブを有効にしないでください。実際の認証情報/ドライブ/ログ/運用パスを使用するか、削除動作を追加してください。
+- **CI 再チェック ルール:** 初期ステータス チェックに加え、最大 5 までの遅延再チェックが約 60 秒間隔で行われます。 Validate と Package Validation の両方がまったく同じ最新の PR HEAD SHA で成功した場合にのみマージします。 5 を再チェックした後、どちらかが 未完了 のままの場合は、マージせずに停止します。
+
+
+## 現在の継続 — P0 受け入れゲートの調整
+
+- メインベースラインの開始: PR #67 SHA `d0c9543220d835cb037ecdd4304ff32056e8749f` をマージします。
+- 現在のバインドされたタスク: 実装ワークフロー、README、および P0 ギャップ レジスタ全体にわたって P0 受け入れ基準を明示的にします。
+- 専用の準備/受け入れゲートを追加しました。条項から要件/テスト/証拠までのトレーサビリティが必要です。 PowerShell 7.6.7 および公式エントリーポイントの範囲。承認された IPC 契約。役割固有のパッケージ ゲート。ヘルパー/スキーマ/パッケージの証拠と実行時の証拠の区別。明示的な OSD ブロッカー。ソース/ドライブの削除が存在しないことを確認します。
+- ゲートは現在のリポジトリを **not accept** として明示的に記録します。公式の同期/アーカイブ エントリ ポイントとランタイム オーケストレーションが存在せず、OSD-02/03 およびその他の決定は未解決のままです。これは基準/文書の変更であり、P0 が 完了 であるという主張ではありません。
+- P0-011 は、不足しているクロスドキュメント承認ゲートとその完了基準を記録するために更新されます。 P0-010 と P0-012 は開いたままになります。
+- 安全性: ランタイム コード、実際の認証情報、Google Drive 操作、実際のログ、運用パス、または削除動作はありません。
+- **CI 再チェック ルール:** 初期ステータス チェックに加え、最大 5 までの遅延再チェックが約 60 秒間隔で行われます。 Validate と Package Validation の両方がまったく同じ最新の PR HEAD SHA で成功した場合にのみマージします。 5 を再チェックした後、どちらかが 未完了 のままの場合は、マージせずに停止します。
+
+
+## 完了の検証 — PR #68 P0 受け入れゲート
 
 - PR: https://github.com/wasawo/eo-log-maintenance/pull/68
-- PR HEAD SHA: `065f6749a10367b042a9516930917abe6760de76`
-- Merge SHA / verified main baseline: `4460eeca9f26e8d36d8590110a8de23d5ba31223`
-- Validate: success on the exact PR HEAD — https://github.com/wasawo/eo-log-maintenance/actions/runs/39404222546
-- Package Validation: success on the same exact PR HEAD — https://github.com/wasawo/eo-log-maintenance/actions/runs/39404222572
-- Changes: added the P0 readiness/acceptance gate in `docs/development/implementation-workflow.md`, linked it from README, and updated P0-011 in `docs/requirements/p0-gap-register.md`.
-- Disposition: P0 is explicitly **not accepted**. Official sync/archive entry points and runtime orchestration are absent; OSD-02/03 and other decisions remain unresolved. P0-010 and P0-012 remain open. Documentation does not count as runtime acceptance evidence.
-- Next bounded task: review `docs/validation/p0-source-test-inventory.md` and `docs/validation/requirements-source-audit.md` against the latest tracked tree and classify any remaining Partial/Unmapped source clauses with a justified disposition. Do not claim P0-010 complete unless clause-to-requirement-to-implementation-to-executable-test-to-evidence reconciliation is complete.
-- Safety: no runtime code, real credentials, Google Drive operations, real logs, production paths, or deletion behavior.
-- **CI recheck rule:** initial check plus up to 5 delayed rechecks approximately 60 seconds apart. Merge only if Validate and Package Validation both succeed on the exact same latest PR HEAD SHA; if either remains incomplete after recheck 5, stop without merging.
+- PR ヘッド SHA: `065f6749a10367b042a9516930917abe6760de76`
+- SHA / 確認済み メイン ベースラインをマージ: `4460eeca9f26e8d36d8590110a8de23d5ba31223`
+- 検証: 成功 正確な PR HEAD — https://github.com/wasawo/eo-log-maintenance/actions/runs/39404222546
+- パッケージの検証: 成功 はまったく同じ PR HEAD 上にあります — https://github.com/wasawo/eo-log-maintenance/actions/runs/39404222572
+- 変更点: `docs/development/implementation-workflow.md` に P0 準備/受け入れゲートを追加し、README からリンクし、`docs/requirements/p0-gap-register.md` の P0-011 を更新しました。
+- 処理: P0 は明示的に **受け入れられません** です。公式の同期/アーカイブ エントリ ポイントとランタイム オーケストレーションはありません。 OSD-02/03 およびその他の決定は未解決のままです。 P0-010 と P0-012 は開いたままになります。文書は実行時の受け入れ証拠としてカウントされません。
+- 次の境界付きタスク: `docs/archive/validation/p0-source-test-inventory.md` と `docs/archive/validation/requirements-source-audit.md` を最新の追跡ツリーに対してレビューし、残りの部分/マップされていないソース句を正当な処理で分類します。条項、要件、実装、実行可能テスト、証拠の調整が 完了 でない限り、P0-010 完了 を要求しないでください。
+- 安全性: ランタイム コード、実際の認証情報、Google Drive 操作、実際のログ、運用パス、または削除動作はありません。
+- **CI 再チェック ルール:** の初期チェックと最大 5 の遅延再チェックが約 60 秒間隔で行われます。 Validate と Package Validation の両方がまったく同じ最新の PR HEAD SHA で成功した場合にのみマージします。 5 を再チェックした後、どちらかが 未完了 のままの場合は、マージせずに停止します。
 
 
-## Verified completion — PR #69 handoff record
+## 完了の確認 — PR #69 ハンドオフ レコード
 
 - PR: https://github.com/wasawo/eo-log-maintenance/pull/69
-- PR HEAD SHA: `757cdc6d51e1c7a9d03142dbce13ac525c9a146c`
-- Merge SHA / new tracked-tree baseline: `13df2952fe8e13ca114ddcf21532d840dfa8264e`
-- Validate: success on the exact PR HEAD — https://github.com/wasawo/eo-log-maintenance/actions/runs/39404492162
-- Package Validation: success on the same exact PR HEAD — https://github.com/wasawo/eo-log-maintenance/actions/runs/39404492260
-- PR #69 records the verified PR #68 acceptance-gate merge. P0 remains not accepted; P0-010 and P0-012 remain open.
-- Current bounded task: refresh and reconcile the source-clause audit and source/test inventory against the PR #69 tracked-tree baseline. Explicitly distinguish missing requirement IDs from Partial evidence states; keep helper/schema/package evidence separate from runtime acceptance. No source-section row in §2.1 is currently Unmapped, but Partial runtime/evidence gaps remain.
-- Safety: no runtime code, real credentials, Google Drive operations, real logs, production paths, or deletion behavior. SEL-RT-01–10 and IPC-01–06 remain not implemented/not run.
-- **CI recheck rule:** initial status check plus up to 5 delayed rechecks approximately 60 seconds apart. Merge only if Validate and Package Validation both succeed on the exact same latest PR HEAD SHA; if either remains incomplete after recheck 5, stop without merging.
+- PR ヘッド SHA: `757cdc6d51e1c7a9d03142dbce13ac525c9a146c`
+- SHA / 新しい追跡ツリー ベースラインをマージします: `13df2952fe8e13ca114ddcf21532d840dfa8264e`
+- 検証: 成功 正確な PR HEAD — https://github.com/wasawo/eo-log-maintenance/actions/runs/39404492162
+- パッケージの検証: 成功 はまったく同じ PR HEAD 上にあります — https://github.com/wasawo/eo-log-maintenance/actions/runs/39404492260
+- PR #69 は、確認済み PR #68 アクセプタンス ゲート マージを記録します。 P0 は受け入れられないままです。 P0-010 と P0-012 は開いたままになります。
+- 現在のバインド タスク: PR #69 追跡ツリー ベースラインに対してソース句監査およびソース/テスト インベントリを更新および調整します。欠落している要件 ID と部分的な証拠の状態を明示的に区別します。ヘルパー/スキーマ/パッケージの証拠を実行時の受け入れとは別にしてください。 §2.1 のソース セクション行は現在マップされていませんが、部分的な実行時間/証拠のギャップが残っています。
+- 安全性: ランタイム コード、実際の認証情報、Google Drive 操作、実際のログ、運用パス、または削除動作はありません。 SEL-RT-01–10 および IPC-01–06 は実装されていない/実行されていないままです。
+- **CI 再チェック ルール:** 初期ステータス チェックに加え、最大 5 までの遅延再チェックが約 60 秒間隔で行われます。 Validate と Package Validation の両方がまったく同じ最新の PR HEAD SHA で成功した場合にのみマージします。 5 を再チェックした後、どちらかが 未完了 のままの場合は、マージせずに停止します。
 
-## Current continuation — post-PR #69 / source-clause disposition
+## 現在の継続 — PR 後 #69 / ソース句の処理
 
-- PR #69 is merged at `13df2952fe8e13ca114ddcf21532d840dfa8264e`; its exact-head Validate and Package Validation both succeeded.
-- This review found no source-section row in `docs/validation/requirements-source-audit.md` §2.1 currently marked Unmapped. Remaining Partial rows are evidence/implementation gaps: helper-only filename/cutoff checks; schema-only IPC checks; static/package-builder checks without official entry points or semantic role enforcement; and unresolved OSD policy gates.
-- Next bounded task: reconcile the most consequential stale status/requirement claims in `docs/requirements/requirements-traceability.md` and `docs/requirements/p0-gap-register.md` against the source audit, beginning with P0-010/P0-012 and the CFG/ARC/IPC/MAN statuses. Do not change blocked decisions or claim runtime acceptance based on docs CI.
-- P0 is not accepted. No official sync/archive entry points/runtime orchestration; OSD-01–09 remain subject to their individual approval/status records. SEL-RT-01–10 and IPC-01–06 remain not implemented/not run.
-- Safety unchanged: no real credentials, Drive operations, real logs, production paths, or deletion behavior.
+- PR #69 は `13df2952fe8e13ca114ddcf21532d840dfa8264e` にマージされます。その正確なヘッドの検証とパッケージの検証は両方とも成功しました。
+- このレビューでは、現在マップされていないとマークされている `docs/archive/validation/requirements-source-audit.md` §2.1 にソース セクション行が見つかりませんでした。残りの部分行は証拠/実装ギャップです: ヘルパーのみのファイル名/カットオフ チェック。スキーマのみの IPC チェック。公式のエントリ ポイントやセマンティックな役割の強制を行わない静的/パッケージ ビルダー チェック。未解決の OSD ポリシー ゲート。
+- 次のバインドされたタスク: P0-010/P0-012 および CFG/ARC/IPC/MAN ステータスから始まる、`docs/requirements/requirements-traceability.md` および `docs/requirements/p0-gap-register.md` の最も重要な古いステータス/要件の主張をソース監査と照合します。ブロックされた決定を変更したり、ドキュメント CI に基づいて実行時の承認を主張したりしないでください。
+- P0 は受け入れられません。公式の同期/アーカイブ エントリ ポイント/ランタイム オーケストレーションはありません。 OSD-01–09 は引き続き個別の承認/ステータス記録の対象となります。 SEL-RT-01–10 および IPC-01–06 は実装されていない/実行されていないままです。
+- 安全性は変更されていません: 実際の認証情報、ドライブ操作、実際のログ、本番パス、または削除動作はありません。
 
 
-## Verified completion — PR #70 source audit baseline refresh
+## 完了の確認 — PR #70 ソース監査ベースラインの更新
 
 - PR: https://github.com/wasawo/eo-log-maintenance/pull/70
-- PR HEAD SHA: `19bc0e31279100dd6587b2dcc18d688e7103eab7`
-- Merge SHA / new main baseline: `2b5d4266df9130ad532707dec8727a7623b3c9e2`
-- Validate succeeded on the exact PR HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39405784145
-- Package Validation succeeded on the same exact PR HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39405784094
-- The source audit/inventory now explicitly separate absent requirement-ID mappings from Partial implementation/evidence states. P0-010 and P0-012 remain open.
-- Next bounded task: reconcile `docs/requirements/requirements-traceability.md` and `docs/requirements/p0-gap-register.md` against the source audit. Refresh the traceability register's stale “initial baseline” wording and make P0-010/P0-012 disposition current without claiming runtime acceptance.
-- Safety: no runtime code, real credentials, Google Drive operations, real logs, production paths, or deletion behavior. SEL-RT-01–10 and IPC-01–06 remain not implemented/not run.
-- **CI recheck rule:** initial status check plus up to 5 delayed rechecks approximately 60 seconds apart. Merge only if Validate and Package Validation both succeed on the exact same latest PR HEAD SHA; if either remains incomplete after recheck 5, stop without merging.
+- PR ヘッド SHA: `19bc0e31279100dd6587b2dcc18d688e7103eab7`
+- SHA / 新しいメインベースラインをマージします: `2b5d4266df9130ad532707dec8727a7623b3c9e2`
+- 正確な PR HEAD で検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39405784145
+- パッケージの検証はまったく同じ PR HEAD で成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39405784094
+- ソース監査/インベントリは、欠落している要件 ID マッピングを部分実装/証拠状態から明示的に分離するようになりました。 P0-010 と P0-012 は開いたままになります。
+- 次のバインドされたタスク: ソース監査に対して `docs/requirements/requirements-traceability.md` と `docs/requirements/p0-gap-register.md` を調整します。トレーサビリティ レジスタの古い「初期ベースライン」の文言を更新し、実行時の受け入れを要求せずに P0-010/P0-012 の処理を​​最新のものにします。
+- 安全性: ランタイム コード、実際の認証情報、Google Drive 操作、実際のログ、運用パス、または削除動作はありません。 SEL-RT-01–10 および IPC-01–06 は実装されていない/実行されていないままです。
+- **CI 再チェック ルール:** 初期ステータス チェックに加え、最大 5 までの遅延再チェックが約 60 秒間隔で行われます。 Validate と Package Validation の両方がまったく同じ最新の PR HEAD SHA で成功した場合にのみマージします。 5 を再チェックした後、どちらかが 未完了 のままの場合は、マージせずに停止します。
 
 
-## Current continuation — PC-specific package entry-point audit
+## 現在の継続 — PC 固有のパッケージのエントリポイント監査
 
-- PR #75 merged: `f4ebdb860b0adc989e6a80e8687c3123fe0ece31`; its exact-head Validate and Package Validation both succeeded.
-- Current candidate branch: `fix/role-specific-release-packages`.
-- Change in progress: package builder requires explicit `-TargetRole PC-A|PC-B`; PC-A deployability requires both `scripts/SyncLogs.ps1` and `scripts/ArchiveLogs.ps1`; PC-B requires `scripts/SyncLogs.ps1` and excludes `scripts/ArchiveLogs.ps1`. Legacy `ArchiveAndUploadLogs.ps1` remains excluded and cannot satisfy the official entry-point requirement.
-- Regression coverage is being added for PC-A/PC-B package contents, PC-A missing ArchiveLogs rejection, and explicit target-role metadata. Review artifact workflow supplies a role explicitly.
-- Evidence boundary: no official runtime entry points currently exist on main. Package builder tests do not prove runtime behavior or production deployability. OSD-09 final allowlists/migration policy, OSD-06 release controls, and non-deployable marker/release lifecycle conditions remain open; do not infer them.
-- Safety: no real credentials, Drive operations, real logs, production paths, or deletion behavior. P0-006/P0-009 remain open until CI and review are complete; P0-010/P0-012 remain open.
-- **CI recheck rule:** initial check plus up to 5 delayed rechecks approximately 60 seconds apart. Merge only when Validate and Package Validation both succeed on the exact same latest PR HEAD SHA; if either remains incomplete after recheck 5, stop without merging.
+- PR #75 が結合されました: `f4ebdb860b0adc989e6a80e8687c3123fe0ece31`;その正確なヘッドの検証とパッケージの検証は両方とも成功しました。
+- 現在の候補ブランチ: `fix/role-specific-release-packages`。
+- 変更が進行中: パッケージ ビルダーには明示的な `-TargetRole PC-A|PC-B` が必要です。 PC-A の展開には `scripts/SyncLogs.ps1` と `scripts/ArchiveLogs.ps1` の両方が必要です。 PC-B には `scripts/SyncLogs.ps1` が必要で、`scripts/ArchiveLogs.ps1` は除外されます。レガシー `ArchiveAndUploadLogs.ps1` は除外されたままであり、公式のエントリポイント要件を満たすことができません。
+- PC-A/PC-B パッケージの内容、PC-A の ArchiveLogs 拒否、および明示的なターゲット ロール メタデータに対して回帰カバレッジが追加されています。成果物のレビュー ワークフローは明示的に役割を提供します。
+- 証拠の境界: 現在メインに公式のランタイム エントリ ポイントは存在しません。パッケージ ビルダーのテストは、実行時の動作や運用環境への展開可能性を証明するものではありません。 OSD-09 最終的なホワイトリスト/移行ポリシー、OSD-06 リリース制御、および展開不可能なマーカー/リリースのライフサイクル条件は未解決のままです。それらを推測しないでください。
+- 安全性: 実際の認証情報、ドライブ操作、実際のログ、本番パス、または削除動作はありません。 P0-006/P0-009 は CI までオープンのままで、レビューは 完了 になります。 P0-010/P0-012 は開いたままになります。
+- **CI 再チェック ルール:** の初期チェックと最大 5 の遅延再チェックが約 60 秒間隔で行われます。 Validate と Package Validation の両方がまったく同じ最新の PR HEAD SHA で成功した場合にのみマージします。 5 を再チェックした後、どちらかが 未完了 のままの場合は、マージせずに停止します。
 
 
-## Verified completion — PR #76 PC-specific package entry-point gate
+## 完了の検証済み — PR #76 PC 固有のパッケージ エントリ ポイント ゲート
 
 - PR: https://github.com/wasawo/eo-log-maintenance/pull/76
-- PR HEAD SHA: `0133c86f5779b7f41e8ed7d3ba9e686e60a4d3d3`
-- Merge SHA / tracked-tree baseline: `9c8818ac9715457fec98f49caa9b9aa9c3f67ef5`
-- Validate succeeded on the exact PR HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39411609835
-- Package Validation succeeded on the same exact PR HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39411609673
-- Changes: the package builder requires an explicit target role; PC-A requires `SyncLogs.ps1` and `ArchiveLogs.ps1`; PC-B requires `SyncLogs.ps1` and excludes `ArchiveLogs.ps1`; the legacy entry point remains excluded. Tests cover the role-specific package contents and PC-A missing-archive rejection.
-- Evidence boundary: the main branch still has no official runtime entry points. Package-builder CI is not runtime acceptance. P0-006/P0-009 remain open for remaining release marker/runtime gates and final role-specific allowlist/migration decisions; OSD-06 and OSD-09 remain open. P0-010/P0-012 remain open.
-- Next bounded task: reconcile the remaining role/configuration requirements (especially EOLM-CFG-001–005 and P0-006/P0-009) against package-level checks versus runtime config validation; implement only directly fixed semantic config tests that do not depend on runtime/OSD decisions, or document a precise blocker if no safe change remains.
-- Safety: no real credentials, Drive operations, real logs, production paths, or deletion behavior.
-- **CI recheck rule:** initial check plus up to 5 delayed rechecks approximately 60 seconds apart. Merge only if Validate and Package Validation both succeed on the exact same latest PR HEAD SHA; if either remains incomplete after recheck 5, stop without merging.
+- PR ヘッド SHA: `0133c86f5779b7f41e8ed7d3ba9e686e60a4d3d3`
+- SHA / 追跡ツリー ベースラインのマージ: `9c8818ac9715457fec98f49caa9b9aa9c3f67ef5`
+- 正確な PR HEAD で検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39411609835
+- パッケージの検証はまったく同じ PR HEAD で成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39411609673
+- 変更点: パッケージ ビルダーには明示的なターゲット ロールが必要です。 PC-A には `SyncLogs.ps1` と `ArchiveLogs.ps1` が必要です。 PC-B には `SyncLogs.ps1` が必要で、`ArchiveLogs.ps1` は除外されます。従来のエントリ ポイントは除外されたままになります。テストでは、役割固有のパッケージの内容と PC-A アーカイブの欠落の拒否が対象になります。
+- 証拠の境界: メイン ブランチにはまだ正式なランタイム エントリ ポイントがありません。パッケージ ビルダー CI は実行時に受け入れられません。 P0-006/P0-009 は、残りのリリース マーカー/ランタイム ゲートおよび最終的なロール固有の許可リスト/移行の決定のために開いたままになります。 OSD-06 と OSD-09 は開いたままになります。 P0-010/P0-012 は開いたままになります。
+- 次のバインドされたタスク: 残りのロール/構成要件 (特に EOLM-CFG-001–005 および P0-006/P0-009) を、パッケージ レベルのチェックとランタイム構成の検証に対して調整します。ランタイム/OSD の決定に依存しない、直接修正されたセマンティック構成テストのみを実装するか、安全な変更が残っていない場合は正確なブロッカーを文書化します。
+- 安全性: 実際の認証情報、ドライブ操作、実際のログ、本番パス、または削除動作はありません。
+- **CI 再チェック ルール:** の初期チェックと最大 5 の遅延再チェックが約 60 秒間隔で行われます。 Validate と Package Validation の両方がまったく同じ最新の PR HEAD SHA で成功した場合にのみマージします。 5 を再チェックした後、どちらかが 未完了 のままの場合は、マージせずに停止します。
 
 
-## Current continuation — example configuration semantic guard
+## 現在の続き — 設定例のセマンティック ガード
 
-- PR #77 merged: `9b0c7a909aeec28dc9bb8036b40fb0b6b3c8bb1b`; exact-head Validate and Package Validation succeeded.
-- Candidate branch: `test/validate-config-example-role-rules`.
-- Directly fixed template rules under C-20/C-21/C-28: PC-A example must identify `machineId: PC-A` / `role: primary`, include boolean `allowArchive: false` as a safe template default, and omit `allowDelete`; PC-B example must identify `machineId: PC-B` / `role: secondary`, omit `allowArchive`, and omit `allowDelete`.
-- The package builder now checks these example-template rules, exact allowed/required property sets, non-empty absolute Windows drive-path syntax, and negative cases for unknown/missing/relative-path fields. This does not validate active configuration at runtime or approved-root separation; there is no runtime config loader/path validator yet.
-- P0-006/P0-009 remain open. OSD-06/09 remain unresolved; no release authorization or final allowlist semantics are inferred.
-- Safety: no real credentials, Drive operations, real logs, production paths, or deletion behavior.
-- **CI recheck rule:** initial check plus up to 5 delayed rechecks approximately 60 seconds apart. Merge only if Validate and Package Validation both succeed on the exact same latest PR HEAD SHA; if either remains incomplete after recheck 5, stop without merging.
-
-
-## Verified continuation — PR #78 example-config semantic guard
-
-- PR #78 merged at `71e6cfbb939f880bb7a679699f90667fb3fad6a6` after both Validate and Package Validation succeeded on exact HEAD `ca1b9c2b97495f358ad0bebe4c5d584af67af2fe`.
-- Package Validation: https://github.com/wasawo/eo-log-maintenance/actions/runs/39417993638 — success. Validate: https://github.com/wasawo/eo-log-maintenance/actions/runs/39417993586 — success.
-- PR #78 validates example-config semantics in the package builder only. Active config loading/path-root separation, runtime archive authorization, official runtime entry points, manifest/orchestration/IPC tests, release approval, and deletion-boundary proof remain incomplete.
-- Current tracked-tree baseline for the next task: `71e6cfbb939f880bb7a679699f90667fb3fad6a6`.
-- Next bounded task: reconcile stale CFG/ARC/IPC/MAN requirement statuses against current source-audit evidence; retain P0-010/P0-012 as open and do not treat docs/package CI as runtime acceptance.
-- Safety: no credentials, Drive operations, real logs, production paths, or deletion behavior. CI gate remains exact-head Validate + Package Validation success before merge.
+- PR #77 が結合されました: `9b0c7a909aeec28dc9bb8036b40fb0b6b3c8bb1b`;正確なヘッドの検証とパッケージの検証が成功しました。
+- 候補ブランチ: `test/validate-config-example-role-rules`。
+- C-20/C-21/C-28 で直接修正されたテンプレート ルール: PC-A の例では、`machineId: PC-A` / `role: primary` を識別し、安全なテンプレートのデフォルトとしてブール値 `allowArchive: false` を含め、`allowDelete` を省略する必要があります。 PC-B の例では、`machineId: PC-B` / `role: secondary` を識別し、`allowArchive` と `allowDelete` を省略する必要があります。
+- パッケージ ビルダーは、これらのサンプル テンプレート ルール、正確な許可/必須プロパティ セット、空ではない絶対 Windows ドライブ パス構文、不明/欠落/相対パス フィールドの否定的なケースをチェックするようになりました。これは、実行時のアクティブな構成や承認されたルートの分離を検証しません。実行時設定ローダー/パス検証ツールはまだありません。
+- P0-006/P0-009 は開いたままです。 OSD-06/09 は未解決のままです。リリースの承認や最終的なホワイトリストのセマンティクスは推論されません。
+- 安全性: 実際の認証情報、ドライブ操作、実際のログ、本番パス、または削除動作はありません。
+- **CI 再チェック ルール:** の初期チェックと最大 5 の遅延再チェックが約 60 秒間隔で行われます。 Validate と Package Validation の両方がまったく同じ最新の PR HEAD SHA で成功した場合にのみマージします。 5 を再チェックした後、どちらかが 未完了 のままの場合は、マージせずに停止します。
 
 
-## Verified continuation — PR #79 evidence-baseline reconciliation
+## 検証済みの継続 — PR #78 example-config セマンティック ガード
 
-- PR #79 merged at `fab4d2d19ca0158843feadadbaba2c30f9da02b7`; Validate and Package Validation both succeeded on exact HEAD `c43c34d9b528fec4c4bb97f6187e8721e150eb6c`.
-- Validate: https://github.com/wasawo/eo-log-maintenance/actions/runs/39418543380 — success. Package Validation: https://github.com/wasawo/eo-log-maintenance/actions/runs/39418543456 — success.
-- The source audit, P0 inventory, traceability, safety audit and handoff now use the PR #78 merge baseline. P0-010 and P0-012 remain open.
-- Next bounded task: correct stale CFG-003 / ARC-006 traceability claims. PR #76 package tests verify role-specific entry-point requirements and PC-B archive exclusion, but official runtime scripts and OSD-09 final allowlist/deployment approval remain absent.
-- Safety: no credentials, Drive operations, real logs, production paths, or deletion behavior.
-
-
-## Verified continuation — PR #126 aggregation-report reconciliation
-
-- PR #126 (https://github.com/wasawo/eo-log-maintenance/pull/126) merged at `335a3571e0882c09fd1845c40fd5fd572d6e6f67`.
-- PR-head Validate and Package Validation both succeeded on exact HEAD `08a65f15fedfd0074f2891847b6889092be0c42a`: https://github.com/wasawo/eo-log-maintenance/actions/runs/39496255414 and https://github.com/wasawo/eo-log-maintenance/actions/runs/39496255420.
-- Post-merge main Validate and Package Validation were triggered on exact merge SHA `335a3571e0882c09fd1845c40fd5fd572d6e6f67`; at this handoff update they were still in progress: https://github.com/wasawo/eo-log-maintenance/actions/runs/39497783925 and https://github.com/wasawo/eo-log-maintenance/actions/runs/39497784022. Recheck before claiming main CI success.
-- Canonical derived aggregation report proposal is `docs/design/aggregation-report-v1-proposal.md`; inventory/evidence decisions are recorded in `docs/decisions/aggregation-inventory-integrity-options.md`. The report schema, identity/path, atomic publication/recovery, freshness/consistency, runtime implementation and executable tests remain open. This docs PR did not close OSD-02/OSD-03 or P0-008/P0-010.
-- PR #116 remains open and unmerged. Do not merge it. Before closing as superseded, compare every changed-file delta against current main; preserve any unique approved normative decisions, especially its decision-register and manifest/lifecycle edits. Its branch is stale and duplicates the aggregation proposal paths, but its complete net delta has not yet been dispositioned.
-- Next bounded task: reconcile PR #116's remaining unique normative deltas against current main and the approved decision register. Then close #116 as superseded only if no unique required content remains; otherwise port only the justified content through a focused PR. Refresh this handoff with the disposition.
-- P0 remains not accepted. P0-010 and P0-012 remain open; official runtime entry points/orchestration and runtime acceptance evidence remain absent. No real logs, production paths, credentials, Drive operations, archive enablement, or deletion behavior.
-- CI recheck rule: initial check plus up to 5 delayed rechecks approximately 60 seconds apart. Merge only if Validate and Package Validation succeed on the exact same latest PR HEAD SHA; stop without merging if either remains incomplete after recheck 5.
+- PR #78 は、正確な HEAD `ca1b9c2b97495f358ad0bebe4c5d584af67af2fe` で検証とパッケージ検証の両方が成功した後、`71e6cfbb939f880bb7a679699f90667fb3fad6a6` でマージされました。
+- パッケージの検証: https://github.com/wasawo/eo-log-maintenance/actions/runs/39417993638 — 成功。検証: https://github.com/wasawo/eo-log-maintenance/actions/runs/39417993586 — 成功。
+- PR #78 は、パッケージ ビルダーでのみ example-config セマンティクスを検証します。アクティブな構成の読み込み/パスとルートの分離、ランタイム アーカイブの承認、公式ランタイム エントリ ポイント、マニフェスト/オーケストレーション/IPC テスト、リリース承認、および削除境界証明は 未完了 のままです。
+- 次のタスクの現在の追跡ツリー ベースライン: `71e6cfbb939f880bb7a679699f90667fb3fad6a6`。
+- 次の制限付きタスク: 古い CFG/ARC/IPC/MAN 要件ステータスを現在のソース監査証拠と照合します。 P0-010/P0-012 をオープンとして保持し、docs/package CI を実行時受け入れとして扱いません。
+- 安全性: 認証情報、ドライブ操作、実際のログ、運用パス、または削除動作はありません。 CI ゲートは、マージ前に正確な先頭検証 + パッケージ検証 成功 のままです。
 
 
-## Verified continuation — PR #128 merged; stale PR #116 closed
+## 検証済みの継続 — PR #79 証拠とベースラインの調整
 
-- PR #128 (https://github.com/wasawo/eo-log-maintenance/pull/128) merged at `cac5db120f134757b8b45cb6f97ae61544e3cfbe`.
-- Exact PR HEAD `e8e00577af8c7458cd20770198918dafde043d1a`: Validate succeeded at https://github.com/wasawo/eo-log-maintenance/actions/runs/39498085630; Package Validation succeeded at https://github.com/wasawo/eo-log-maintenance/actions/runs/39498085914.
-- Post-merge main runs on exact merge SHA `cac5db120f134757b8b45cb6f97ae61544e3cfbe` were still in progress at handoff update: Validate https://github.com/wasawo/eo-log-maintenance/actions/runs/39498808662; Package Validation https://github.com/wasawo/eo-log-maintenance/actions/runs/39498808740. Verify before claiming main CI success.
-- PR #116 is closed unmerged as superseded after audit: https://github.com/wasawo/eo-log-maintenance/pull/116. Do not merge/reopen the stale branch. Canonical proposal and inventory decision docs came from PR #126; approved C-34–C-53 decisions and related OSD-03/manifest/lifecycle references were reconciled in PRs #127/#128.
-- PR #127 merged at `8c50ffc7cde51676d0317ab62e3b9666502dc619`; its exact-head Validate and Package Validation both succeeded. PR #128 merged at `cac5db120f134757b8b45cb6f97ae61544e3cfbe`; its exact-head Validate and Package Validation both succeeded.
-- The decision register has one canonical record each for C-34 through C-53; duplicated C-44/C-47 entries from stale PR #116 were not retained. C-54 is approved as option A and recorded in `docs/decisions/decision-record-c54-sensitive-path-detection.md`; its fixed, version-controlled sensitive-path rules and precedence are normative. `docs/decisions/aggregation-inventory-integrity-options.md` must stay consistent with that decision.
-- Current canonical docs: `docs/design/aggregation-report-v1-proposal.md`, `docs/decisions/aggregation-inventory-integrity-options.md`, and `docs/design/run-input-evidence-v1-proposal.md`. Exact report schema/identity, publication atomicity and recovery, freshness/consistency, runtime implementation, and executable tests remain open.
-- P0 remains not accepted. P0-010/P0-012 remain open; OSD-02/OSD-03 and P0-008/P0-010 remain unresolved/partially resolved as documented. The sentinel runtime entry points, active-config loader, operational manifest, archive gate, and runtime negative-capability harness remain absent.
-- No real logs, production paths, credentials, Drive operations, archive enablement, or deletion behavior were used.
-- CI gate remains: initial check plus up to 5 delayed rechecks ~60 seconds apart; merge only after Validate and Package Validation succeed on the exact same latest PR HEAD SHA.
+- PR #79 は `fab4d2d19ca0158843feadadbaba2c30f9da02b7` にマージされました。検証とパッケージ検証はどちらも正確な HEAD `c43c34d9b528fec4c4bb97f6187e8721e150eb6c` で成功しました。
+- 検証: https://github.com/wasawo/eo-log-maintenance/actions/runs/39418543380 — 成功。パッケージの検証: https://github.com/wasawo/eo-log-maintenance/actions/runs/39418543456 — 成功。
+- ソース監査、P0 インベントリ、トレーサビリティ、安全性監査、およびハンドオフでは、PR #78 マージ ベースラインが使用されるようになりました。 P0-010 と P0-012 は開いたままになります。
+- 次の有界タスク: 古い CFG-003 / ARC-006 トレーサビリティ クレームを修正します。 PR #76 パッケージ テストでは、ロール固有のエントリポイント要件と PC-B アーカイブの除外を検証しますが、公式のランタイム スクリプトと OSD-09 最終的なホワイトリスト/展開の承認は存在しないままです。
+- 安全性: 認証情報、ドライブ操作、実際のログ、運用パス、または削除動作はありません。
 
 
-## Verified continuation — PR #129 main CI and C-54 approval reconciliation (2026-10-21)
+## 検証済みの継続 — PR #126 集計レポート調整
 
-- PR #129 merged at `38ec0ce3fd142423388e252f0916a010d9165aef`.
-- Post-merge main Validate succeeded on that exact SHA: https://github.com/wasawo/eo-log-maintenance/actions/runs/39499090236. Package Validation succeeded on the same SHA: https://github.com/wasawo/eo-log-maintenance/actions/runs/39499090176.
-- The latest user response confirms C-54 option A. The existing normative decision record is `docs/decisions/decision-record-c54-sensitive-path-detection.md`; it defines fixed/version-controlled sensitive-path names, bounded sensitive tokens, recognizable secret-value formats, deterministic comparisons, and whole-path NULL behavior. Do not reopen C-54 unless a concrete ambiguity is found.
-- This follow-up PR reconciles the stale C-54 status in the canonical inventory and this handoff; it does not implement runtime sanitization or tests.
-- Next bounded task: audit C-54 rule precision and consistency with C-53, then plan/add isolated deterministic tests for the policy without using real logs, credentials, production paths, or filesystem-dependent behavior. Runtime implementation and executable tests remain pending.
-- P0 remains not accepted. P0-010/P0-012 remain open; OSD-02/OSD-03 and P0-008/P0-010 remain unresolved or partially resolved as documented. Sentinel runtime entry points, active-config loader, operational manifest, archive gate, and runtime negative-capability harness remain absent.
-- Safety: no real logs, production paths, credentials, Google Drive operations, archive enablement, or deletion behavior.
-- CI merge gate: initial check plus up to 5 delayed rechecks ~60 seconds apart. Merge only if Validate and Package Validation both succeed on the exact same latest PR HEAD SHA; otherwise stop without merging.
-
-
-## Verified continuation — C-53/C-54 policy audit and test matrix (2026-10-21)
-
-- Post-merge main CI for PR #130 is verified successful on exact merge SHA `5b258fbdc775e5aa5db2dc2903108d7a4461bd29`: Validate https://github.com/wasawo/eo-log-maintenance/actions/runs/39499966171 and Package Validation https://github.com/wasawo/eo-log-maintenance/actions/runs/39499965819.
-- Audit confirmed C-53 and C-54 agree on syntax-first validation, fixed sensitive policy after syntax validation, whole-path JSON null on unsafe optional paths, no partial redaction, no filesystem/current-directory dependence, and no rejected-value echo.
-- No diagnostic sanitization implementation or dedicated executable test file exists in the tracked tree. Existing LogFunctions tests cover filename/date/cutoff functions only. Do not claim C-53/C-54 runtime acceptance based on documentation CI.
-- Added non-normative test-planning artifact in branch `docs/c54-policy-test-matrix-audit`: `docs/validation/c53-c54-policy-test-matrix.md`. It contains a deterministic synthetic fixture matrix and flags a concrete ambiguity in the exact grammars for URI user-info, bearer credentials, provider-token suffixes, and PEM labels.
-- This audit does not amend C-53/C-54 and does not make a new policy choice. Per project rule, exact matching grammars require maintainer approval before normative implementation. Recommended next step: ask the maintainer to approve an explicit regex/grammar table with positive and near-miss fixtures; then implement the pure sanitization function and isolated tests.
-- P0 remains not accepted; P0-010/P0-012 remain open. No runtime integration, real logs, credentials, production paths, Drive operations, archive enablement, or deletion behavior were used.
-- CI gate: initial check plus up to 5 delayed rechecks ~60 seconds apart. Merge only after Validate and Package Validation both succeed on the exact same latest PR HEAD SHA.
+- PR #126 (https://github.com/wasawo/eo-log-maintenance/pull/126) は `335a3571e0882c09fd1845c40fd5fd572d6e6f67` にマージされました。
+- PR ヘッド検証とパッケージ検証は両方とも正確な HEAD `08a65f15fedfd0074f2891847b6889092be0c42a`: https://github.com/wasawo/eo-log-maintenance/actions/runs/39496255414 および https://github.com/wasawo/eo-log-maintenance/actions/runs/39496255420. で成功しました
+- マージ後のメイン検証とパッケージ検証は、正確なマージ SHA `335a3571e0882c09fd1845c40fd5fd572d6e6f67` でトリガーされました。このハンドオフ更新では、それらはまだ進行中です: https://github.com/wasawo/eo-log-maintenance/actions/runs/39497783925 と https://github.com/wasawo/eo-log-maintenance/actions/runs/39497784022. メインの CI 成功 を要求する前に再確認してください。
+- 正規の派生集計レポートの提案は `docs/design/reference/aggregation-report-v1-proposal.md` です。一覧/証拠の決定は `docs/archive/decisions/aggregation-inventory-integrity-options.md` に記録されます。レポート スキーマ、ID/パス、アトミック パブリケーション/リカバリ、鮮度/一貫性、ランタイム実装、および実行可能テストはオープンなままです。このドキュメント PR は OSD-02/OSD-03 または P0-008/P0-010 を閉じませんでした。
+- PR #116 は開いたままでマージされていません。結合しないでください。置き換えられたものとして閉じる前に、変更されたファイルのすべてのデルタを現在のメインと比較します。独自に承認された規範的決定、特にその決定登録およびマニフェスト/ライフサイクル編集を保存します。そのブランチは古く、集約提案パスが重複していますが、その 完了 ネット デルタはまだ処理されていません。
+- 次の制限付きタスク: PR #116 の残りの一意の規範デルタを、現在のメインおよび承認済みの決定レジスターと照合します。その後、固有の必要なコンテンツが残っていない場合にのみ #116 を置き換えられたものとして閉じます。それ以外の場合は、焦点を絞った PR を通じて正当化されたコンテンツのみを移植します。このハンドオフを処理で更新します。
+- P0 は受け入れられないままです。 P0-010 と P0-012 は開いたままになります。公式のランタイム エントリ ポイント/オーケストレーションおよびランタイム受け入れの証拠は依然として存在しません。実際のログ、本番パス、認証情報、ドライブ操作、アーカイブの有効化、または削除動作はありません。
+- CI 再チェック ルール: 初期チェックと最大 5 の遅延再チェックが約 60 秒間隔で行われます。まったく同じ最新の PR HEAD SHA で検証とパッケージ検証が成功した場合にのみマージします。 5 を再チェックした後、どちらかが 未完了 のままの場合は、マージせずに停止します。
 
 
-### PR #160 CI follow-up (2026-10-22)
-- Validate run `39648690154` completed successfully on commit `406949122e7052490d85257a0e349c15ffde5728`; all listed steps, including PowerShell analysis, completed successfully.
-- Package Validation run `39648691025` succeeded on the same older commit.
-- The PR's current HEAD at the time of this note is `11a3edc9d1fb6b2ae3de36e12f37fc55e0e5043d`, so those results are not treated as exact-head proof. Require fresh Validate and Package Validation runs on the latest HEAD before merge.
+## 継続を確認 — PR #128 がマージされました。古い PR #116 は閉じられました
+
+- PR #128 (https://github.com/wasawo/eo-log-maintenance/pull/128) は `cac5db120f134757b8b45cb6f97ae61544e3cfbe` にマージされました。
+- 正確な PR HEAD `e8e00577af8c7458cd20770198918dafde043d1a`: https://github.com/wasawo/eo-log-maintenance/actions/runs/39498085630; で検証が成功しました https://github.com/wasawo/eo-log-maintenance/actions/runs/39498085914. でパッケージ検証が成功しました
+- 正確なマージ SHA `cac5db120f134757b8b45cb6f97ae61544e3cfbe` でのマージ後のメイン実行がハンドオフ更新時にまだ進行中です: 検証 https://github.com/wasawo/eo-log-maintenance/actions/runs/39498808662; パッケージ検証 https://github.com/wasawo/eo-log-maintenance/actions/runs/39498808740. メイン CI 成功 を要求する前に検証してください。
+- PR #116 は、監査後に置き換えられたため、マージされずに閉じられています: https://github.com/wasawo/eo-log-maintenance/pull/116. 古いブランチをマージ/再オープンしないでください。正規の提案書と一覧決定に関するドキュメントは PR #126 から提供されました。承認された C-34–C-53 決定と関連する OSD-03/マニフェスト/ライフサイクル参照は、PR #127/#128 で調整されました。
+- PR #127 は `8c50ffc7cde51676d0317ab62e3b9666502dc619` にマージされました。その正確なヘッドの検証とパッケージの検証は両方とも成功しました。 PR #128 は `cac5db120f134757b8b45cb6f97ae61544e3cfbe` にマージされました。その正確なヘッドの検証とパッケージの検証は両方とも成功しました。
+- 決定レジスタには、C-34 から C-53 までのそれぞれに 1 つの正規レコードがあります。古い PR #116 からの重複した C-44/C-47 エントリは保持されませんでした。 C-54 はオプション A として承認され、`docs/archive/decisions/decision-record-c54-sensitive-path-detection.md` に記録されます。その固定されたバージョン管理された機密パスのルールと優先順位は規範的なものです。 `docs/archive/decisions/aggregation-inventory-integrity-options.md` はその決定に一貫性を保たなければなりません。
+- 現在の正規ドキュメント: `docs/design/reference/aggregation-report-v1-proposal.md`、`docs/archive/decisions/aggregation-inventory-integrity-options.md`、および `docs/design/run-input-evidence-v1-proposal.md`。正確なレポートのスキーマ/同一性、パブリケーションのアトミック性とリカバリ、鮮度/一貫性、ランタイム実装、および実行可能テストは未解決のままです。
+- P0 は受け入れられないままです。 P0-010/P0-012 は開いたままになります。 OSD-02/OSD-03 および P0-008/P0-010 は文書化されているように未解決または部分的に解決されたままです。 Sentinel ランタイム エントリ ポイント、アクティブ構成ローダー、操作マニフェスト、アーカイブ ゲート、およびランタイム ネガティブ ケイパビリティ ハーネスは存在しないままです。
+- 実際のログ、運用パス、認証情報、ドライブ操作、アーカイブの有効化、または削除動作は使用されませんでした。
+- CI ゲートは残ります: 初期チェックと最大 5 の遅延再チェックが ~60 秒間隔で行われます。まったく同じ最新の PR HEAD SHA で Validate と Package Validation が成功した後にのみマージします。
 
 
-- Follow-up Validate run `39649025407` completed successfully on `11a3edc9d1fb6b2ae3de36e12f37fc55e0e5043d`; Package Validation run `39649025423` also succeeded on that same commit. The current PR HEAD remains `3f81a4913f2cf3a10ba21aa87030584340992506`, so do not merge until both required workflows are confirmed on the current HEAD.
+## 継続を確認 — PR #129 メイン CI および C-54 の承認調整 (2026-10-21)
+
+- PR #129 は `38ec0ce3fd142423388e252f0916a010d9165aef` にマージされました。
+- マージ後のメイン検証はその正確な SHA で成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39499090236. パッケージ検証は同じ SHA で成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39499090176.
+- 最新のユーザー応答により、C-54 オプション A が確認されました。既存の規範的決定記録は `docs/archive/decisions/decision-record-c54-sensitive-path-detection.md` です。これは、固定/バージョン管理された機密パス名、制限された機密トークン、認識可能な秘密値形式、決定論的な比較、およびパス全体の NULL 動作を定義します。具体的な曖昧さが見つからない限り、C-54 を再度開かないでください。
+- このフォローアップ PR は、正規インベントリ内の古い C-54 ステータスとこの引き継ぎを調整します。実行時のサニタイズやテストは実装されません。
+- 次の制限付きタスク: C-54 ルールの精度と C-53 との一貫性を監査し、実際のログ、認証情報、運用パス、またはファイルシステムに依存する動作を使用せずに、ポリシーの分離された決定論的テストを計画/追加します。ランタイム実装と実行可能テストは 未確定 のままです。
+- P0 は受け入れられないままです。 P0-010/P0-012 は開いたままになります。 OSD-02/OSD-03 および P0-008/P0-010 は未解決のままであるか、文書化されているように部分的に解決されています。 Sentinel ランタイム エントリ ポイント、アクティブ構成ローダー、操作マニフェスト、アーカイブ ゲート、およびランタイム ネガティブ ケイパビリティ ハーネスは存在しないままです。
+- 安全性: 実際のログ、運用パス、認証情報、Google Drive 操作、アーカイブの有効化、または削除動作はありません。
+- CI マージ ゲート: 初期チェックと最大 5 の遅延再チェックが ~60 秒間隔で行われます。 Validate と Package Validation の両方がまったく同じ最新の PR HEAD SHA で成功した場合にのみマージします。それ以外の場合は、マージせずに停止します。
+
+
+## 検証済みの継続 — C-53/C-54 ポリシー監査およびテスト マトリックス (2026-10-21)
+
+- PR #130 のマージ後のメイン CI は、正確なマージ SHA 確認済み で成功しました `5b258fbdc775e5aa5db2dc2903108d7a4461bd29`: https://github.com/wasawo/eo-log-maintenance/actions/runs/39499966171 とパッケージの検証 https://github.com/wasawo/eo-log-maintenance/actions/runs/39499965819.
+- 監査により、C-53 と C-54 は、構文優先の検証、構文検証後の機密性の高いポリシーの修正、安全でないオプション パス上のパス全体 JSON null、部分的な編集なし、ファイル システム/現在のディレクトリの依存関係なし、および拒否された値のエコーなしについて同意することが確認されました。
+- 追跡されるツリーには、診断サニタイズ実装または専用の実行可能テスト ファイルが存在しません。既存の LogFunctions テストは、ファイル名/日付/カットオフ関数のみを対象としています。ドキュメント CI に基づいて C-53/C-54 のランタイム承認を主張しないでください。
+- ブランチ `docs/c54-policy-test-matrix-audit`: `docs/validation/c53-c54-policy-test-matrix.md` に非規範的なテスト計画成果物を追加しました。これには、決定論的な合成フィクスチャ マトリックスが含まれており、URI ユーザー情報、ベアラー認証情報、プロバイダー トークン サフィックス、および PEM ラベルの正確な文法における具体的な曖昧さのフラグを立てます。
+- この監査では、C-53/C-54 は修正されず、新しいポリシーの選択も行われません。プロジェクト ルールごとに、文法が完全に一致する場合は、規範的な実装の前にメンテナの承認が必要です。推奨される次のステップ: メンテナに、正のフィクスチャとニアミスフィクスチャを含む明示的な正規表現/文法テーブルを承認するよう依頼します。次に、純粋なサニタイズ機能と分離されたテストを実装します。
+- P0 は受け入れられないままです。 P0-010/P0-012 は開いたままになります。ランタイム統合、実際のログ、認証情報、運用パス、ドライブ操作、アーカイブの有効化、または削除動作は使用されませんでした。
+- CI ゲート: 初期チェックと最大 5 の遅延再チェックが ~60 秒間隔で行われます。 Validate と Package Validation が両方ともまったく同じ最新の PR HEAD SHA で成功した後にのみマージします。
+
+
+### PR #160 CI フォローアップ (2026-10-22)
+- 実行 `39648690154` がコミット `406949122e7052490d85257a0e349c15ffde5728` で正常に完了したことを検証します。 PowerShell 分析を含む、リストされたすべての手順が正常に完了しました。
+- パッケージ検証の実行 `39648691025` は、同じ古いコミットで成功しました。
+- このメモの時点での PR の現在の HEAD は `11a3edc9d1fb6b2ae3de36e12f37fc55e0e5043d` であるため、これらの結果は正確なヘッドの証明として扱われません。新しい検証が必要であり、マージ前に最新の HEAD でパッケージ検証が実行されます。
+
+
+- フォローアップ検証実行 `39649025407` が `11a3edc9d1fb6b2ae3de36e12f37fc55e0e5043d` で正常に完了しました。パッケージ検証の実行 `39649025423` も同じコミットで成功しました。現在の PR HEAD は `3f81a4913f2cf3a10ba21aa87030584340992506` のままであるため、現在の HEAD で必要な両方のワークフローが確認されるまでマージしないでください。

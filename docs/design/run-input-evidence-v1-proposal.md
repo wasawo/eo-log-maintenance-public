@@ -1,32 +1,32 @@
-# Run Input Evidence v1 Proposal
+# 入力証拠 v1 プロポーザルを実行
 
-- Status: B2 evidence-artifact direction, embedded inventory, exhaustive count reconciliation, and canonical evidence-digest direction approved on 2026-10-21; strict structural schema and synthetic contract tests are introduced in PR #153; runtime implementation and full acceptance remain outstanding.
-- Related: `docs/design/aggregation-report-v1-proposal.md`, `docs/decisions/aggregation-inventory-integrity-options.md`, OSD-02, OSD-03, P0-008, P0-010.
-- Compatibility: this is a separate artifact. It must not add fields to or rewrite the approved manifest v1 schema.
-- Storage direction approved 2026-10-21: local authoritative evidence/report artifacts, followed by verified Google Drive replication for cross-PC access.
-- Validation V1 approved 2026-10-24: completed means all input classification processing finished, independently of whether relevant errors were found. See the [selected-policy record](../decisions/selected-policy-decisions-20261024.md#2-b2-v1の意味と保全). Producer/consumer and synthetic-test follow-up remains unimplemented.
+- ステータス: B2 証拠 - 成果物の方向、埋め込まれたインベントリ、徹底的なカウント調整、および正規の証拠 - ダイジェストの方向が 2026-10-21 で承認されました。厳密な構造スキーマと合成コントラクト テストは PR #153 で導入されています。ランタイム実装と完全な受け入れは依然として未解決のままです。
+- 関連: `docs/design/reference/aggregation-report-v1-proposal.md`、`docs/archive/decisions/aggregation-inventory-integrity-options.md`、OSD-02、OSD-03、P0-008、P0-010。
+- 互換性: これは別の成果物です。承認されたマニフェスト v1 スキーマにフィールドを追加したり、スキーマを書き換えたりしてはなりません。
+- ストレージ方向が承認されました 2026-10-21: ローカルの信頼できる証拠/レポート成果物、その後にクロス PC アクセス用の 確認済み Google Drive レプリケーションが続きます。
+- 検証 V1 承認 2026-10-24: 完了とは、関連するエラーが見つかったかどうかに関係なく、すべての入力分類処理が終了したことを意味します。 [選択されたポリシー レコード](../archive/decisions/selected-policy-decisions-20261024.md#2-b2-v1の意味と保全)を参照してください。生産者/消費者および総合テストのフォローアップは未実装のままです。
 
-## 1. Purpose
+## 1. 目的
 
-Preserve trustworthy evidence that initial source enumeration and filename validation completed, including relevant unclassifiable entries. This allows a derived aggregation report to distinguish a genuinely empty/zero-eligible run from incomplete enumeration or missing validation evidence.
+関連する分類不可能なエントリを含め、最初のソース列挙とファイル名の検証が完了したことを示す信頼できる証拠を保存します。これにより、派生集計レポートで、純粋に空/ゼロ適格な実行と、未完了 列挙または欠落している検証証拠を区別できるようになります。
 
-The evidence is frozen before processing depends on the inventory. It is not reconstructed by re-enumerating a mutable source directory after the run.
+証拠は一覧に応じて処理前に凍結されます。実行後に変更可能なソース ディレクトリを再列挙することによって再構築されることはありません。
 
-## 2. Proposed artifact identity and path
+## 2. 提案された成果物の同一性とパス
 
-Proposed local path:
+提案されたローカル パス:
 
 ```text
 <local-maintenance-root>/_maintenance/run-input-evidence/<PC-ID>/<LogType>/<run_id>.input-evidence.json
 ```
 
-The corresponding Drive copy uses a configuration-defined maintenance root and the same relative path. Do not hard-code a user-specific absolute path in the artifact. Exact root configuration and collision/locking behavior remain open.
+対応するドライブ コピーは、構成定義のメンテナンス ルートと同じ相対パスを使用します。成果物にユーザー固有の絶対パスをハードコーディングしないでください。正確なルート構成と衝突/ロック動作は未解決のままです。
 
-The tuple `pc_id`, `log_type`, and `run_id` must match the originating manifest. A repeated identity with different content is a conflict, not permission to overwrite.
+タプル `pc_id`、`log_type`、および `run_id` は元のマニフェストと一致する必要があります。異なるコンテンツを持つ同一性の繰り返しは競合であり、上書きの許可ではありません。
 
-## 3. Proposed JSON shape
+## 3. 提案されたJSON形状
 
-This is a field-shape proposal, not an executable JSON Schema.
+これはフィールド形状の提案であり、実行可能な JSON Schema ではありません。
 
 ```json
 {
@@ -80,108 +80,108 @@ This is a field-shape proposal, not an executable JSON Schema.
 }
 ```
 
-Example values are illustrative only and are not operational evidence.
+例の値は説明のみを目的としており、運用上の証拠ではありません。
 
-## 4. Required invariants
+## 4. 必須の不変条件
 
-1. Reject missing, malformed, or unsupported `evidence_schema_version`; never silently migrate or repair.
-2. Evidence identity must match the manifest and the aggregation report exactly.
-3. Enumeration status must distinguish `completed` from `failed` or `incomplete`. Only `completed` can support no-work classification.
-4. Validation status must distinguish `completed` from `failed` or `incomplete`. Under approved V1 (2026-10-24), `completed` means classification processing covered all inputs, not just eligible targets; it does not mean no invalid/relevant errors were found. Preserve errors and counts independently. Missing errors or missing counts cannot be interpreted as zero errors; count/digest agreement alone does not prove coverage.
-5. **Approved count rule (2026-10-21, decision A):** every entry returned by a completed enumeration must be assigned exactly one mutually exclusive classification: `eligible_targets`, `valid_ineligible`, `invalid_relevant`, or `ignored_entries` (only for entry types explicitly excluded by the source contract). The sum of these category counts must equal `entries_observed`. `enumeration_errors` is a separate diagnostic count and is not added to that sum; if any enumeration error occurs, enumeration cannot be `completed`. A category must never be silently omitted or double-counted. The exact source-entry universe and pagination contract must be specified before implementation.
-6. The embedded eligible inventory must match the manifest frozen target set and its independently specified digest. The digest canonicalization is a separate open decision; do not implement from this illustrative shape alone.
-7. Relevant invalid/unclassifiable entries are structured and sanitized. Never infer their period from `LastWriteTime`.
-8. Write and validate the local evidence artifact before side effects depend on its inventory. If this fails, stop dependent processing or classify the run conservatively; never certify no-work or period completion.
-9. Treat local publication and Drive replication as separate states. The local evidence remains authoritative after successful local validation. Cross-PC consumers must not use the Drive copy until identity and content verification succeeds.
-10. The evidence is immutable for a given run identity. A conflicting existing artifact stops processing and requires reconciliation; it is not silently replaced.
-11. Do not include file contents, OAuth tokens, credentials, or unsanitized exception details.
-12. Regeneration uses only the validated evidence artifact and the exact originating manifest. Do not rescan mutable source directories to recreate historical enumeration facts.
+1. 欠落、不正、またはサポートされていない `evidence_schema_version` を拒否します。決して黙って移行したり修復したりしないでください。
+2. 証拠の同一性はマニフェストおよび集計レポートと正確に一致する必要があります。
+3. 列挙ステータスは `completed` と `failed` または `incomplete` を区別する必要があります。 `completed` のみが無作業分類をサポートできます。
+4. 検証ステータスでは、`completed` と `failed` または `incomplete` を区別する必要があります。承認された V1 (2026-10-24) では、`completed` は、適格なターゲットだけでなく、すべての入力を分類処理がカバーすることを意味します。無効なエラーや関連するエラーが見つからなかったという意味ではありません。エラーとカウントを個別に保存します。欠落エラーまたは欠落カウントは、ゼロエラーとして解釈できません。カウント/ダイジェストの一致だけでは対象範囲を証明できません。
+5. **承認されたカウント ルール (2026-10-21、決定 A):** 完了した列挙によって返されるすべてのエントリには、相互排他的な分類が 1 つだけ割り当てられる必要があります: `eligible_targets`、`valid_ineligible`、`invalid_relevant`、または `ignored_entries` (ソース コントラクトによって明示的に除外されたエントリ タイプのみ)。これらのカテゴリ数の合計は `entries_observed` に等しくなければなりません。 `enumeration_errors` は別の診断カウントであり、その合計には加算されません。列挙エラーが発生した場合、列挙を `completed` にすることはできません。カテゴリを暗黙的に省略したり、二重にカウントしたりしてはなりません。正確なソースエントリユニバースとページネーションコントラクトは、実装前に指定する必要があります。
+6. 埋め込まれた対象となる一覧は、マニフェストの凍結されたターゲット セットおよびその個別に指定されたダイジェストと一致する必要があります。ダイジェストの正規化は個別のオープンな決定です。この例示的な形状のみから実装しないでください。
+7. 関連する無効/分類不可能なエントリは構造化され、サニタイズされます。 `LastWriteTime` から生理を推測しないでください。
+8. 副作用がそのインベントリに依存する前に、ローカル証拠成果物を作成して検証します。これが失敗した場合は、依存する処理を停止するか、実行を保守的に分類します。無作業または期間終了を決して証明しないでください。
+9. ローカル パブリケーションとドライブ レプリケーションを別の状態として扱います。現地での検証が成功した後も、現地の証拠は引き続き信頼できます。 PC をまたがる消費者は、ID とコンテンツの検証が成功するまで、ドライブのコピーを使用してはなりません。
+10. 証拠は、特定の実行 ID に対して不変です。競合する既存の成果物は処理を停止し、調整が必要になります。サイレントに置き換えられるわけではありません。
+11. ファイルの内容、OAuth トークン、認証情報、またはサニタイズされていない例外の詳細は含めないでください。
+12. 再生成では、検証された証拠成果物と正確な元のマニフェストのみが使用されます。歴史的な列挙事実を再作成するために、変更可能なソース ディレクトリを再スキャンしないでください。
 
-### Validation V1 compatibility and implementation boundary (2026-10-24)
+### 検証 V1 の互換性と実装境界 (2026-10-24)
 
-The approved direction retains the existing v1 field set and status values; it adds neither a coverage field nor a new version. Completed classification with relevant errors must keep `invalid_relevant_count` and `errors`; it cannot certify run success or no-work. Known-period completion still requires the approved OSD-03 inventory, all-outcome accounting and error-scope conditions independently of the status string.
+承認された方向では、既存の v1 フィールド セットとステータス値が保持されます。カバレッジ フィールドも新しいバージョンも追加されません。関連するエラーを含む完了した分類は、`invalid_relevant_count` と `errors` を保持する必要があります。 成功 の実行または非作業を証明することはできません。既知の期間の完了には、ステータス文字列とは関係なく、承認された OSD-03 インベントリ、全結果アカウンティング、およびエラー範囲条件が必要です。
 
-Historical `incomplete` records remain exact original bytes: do not rewrite, repair or promote them to completed from matching counts/digests. Do not infer complete coverage from incomplete/failed observations. As of 2026-10-25 `Common/SourceInventoryEvidenceBuilder.py` emits validation completed when enumeration/classification finishes without uncertain entries, even when invalid filenames are recorded. Enumeration/read/hash uncertainty keeps validation incomplete. Counts, errors and digests retain the existing v1 structure. Synthetic producer/report tests exercise invalid-only and mixed-validity inputs without granting no-work or run success from the completed flag. Formal runtime publication remains incomplete. See the [comparison history](../decisions/b2-validation-coverage-report-time-options.md).
+履歴 `incomplete` レコードは正確な元のバイトのままです。一致するカウント/ダイジェストから再書き込み、修復、または完了への昇格を行わないでください。 未完了/失敗した の観察から 完了 の範囲を推測しないでください。 2026-10-25 以降、無効なファイル名が記録されている場合でも、不確実なエントリなしで列挙/分類が終了すると、`Common/SourceInventoryEvidenceBuilder.py` は検証完了を出力します。列挙/読み取り/ハッシュの不確実性により、検証 未完了 が維持されます。カウント、エラー、ダイジェストは既存の v1 構造を保持します。合成プロデューサー/レポート テストは、ノーワークを許可せずに無効のみおよび混合有効性の入力を実行するか、完了フラグから 成功 を実行します。正式なランタイム出版物は 未完了 のままです。 [比較履歴](../archive/decisions/b2-validation-coverage-report-time-options.md)を参照してください。
 
-## 5. Inventory representation — decision A approved
+## 5. 一覧表示 - 決定 A が承認されました
 
-**Decision (2026-10-21): A — embed the complete frozen eligible-target inventory in the B2 evidence artifact.** This keeps the evidence self-contained and avoids a separate inventory-artifact dependency during recovery. The manifest remains the authoritative per-file outcome record; the evidence proves the initial enumeration/validation input set. The embedded records must match the manifest frozen target set and the approved A2 digest. Duplicate representation is intentional; any mismatch is a hard integrity failure.
+**決定 (2026-10-21): A — 完了 凍結された適格ターゲット一覧を B2 証拠成果物に埋め込みます。** これにより、証拠が自己完結型に保たれ、リカバリ中に個別のインベントリと成果物の依存関係が回避されます。マニフェストはファイルごとの信頼できる結果レコードのままです。証拠は、最初の列挙/検証入力セットを証明します。埋め込まれたレコードは、マニフェストの凍結されたターゲット セットおよび承認された A2 ダイジェストと一致する必要があります。重複した表現は意図的に行われます。すべての 不一致 はハード整合性 失敗 です。
 
-B2 itself is approved: enumeration and validation completeness evidence is a separate immutable artifact.
+B2 自体は承認されています。列挙と検証の完全性の証拠は、別の不変の成果物です。
 
-- **Embedded inventory (shown above):** store the complete frozen eligible-target records in this artifact. This makes the evidence self-contained but duplicates target data from the manifest.
-- **Referenced inventory:** store a canonical inventory artifact separately and include its exact path, count, and digest. This reduces duplication but adds another artifact and publication dependency.
+- **埋め込み一覧 (上に表示):** は、凍結された対象ターゲット レコード 完了 をこの成果物に保存します。これにより、証拠は自己完結型になりますが、マニフェストのターゲット データが複製されます。
+- **参照インベントリ:** は、正規のインベントリ 成果物を個別に保存し、その正確なパス、カウント、ダイジェストを含みます。これにより重複は減りますが、別の成果物とパブリケーションの依存関係が追加されます。
 
-The approved choice is embedded inventory. If measured artifact size later proves impractical, changing to a referenced inventory requires a new explicit decision and schema version; implementations must not silently switch representations.
+承認された選択肢は埋め込み一覧です。測定された成果物 サイズが後で非現実的であることが判明した場合、参照されたインベントリに変更するには、新しい明示的な決定とスキーマ バージョンが必要になります。実装は表示をサイレントに切り替えてはなりません。
 
-## 6. Local publication and Drive replication
+## 6. ローカル公開とドライブのレプリケーション
 
-1. Serialize deterministically to a temporary file in the destination local filesystem.
-2. Flush and close, re-read, and validate schema, identity, counts, inventory digest, and integrity digest.
-3. Publish locally without exposing a partially written final file; do not overwrite an existing artifact with conflicting content.
-4. Only after local publication, upload a copy to the configured Drive destination.
-5. Verify the remote object's identity and content using the approved Drive matching/verification policy before declaring the copy available to PC-B.
-6. If the upload outcome is uncertain, query and reconcile current Drive state before retrying.
-7. A Drive failure must not change the local evidence or imply that cross-PC replication succeeded.
+1. 宛先ローカル ファイル システムの一時ファイルに決定的にシリアル化します。
+2. スキーマ、ID、カウント、インベントリ ダイジェスト、および整合性ダイジェストをフラッシュして閉じ、再読み込みして検証します。
+3. 部分的に書き込まれた最終ファイルを公開せずにローカルに公開します。既存の成果物を競合するコンテンツで上書きしないでください。
+4. ローカルで公開した後のみ、構成されたドライブの保存先にコピーをアップロードしてください。
+5. コピーが PC-B に利用可能であることを宣言する前に、承認されたドライブの照合/検証ポリシーを使用してリモート オブジェクトの ID とコンテンツを検証してください。
+6. アップロードの結果が不確かな場合は、再試行する前に現在のドライブの状態をクエリして調整してください。
+7. ドライブ 失敗 は、ローカルの証拠を変更したり、PC 間のレプリケーションが成功したことを暗示したりしてはなりません。
 
-The exact atomic publication, Drive object identity, upload verification, and locking/recovery implementation remain open.
+正確なアトミック パブリケーション、ドライブ オブジェクト ID、アップロード検証、およびロック/リカバリの実装は未解決のままです。
 
-### 6.1 Approved evidence integrity digest canonicalization
+### 6.1 承認された証拠整合性ダイジェストの正規化
 
-**Decision (2026-10-21):** hash a fixed, deterministic canonical byte representation of the evidence object, excluding only `integrity.digest` itself. This is separate from the A2 inventory digest.
+**Decision (2026-10-21):** は、`integrity.digest` 自体のみを除く、証拠オブジェクトの固定された決定論的な正規バイト表現をハッシュします。これは、A2 一覧ダイジェストとは別のものです。
 
-Canonicalization contract:
+正規化コントラクト:
 
-1. Validate the evidence against the versioned schema before canonicalization. Reject unknown schema versions, duplicate JSON object keys, missing required fields, invalid types, invalid UTF-8, and values outside schema constraints. Do not silently coerce or repair.
-2. Build the digest input from the complete evidence object with only the `integrity.digest` member removed. Retain `integrity.algorithm` and `integrity.canonicalization`; their values are fixed to `sha256` and `EO-LOG-MAINTENANCE-RUN-INPUT-EVIDENCE-V1`. The digest field is omitted, not replaced by an empty string or null.
-3. Serialize as UTF-8 JSON with no byte-order mark, no insignificant whitespace, no trailing newline, and object member names sorted by unsigned lexicographic order of their UTF-8 bytes at every nesting level.
-4. Arrays retain schema-defined semantic order. In particular, inventory targets are ordered by the approved A2 relative-path UTF-8 byte ordering; validation errors are ordered by `error_id` byte order. Any other array must have an explicit schema-defined order; unordered collections must not be serialized from incidental runtime iteration order.
-5. Strings are encoded as UTF-8 without Unicode normalization or case folding. JSON escaping must be deterministic: escape quotation mark, reverse solidus, and U+0000–U+001F using the shortest valid JSON escapes, using lowercase hexadecimal digits for `\\u00xx` escapes when needed. Do not escape non-ASCII scalar values unnecessarily. Reject unpaired surrogate values.
-6. Integers use canonical base-10 JSON notation: zero is `0`; other non-negative integers have no sign or leading zeroes. Floating-point values are prohibited in the evidence schema. Booleans and null use lowercase JSON literals.
-7. Compute SHA-256 over the resulting bytes. Store the digest as exactly 64 lowercase hexadecimal ASCII characters. Verification repeats the same schema validation and canonicalization and compares the computed digest in constant time where supported.
-8. The canonicalization identifier is versioned. Any change to member ordering, string escaping, number rules, array ordering, or excluded fields requires a new canonicalization identifier or evidence schema version; never silently change v1 behavior.
+1. 正規化する前に、バージョン管理されたスキーマに対して証拠を検証します。 不明 スキーマ バージョン、重複した JSON オブジェクト キー、必須フィールドの欠落、無効な型、無効な UTF-8、およびスキーマ制約外の値を拒否します。無言で強制したり修復したりしないでください。
+2. `integrity.digest` メンバーのみを削除した 完了 証拠オブジェクトからダイジェスト入力を構築します。 `integrity.algorithm` と `integrity.canonicalization` を保持します。それらの値は `sha256` と `EO-LOG-MAINTENANCE-RUN-INPUT-EVIDENCE-V1` に固定されています。ダイジェスト フィールドは省略され、空の文字列または null に置き換えられません。
+3. バイトオーダーマーク、意味のない空白、末尾の改行を含まず、すべてのネストレベルで UTF-8 バイトの符号なし辞書編集順にソートされたオブジェクトメンバー名を使用して、UTF-8 JSON としてシリアル化します。
+4. 配列はスキーマ定義の意味順序を保持します。特に、一覧ターゲットは、承認された A2 相対パス UTF-8 バイト順序によって順序付けされます。検証エラーは `error_id` バイト順に並べられます。他の配列には明示的なスキーマ定義の順序が必要です。順序付けされていないコレクションは、偶発的な実行時の反復順序からシリアル化してはなりません。
+5. 文字列は、Unicode 正規化や大文字小文字の変換を行わずに UTF-8 としてエンコードされます。 JSON エスケープは決定的である必要があります。エスケープ引用符、逆斜線、および U+0000–U+001F は、有効な最短の JSON エスケープを使用し、必要に応じて `\\u00xx` エスケープには小文字の 16 進数を使用します。非 ASCII スカラー値を不必要にエスケープしないでください。ペアになっていないサロゲート値を拒否します。
+6. 整数は正規の基数 10 JSON 表記を使用します。ゼロは `0` です。他の非負の整数には、符号も先頭のゼロもありません。浮動小数点値は証拠スキーマでは禁止されています。ブール値と null は小文字の JSON リテラルを使用します。
+7. 結果のバイトに対して SHA-256 を計算します。ダイジェストを正確に 64 小文字の 16 進 ASCII 文字として保存します。検証では、同じスキーマ検証と正規化が繰り返され、サポートされている場合は、計算されたダイジェストが一定時間で比較されます。
+8. 正規化識別子はバージョン管理されています。メンバーの順序付け、文字列のエスケープ、数値規則、配列の順序付け、または除外フィールドを変更するには、新しい正規化識別子または証拠スキーマのバージョンが必要です。 v1 の動作をサイレントに変更しないでください。
 
-This specifies the digest representation but does not replace the need for an executable schema, duplicate-key-detecting parser, and cross-runtime reference vectors before implementation.
+これはダイジェスト表現を指定しますが、実装前の実行可能スキーマ、重複キー検出パーサー、ランタイム間参照ベクトルの必要性を置き換えるものではありません。
 
-## 7. Acceptance tests required
+## 7. 受け入れテストが必要
 
-- Valid completed enumeration with zero eligible targets is distinguishable from failed/incomplete enumeration.
-- Missing or incomplete validation evidence cannot produce a valid no-work result.
-- Evidence/manifest/report identity mismatch is rejected.
-- Count mismatch, duplicate target, duplicate normalized path, invalid hash, invalid size, and digest mismatch are rejected.
-- Relevant unclassifiable filenames are preserved and block run-level success.
-- Local write failure prevents dependent processing from relying on uncommitted evidence.
-- Crash before local publication leaves no authoritative partial artifact.
-- Crash after local publication but before Drive replication preserves the local artifact and reports replication as incomplete.
-- Uncertain Drive upload is reconciled before retry; conflicting remote content is not overwritten.
-- Regeneration uses the exact manifest and evidence, never a rescan of mutable source data.
-- Tests use synthetic fixtures and temporary directories only; no real logs, production paths, credentials, or Drive writes.
+- 適格なターゲットがゼロの有効な完了した列挙は、失敗した/未完了 列挙と区別できます。
+- 検証証拠が欠落しているか、未完了 があると、有効な非作業結果を生成できません。
+- 証拠/マニフェスト/レポート ID 不一致 は拒否されます。
+- カウント 不一致、重複したターゲット、重複した正規化パス、無効なハッシュ、無効なサイズ、およびダイジェスト 不一致 は拒否されます。
+- 関連する分類できないファイル名は保存され、実行レベル 成功 をブロックします。
+- ローカル書き込み 失敗 は、依存する処理がコミットされていない証拠に依存することを防ぎます。
+- ローカル公開前にクラッシュすると、信頼できる部分的な成果物が残されません。
+- ローカル公開後、ドライブ レプリケーションがローカル 成果物を保持し、レプリケーションを 未完了 として報告する前にクラッシュします。
+- 不確実なドライブのアップロードは再試行前に調整されます。競合するリモート コンテンツは上書きされません。
+- 再生成では、変更可能なソース データの再スキャンではなく、正確なマニフェストと証拠が使用されます。
+- テストでは合成フィクスチャと一時ディレクトリのみを使用します。実際のログ、運用パス、認証情報、またはドライブへの書き込みはありません。
 
-## 8. Decisions still needed
+## 8. 依然として決定が必要
 
-- [x] Approve A2 inventory digest field order, path normalization, Unicode treatment, and integer encoding.
-- [x] Embedded versus referenced inventory: embedded inventory approved.
-- [x] Count reconciliation: every enumerated entry receives exactly one classification and category counts sum to `entries_observed`; enumeration errors prevent `completed`. The source-entry universe is approved; traversal and pagination acceptance tests remain pending.
-- [x] Evidence digest canonicalization: fixed UTF-8 JSON representation, with `integrity.digest` omitted from its own input; exact contract in §6.1.
-- Define local root and Drive root configuration, remote identity checks, locking, and crash recovery.
-- Specify executable schema and table-driven tests.
+- [x] A2 一覧ダイジェスト フィールドの順序、パス正規化、Unicode 処理、および整数エンコードを承認します。
+- [x] 埋め込み一覧と参照一覧: 埋め込み一覧は承認されました。
+- [x] カウント調整: すべての列挙されたエントリは 1 つの分類を受け取り、カテゴリ カウントの合計は `entries_observed` になります。列挙エラーにより `completed` が妨げられます。ソースエントリーユニバースは承認されています。トラバーサルおよびページネーションの受け入れテストは 未確定 のままです。
+- [x] 証拠ダイジェストの正規化: UTF-8 JSON 表現を修正し、独自の入力から `integrity.digest` を省略しました。 §6.1 の正確な契約。
+- ローカル ルートとドライブ ルートの構成、リモート ID チェック、ロック、およびクラッシュ リカバリを定義します。
+- 実行可能スキーマとテーブル駆動テストを指定します。
 
-No runtime implementation, executable tests, or operational evidence is claimed.
-
-
-## Implementation status — A2/B2 integrity validator slice (2026-10-22)
-
-Canonicalization now rejects Python floating-point values recursively before the JSON roundtrip, including integer-valued floats, negative zero, fractional and nonfinite values; it never coerces them to integers. JSON Schema's abstract integer acceptance of `1.0` is not proof of §6.1 canonical compliance. Synthetic regressions preserve integer reference vectors and verify rejection through digest/invariant, report-builder and exact-byte referenced-artifact paths, even with an independently reproduced old faulty digest. Normal source-builder integer output, canonical vectors, integer-derived report counts and exact original-byte reference hashes remain unchanged. Previously misaccepted B2 evidence containing floats is rejected without repair or conversion. This implements the approved number rule; it does not introduce a general lexical-number parser policy beyond values parsed as floating point, decide B2 status or timestamp questions, or prove runtime/Drive acceptance.
-
-PR #156 introduces `Common/RunInputEvidenceIntegrity.py` to recompute the approved A2 inventory digest and B2 evidence digest, validate the evidence against the strict v1 schema, and enforce the approved exhaustive count reconciliation for completed enumeration. Synthetic tests cover the documented A2 reference vectors and fail-closed integrity/count cases; CI execution is pending until the PR head is checked.
-
-Scope boundaries: this helper validates an already-constructed evidence object. It does not enumerate source entries, prove source traversal completion, compare the embedded inventory against the originating manifest, persist immutable evidence, publish atomically, replicate to Drive, or authorize archive/deletion. These remain acceptance gaps.
-
-## OSD-03 approved report-contract compatibility note (2026-10-21)
-
-R1-B/R2-A/R3-B/R4-A/R5-A/R6-A/R7-A are approved. The report contains period summaries only and references the exact manifest and B2 evidence by canonical relative path, schema version, and SHA-256 of exact bytes. Report identity is (pc_id, log_type, run_id, report_schema_version), with no report_id field. Deterministic regeneration uses only immutable validated inputs; it must not re-enumerate mutable source directories. Period completion is complete/incomplete/indeterminate and remains report-only, not a manifest v1 enum. Local publication is authoritative; Drive replication is separate and must be content-verified before cross-PC use. These decisions do not alter manifest v1, B2 evidence structure, A2 inventory digest, or exhaustive count reconciliation. Executable schema, runtime implementation, and tests remain pending.
+ランタイム実装、実行可能テスト、または運用上の証拠は主張されていません。
 
 
-## Manifest/evidence frozen-target binding implementation slice (2026-10-22)
+## 実装ステータス — A2/B2 整合性検証スライス (2026-10-22)
 
-PR #157 extends the referenced-artifact validation path to recompute A2/B2 digests and require the embedded B2 target set to equal the originating manifest `files` set by relative path, filename, size, and SHA-256. It also checks report inventory count/digest against the validated evidence. Synthetic tests cover a manifest/evidence target-set divergence. This remains a standalone validation helper, not source enumeration or official sync/archive entry-point integration; exact-head CI must pass before this slice is considered verified.
+正規化では、JSON ラウンドトリップの前に、整数値浮動小数点、負のゼロ、小数および非有限値を含む Python 浮動小数点値が再帰的に拒否されるようになりました。整数に強制することはありません。 JSON Schema の `1.0` の抽象整数の受け入れは、§6.1 の正規準拠の証拠ではありません。合成回帰では、整数の参照ベクトルが保存され、独立して複製された古い欠陥のあるダイジェストであっても、ダイジェスト/不変、レポート ビルダー、正確なバイトで参照される成果物 パスを通じて拒否が検証されます。通常のソース ビルダーの整数出力、正準ベクトル、整数から導出されたレポート カウント、および正確な元のバイト参照ハッシュは変更されません。以前に誤って受け入れられたフロートを含む B2 証拠は、修復または変換されずに拒否されます。これにより、承認済みの番号ルールが実装されます。浮動小数点として解析される値を超える一般的な語彙数パーサー ポリシーを導入したり、B2 ステータスやタイムスタンプの質問を決定したり、ランタイム/ドライブの受け入れを証明したりすることはありません。
+
+PR #156 では、承認された A2 一覧ダイジェストと B2 証拠ダイジェストを再計算し、厳格な v1 スキーマに対して証拠を検証し、完了した列挙に対して承認された完全なカウント調整を強制するための `Common/RunInputEvidenceIntegrity.py` が導入されています。合成テストは、文書化された A2 参照ベクトルとフェイルクローズされた整合性/カウントのケースをカバーします。 PR ヘッドがチェックされるまで、CI の実行は 未確定 になります。
+
+スコープ境界: このヘルパーは、すでに構築された証拠オブジェクトを検証します。ソース エントリの列挙、ソース トラバーサルの完了の証明、埋め込みインベントリと元のマニフェストの比較、不変証拠の永続化、アトミックな公開、ドライブへの複製、アーカイブ/削除の承認は行いません。これらは依然として受け入れギャップです。
+
+## OSD-03 はレポートと契約の互換性に関するメモ (2026-10-21) を承認しました
+
+R1-B/R2-A/R3-B/R4-A/R5-A/R6-A/R7-A は承認されています。レポートには期間の概要のみが含まれており、正規の相対パス、スキーマ バージョン、正確なバイト数の SHA-256 によって正確なマニフェストと B2 証拠が参照されます。レポート ID は (pc_id、log_type、run_id、report_schema_version) で、report_id フィールドはありません。決定論的再生成では、不変の検証済み入力のみが使用されます。変更可能なソース ディレクトリを再列挙してはなりません。期間の完了は 完了/未完了/確定不能 であり、マニフェスト v1 列挙型ではなくレポートのみのままです。ローカルの公開済み成果物を正本とします。ドライブのレプリケーションは個別に行われるため、PC 間で使用する前に 内容確認済み にする必要があります。これらの決定は、マニフェスト v1、B2 証拠構造、A2 一覧ダイジェスト、または徹底的なカウント調整を変更しません。実行可能スキーマ、ランタイム実装、およびテストは 未確定 のままです。
+
+
+## マニフェスト/証拠の凍結ターゲット バインディング実装スライス (2026-10-22)
+
+PR #157 は、A2/B2 ダイジェストを再計算するために参照成果物検証パスを拡張し、埋め込み B2 ターゲットが相対パス、ファイル名、サイズ、SHA-256 で設定された元のマニフェスト `files` と等しくなるように設定することを要求します。また、レポートの一覧数/ダイジェストを検証済みの証拠と照合してチェックします。総合テストは、マニフェスト/証拠のターゲットセットの相違をカバーします。これは、ソースの列挙や公式の同期/アーカイブ エントリ ポイントの統合ではなく、スタンドアロンの検証ヘルパーのままです。このスライスが 確認済み とみなされる前に、exact-head CI を通過する必要があります。

@@ -1,7 +1,7 @@
 # private回復証拠の保存・検証契約
 
 状態: 非公開保全と当面自動削除なしの方針は承認済み。実保存・ACL設定・dispositionは未実装。
-根拠: [利用者回答](../decisions/recovery-private-evidence-policy-proposal.md)。関連: [明示回復](explicit-recovery-command-design.md)、[owner v2](recovery-owner-evidence-v2-contract.md)。
+根拠: [利用者回答](../archive/decisions/recovery-private-evidence-policy-proposal.md)。関連: [明示回復](explicit-recovery-command-design.md)、[所有者 v2](recovery-owner-evidence-v2-contract.md)。
 
 ## 保存範囲と配置
 
@@ -23,7 +23,7 @@ privateメタデータ自体も公開診断へ自動掲載しない。SHA-256だ
 
 Common/PrivateRecoveryEvidence.pyのbuilder/validatorは、渡されたbytesだけを使いメタデータの生成・strict JSON/UTF-8・重複key・schema・size/digest対応を検証する。
 信頼済みrepository/package schemaを読む以外のファイル読取、保存、directory作成、ACL、Drive、削除は行わない。
-schemaの参照も[local fragment限定・resource取得禁止](../../Common/README.md#local-only-recovery-schema-references-2026-10-27)として検査し、HTTP/file/相対resourceを取得しない。正常なlocal参照は維持し、非local/破損参照・不正schemaは既存private_evidence_invalidで拒否する。
+schemaの参照も[local fragment限定・resource取得禁止](reference/common-module-notes.md#ローカルのみのリカバリ-スキーマ参照-2026-10-27)として検査し、HTTP/file/相対resourceを取得しない。正常なlocal参照は維持し、非local/破損参照・不正schemaは既存private_evidence_invalidで拒否する。
 UTCは構文と暦日を独立検証するが、時計信頼性・現在性は別ゲート。観測IDやscopeも実recordの出所を証明しない。
 原本は不正JSON/非UTF-8であってもopaque bytesとして保全できる。保全可能であることはsupported lockや回復対象であることを意味しない。
 
@@ -39,7 +39,7 @@ ACLを書き換えて通過させるコードや、例外を無視するfallback
 accountの実名/SIDは公開設定・記録へ出さず、手入力項目も増やさない。
 
 各PC内で手動と将来scheduled taskは同一accountとする方針が承認済み。PC-A/B間で同じaccountを要求しない。別accountへの自動共有はしない。
-[承認記録](../decisions/recovery-execution-account-policy-proposal.md)と[限定ACL形状の部分実装](private-evidence-acl-profile.md)を参照。実効アクセスや実ACLの資格確認はまだ実装しない。
+[承認記録](../archive/decisions/recovery-execution-account-policy-proposal.md)と[限定ACL形状の部分実装](reference/private-evidence-acl-profile.md)を参照。実効アクセスや実ACLの資格確認はまだ実装しない。
 
 ## 公開順序・中断・再試行（未実装）
 
