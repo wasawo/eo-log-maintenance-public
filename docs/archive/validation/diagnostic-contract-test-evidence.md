@@ -6,18 +6,18 @@
 
 ## 現在追跡されている実装
 
-|契約|追跡された実装/テスト|テストで確立されるもの|残りのギャップ|
-|---|---|---|---|
-|C-45 イベント ID|Common/LogFunctions.ps1: New-DiagnosticErrorId; tests/Test-DiagnosticErrorId.ps1; docs/archive/decisions/c45-event-identity-conflict-options.md|呼び出し元が所有する実行ごとの単調カウンターは、単一のテスト シーケンス内で一意の連続 ID を生成します。メンテナが承認したオプション A では、証拠の最終化/公開時に、1 つの ID で競合する不変/コア属性がフェイルクローズされる必要があります。|ランタイム イベントの作成、個別イベントごとに 1 つの割り当て、伝播/重複排除、競合検出、およびフェールクローズの強制は実装/テストされていません。ポリシー決定は、実行時の受け入れの証拠ではありません。|
-|C-46 ID エンコードと枯渇|同じアロケーターとテスト|正確な ERR-000001 スタイルの固定幅フォーマット。 ERR-999999 は最終的な ID です。疲れは閉じられない。書式設定は文化に依存しません。|ランタイム実行スコープのアロケーター所有者や同時実行/シリアル化コントラクトは実装されていません。|
-|C-47 レコード/パスの制約|ConvertTo-FinalizedDiagnosticJson; ConvertTo-SafeDiagnosticRelativePath; tests/Test-DiagnosticRecordFinalizer.ps1; tests/Test-DiagnosticPathSanitization.ps1|7 フィールドのレコード形状。安全なオプションのパス。 1024 Unicode スカラー値のパス キャップ。超過/安全でないパスは JSON null になります。|エンドツーエンドの証拠パイプラインはありません。ソースとルートの関係は相対パス契約として表され、ファイルシステムに対して解決されません。|
-|C-48 バージョンの互換性|ConvertTo-FinalizedDiagnosticJson; Test-DiagnosticRecordFinalizer.ps1|スキーマ バージョン 1 は整数である必要があります。欠落している/サポートされていない/非整数のバージョンと欠落している/不明なフィールドは拒否されます。|API は、生の JSON ではなく、すでに構造化された辞書を受け入れます。重複する JSON プロパティ名は、ディクショナリが具体化される前に、将来の raw-JSON 取り込み境界で拒否される必要があります。|
-|C-49 管理語彙|ConvertTo-FinalizedDiagnosticJson; Test-DiagnosticRecordFinalizer.ps1|正確なエラーコードの許可リストと有効なフェーズ/操作のペア。無効な値と大文字小文字の違いは拒否されます。|実行時の失敗とコードのマッピングは統合されていません。|
-|C-50 失敗-条件マッピング|Common/LogFunctions.ps1 の DiagnosticErrorCode を解決します。 tests/Test-DiagnosticErrorCodeClassifier.ps1; aggregation-inventory-integrity-options.md の標準契約|承認されたオプション スカラー条件トークンは、C-49 error_code ホワイトリストに決定的にマッピングされます。 14 マッピングと不正な入力拒否のケースは、Validate CI で実行されます。|プロデューサー側の優先順位の選択、イベントの作成/伝播/重複排除、生の JSON 重複キーの拒否、ランタイム シンクの非公開、およびエンドツーエンドの証拠は未実装/実行されないままになります。ヘルパーのカバレッジは実行時に受け入れられません。|
-|C-51 フェーズ/動作マッピング|Common/LogFunctions.ps1 の Resolve-DiagnosticPhaseOperation; tests/Test-DiagnosticPhaseOperationResolver.ps1; Test-DiagnosticRecordFinalizer.ps1; aggregation-inventory-integrity-options.mdの規範的契約|承認されたオプション C の操作トークンは、その固有のフェーズに決定論的にマッピングされます。正確な動作が維持されます。すべての 13 行、無効な入力、大文字と小文字の違い、コレクション形式の値、非文字列、および再現性が Validate CI でテストされます。|プロデューサーのセマンティックの正確性、ランタイム イベントの作成/伝播、元のイベントの ID の保存、およびエンドツーエンドの証拠は未実装のまま/実行されません。リゾルバーのカバレッジは実行時に受け入れられません。|
-|C-52 メッセージを修正しました|ConvertTo-FinalizedDiagnosticJson; Test-DiagnosticRecordFinalizer.ps1|許可リストに登録された各コードは、正確に承認されたメッセージとペアになっています。不一致/ヌル/コントロールを含むメッセージは拒否されます。生産量は文化を問わず安定しています。|このファイナライザーに実行時エラー イベントがフィードされることはありません。例外由来メッセージのプロセス境界での非公開が確立されていない。|
-|C-53 パス構文とフィールドのヌル化|ConvertTo-SafeDiagnosticRelativePath; ConvertTo-FinalizedDiagnosticJson;どちらの診断テストも|相対パス構文、正規の区切り文字、機密ポリシーの順序付け、Unicode の有効性、1024 スカラーの最大値、安全でないオプション パスでの明示的な JSON null、およびイベント ID/分類の保持。|実際のランタイム診断パイプラインや生の JSON 取り込み境界はありません。|
-|C-54 センシティブなパスの検出|ConvertTo-SafeDiagnosticRelativePath; tests/Test-C54PatternContract.ps1; tests/Test-DiagnosticPathSanitization.ps1|承認された固定機密名/トークンおよび P1 ～ P6 パターンは、合成フィクスチャでカバーされます。|運用ログ/認証情報やエンドツーエンドのロギング シンクは実行されません。実行時の非公開は未検証のままです。|
+| 契約 | 追跡された実装/テスト | テストで確立されるもの | 残りのギャップ |
+| --- | --- | --- | --- |
+| C-45 イベント ID | Common/LogFunctions.ps1: New-DiagnosticErrorId; tests/Test-DiagnosticErrorId.ps1; docs/archive/decisions/c45-event-identity-conflict-options.md | 呼び出し元が所有する実行ごとの単調カウンターは、単一のテスト シーケンス内で一意の連続 ID を生成します。メンテナが承認したオプション A では、証拠の最終化/公開時に、1 つの ID で競合する不変/コア属性がフェイルクローズされる必要があります。 | ランタイム イベントの作成、個別イベントごとに 1 つの割り当て、伝播/重複排除、競合検出、およびフェールクローズの強制は実装/テストされていません。ポリシー決定は、実行時の受け入れの証拠ではありません。 |
+| C-46 ID エンコードと枯渇 | 同じアロケーターとテスト | 正確な ERR-000001 スタイルの固定幅フォーマット。 ERR-999999 は最終的な ID です。疲れは閉じられない。書式設定は文化に依存しません。 | ランタイム実行スコープのアロケーター所有者や同時実行/シリアル化コントラクトは実装されていません。 |
+| C-47 レコード/パスの制約 | ConvertTo-FinalizedDiagnosticJson; ConvertTo-SafeDiagnosticRelativePath; tests/Test-DiagnosticRecordFinalizer.ps1; tests/Test-DiagnosticPathSanitization.ps1 | 7 フィールドのレコード形状。安全なオプションのパス。 1024 Unicode スカラー値のパス キャップ。超過/安全でないパスは JSON null になります。 | エンドツーエンドの証拠パイプラインはありません。ソースとルートの関係は相対パス契約として表され、ファイルシステムに対して解決されません。 |
+| C-48 バージョンの互換性 | ConvertTo-FinalizedDiagnosticJson; Test-DiagnosticRecordFinalizer.ps1 | スキーマ バージョン 1 は整数である必要があります。欠落している/サポートされていない/非整数のバージョンと欠落している/不明なフィールドは拒否されます。 | API は、生の JSON ではなく、すでに構造化された辞書を受け入れます。重複する JSON プロパティ名は、ディクショナリが具体化される前に、将来の raw-JSON 取り込み境界で拒否される必要があります。 |
+| C-49 管理語彙 | ConvertTo-FinalizedDiagnosticJson; Test-DiagnosticRecordFinalizer.ps1 | 正確なエラーコードの許可リストと有効なフェーズ/操作のペア。無効な値と大文字小文字の違いは拒否されます。 | 実行時の失敗とコードのマッピングは統合されていません。 |
+| C-50 失敗-条件マッピング | Common/LogFunctions.ps1 の DiagnosticErrorCode を解決します。 tests/Test-DiagnosticErrorCodeClassifier.ps1; aggregation-inventory-integrity-options.md の標準契約 | 承認されたオプション スカラー条件トークンは、C-49 error_code ホワイトリストに決定的にマッピングされます。 14 マッピングと不正な入力拒否のケースは、Validate CI で実行されます。 | プロデューサー側の優先順位の選択、イベントの作成/伝播/重複排除、生の JSON 重複キーの拒否、ランタイム シンクの非公開、およびエンドツーエンドの証拠は未実装/実行されないままになります。ヘルパーのカバレッジは実行時に受け入れられません。 |
+| C-51 フェーズ/動作マッピング | Common/LogFunctions.ps1 の Resolve-DiagnosticPhaseOperation; tests/Test-DiagnosticPhaseOperationResolver.ps1; Test-DiagnosticRecordFinalizer.ps1; aggregation-inventory-integrity-options.mdの規範的契約 | 承認されたオプション C の操作トークンは、その固有のフェーズに決定論的にマッピングされます。正確な動作が維持されます。すべての 13 行、無効な入力、大文字と小文字の違い、コレクション形式の値、非文字列、および再現性が Validate CI でテストされます。 | プロデューサーのセマンティックの正確性、ランタイム イベントの作成/伝播、元のイベントの ID の保存、およびエンドツーエンドの証拠は未実装のまま/実行されません。リゾルバーのカバレッジは実行時に受け入れられません。 |
+| C-52 メッセージを修正しました | ConvertTo-FinalizedDiagnosticJson; Test-DiagnosticRecordFinalizer.ps1 | 許可リストに登録された各コードは、正確に承認されたメッセージとペアになっています。不一致/ヌル/コントロールを含むメッセージは拒否されます。生産量は文化を問わず安定しています。 | このファイナライザーに実行時エラー イベントがフィードされることはありません。例外由来メッセージのプロセス境界での非公開が確立されていない。 |
+| C-53 パス構文とフィールドのヌル化 | ConvertTo-SafeDiagnosticRelativePath; ConvertTo-FinalizedDiagnosticJson;どちらの診断テストも | 相対パス構文、正規の区切り文字、機密ポリシーの順序付け、Unicode の有効性、1024 スカラーの最大値、安全でないオプション パスでの明示的な JSON null、およびイベント ID/分類の保持。 | 実際のランタイム診断パイプラインや生の JSON 取り込み境界はありません。 |
+| C-54 センシティブなパスの検出 | ConvertTo-SafeDiagnosticRelativePath; tests/Test-C54PatternContract.ps1; tests/Test-DiagnosticPathSanitization.ps1 | 承認された固定機密名/トークンおよび P1 ～ P6 パターンは、合成フィクスチャでカバーされます。 | 運用ログ/認証情報やエンドツーエンドのロギング シンクは実行されません。実行時の非公開は未検証のままです。 |
 
 ## CI 証拠
 

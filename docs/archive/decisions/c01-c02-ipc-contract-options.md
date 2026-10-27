@@ -34,7 +34,7 @@ Google公式一次資料で確認したREST APIの返却条件は§7にまとめ
 
 ### 2.2 schema・PS・Pythonの責務
 
-| 選択 |スキーマ| PowerShell | Python |トレードオフ|
+| 選択 | スキーマ | PowerShell | Python | トレードオフ |
 | --- | --- | --- | --- | --- |
 | V1: 採用・schemaにも構文制約 | P1/L1の字句形と不正形を拒否する方向 | 信頼済み設定、role、操作別allow-root、物理identity/分離、使用点再検証 | schema再検証と独立した構文/指定先検証。使用直前のpath資格を確認 | 正規表現と両言語の判定差をfixtureで管理する必要。追従は未実装 |
 | V2: 未採用・構文はruntime検査に委ねる | 現行の型/最小長に留め、構文保証なしを明記する比較案 | 選んだ構文範囲とruntime資格の検査が必要 | 独立した構文/指定先検証を必須にする比較案 | schema単独でrelative等を受理する限界が残る |
@@ -43,10 +43,10 @@ Google公式一次資料で確認したREST APIの返却条件は§7にまとめ
 
 ### 2.3 二つのpathの用途と拒否境界
 
-|リクエストフィールド| 用途とallow-rootの役割 | そこから得られない権限 |
+| リクエストフィールド | 用途とallow-rootの役割 | そこから得られない権限 |
 | --- | --- | --- |
-|`local_path` をアップロード| アップロードする既存入力を読む。対象PC/操作で許されたコピー元root内かをPSが検証し、Pythonも使用対象を検証する。直前に `expected_sha256` と照合 | 任意rootの読取り、別ファイルの代用、変更・削除・上書き |
-|ダウンロード `staging_path`| 指定されたステージング先への限定書込み。コピー元と最終archive先から分離された許可root・対象identity・新規/空の再試行先を検証 | 最終配置、既存運用物の上書き、archive、削除。Dry Run Aでのbytes取得・保存 |
+| `local_path` をアップロード | アップロードする既存入力を読む。対象PC/操作で許されたコピー元root内かをPSが検証し、Pythonも使用対象を検証する。直前に `expected_sha256` と照合 | 任意rootの読取り、別ファイルの代用、変更・削除・上書き |
+| ダウンロード `staging_path` | 指定されたステージング先への限定書込み。コピー元と最終archive先から分離された許可root・対象identity・新規/空の再試行先を検証 | 最終配置、既存運用物の上書き、archive、削除。Dry Run Aでのbytes取得・保存 |
 
 具体的なallow-rootの設定キー、追加許可値、root一覧は本書では決めない。両fieldに同一rootを無条件で許すこともしない。
 
@@ -77,7 +77,7 @@ N1は、対象metadata/tokenを必須nullableにし、未取得値はnull、fiel
 
 型の候補は `file_id` / `name` / `mime_type` が非空文字列、`modified_time` がタイムゾーンを伴う日時文字列、`parent_ids` が非空文字列の配列、`sha256` / `staging_sha256` が64桁hex、tokenが非空文字列。nullableを選ぶfieldだけnullを追加許容する。日時の正規化とAPI値の変換、checksumの出所を示す表現も承認前に確定し、APIがこの型で返すとは仮定しない。list/getの既定fieldは一部だけであり、ID/name等を必須にするには明示的な `fields` 要求と欠落時停止を検証する必要がある。fieldを要求しても、そのresourceで値が利用可能になるとは限らない。[フィールドパラメータ](https://developers.google.com/workspace/drive/api/guides/fields-parameter)
 
-|オペレーション| 必須・非nullの最小候補 | 必須nullableのfield候補（N1方針採用） | 未採用N2の比較履歴 | missing/nullを安全判断でどう扱うか |
+| オペレーション | 必須・非nullの最小候補 | 必須nullableのfield候補（N1方針採用） | 未採用N2の比較履歴 | missing/nullを安全判断でどう扱うか |
 | --- | --- | --- | --- | --- |
 | `list_files` | `files` 配列（0件可）、各要素 `file_id`、`name`。ページの不完全性を示す `incomplete_listing` 真偽値候補 | `next_page_token`（文字列/null）。各要素の `mime_type`、`size`、`modified_time`、`parent_ids`、`sha256` は取得不能時null候補 | 同じmetadata群は取得時のみ出す。末尾ページのtoken欠落を許す場合はその意味を明文化 | token null/欠落だけで全体完了にしない。incompleteが不明・true、ページ失敗、identity不足なら不在証明不可 |
 | `get_file_metadata` | `file_id`、`name`、`cloud_content_verified`（metadataだけならfalse） | `mime_type`、`size`、`modified_time`、`parent_ids`、`sha256` | 同じmetadata群を取得時のみ出す | hash欠落/nullは未検証。必要なidentity/sizeがなければ後続安全判断を停止。resource不在とhash欠落は別 |

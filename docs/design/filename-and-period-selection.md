@@ -11,7 +11,7 @@ ElectronicObserverのBattleLogとErrorReportについて、一意に判定でき
 パターンはファイル名全体に対して照合する。
 
 | ログ種別 | パターン | 日付部分 |
-|---|---|---|
+| --- | --- | --- |
 | BattleLog | `^(?<Date>\d{8})_\d{8}@.+\.txt$` | 先頭8文字 |
 | ErrorReport | `^(?<Date>\d{8})_\d{8}\.txt$` | 先頭8文字 |
 
@@ -44,7 +44,7 @@ ElectronicObserverのBattleLogとErrorReportについて、一意に判定でき
 2026年10月に実行する場合:
 
 | ログ種別 | 処理 | 対象となる最も新しい日付 |
-|---|---|---|
+| --- | --- | --- |
 | BattleLog | 同期 | 2026-09-30 |
 | BattleLog | アーカイブ | 2025-12-31 |
 | ErrorReport | 同期 | 2025-12-31 |

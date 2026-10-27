@@ -13,13 +13,13 @@ v2は取得時に必要証拠を収集できた新規recordだけを対象とす
 ## 2. 必要な論理情報と出所
 
 | 情報 | 要求する意味と出所 |
-|---|---|
+| --- | --- |
 | versionとscope | 回復対象のsupported record版、承認済み端末/maintenance scopeへの一致。任意pathや入力PIDでscopeを選ばない |
-|所有権トークン| 取得時に生成した新しい秘密値。現ownerに関するtoken一致は、旧ownerの終了証拠の代用にしない |
+| 所有権トークン | 取得時に生成した新しい秘密値。現ownerに関するtoken一致は、旧ownerの終了証拠の代用にしない |
 | 端末/起動のidentity | record作成時と観測時のOS環境を結ぶ、資格確認済みproviderによるidentity。host名や操作者入力だけで同一としない |
-|プロセス ID| PIDとOS由来の生成identityの組。PID単独を採用しない。取得時点のprocessとrecordの対応を検証する |
-|レコードのスナップショット| 原本bytesとSHA-256、scope/root/ファイル同一性観測。hashだけで出所・権限・現在性を証明しない |
-|ライブ観察| 同じOS process handleに対するidentity確認と終了/生存/不明の観測。使い捨てのhandle値自体を永続identityにしない |
+| プロセス ID | PIDとOS由来の生成identityの組。PID単独を採用しない。取得時点のprocessとrecordの対応を検証する |
+| レコードのスナップショット | 原本bytesとSHA-256、scope/root/ファイル同一性観測。hashだけで出所・権限・現在性を証明しない |
+| ライブ観察 | 同じOS process handleに対するidentity確認と終了/生存/不明の観測。使い捨てのhandle値自体を永続identityにしない |
 
 field名・JSON型・正規化・digest対象・文字列上限は機械可読schemaの単位で厳密化する。
 未確定の表現・出所・digest対象と格納位置は[owner-v2判断資料](../archive/decisions/owner-v2-field-binding-options.md)で比較する（未承認）。
@@ -42,15 +42,15 @@ handleの取得・identity照合・観測・closeの寿命を一つのprovider�
 全行で、mutex保持、root/recordの出所・scope・同一性、providerの資格が成立していることを別途要求する。
 
 | 観測 | owner状態 | 回復への扱い |
-|---|---|---|
-| v1、未知版、証拠不足/破損 |はサポートされていません/不明| 診断・保全または拒否。変換しない |
+| --- | --- | --- |
+| v1、未知版、証拠不足/破損 | はサポートされていません/不明 | 診断・保全または拒否。変換しない |
 | 端末/起動が不一致または不明 | unknown | 推測で終了としない。別途の再起動証拠方式ができるまで停止 |
-| 対応を確認した同一process handleが非signaled |ライブ| 停止。強制終了・lock奪取をしない |
+| 対応を確認した同一process handleが非signaled | ライブ | 停止。強制終了・lock奪取をしない |
 | 対応を確認した同一process handleがsignaled | termination_observed | owner終了の部分証拠としてのみ供給。最新manifest/Drive/disposition等の別ゲートを省略しない |
 | 現PIDの生成identityが異なる | 不一致/不明 | PID再利用を検出しても、それだけで旧recordを処分しない |
 | PIDなし、Open/query不能、Access denied、provider failure | unknown | 不在/失敗を終了証明にしない |
 | mutex abandonedのみ、古い時刻、操作者の「終了した」申告 | unknown | 終了証拠へ昇格させない |
-| 取得中/診断後のrecord変更 |が変更されました| 当該計画を破棄し保留。古いsnapshotを変更許可にしない |
+| 取得中/診断後のrecord変更 | が変更されました | 当該計画を破棄し保留。古いsnapshotを変更許可にしない |
 
 この契約は「すべての終了済みprocessを回復できる」ことを保証しない。
 process handleを失った後や再起動後は、この初期候補で終了証拠を得られず停止する場合がある。

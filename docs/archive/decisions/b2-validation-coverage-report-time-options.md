@@ -46,7 +46,7 @@ sourceの上記一行は実装の観察であり、V1へ追従した出力では
 
 | 論点 | 選択履歴 | 追従に必要な条件 |
 | --- | --- | --- |
-|検証範囲| V1採用（2026-10-24） | 既存field/status維持、error有無と分類完了を分離。旧incomplete保全、producer/consumer・合成試験追従 |
+| 検証範囲 | V1採用（2026-10-24） | 既存field/status維持、error有無と分類完了を分離。旧incomplete保全、producer/consumer・合成試験追従 |
 | report生成時刻 | G1採用（2026-10-24） | 二入力の終了UTCの遅い元文字列、同instantはmanifest表記。丸めなし、R5/identity/conflict維持、実装追従 |
 
 [第1回回答](selected-policy-decisions-20261024.md#第1回回答)の②V1/③G1が根拠で、C-01のP1とは独立した選択。資料mergeや純粋schema検証の成功を実OS/Drive資格・本番適用の認可にしない。v1 manifestやB2数値canonical規則、source/root/排他/現在cloud内容の独立ゲートは維持する。
@@ -57,12 +57,12 @@ V1/G1の意味の選択は記録済みで、producer/consumer・純粋builder・
 
 以下は**今回未実装・未実行の追加候補**であり、既存テストの成功を新しい意味の証拠として転用しない。
 
-|ベクトル| 確認する期待値 |
+| ベクトル | 確認する期待値 |
 | --- | --- |
 | T-06とcoverage | relevant unclassifiable errorを消さずrun partialを維持。独立inventory/error scopeを証明できた期間だけcomplete、未証明ならindeterminate |
 | 未完了/失敗した | validation/列挙未完または失敗をno_work/completeへ昇格しない。既知の期間失敗はincompleteとして保持 |
 | accounting矛盾 | count合計、invalid件数とerrors、error IDs重複/順序、inventory/digest/identity矛盾を拒否。数値floatのPR #36拒否は維持 |
-|確定的な時間| G1のexact二入力から同じ元時刻表記/bytesを再現。同instantならmanifest表記、小数精度保持。不一致caller時刻・変更入力を拒否し同一identityを上書きしない |
+| 確定的な時間 | G1のexact二入力から同じ元時刻表記/bytesを再現。同instantならmanifest表記、小数精度保持。不一致caller時刻・変更入力を拒否し同一identityを上書きしない |
 | clock境界 | 未来許容ちょうど/直後、時刻不明・信頼不可、finish前の生成UTC・start/finish逆転、小数末尾差、古い正当なhistorical入力を区別 |
 
 今回の検証範囲は文書リンク・記述整合・diffのみ。V1/G1の承認記録と文書を整合する作業であり、実装追従・再生成受け入れの完了ではない。

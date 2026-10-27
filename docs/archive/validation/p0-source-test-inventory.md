@@ -12,21 +12,21 @@
 
 ## 1. 現在のソース成果物インベントリ
 
-|エリア|現在の成果物|利用可能な役割/証拠|カバレッジ状態|
-|---|---|---|---|
-|PowerShell 共有関数| Common/LogFunctions.ps1, Common/README.md |ファイル名/日付の解析および期間選択ヘルパー。正確な PowerShell 7.6.7 ガード。 README にはまだ実装されていない機能についても記載されています|部分的な実装。各機能を要件にマッピングしてテストする|
-|運用上の PowerShell エントリ ポイント|`scripts/SyncLogs.ps1` はセンチネルとしてのみ存在します。 `scripts/ArchiveLogs.ps1` および操作可能なバッチ エントリ ポイントがありません|検証できる動作中の同期/アーカイブ実行パスはありません。 SyncLogs には同期実装が含まれていません|未実装。ランタイムセーフまたはデプロイ可能ではない|
-|パッケージビルダー|.github/scripts/Build-ReleasePackage.ps1|ホワイトリストに基づいて成果物をレビューします。共有機能をソースし、バージョン ガードを適用します|パッケージング ユーティリティが存在します。 PC-A/PC-B リリース受付が完了していません|
-|PowerShell テスト| tests/Test-LogFunctions.ps1, tests/Test-ReleasePackage.ps1 |ヘルパー関数、バージョン ガードの決定、パッケージ ビルダーの動作|CI はこれらのテストを実行します。運用上のエントリポイントの安全性が存在しないことを証明できない|
-|Python/スキーマテスト| tests/test_contract_schemas.py, requirements-test.txt |要求/応答 JSON Schema とコントラクトの例 (不明 操作の拒否を含む) を検証します。|スキーマ テストは Validate で実行されます。 PR #49 の IPC 監査では、生の stdout/stderr、プロセス終了コード、リクエストの相関関係、タイムアウト、シークレットの編集、ライブ ドライブ アダプターの動作がカバーされていないことが確認されています。|
-|リクエスト/レスポンスのスキーマ| contracts/drive-request.schema.json, contracts/drive-response.schema.json |機械可読な PowerShell/Python 境界コントラクト|成果物は存在します。契約の承認とランタイム統合がオープン|
-|構成例| Config/PC-A.example.json, Config/PC-B.example.json |PC ごとのパスとロール設定の例|パッケージ ビルダー テストはテンプレートのセマンティクスを検証し、既知の安全でないバリアントを拒否します。 active-config ランタイム ローダー、承認されたルートの封じ込め、ロールバインドされた承認、および PC-A ポジティブ アーカイブ承認は未実装のままです|
-|CI 検証|.github/workflows/validate.yml、.github/workflows/package-validation.yml|PowerShell 7.6.7 をインストールし、アーカイブ ハッシュとランタイム バージョンを確認し、利用可能なテストと静的分析を実行します。|証拠は現在のヘルパー/パッケージ テストのみを対象としています|
-|配布ドキュメント|docs/release/distribution-design.md、README.md、バージョン、CHANGELOG.md|配布制約、プロジェクトのステータス、リリースのメタデータ|将来の公式エントリ ポイントおよび PC ごとの許可リストと調整する必要があります|
-|ランタイム設計と安全性| docs/development/implementation-workflow.md, docs/design/powershell-python-contract.md, docs/design/staging-file-lifecycle.md, docs/validation/runtime-safety-test-scenarios.md |同期、クラウド検証、マニフェスト、アーカイブ適格性、再試行、安全性に関して提案された動作|デザインは存在します。一部の要件は提案されたまま、または未承認のままです|
-|ファイル名/期間の規則| `docs/design/filename-and-period-selection.md`, `docs/validation/filename-period-test-plan.md`, `Common/LogFunctions.ps1`, `tests/Test-LogFunctions.ps1` |§2 ファイル名パターン/日付解析、§§3–4 同期/アーカイブ カットオフ ルール、§§6–7 無効名/実行ステータス ルール|FIL-001–004 および FIL-007–009 ヘルパー レベル アサーションは、`Test-LogFunctions.ps1` および Validate #44 に句マップされます。 FIL-005/006/010 はランタイム未実装のままです (混合エラーの集計、完全なバックログの列挙、ゼロターゲットのマニフェスト/実行ステータス)。タイムスタンプの不一致と列挙はヘルパー CI ではカバーされません。|
-|要件レコード| docs/requirements/requirements-traceability.md, docs/archive/validation/requirements-source-audit.md, docs/decisions/decision-register-c18-c32.md, docs/requirements/p0-gap-register.md |要件 ID、ソース カバレッジ、決定事項、優先順位付けされたギャップ|ベースラインと部分セクション/マップされていないセクションの配置には調整が必要です|
-|将来のメンテナンス ユーティリティ| scripts/README.md |計画されているドキュメント/更新ヘルパーについて説明します|ユーティリティは実装されていないため、ソース/テスト カバレッジとしてカウントされません|
+| エリア | 現在の成果物 | 利用可能な役割/証拠 | カバレッジ状態 |
+| --- | --- | --- | --- |
+| PowerShell 共有関数 | Common/LogFunctions.ps1, Common/README.md | ファイル名/日付の解析および期間選択ヘルパー。正確な PowerShell 7.6.7 ガード。 README にはまだ実装されていない機能についても記載されています | 部分的な実装。各機能を要件にマッピングしてテストする |
+| 運用上の PowerShell エントリ ポイント | `scripts/SyncLogs.ps1` はセンチネルとしてのみ存在します。 `scripts/ArchiveLogs.ps1` および操作可能なバッチ エントリ ポイントがありません | 検証できる動作中の同期/アーカイブ実行パスはありません。 SyncLogs には同期実装が含まれていません | 未実装。ランタイムセーフまたはデプロイ可能ではない |
+| パッケージビルダー | .github/scripts/Build-ReleasePackage.ps1 | ホワイトリストに基づいて成果物をレビューします。共有機能をソースし、バージョン ガードを適用します | パッケージング ユーティリティが存在します。 PC-A/PC-B リリース受付が完了していません |
+| PowerShell テスト | tests/Test-LogFunctions.ps1, tests/Test-ReleasePackage.ps1 | ヘルパー関数、バージョン ガードの決定、パッケージ ビルダーの動作 | CI はこれらのテストを実行します。運用上のエントリポイントの安全性が存在しないことを証明できない |
+| Python/スキーマテスト | tests/test_contract_schemas.py, requirements-test.txt | 要求/応答 JSON Schema とコントラクトの例 (不明 操作の拒否を含む) を検証します。 | スキーマ テストは Validate で実行されます。 PR #49 の IPC 監査では、生の stdout/stderr、プロセス終了コード、リクエストの相関関係、タイムアウト、シークレットの編集、ライブ ドライブ アダプターの動作がカバーされていないことが確認されています。 |
+| リクエスト/レスポンスのスキーマ | contracts/drive-request.schema.json, contracts/drive-response.schema.json | 機械可読な PowerShell/Python 境界コントラクト | 成果物は存在します。契約の承認とランタイム統合がオープン |
+| 構成例 | Config/PC-A.example.json, Config/PC-B.example.json | PC ごとのパスとロール設定の例 | パッケージ ビルダー テストはテンプレートのセマンティクスを検証し、既知の安全でないバリアントを拒否します。 active-config ランタイム ローダー、承認されたルートの封じ込め、ロールバインドされた承認、および PC-A ポジティブ アーカイブ承認は未実装のままです |
+| CI 検証 | .github/workflows/validate.yml、.github/workflows/package-validation.yml | PowerShell 7.6.7 をインストールし、アーカイブ ハッシュとランタイム バージョンを確認し、利用可能なテストと静的分析を実行します。 | 証拠は現在のヘルパー/パッケージ テストのみを対象としています |
+| 配布ドキュメント | docs/release/distribution-design.md、README.md、バージョン、CHANGELOG.md | 配布制約、プロジェクトのステータス、リリースのメタデータ | 将来の公式エントリ ポイントおよび PC ごとの許可リストと調整する必要があります |
+| ランタイム設計と安全性 | docs/development/implementation-workflow.md, docs/design/powershell-python-contract.md, docs/design/staging-file-lifecycle.md, docs/validation/runtime-safety-test-scenarios.md | 同期、クラウド検証、マニフェスト、アーカイブ適格性、再試行、安全性に関して提案された動作 | デザインは存在します。一部の要件は提案されたまま、または未承認のままです |
+| ファイル名/期間の規則 | `docs/design/filename-and-period-selection.md`, `docs/validation/filename-period-test-plan.md`, `Common/LogFunctions.ps1`, `tests/Test-LogFunctions.ps1` | §2 ファイル名パターン/日付解析、§§3–4 同期/アーカイブ カットオフ ルール、§§6–7 無効名/実行ステータス ルール | FIL-001–004 および FIL-007–009 ヘルパー レベル アサーションは、`Test-LogFunctions.ps1` および Validate #44 に句マップされます。 FIL-005/006/010 はランタイム未実装のままです (混合エラーの集計、完全なバックログの列挙、ゼロターゲットのマニフェスト/実行ステータス)。タイムスタンプの不一致と列挙はヘルパー CI ではカバーされません。 |
+| 要件レコード | docs/requirements/requirements-traceability.md, docs/archive/validation/requirements-source-audit.md, docs/decisions/decision-register-c18-c32.md, docs/requirements/p0-gap-register.md | 要件 ID、ソース カバレッジ、決定事項、優先順位付けされたギャップ | ベースラインと部分セクション/マップされていないセクションの配置には調整が必要です |
+| 将来のメンテナンス ユーティリティ | scripts/README.md | 計画されているドキュメント/更新ヘルパーについて説明します | ユーティリティは実装されていないため、ソース/テスト カバレッジとしてカウントされません |
 
 ## 2. トレーサビリティのルール
 
@@ -41,28 +41,28 @@
 
 ## 3. 現在のCIの証拠
 
-|証拠|結論|確立されません|
-|---|---|---|
-|実行の検証 39372725014: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372725014|PR #25 ヘッドで成功しました。 PowerShell 7.6.7 をインストール/検証し、JSON スキーマ/構成を検証し、`tests/Test-LogFunctions.ps1` を実行し、PSScriptAnalyzer を実行します。|エンドツーエンドの同期、ドライブの検証、マニフェストのライフサイクル、アーカイブの適格性、すべてのエントリポイントの起動保護、またはランタイム非削除証明。|
-|パッケージ検証の実行 39372724979: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372724979|PR #25 ヘッドで成功しました。 PowerShell 7.6.7 をインストール/検証し、パッケージ ビルダー テストを実行します。|最終的な公式ランタイム エントリ ポイントを含む展開可能な PC-A/PC-B パッケージ。|
-|実行の検証 39372313204: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372313204|PR #24 ヘッドで成功しました。歴史的証拠として残されています。|ランタイム統合とクラウド動作。|
-|パッケージ検証の実行 39372313187: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372313187|PR #24 ヘッドで成功しました。歴史的証拠として残されています。|実稼働リリースのパッケージ化または展開。|
-|実行の検証 39373621988: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373621988|PR #26 ヘッドで成功しました。成果物のインベントリと静的安全性の監査を更新します。|実行時の統合または操作上の削除の安全性。|
-|パッケージ検証の実行 39373622016: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373622016|PR #26 ヘッドで成功しました。パッケージビルダーのテストに合格しました。|導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。|
-|実行の検証 39373986586: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373986586|PR #27 ヘッドで成功しました。ソース マトリックス/クロスウォーク ドキュメントが検証されました。|ランタイム統合または運用リリースの準備。|
-|パッケージ検証の実行 39373986582: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373986582|PR #27 ヘッドで成功しました。パッケージビルダーのテストに合格しました。|導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。|
-|実行の検証 39374352642: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374352642|PR #28 ヘッドで成功しました。位相対応表の文書が検証されました。|ランタイムフェーズの受け入れまたは運用準備。|
-|パッケージ検証の実行 39374352675: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374352675|PR #28 ヘッドで成功しました。パッケージビルダーのテストに合格しました。|導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。|
-|実行の検証 39374829187: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374829187|PR #29 ヘッドで成功しました。意思決定のバックログと横断的なリンクが検証されました。|延期されたポリシーまたは実行時の受け入れの解決。|
-|パッケージ検証の実行 39374829183: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374829183|PR #29 ヘッドで成功しました。パッケージビルダーのテストに合格しました。|導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。|
-|実行の検証 39379247675: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379247675|PR #38 ヘッドで成功しました。明示的に設計専用とラベル付けされた SEL-RT-01–10 を使用してドキュメント/スキーマ/コード チェックを検証します。|ランタイム列挙、タイムスタンプ非フォールバック、混合入力集計、または非突然変異証明が実行されました。|
-|パッケージ検証の実行 39379247689: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379247689|PR #38 ヘッドで成功しました。パッケージビルダーのテストに合格しました。|導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。|
-|実行の検証 39379961951: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379961951|PR #40 ヘッドで成功しました。非規範的な OSD-03 オプション提案とリンクされた決定記録を検証します。|OSD-03 または OSD-02 の承認/解決、または実行時のステータスの集計。|
-|パッケージ検証の実行 39379961909: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379961909|PR #40 ヘッドで成功しました。パッケージビルダーのテストに合格しました。|導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。|
-|実行の検証 39384288557: https://github.com/wasawo/eo-log-maintenance/actions/runs/39384288557|PR #42 ヘッドで成功しました。ハンドオフ記録 PR #41 を検証し、承認ゲートを保持します。|実行時の統合またはポリシーの承認。|
-|パッケージ検証の実行 39384288385: https://github.com/wasawo/eo-log-maintenance/actions/runs/39384288385|PR #42 ヘッドで成功しました。パッケージビルダーのテストに合格しました。|導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。|
-|実行の検証 39395439176: https://github.com/wasawo/eo-log-maintenance/actions/runs/39395439176|PR #50 ヘッド `dda840b8f3d943cc6e6ae299460ccf50ada092ca` で成功しました。現在のドキュメント/スキーマ/ヘルパー/静的分析チェックを検証します。|ランタイム列挙、プロセス境界 IPC、同期/アーカイブ オーケストレーション、実際のドライブの動作、または破壊的操作の安全性。|
-|パッケージ検証の実行 39395439152: https://github.com/wasawo/eo-log-maintenance/actions/runs/39395439152|PR #50 ヘッド `dda840b8f3d943cc6e6ae299460ccf50ada092ca` で成功しました。パッケージビルダーの検証に合格しました。|デプロイ可能な運用パッケージまたはランタイム同期/アーカイブの受け入れ。|
+| 証拠 | 結論 | 確立されません |
+| --- | --- | --- |
+| 実行の検証 39372725014: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372725014 | PR #25 ヘッドで成功しました。 PowerShell 7.6.7 をインストール/検証し、JSON スキーマ/構成を検証し、`tests/Test-LogFunctions.ps1` を実行し、PSScriptAnalyzer を実行します。 | エンドツーエンドの同期、ドライブの検証、マニフェストのライフサイクル、アーカイブの適格性、すべてのエントリポイントの起動保護、またはランタイム非削除証明。 |
+| パッケージ検証の実行 39372724979: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372724979 | PR #25 ヘッドで成功しました。 PowerShell 7.6.7 をインストール/検証し、パッケージ ビルダー テストを実行します。 | 最終的な公式ランタイム エントリ ポイントを含む展開可能な PC-A/PC-B パッケージ。 |
+| 実行の検証 39372313204: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372313204 | PR #24 ヘッドで成功しました。歴史的証拠として残されています。 | ランタイム統合とクラウド動作。 |
+| パッケージ検証の実行 39372313187: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372313187 | PR #24 ヘッドで成功しました。歴史的証拠として残されています。 | 実稼働リリースのパッケージ化または展開。 |
+| 実行の検証 39373621988: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373621988 | PR #26 ヘッドで成功しました。成果物のインベントリと静的安全性の監査を更新します。 | 実行時の統合または操作上の削除の安全性。 |
+| パッケージ検証の実行 39373622016: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373622016 | PR #26 ヘッドで成功しました。パッケージビルダーのテストに合格しました。 | 導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。 |
+| 実行の検証 39373986586: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373986586 | PR #27 ヘッドで成功しました。ソース マトリックス/クロスウォーク ドキュメントが検証されました。 | ランタイム統合または運用リリースの準備。 |
+| パッケージ検証の実行 39373986582: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373986582 | PR #27 ヘッドで成功しました。パッケージビルダーのテストに合格しました。 | 導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。 |
+| 実行の検証 39374352642: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374352642 | PR #28 ヘッドで成功しました。位相対応表の文書が検証されました。 | ランタイムフェーズの受け入れまたは運用準備。 |
+| パッケージ検証の実行 39374352675: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374352675 | PR #28 ヘッドで成功しました。パッケージビルダーのテストに合格しました。 | 導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。 |
+| 実行の検証 39374829187: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374829187 | PR #29 ヘッドで成功しました。意思決定のバックログと横断的なリンクが検証されました。 | 延期されたポリシーまたは実行時の受け入れの解決。 |
+| パッケージ検証の実行 39374829183: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374829183 | PR #29 ヘッドで成功しました。パッケージビルダーのテストに合格しました。 | 導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。 |
+| 実行の検証 39379247675: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379247675 | PR #38 ヘッドで成功しました。明示的に設計専用とラベル付けされた SEL-RT-01–10 を使用してドキュメント/スキーマ/コード チェックを検証します。 | ランタイム列挙、タイムスタンプ非フォールバック、混合入力集計、または非突然変異証明が実行されました。 |
+| パッケージ検証の実行 39379247689: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379247689 | PR #38 ヘッドで成功しました。パッケージビルダーのテストに合格しました。 | 導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。 |
+| 実行の検証 39379961951: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379961951 | PR #40 ヘッドで成功しました。非規範的な OSD-03 オプション提案とリンクされた決定記録を検証します。 | OSD-03 または OSD-02 の承認/解決、または実行時のステータスの集計。 |
+| パッケージ検証の実行 39379961909: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379961909 | PR #40 ヘッドで成功しました。パッケージビルダーのテストに合格しました。 | 導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。 |
+| 実行の検証 39384288557: https://github.com/wasawo/eo-log-maintenance/actions/runs/39384288557 | PR #42 ヘッドで成功しました。ハンドオフ記録 PR #41 を検証し、承認ゲートを保持します。 | 実行時の統合またはポリシーの承認。 |
+| パッケージ検証の実行 39384288385: https://github.com/wasawo/eo-log-maintenance/actions/runs/39384288385 | PR #42 ヘッドで成功しました。パッケージビルダーのテストに合格しました。 | 導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。 |
+| 実行の検証 39395439176: https://github.com/wasawo/eo-log-maintenance/actions/runs/39395439176 | PR #50 ヘッド `dda840b8f3d943cc6e6ae299460ccf50ada092ca` で成功しました。現在のドキュメント/スキーマ/ヘルパー/静的分析チェックを検証します。 | ランタイム列挙、プロセス境界 IPC、同期/アーカイブ オーケストレーション、実際のドライブの動作、または破壊的操作の安全性。 |
+| パッケージ検証の実行 39395439152: https://github.com/wasawo/eo-log-maintenance/actions/runs/39395439152 | PR #50 ヘッド `dda840b8f3d943cc6e6ae299460ccf50ada092ca` で成功しました。パッケージビルダーの検証に合格しました。 | デプロイ可能な運用パッケージまたはランタイム同期/アーカイブの受け入れ。 |
 
 ## 4. 残りのP0-010作業
 

@@ -17,18 +17,18 @@
 
 ## 2. 提案されたランレベルフィールド
 
-|フィールド|必須|提案されたタイプ/制約|意味|
-|---|---:|---|---|
-| schema_version |はい|整数;まさに1|マニフェスト形式のバージョン|
-| run_id |はい|UUID 文字列|1 台の PC での 1 回の実行の一意の識別子|
-| pc_id |はい| 列挙型: PC-A, PC-B |発信元の PC|
-| log_type |はい| 列挙型: BattleLog, ErrorReport |ログ カテゴリ|
-| target_period |はい|YYYY-MM (BattleLog); YYYY (ErrorReport)|ファイル名に由来する期間が報告されています|
-| status |はい| 列挙型: running, success, partial_failure, failure |実行ステータスはライフサイクル仕様ですでに指定されています|
-| outcome |はい|null または no_work を含む列挙型|成功したゼロターゲット実行を区別します|
-| started_at_utc |はい|UTC Z で終わるタイムスタンプ文字列|実行開始時刻|
-| finished_at_utc |はい|UTC Z で終わるタイムスタンプ文字列、または null|ファイナライズ時間。ステータスが実行中に提案された null|
-| files |はい|ファイルごとのレコードの配列。空いているかもしれない|凍結されたターゲット インベントリとファイルごとの結果レコード|
+| フィールド | 必須 | 提案されたタイプ/制約 | 意味 |
+| --- | ---: | --- | --- |
+| schema_version | はい | 整数;まさに1 | マニフェスト形式のバージョン |
+| run_id | はい | UUID 文字列 | 1 台の PC での 1 回の実行の一意の識別子 |
+| pc_id | はい | 列挙型: PC-A, PC-B | 発信元の PC |
+| log_type | はい | 列挙型: BattleLog, ErrorReport | ログ カテゴリ |
+| target_period | はい | YYYY-MM (BattleLog); YYYY (ErrorReport) | ファイル名に由来する期間が報告されています |
+| status | はい | 列挙型: running, success, partial_failure, failure | 実行ステータスはライフサイクル仕様ですでに指定されています |
+| outcome | はい | null または no_work を含む列挙型 | 成功したゼロターゲット実行を区別します |
+| started_at_utc | はい | UTC Z で終わるタイムスタンプ文字列 | 実行開始時刻 |
+| finished_at_utc | はい | UTC Z で終わるタイムスタンプ文字列、または null | ファイナライズ時間。ステータスが実行中に提案された null |
+| files | はい | ファイルごとのレコードの配列。空いているかもしれない | 凍結されたターゲット インベントリとファイルごとの結果レコード |
 
 ### 実行レベルの整合性制約がレビューのために提案されました
 
@@ -41,24 +41,24 @@
 
 ## 3. 提案されたファイルごとのフィールド
 
-|フィールド|必須|提案されたタイプ/制約|意味|
-|---|---:|---|---|
-| relative_path |はい|空ではない正規化された相対パス|ソース相対パス。絶対パスにすることはできません。または、設定されたソース ルートをエスケープすることはできません。|
-| filename |はい|空ではないベース名|期間分類に使用される元のファイル名|
-| size_bytes |はい|整数 >= 0|固定ソースのサイズ|
-| sha256 |はい|64 16 進文字|凍結されたソース コンテンツのハッシュ|
-| status |はい| 列挙型: staging, ready, pending, uploaded, verified, failed, unknown |ファイルごとのライフサイクル状態はステージング ライフサイクルですでに指定されています|
-| drive_file_id |はい|空ではない文字列または null|識別された場合は安定したドライブのオブジェクト ID。識別前または確立されていない場合は null|
-| verification |はい|オブジェクト|ドライブのコンテンツ検証結果の明示的な記録|
+| フィールド | 必須 | 提案されたタイプ/制約 | 意味 |
+| --- | ---: | --- | --- |
+| relative_path | はい | 空ではない正規化された相対パス | ソース相対パス。絶対パスにすることはできません。または、設定されたソース ルートをエスケープすることはできません。 |
+| filename | はい | 空ではないベース名 | 期間分類に使用される元のファイル名 |
+| size_bytes | はい | 整数 >= 0 | 固定ソースのサイズ |
+| sha256 | はい | 64 16 進文字 | 凍結されたソース コンテンツのハッシュ |
+| status | はい | 列挙型: staging, ready, pending, uploaded, verified, failed, unknown | ファイルごとのライフサイクル状態はステージング ライフサイクルですでに指定されています |
+| drive_file_id | はい | 空ではない文字列または null | 識別された場合は安定したドライブのオブジェクト ID。識別前または確立されていない場合は null |
+| verification | はい | オブジェクト | ドライブのコンテンツ検証結果の明示的な記録 |
 
 ### 提案された検証オブジェクト
 
-|フィールド|必須|提案されたタイプ/制約|意味|
-|---|---:|---|---|
-| status |はい| 列挙型: not_checked, verified, mismatch, unavailable, ambiguous, failed |最新の明示的なコンテンツ検証の試行の結果|
-| method |はい| 列挙型: not_performed, drive_sha256, download_sha256 |観察されたコンテンツのハッシュを取得するために実際に使用されるメソッド。 `not_performed` 観測されたハッシュが取得されなかった場合|
-| checked_at_utc |はい|UTC Z で終わるタイムスタンプ文字列、または null|検証の時間。チェックされていない場合は null|
-| observed_sha256 |はい|64 16 進文字列または null|観測されたドライブのコンテンツ ハッシュ（利用可能な場合）|
+| フィールド | 必須 | 提案されたタイプ/制約 | 意味 |
+| --- | ---: | --- | --- |
+| status | はい | 列挙型: not_checked, verified, mismatch, unavailable, ambiguous, failed | 最新の明示的なコンテンツ検証の試行の結果 |
+| method | はい | 列挙型: not_performed, drive_sha256, download_sha256 | 観察されたコンテンツのハッシュを取得するために実際に使用されるメソッド。 `not_performed` 観測されたハッシュが取得されなかった場合 |
+| checked_at_utc | はい | UTC Z で終わるタイムスタンプ文字列、または null | 検証の時間。チェックされていない場合は null |
+| observed_sha256 | はい | 64 16 進文字列または null | 観測されたドライブのコンテンツ ハッシュ（利用可能な場合） |
 
 ### ファイルごとの制約が検討のために提案されました
 
@@ -68,10 +68,10 @@
 - メンテナは、2026-10-21 に関する次の完全なステータス/メソッド/時間/ハッシュの組み合わせを承認しました。この表以外の組み合わせは無効であり、拒否する必要があります。
 
   | `verification.status` | `verification.method` | `checked_at_utc` | `observed_sha256` |
-  |---|---|---|---|
+  | --- | --- | --- | --- |
   | `not_checked` | `not_performed` | null | null |
-  | `verified` | `drive_sha256` または `download_sha256` | UTC タイムスタンプが必要です |有効な 64-hex ハッシュが必要です |
-  | `mismatch` | `drive_sha256` または `download_sha256` | UTC タイムスタンプが必要です |有効な 64-hex ハッシュが必要です |
+  | `verified` | `drive_sha256` または `download_sha256` | UTC タイムスタンプが必要です | 有効な 64-hex ハッシュが必要です |
+  | `mismatch` | `drive_sha256` または `download_sha256` | UTC タイムスタンプが必要です | 有効な 64-hex ハッシュが必要です |
   | `unavailable`、`ambiguous`、または `failed` (観測されたコンテンツ ハッシュが取得されなかった場合) | `not_performed` | UTC 試行タイムスタンプが必要です | null |
 
 - `method` は、単に試行されたメソッドではなく、観察されたコンテンツ ハッシュを実際に生成したメソッドを記録します。ハッシュを取得する前に操作が失敗した場合は、メソッドとして `drive_sha256` または `download_sha256` を要求しないでください。

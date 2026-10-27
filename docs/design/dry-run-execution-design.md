@@ -50,7 +50,7 @@ path/handle identity、属性、size/hash、列挙完全性を使用点で再確
 
 下表の既存moduleは部分材料であり、DRY fixtureを実装済み・成功済みとする対応ではない。ファイル名は `Common/` 基準。
 
-|治具| 存在する部分材料 | 欠けている責務・確認 |
+| 治具 | 存在する部分材料 | 欠けている責務・確認 |
 | --- | --- | --- |
 | DRY-01 | `SourceInventoryEvidenceBuilder.py`、`RunInputEvidenceIntegrity.py` | 専用dispatch、計画のみの制御、全mutation/download拒否、正常/0件でも運用runなし |
 | DRY-02 | `ManifestDirectoryReader.py`、`LatestManifestSelection.py`、`ArtifactSetDirectoryVerification.py`、`PrivateRecoveryEvidence.py` | 信頼済みrootでの読取り統合、既存原本不変、不正/欠落でも修復・再生成なし |

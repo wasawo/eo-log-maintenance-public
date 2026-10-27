@@ -8,7 +8,7 @@
 
 [応答schema](../../../contracts/drive-response.schema.json)と[現PS helper](../../../Common/DriveResponseSemantics.ps1)が列挙する終了コード2〜10を、選択済み30cAの固定表として確定する。`retryable` は失敗応答で必須bool。`success: true` はexit 0、`error: null`で再試行しない。失敗時は対応する終了コード、`success: false`、`result: null`、固定error code、下表の真偽値がすべて一致しなければ拒否する。
 
-|終了|エラーコード|再試行可能|
+| 終了 | エラーコード | 再試行可能 |
 | ---: | --- | --- |
 | 2 | `INVALID_REQUEST` | false |
 | 3 | `AUTHENTICATION_FAILED` | false |
@@ -30,7 +30,7 @@
 
 | 必須field | 型・制約 | 根拠 |
 | --- | --- | --- |
-| `checkpoint_schema_version` |整数 `1`| 新しい補助契約の版。manifestの`schema_version`とは別 |
+| `checkpoint_schema_version` | 整数 `1` | 新しい補助契約の版。manifestの`schema_version`とは別 |
 | `pc_id` | `"PC-A"` | helperのPC-A限定 |
 | `log_type` | `"BattleLog"` または `"ErrorReport"` | helperのscope |
 | `target_period` | BattleLogは4桁年＋`-`＋`01`〜`12`の月、ErrorReportは4桁年。年の追加制約は別途決める | helperのscope形式を維持 |

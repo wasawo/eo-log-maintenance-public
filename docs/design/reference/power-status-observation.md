@@ -10,11 +10,11 @@
 
 | 観測 | ac_connected | reason_code |
 | --- | --- | --- |
-| API成功、ACLineStatus=1 |真| power_ac_connected |
-| API成功、ACLineStatus=0 |偽| power_ac_disconnected |
-| 255または未定義値 |なし| power_status_unknown |
-| DLL load/照会失敗 |なし| power_query_failed |
-| Windows以外 |なし| power_platform_unsupported |
+| API成功、ACLineStatus=1 | 真 | power_ac_connected |
+| API成功、ACLineStatus=0 | 偽 | power_ac_disconnected |
+| 255または未定義値 | なし | power_status_unknown |
+| DLL load/照会失敗 | なし | power_query_failed |
+| Windows以外 | なし | power_platform_unsupported |
 
 電池の有無・充電flag・残量からACを推定しない。失敗時のzero初期化bufferをoffline/onlineと判定しない。結果はimmutableで、raw例外・OS error・電池情報を露出せず、may_start_run/may_check/may_archiveは常にfalse。結果object自体のtruthinessを資格判定にせず、利用側は`ac_connected is True`を要求する。
 

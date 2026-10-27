@@ -87,7 +87,7 @@ stagingの`already_exists_identical`はcheckpoint更新のreceiptではなく、
 
 `inspect_completion_wait_attempt_usepoint`は同じmoduleの純粋検査で、plan・現在観測したbytes・phase、別入力のscope/現在UTC/実行条件と明示boolのAC接続状態を要求する。既存artifactのfield/versionは変えない。
 
-|フェーズ| 検査 | 検査だけでは証明できないもの |
+| フェーズ | 検査 | 検査だけでは証明できないもの |
 | --- | --- | --- |
 | `before_commit` | 観測bytesがexact expected bytes、candidateが元の1試行planと一致、scope/clock/実行条件/ACが整合し、現在が元の24時間期限内 | 読取元・owner/rootの真正性、検査直後の競合を含むcompare-and-publishの保証 |
 | `after_commit` | 観測bytesがexact proposed bytes、同じplan/context/AC/期限を再検査 | 新しい一回限りのcommit receipt、同じbytesを再度確認してよい根拠、実readbackの現在性 |

@@ -13,7 +13,7 @@
 承認されたのは下表のA方針。個別例外を暗黙に追加しない。同じ選択を再質問しない。設計・実装・受け入れ、IPC契約全体のレビューとOSD-05は別ゲートである。
 
 | 案 | 許容する意図的ローカル効果 | 利点 | 負担・制限 |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **A（推奨）** | アプリによる意図的ファイル書込みなし。検証済み入力の読取りと機密除去済み診断の標準ストリーム出力のみ | 運用stateと証拠を変えず、許容境界を小さく検査できる | 永続診断を残せず、既存の一時requestファイル方式・自動bootstrapを利用できない。設定/root未準備なら停止する |
 | B | Aの読取りに加え、検証済み`maintenanceLocal`下の専用診断reportと当該実行所有の一時ファイルだけ | 再確認可能な診断を残し、一時request方式を限定利用できる | 診断と運用証拠の分離、ACL・所有権・衝突・異常残骸の検証が増える。書込み失敗も安全に扱う必要がある |
 
@@ -24,7 +24,7 @@
 「固定禁止」とA列を採用する。「A採用」の行でもB列は未採用の比較記録。共通候補はAの方針内だが、mutex等の具体方式・実装資格の未検証事項を承認済みとしない。
 
 | 操作・対象 | 区分 | A案 | B案 |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | ローカル元ログ、Driveログ、archiveの作成・コピー・最終配置・上書き・rename・削除 | 固定禁止 | 変更なし。予定操作の説明のみ | 同左。PC-Bにarchive能力を与えない |
 | upload、Drive metadataの更新、Drive上の証拠の発行・複製 | 固定禁止 | mutation API呼出しなし | 同左 |
 | downloadのbytes取得・保存、staging、hash不足時のdownload fallback（メモリ経由を含む） | 固定禁止 | 実行せず、内容未検証と報告 | 同左。診断一時領域もdownload先にしない |
@@ -34,7 +34,7 @@
 | confirmation budget、scheduler完了・missed-run記録 | 固定禁止 | 読取りのみ。予算消費・reset・完了更新なし | 同左 |
 | config/rootのbootstrap、directory作成、既存ACL/所有者/継承の変更・修復 | 固定禁止 | 実config未作成・信頼できるroot未確認なら作成せず停止 | 同左。診断先の準備やACL修復も別の承認済み導入手順で先に行う |
 | ローカル設定・元ログ・既存証拠の読取りとローカルhash計算 | 共通候補 | 役割・許可root・ACL等の読取り検証に成功した範囲だけ。入力不足・変更検出時は保留 | 同左 |
-|ドライブ `list_files` / `get_file_metadata`| 独立ゲート | mock/supplied snapshotのみ。OSD-05と認証副作用の受け入れ前はlive接続を許可しない | 同左。B選択だけでlive readを解禁しない |
+| ドライブ `list_files` / `get_file_metadata` | 独立ゲート | mock/supplied snapshotのみ。OSD-05と認証副作用の受け入れ前はlive接続を許可しない | 同左。B選択だけでlive readを解禁しない |
 | 診断専用mutexの取得・解放という一時的kernel効果 | 共通候補 | 検証済み名前・identityに限定し運用writerとの読取り競合を防ぐ設計を別途確認。record書込みなし | 同左。取得失敗・abandoned・所有不明なら停止し、回復しない |
 | credentialのrefresh・token store/cache更新・対話login | 固定禁止 | 書込みを誘発する認証なし。必要なら接続せず停止 | 同左。既存credentialの存在だけでは認可にならない |
 | IPC request/response等の一時ファイル・cleanup | **A採用** | 作成・変更・削除なし。ファイル不要の安全な経路が成立しなければ停止 | 未採用：検証済み`maintenanceLocal`下の専用診断領域に限り当該実行所有の一時物を作成し、その物だけcleanup。詳細は§3 |

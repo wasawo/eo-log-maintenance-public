@@ -17,7 +17,7 @@
 | 問 | 選択として確定する範囲 | 併せて確定したと扱わないもの |
 | --- | --- | --- |
 | ① C-01 | P1：requestのlocal_path / staging_pathはdrive-rooted Windows pathのみを対象とする | 検査配置V1/V2、詳細字句L1、schema 1.0の改訂/新版/移行、実装開始。回答がP1のみなので質問の提案一式へ拡張しない |
-|② B2検証| V1：既存completedを全入力の分類処理完了の意味に確定し、エラー有無と分離する | 新versionやcoverage fieldの新設、過去recordの修復・昇格、source builderの実装完了 |
+| ② B2検証 | V1：既存completedを全入力の分類処理完了の意味に確定し、エラー有無と分離する | 新versionやcoverage fieldの新設、過去recordの修復・昇格、source builderの実装完了 |
 | ③ report生成UTC | G1：不変入力の終了UTCから基準時刻を決定し、実際の書出時刻とは区別する。具体規則は§3 | 別の時刻metadata保存、毎回の実時計、R5への新たな入力追加、実装・再生成受け入れの完了 |
 
 第1回回答でUNC対応は採用しない。P1だけで構文・root authority・FS資格・physical containmentを証明しない。C-01の残る項目については次の第2回回答で追記する。第1回回答を遡って一式承認にしない。

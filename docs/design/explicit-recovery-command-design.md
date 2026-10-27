@@ -48,7 +48,7 @@ lockなし・manifestなしを推測で回復可能とせず、通常実行の�
 ## 4. 未確定の証拠と状態変更
 
 | 項目 | 現状と要求 |
-|---|---|
+| --- | --- |
 | owner終了証明 | 現行recordのhost/PID/tokenだけでは永続的process identityを証明できない。PID再利用・再起動・query失敗は不明のまま停止。v1を推測でv2相当に扱わない |
 | abandoned通知 | 1回の観測で消費され得る。通知なしは正常終了の証拠でなく、通知ありも終了/所有権の完全証明ではない。診断が観測した後の再実行も試験する |
 | root/時刻/FS | 既存metadata helperと渡されたUTCは資格・信頼性の証明を供給しない。契約と実行証拠が必要 |
@@ -62,8 +62,8 @@ lockなし・manifestなしを推測で回復可能とせず、通常実行の�
 
 ## 5. 実装前の合成試験表
 
-|ID| 条件 | 要求する観測・不変条件 |
-|---|---|---|
+| ID | 条件 | 要求する観測・不変条件 |
+| --- | --- | --- |
 | DIAG-01 | モード省略/Diagnose | record、manifest、staging、source、Drive、archive、実設定を作成/変更しない。出力に秘匿値を含めない |
 | DIAG-02 | 不正引数/設定・未知変更mode | root/対象列挙・mutex取得・API呼出しの前に拒否する |
 | DIAG-03 | mutex競合/取得失敗/timeout | 上限60秒以内に停止、lock/manifest/sourceを読まず元bytesを保持する |

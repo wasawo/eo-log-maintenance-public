@@ -16,11 +16,11 @@ C-23はログ保守のDrive操作用。C-27のGitHub Actions/配布公開identit
 
 | 軸 | 選択対象 | 依存する確認 |
 | --- | --- | --- |
-|Google ID| 同一principal / PCごと別principal / 保留 | 各folderの所有・共有・quota、PC別出所の検証 |
+| Google ID | 同一principal / PCごと別principal / 保留 | 各folderの所有・共有・quota、PC別出所の検証 |
 | 認証方式 | Desktop user OAuth / service account等の別構成 / 保留 | My Drive適合、consent、account/管理条件、task環境 |
-|OAuth スコープ| per-file / read系 / 広範scopeの必要性 / 保留 | 4操作と既存fileへの実際のアクセス範囲 |
+| OAuth スコープ | per-file / read系 / 広範scopeの必要性 / 保留 | 4操作と既存fileへの実際のアクセス範囲 |
 | 実Drive ACL | principalごとの対象folder/file権限 | 継承・limited access・capabilities、不要権限の範囲 |
-|認証情報ストア| user-bound保護store等 / 保留 | user/session境界、ACL、復旧、refresh更新、失効 |
+| 認証情報ストア | user-bound保護store等 / 保留 | user/session境界、ACL、復旧、refresh更新、失効 |
 
 ## 2. Google principalと認証方式
 
@@ -36,7 +36,7 @@ C-23はログ保守のDrive操作用。C-27のGitHub Actions/配布公開identit
 
 | 候補 | 公式資料で確認した事実 | projectへの適合条件・未確認 |
 | --- | --- | --- |
-|A1: デスクトップ ユーザー OAuth| Desktop clientはpublic clientで秘密を保持できず、PKCE、system browser/loopbackを用いる方式が説明される。refresh tokenは長期の安全な保存が必要。[ネイティブ アプリ OAuth](https://developers.google.com/identity/protocols/oauth2/native-app) | 初回の明示consentと通常taskの非対話動作を分ける。lib、client登録、PKCE/loopback実装、principal照合、storeは未選定。credentialの存在だけで実行を認可しない |
+| A1: デスクトップ ユーザー OAuth | Desktop clientはpublic clientで秘密を保持できず、PKCE、system browser/loopbackを用いる方式が説明される。refresh tokenは長期の安全な保存が必要。[ネイティブ アプリ OAuth](https://developers.google.com/identity/protocols/oauth2/native-app) | 初回の明示consentと通常taskの非対話動作を分ける。lib、client登録、PKCE/loopback実装、principal照合、storeは未選定。credentialの存在だけで実行を認可しない |
 | A2: service account等の別構成 | shared drives説明とstorageQuotaExceeded説明は、service accountにstorage quotaがなくfile所有不可とし、shared driveまたはuserを代理する方式を示す。[共有ドライブ](https://developers.google.com/workspace/drive/api/guides/about-shareddrives)、[ストレージクォータ超過](https://developers.google.com/workspace/drive/api/guides/handle-errors#storageQuotaExceeded)。ただし公式資料間に逆の記述がある（直下参照） | 現My Drive構成への適合、所有、quotaは未確認。shared drive/Workspace管理/delegation利用可否を確認し、必要なら配置・所有・管理承認を別途判断。service accountへの自動fallbackは不可 |
 | A3: 保留 | 認証方式未選定 | SDK・store・scopeを実装都合で先に固定しない |
 
@@ -48,7 +48,7 @@ My Driveへuser OAuthでcreateするfileはuser所有となりquotaを消費す�
 
 以下のscope名はGoogle側の比較材料であり、採用する設定値ではない。`drive.file` はアプリ作成、アプリで開く、Picker等でアプリへ共有されたfileを対象とするper-file scope。folder IDやACLがあるだけで、全既存配下fileがscope対象になるとは保証できない。[API スコープを駆動する](https://developers.google.com/workspace/drive/api/guides/api-specific-auth)
 
-| scope候補 |リスト / メタデータ|アップロード|ダウンロード/ハッシュ| projectの判断点 |
+| scope候補 | リスト / メタデータ | アップロード | ダウンロード/ハッシュ | projectの判断点 |
 | --- | --- | --- | --- | --- |
 | S1: `drive.file` | アプリの対象となるfileの範囲で評価 | 対象/作成条件とACLを確認 | 対象fileのcontentアクセスを確認 | 既存file・他PC作成file・未mark fileの可視性を実証する。見えないことを不在としない |
 | S2: `drive.metadata.readonly` | metadata読取り用 | 不可 | content取得不可 | 4操作全体をこれだけでは満たさない。診断用と通常実行用を分けるなら別の方式判断が必要 |
@@ -83,7 +83,7 @@ T1/T2とも保護storeはrepo/package外に置く設計が必要で、固定の�
 | 初回consent | principalの取り違え防止、許可scopeの照合、非対話task内でloginを開始しない停止動作 |
 | refreshとstore更新 | 通常実行での更新資格、排他・更新途中失敗、保存失敗時のhold。refreshの成功だけで操作権限を判断しない |
 | 失効・permission revoked・refresh失敗 | 自動scope拡大・別principal fallback・秘密の再出力をせず停止し、必要な運用者判断を返す |
-|再同意| 誰が何を承認し直すか。scope変更を既存consentの延長として黙認しない |
+| 再同意 | 誰が何を承認し直すか。scope変更を既存consentの延長として黙認しない |
 | backup/restore・PC移行 | tokenを共有Drive/packageへコピーしない。復旧可能性と漏洩時の失効を設計し、復旧不能なら明示的reconsentを行う手順を判断 |
 
 refresh tokenを安全に長期保存する必要性は公式資料にあるが、T1/T2の具体的実装はproject候補である。[ネイティブ アプリ OAuth](https://developers.google.com/identity/protocols/oauth2/native-app)
@@ -115,11 +115,11 @@ Dry Run Aはmock/supplied dataのみで、live auth/network、refresh、store更
 
 | 判断 | 選択済み/残る回答 | 併せて確定する条件 |
 | --- | --- | --- |
-|Google プリンシパル| I1を選択済み。I2/I3は未採用 | 実principalを公開文書へ記載せず、PC別照合・共有・所有/quotaの確認方法 |
+| Google プリンシパル | I1を選択済み。I2/I3は未採用 | 実principalを公開文書へ記載せず、PC別照合・共有・所有/quotaの確認方法 |
 | 認証方式 | A1を選択済み。A2/A3は未採用 | Desktop client/consent条件、または別構成のMy Drive適合・管理条件 |
-|スコープ| S1を選択済み。S2/S3/S4等への自動拡大なし | 4操作と既存fileに必要な範囲。read系だけではupload不可。不足時は停止し自動拡大なし |
+| スコープ | S1を選択済み。S2/S3/S4等への自動拡大なし | 4操作と既存fileに必要な範囲。read系だけではupload不可。不足時は停止し自動拡大なし |
 | 実folder ACL | 最小実権限の確認方針 / 保留 | principal別の継承・limited-access・capabilities、変更する場合の独立承認 |
-|ストア| T1を選択済み。T2/T3は未採用 | provider/user境界・ACL・復旧・backup・refresh/失効/reconsent手順 |
+| ストア | T1を選択済み。T2/T3は未採用 | provider/user境界・ACL・復旧・backup・refresh/失効/reconsent手順 |
 | 限定実試験 | 計画具体化へ進む / 保留 | この回答だけで実行せず、対象・操作・証拠保管・停止条件を別途承認 |
 
 一部だけ回答し他を保留できる。未回答項目を実装都合で補完せず、適合確認が不足する依存作業は停止する。推奨・承認記録を本書から推定しない。
