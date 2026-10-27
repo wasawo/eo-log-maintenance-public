@@ -1,6 +1,6 @@
 # Decision Register: C-18–C-32
 
-> 2026-10-27: [要件再確認Q1〜Q5](../development/requirements-design-task-review-20261027.md)で、元削除まで含む手動移動を初回完成とする要求、両PC期間完了待ち不要、file単位の完了/再実行、削除前の保存先内容一致・コピー時からの元不変の2条件（確認不能なら元保全）が確認された。以下のC-19/C-22/C-28/C-30等との衝突を記録中。具体的確認方式・詳細契約と恒久安全規則の改訂は未完であり、本通知はそれらの解除や実データ操作の認可ではない。過去の承認内容は履歴として保持し、改訂完了と混同しない。
+> 2026-10-27: [要件再確認Q1〜Q5](../development/requirements-design-task-review-20261027.md)で、元削除まで含む手動移動を初回完成とする要求、両PC期間完了待ち不要、file単位の完了/再実行、削除前の保存先内容一致・コピー時からの元不変の2条件（確認不能なら元保全）が確認された。AGENTSの該当境界は利用者の明示承認後に限定改訂済み。以下のC-19/C-22/C-28/C-30等の旧記載との衝突を記録し、具体的確認方式・詳細契約と本台帳本文の整合改訂は未完。実装再開/実データ操作の認可は含めない。過去の承認内容は履歴として保持する。
 
 - Status: Fixed and deferred decisions are recorded here; overall P0 acceptance remains incomplete. The authoritative P0 readiness/acceptance gate is in docs/development/implementation-workflow.md §4.
 - Scope: Initial implementation of ElectronicObserver log maintenance

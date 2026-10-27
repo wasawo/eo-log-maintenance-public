@@ -6,7 +6,7 @@ ElectronicObserver の BattleLog / ErrorReport を、Windows PC-A と PC-B 間�
 
 ファイルの配置と分野別文書は [リポジトリ構成・文書索引](docs/README.md) を参照してください。
 
-> **2026-10-27 要件再確認中:** 利用者は、容量削減のため元削除まで含む両経路の手動移動を最初の完成とし、archiveは両PCの期間完了を待たず、file単位で完了/再実行する要求を確認しました。削除条件は「保存先の内容一致」と「削除直前の元ログがコピー時から変わっていないこと」の両方を確認できること。確認不能なら元を残します。[再確認台帳](docs/development/requirements-design-task-review-20261027.md)に合意と旧copy-only/no-delete方針との衝突を記録しています。恒久安全規則・詳細契約の改訂は未完で、以下の旧記載を改訂済みと扱わないでください。コード変更・実データ操作は行っていません。
+> **2026-10-27 要件再確認中:** 利用者は、容量削減のため元削除まで含む両経路の手動移動を最初の完成とし、archiveは両PCの期間完了を待たず、file単位で完了/再実行する要求を確認しました。削除条件は「保存先の内容一致」と「削除直前の元ログがコピー時から変わっていないこと」の両方を確認できること。確認不能なら元を残します。[再確認台帳](docs/development/requirements-design-task-review-20261027.md)に合意と旧copy-only/no-delete方針との衝突を記録しています。AGENTSの限定改訂は利用者の明示承認後に反映済みですが、詳細契約と以下の本文全体の改訂は未完です。コード変更・実データ操作は行っていません。
 
 > **現在の段階:** 安全基盤・検証補助処理を実装中です。実運用可能な初回リリースには未到達です。P0受け入れは未完了で、正式な同期／アーカイブ入口とランタイム検証も未実装です。初期実装にはローカル元ファイル削除・Drive削除の機能自体を含めません。P0の判定基準は [`docs/development/implementation-workflow.md`](docs/development/implementation-workflow.md) §4 と [`docs/requirements/p0-gap-register.md`](docs/requirements/p0-gap-register.md) を参照してください。
 

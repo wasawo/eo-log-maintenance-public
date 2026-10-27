@@ -2,7 +2,7 @@
 
 Current implementation inventory and dependency order: [2026-10-24 readiness review](../status/first-release-readiness-20261024.md). This plan does not itself establish completion or production authorization.
 
-2026-10-27から[要件・設計・タスクを再確認中](requirements-design-task-review-20261027.md)。Q1〜Q5では元削除を含む手動移動の初回完成、両PC期間完了待ち不要、file単位の完了/再実行と、削除前に保存先の内容一致・元がコピー時から不変であることの両方を確認し、確認不能なら元を残す要求が確認された。以下の旧copy-only/no-delete・両PC待機・phase順序との衝突は同台帳へ記録し、具体的確認方式・詳細契約と恒久規則の改訂はまだ完了していない。本通知は旧安全規則の解除・実装/実データ操作の開始指示ではない。
+2026-10-27から[要件・設計・タスクを再確認中](requirements-design-task-review-20261027.md)。Q1〜Q5では元削除を含む手動移動の初回完成、両PC期間完了待ち不要、file単位の完了/再実行と、削除前に保存先の内容一致・元がコピー時から不変であることの両方を確認し、確認不能なら元を残す要求が確認された。AGENTSの該当境界は利用者の明示承認を受け限定改訂済み。以下の旧copy-only/no-delete・両PC待機・phase順序との衝突は同台帳へ記録し、本文全体・具体的確認方式・詳細契約の改訂は未完。本通知は実装/実データ操作の開始指示ではない。
 
 
 - Status: Proposed implementation plan
