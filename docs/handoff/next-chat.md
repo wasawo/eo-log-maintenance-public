@@ -6,11 +6,19 @@
 
 ## 現在地
 
-- 作業branch: `docs/requirements-design-task-review`。今回開始HEAD: `69e5d54`。開始時の作業ツリーはクリーンで、originの追跡refとも一致していた。mainのコード基準は `27e99fec`（PR #46）。今回の文書修正はローカルのみで、push/PR作成/mergeは行わない。
+- 作業branch: `docs/requirements-design-task-review`。今回開始HEAD: `43b424b`。開始時の作業ツリーはクリーンで、originの追跡refとも一致していた。mainのコード基準は `27e99fec`（PR #46）。今回の文書修正はローカルのみで、push/PR作成/mergeは行わない。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。新しい削除/記録/状態/IPC/実API/FS保証等は未確定で、T0とruntime受け入れは未完。実装再開指示は未受領。
 
-## 今回のAGENTS.md改善
+## 今回のAGENTS.md追加指示
+
+利用者の指示で、既存コードの実装規約を優先して作業中に見つけた文書との食い違いを最終返答ですべて挙げることと、慣れない機能は実装前にGitHubのオープンソースプロジェクトを調査してアプローチを比較することを追加した。
+
+前回の改善から逸脱しないよう、実装規約と承認済み要件・安全条件を区別した。将来仕様と未実装の差を理由に要件を現コードへ戻さず、調査した方式・依存関係の採用にも既存の仕様と承認条件を適用する。今回の対象は指示文の追加であり、実装・依存関係の導入・実データ操作は行っていない。
+
+AGENTS.mdの差分は2項の追加だけで、既存規則を削除・変更していない。編集した2文書の相対リンク先と記述整合を確認し、`git diff --check`も成功した。自己点検のみであり、文書変更と無関係な実行時試験は行っていない。
+
+## 前回のAGENTS.md改善
 
 利用者の指定した[OpenAI公式ガイドのPrompting best practices](https://developers.openai.com/api/docs/guides/latest-model#prompting-best-practices)を2026-10-28に確認し、AGENTS.mdを更新した。承認済みの作業を遂行する指示、指示ファイルの適用条件の確認、簡潔な説明、変更に応じた検証を補った。重複していた判断・承認の記述をまとめ、Git操作と検証・報告をそれぞれの節へ整理した。
 
