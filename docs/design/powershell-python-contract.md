@@ -76,7 +76,7 @@ Python が行ってはならない事項：
 
 `dry_run=true` の場合、アダプターは Drive を変更せず、ダウンロードしたファイルの内容も書き込んではならない。リクエストを検証し、変更を行わない計画または結果を返す。
 
-OSD-04は2026-10-24に[A方針](../decisions/dry-run-side-effect-policy-proposal.md)を利用者承認済み。Dry Runではアプリによる意図的ファイル書込みを行わず、検証済み入力の読取りと機密除去済み標準ストリーム出力に限る。運用manifest/report/lock/確認予算の更新、bootstrap、ACL変更、credential refresh/store、download bytes取得を行わない。準備不足・不明状態は作成・修復せず停止する。
+OSD-04は2026-10-24に[A方針](../archive/decisions/dry-run-side-effect-policy-proposal.md)を利用者承認済み。Dry Runではアプリによる意図的ファイル書込みを行わず、検証済み入力の読取りと機密除去済み標準ストリーム出力に限る。運用manifest/report/lock/確認予算の更新、bootstrap、ACL変更、credential refresh/store、download bytes取得を行わない。準備不足・不明状態は作成・修復せず停止する。
 
 §4/8/9の一時request/responseファイル作成・ファイルへの診断記録・cleanupは通常実行の手順であり、Dry Runでは適用しない。Dry Runには安全なファイル不要のIPC経路が必要で、成立しなければ停止する。stdoutのJSON 1件、stderr分離、秘密除去は維持する。OSの自動atime等を含めた物理書込みzeroの保証ではない。Bの限定書込みは未採用。OSD-05未解決中のlive Drive接続、IPC契約全体の承認、runtime実装や受け入れをこの方針承認から推定しない。
 
@@ -100,7 +100,7 @@ Python CLI へのリクエストは、UTF-8 の JSON ファイル、またはコ
 
 未知のフィールドは拒否する。操作に必要なパラメーターはすべて存在し、空であってはならない。Windows 専用の実行環境であるため、パスは絶対 Windows パスとする。呼び出し元は設定済みの許可ルートと照合し、Python も不正なパス構文を拒否しなければならない。パスの指定は、ファイルの削除や上書きの許可を意味しない。
 
-C-01字句実装（2026-10-25）：`local_path` / `staging_path`は採用済み[P1/V1/L1](../decisions/c01-drive-rooted-lexical-candidate.md)のdrive-rooted file pathに限定する。現1.0 request schemaと`Common/DriveRequestPath.ps1` / `Common/DriveRequestPath.py`に反映し、共通の合成fixtureで照合する。root-only、UNC/device/relative、slash、空component、dot segment、末尾dot/ASCII space、禁止文字/control/DEL、予約stem（拡張子・stem末尾space・superscript・console aliasを含む）を拒否する。ASCII以外のcase変換やUnicode正規化・入力修復はせず、固定maxLengthを追加しない。旧schema-validな一部入力が拒否される互換性の厳格化であり、外部consumer不在は未確認。両helperは字句boolのみで、指定先の実体・root/token/FS資格・使用点検査、transportと正式adapter接続は未実装である。
+C-01字句実装（2026-10-25）：`local_path` / `staging_path`は採用済み[P1/V1/L1](../archive/decisions/c01-drive-rooted-lexical-candidate.md)のdrive-rooted file pathに限定する。現1.0 request schemaと`Common/DriveRequestPath.ps1` / `Common/DriveRequestPath.py`に反映し、共通の合成fixtureで照合する。root-only、UNC/device/relative、slash、空component、dot segment、末尾dot/ASCII space、禁止文字/control/DEL、予約stem（拡張子・stem末尾space・superscript・console aliasを含む）を拒否する。ASCII以外のcase変換やUnicode正規化・入力修復はせず、固定maxLengthを追加しない。旧schema-validな一部入力が拒否される互換性の厳格化であり、外部consumer不在は未確認。両helperは字句boolのみで、指定先の実体・root/token/FS資格・使用点検査、transportと正式adapter接続は未実装である。
 
 読み取り専用リクエストの例：
 
@@ -199,12 +199,12 @@ Python は標準出力に、UTF-8 の JSON オブジェクトを 1 件だけ出�
 
 実装slice：`Common/DriveResponseSemantics.ps1` はcallerが渡すdecoded IDictionaryと期待request ID/operation、int/long/BigInteger exitを純粋に比較し、ordinal相関と§6のexit/envelope/error-code対応、固定retryable真偽表を固定Status/ReasonCodeで返す。`consistent` はこの限定対応の判定で、操作別resultの正しさ、運用続行、retry、cloud検証の認可ではない。retryableはbool型を必須とし、`DRIVE_TRANSIENT_FAILURE`だけtrue、他8codeはfalseを要求する。表との矛盾は`retryable_error_code_mismatch`で拒否する。transport/UTF-8/JSON一件/重複key/schema（未知field・UUID構文等）検証と実request由来期待値の確保はcaller側の未実装ゲート。C-01/C-02、C-05の残りとRETRY-02、IPC全体・runtime受け入れは未完了である。
 
-追加slice：同moduleの`Get-DriveRetryObservation`は完了試行番号1〜4と整合した応答から、最大4回/60・300・900秒の候補を返す。uploadの一時的失敗・全操作timeoutは結果照合を要求し、応答喪失/不正は拒否する。全結果MayRetry=falseで、実counter・経過時間・schema・staging/Drive照合等の使用点資格を与えない。[詳細と未実装gate](drive-retry-observation.md)。
+追加slice：同moduleの`Get-DriveRetryObservation`は完了試行番号1〜4と整合した応答から、最大4回/60・300・900秒の候補を返す。uploadの一時的失敗・全操作timeoutは結果照合を要求し、応答喪失/不正は拒否する。全結果MayRetry=falseで、実counter・経過時間・schema・staging/Drive照合等の使用点資格を与えない。[詳細と未実装gate](reference/drive-retry-observation.md)。
 
 - 再試行の唯一の所有者はPowerShellとする。初回を含む最大4回とし、失敗後の待機は1分・5分・15分とする。ジッター付き指数バックオフは使用しない。
 - 認証、権限、リクエスト不正、検証失敗、曖昧性のエラーは、根本原因を解消せずに再試行しない。
 - Pythonは一覧取得・メタデータ取得を含むすべての操作を1回だけ試行する。PowerShellは `retryable` と固定エラーコードを確認して一時的エラーだけを再試行する。認証・権限・リクエスト不正・検証失敗・競合は再試行しない。
-- `retryable`の固定code別真偽値は[現行実装に基づく決定](../decisions/implementation-grounded-four-decisions-20261024.md)§1の表に従う。現1.0 response schemaとPS helperへ真偽表を反映済み。旧1.0でschema-validだった矛盾boolは拒否する互換性の厳格化であり、外部consumer不在は未確認。Python adapterと再試行orchestrationは未実装で、表への適合だけで結果不明uploadの再送を許可しない。
+- `retryable`の固定code別真偽値は[現行実装に基づく決定](../archive/decisions/implementation-grounded-four-decisions-20261024.md)§1の表に従う。現1.0 response schemaとPS helperへ真偽表を反映済み。旧1.0でschema-validだった矛盾boolは拒否する互換性の厳格化であり、外部consumer不在は未確認。Python adapterと再試行orchestrationは未実装で、表への適合だけで結果不明uploadの再送を許可しない。
 - アップロード結果が不明な場合は、同じアップロードを繰り返す前にDriveの一覧・メタデータを照合する。親ID・名前・サイズ・取得可能なチェックサム等で対象を一意に特定できなければ停止する。
 - ダウンロードを再試行する場合、PowerShellは新規または空のステージングファイルを使用し、最終配置前にサイズとSHA-256を検証する。HTTPクライアントの暗黙の再試行が無効であることを設定とテストで確認する。
 - 内容の異なる既存ファイルを上書きする形で再試行してはならない。

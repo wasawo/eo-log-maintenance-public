@@ -1,10 +1,10 @@
 # Run Input Evidence v1 Proposal
 
 - Status: B2 evidence-artifact direction, embedded inventory, exhaustive count reconciliation, and canonical evidence-digest direction approved on 2026-10-21; strict structural schema and synthetic contract tests are introduced in PR #153; runtime implementation and full acceptance remain outstanding.
-- Related: `docs/design/aggregation-report-v1-proposal.md`, `docs/decisions/aggregation-inventory-integrity-options.md`, OSD-02, OSD-03, P0-008, P0-010.
+- Related: `docs/design/reference/aggregation-report-v1-proposal.md`, `docs/archive/decisions/aggregation-inventory-integrity-options.md`, OSD-02, OSD-03, P0-008, P0-010.
 - Compatibility: this is a separate artifact. It must not add fields to or rewrite the approved manifest v1 schema.
 - Storage direction approved 2026-10-21: local authoritative evidence/report artifacts, followed by verified Google Drive replication for cross-PC access.
-- Validation V1 approved 2026-10-24: completed means all input classification processing finished, independently of whether relevant errors were found. See the [selected-policy record](../decisions/selected-policy-decisions-20261024.md#2-b2-v1の意味と保全). Producer/consumer and synthetic-test follow-up remains unimplemented.
+- Validation V1 approved 2026-10-24: completed means all input classification processing finished, independently of whether relevant errors were found. See the [selected-policy record](../archive/decisions/selected-policy-decisions-20261024.md#2-b2-v1の意味と保全). Producer/consumer and synthetic-test follow-up remains unimplemented.
 
 ## 1. Purpose
 
@@ -101,7 +101,7 @@ Example values are illustrative only and are not operational evidence.
 
 The approved direction retains the existing v1 field set and status values; it adds neither a coverage field nor a new version. Completed classification with relevant errors must keep `invalid_relevant_count` and `errors`; it cannot certify run success or no-work. Known-period completion still requires the approved OSD-03 inventory, all-outcome accounting and error-scope conditions independently of the status string.
 
-Historical `incomplete` records remain exact original bytes: do not rewrite, repair or promote them to completed from matching counts/digests. Do not infer complete coverage from incomplete/failed observations. As of 2026-10-25 `Common/SourceInventoryEvidenceBuilder.py` emits validation completed when enumeration/classification finishes without uncertain entries, even when invalid filenames are recorded. Enumeration/read/hash uncertainty keeps validation incomplete. Counts, errors and digests retain the existing v1 structure. Synthetic producer/report tests exercise invalid-only and mixed-validity inputs without granting no-work or run success from the completed flag. Formal runtime publication remains incomplete. See the [comparison history](../decisions/b2-validation-coverage-report-time-options.md).
+Historical `incomplete` records remain exact original bytes: do not rewrite, repair or promote them to completed from matching counts/digests. Do not infer complete coverage from incomplete/failed observations. As of 2026-10-25 `Common/SourceInventoryEvidenceBuilder.py` emits validation completed when enumeration/classification finishes without uncertain entries, even when invalid filenames are recorded. Enumeration/read/hash uncertainty keeps validation incomplete. Counts, errors and digests retain the existing v1 structure. Synthetic producer/report tests exercise invalid-only and mixed-validity inputs without granting no-work or run success from the completed flag. Formal runtime publication remains incomplete. See the [comparison history](../archive/decisions/b2-validation-coverage-report-time-options.md).
 
 ## 5. Inventory representation — decision A approved
 

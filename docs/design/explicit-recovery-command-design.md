@@ -1,8 +1,8 @@
 # 明示回復コマンドの設計契約
 
 状態: 2026-10-23の承認済み入口方針を具体化する設計。実行コマンドは未実装。
-承認の根拠: [入口方針と利用者回答](../decisions/recovery-disposition-proposal.md)。
-関連: [OSD-02 C2/C3/C4](../decisions/osd-02-crash-concurrency-options.md)、[復旧ゲート](../validation/lock-recovery-acceptance-gate.md)、[正式入口ゲート](runtime-entrypoint-validation-gate.md)。
+承認の根拠: [入口方針と利用者回答](../archive/decisions/recovery-disposition-proposal.md)。
+関連: [OSD-02 C2/C3/C4](../archive/decisions/osd-02-crash-concurrency-options.md)、[復旧ゲート](../validation/lock-recovery-acceptance-gate.md)、[正式入口ゲート](runtime-entrypoint-validation-gate.md)。
 
 ## 1. 入口と責務
 
@@ -94,8 +94,8 @@ Common/RecoveryDiagnosticMutex.py adds an isolated lease using the same global m
 
 ## 9. Approved owner-evidence compatibility direction
 
-Maintainer approved v1 diagnosis/preservation and v2-only future recovery design. The [logical owner-evidence contract](recovery-owner-evidence-v2-contract.md) keeps unknown PID/boot/query cases blocked and distinguishes same-handle termination observation from recovery authorization. It does not add a v2 schema, provider, writer or runtime connection. [Private evidence preservation policy](../decisions/recovery-private-evidence-policy-proposal.md) is approved for private maintenanceLocal preservation without automatic deletion; actual persistence, ACL changes and recovery operations remain unimplemented and unauthorized by that policy alone.
+Maintainer approved v1 diagnosis/preservation and v2-only future recovery design. The [logical owner-evidence contract](recovery-owner-evidence-v2-contract.md) keeps unknown PID/boot/query cases blocked and distinguishes same-handle termination observation from recovery authorization. It does not add a v2 schema, provider, writer or runtime connection. [Private evidence preservation policy](../archive/decisions/recovery-private-evidence-policy-proposal.md) is approved for private maintenanceLocal preservation without automatic deletion; actual persistence, ACL changes and recovery operations remain unimplemented and unauthorized by that policy alone.
 
 ## 10. Approved private evidence direction
 
-Private maintenanceLocal preservation without automatic deletion is approved. [Storage/validation contract](recovery-private-evidence-contract.md) separates in-memory metadata/raw-byte binding from unimplemented ACL-protected persistence and disposition. Diagnosis remains non-persistent. The [execution-account policy](../decisions/recovery-execution-account-policy-proposal.md) is also approved for the same Windows account within each PC for manual execution and future tasks; task registration, live identity/ACL qualification and runtime integration remain pending.
+Private maintenanceLocal preservation without automatic deletion is approved. [Storage/validation contract](recovery-private-evidence-contract.md) separates in-memory metadata/raw-byte binding from unimplemented ACL-protected persistence and disposition. Diagnosis remains non-persistent. The [execution-account policy](../archive/decisions/recovery-execution-account-policy-proposal.md) is also approved for the same Windows account within each PC for manual execution and future tasks; task registration, live identity/ACL qualification and runtime integration remain pending.

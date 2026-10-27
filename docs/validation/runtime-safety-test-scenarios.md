@@ -187,7 +187,7 @@ All cases require synthetic fixtures, injected process/clock state, and explicit
 
 部分実装: `tests/test_dry_run_boundary.py` が合成dispatcherの拒否経路と依存呼出しを別プロセスで検査する。9テスト/33probeは限定ハーネスの証拠で、下表の正式runtime/実root/実排他のfixtureを実行済みとするものではない。実 `acquire_diagnostic_mutex` helperを監査下でimport/実行し、test-only mutexによる取得成功でも資格未完で停止、timeout/abandoned/create/acquire/observation/cleanup失敗の拒否、取得・lease body・cleanup中のwrite拒否、finally履歴と既存物不変を検査する。fakeはWindows mutexのidentity/access・writer共通scope資格を証明しない。以下の未実装・未実行はそれら全受け入れ対象についての状態。
 
-対象は[利用者承認済みのA方針](../decisions/dry-run-side-effect-policy-proposal.md)。**Aを採用、以下のDRY fixtureは未実装・未実行**であり、既存helperのテスト結果や本書の既存シナリオを成功証拠として転用しない。規範契約とAの期待値を照合してから実装する。Bの書込みを許すテストは採用しない。
+対象は[利用者承認済みのA方針](../archive/decisions/dry-run-side-effect-policy-proposal.md)。**Aを採用、以下のDRY fixtureは未実装・未実行**であり、既存helperのテスト結果や本書の既存シナリオを成功証拠として転用しない。規範契約とAの期待値を照合してから実装する。Bの書込みを許すテストは採用しない。
 
 合成データ・隔離領域・mockのみを使う。fixtureごとに元ログ、archive、Drive同期領域、maintenanceLocal（運用manifest/report/frozen inventory/marker/lock/private証拠/budget/scheduler状態を含む）、config、credential/temp領域のbefore/afterを採取する。相対名・存在・bytes/hash・適用可能なACL/所有者を比較し、アプリのcreate/write/rename/delete/ACL変更の呼出しも捕捉する。最終snapshot一致だけでは途中の書込み後削除を見逃すため、呼出し履歴と併用する。OS自動atime等は別観測とし、物理書込みzeroの証明にしない。
 

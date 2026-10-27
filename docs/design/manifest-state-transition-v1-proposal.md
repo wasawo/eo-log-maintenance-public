@@ -2,10 +2,10 @@
 
 > 2026-10-27 compatibility boundary: [Q1–Q10 and flattening](../requirements/log-move-requirements.md) require per-file movement through source deletion without both-PC period waiting. The existing v1 schema/helper behavior and dated evidence below are unchanged. A v1 `verified`/report/latest-manifest result is not proof of completed movement or permission to delete; both-PC selection/report completeness is not a new archive prerequisite. Deletion-state/IPC/persistence revisions remain detailed-design work. Do not alter old immutable artifacts or infer a schema upgrade from this policy note.
 
-- Status: transition tables adopted by the maintainer on 2026-10-24, subject to existing approved aggregation, crash/concurrency, terminal-state and immutable-history rules. Unlisted transitions are rejected. Read-only snapshot/pair inspection and synthetic tests are implemented (2026-10-25); event evidence, persistence/writer and runtime acceptance remain incomplete. See [selection record](../decisions/selected-policy-decisions-20261024.md).
+- Status: transition tables adopted by the maintainer on 2026-10-24, subject to existing approved aggregation, crash/concurrency, terminal-state and immutable-history rules. Unlisted transitions are rejected. Read-only snapshot/pair inspection and synthetic tests are implemented (2026-10-25); event evidence, persistence/writer and runtime acceptance remain incomplete. See [selection record](../archive/decisions/selected-policy-decisions-20261024.md).
 - Related decision: OSD-02 / C-26.
 - Approved field contract: `docs/design/manifest-schema-v1-proposal.md`.
-- Related aggregation decision: `docs/decisions/osd-03-status-aggregation-options.md`.
+- Related aggregation decision: `docs/archive/decisions/osd-03-status-aggregation-options.md`.
 - Scope: adopted conditional transitions for per-file lifecycle state, Drive verification result, and run status. This document does not establish runtime acceptance.
 
 ## 1. Rules already established by approved specifications
@@ -99,7 +99,7 @@ The maintainer selected option A. These combinations are normative policy decisi
 
 The maintainer adopted the candidate tables subject to the already-approved conditions and rejection of unlisted transitions. Keep the historical individual decisions below within their original scope; this later adoption does not add new enum values, permit historical rewrites, or prove implementation. Remaining work includes lifecycle/traceability alignment, persistence/source contracts, executable transition tests and independent runtime evidence.
 
-The read-only snapshot/pair implementation is described in [transition inspection](manifest-transition-inspection.md). Its synthetic tests do not prove the event prerequisites, persistence or runtime acceptance.
+The read-only snapshot/pair implementation is described in [transition inspection](reference/manifest-transition-inspection.md). Its synthetic tests do not prove the event prerequisites, persistence or runtime acceptance.
 
 
 ## 6. Approved retry-exhaustion exception cases — 2026-10-21

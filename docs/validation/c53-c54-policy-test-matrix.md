@@ -66,6 +66,6 @@ After the maintainer approves the exact pattern table:
 
 ## Approved C-54 grammar test extension — 2026-10-21
 
-P1–P6 were explicitly approved (option A for each). Exact regexes and interpretation are canonical in `docs/decisions/decision-record-c54-sensitive-path-detection.md`, section “C-54 approved secret-format grammars — P1–P6”. The new executable `tests/Test-C54PatternContract.ps1` covers synthetic positives, near misses, minimum lengths, ASCII boundaries, and case sensitivity.
+P1–P6 were explicitly approved (option A for each). Exact regexes and interpretation are canonical in `docs/archive/decisions/decision-record-c54-sensitive-path-detection.md`, section “C-54 approved secret-format grammars — P1–P6”. The new executable `tests/Test-C54PatternContract.ps1` covers synthetic positives, near misses, minimum lengths, ASCII boundaries, and case sensitivity.
 
 This test is deliberately limited to the regex grammar. It does not assert that a runtime sanitizer invokes these patterns, nulls the whole optional path, or prevents diagnostic disclosure. Those runtime tests remain pending. URI-like path fixtures must continue to distinguish C-53 rejection from C-54 URI-matcher behavior.

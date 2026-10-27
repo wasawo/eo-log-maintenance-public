@@ -108,7 +108,7 @@ Bはここまでの自端末元だけを担当し、cloud元削除やarchiveは�
 5. コピー済み元削除未了の通常再実行で、現在の同内容を再利用し今回のQ5条件から進める。
 6. 確認と削除の間の変更、削除応答途絶、記録失敗を注入し、採用する方式の保証範囲/検出できない限界を記録する。
 
-既存資産: [source再観測](source-inventory-revalidation.md)、[Drive内容比較](drive-content-comparison.md)、[staging](staging-file-lifecycle.md)。これらは一部の観測/比較を支えるが、現在のhelperの`may_* = false`を変更せず、削除認可や正式runtimeとして流用しない。
+既存資産: [source再観測](reference/source-inventory-revalidation.md)、[Drive内容比較](reference/drive-content-comparison.md)、[staging](staging-file-lifecycle.md)。これらは一部の観測/比較を支えるが、現在のhelperの`may_* = false`を変更せず、削除認可や正式runtimeとして流用しない。
 
 ## 9. 削除前後の必要記録（案、2026-10-27）
 

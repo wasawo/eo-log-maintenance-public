@@ -1,6 +1,6 @@
 # Distribution Design: GitHub to Google Drive
 
-- Status: E1 release-event/manual-approval gate and all-version retention/no automatic cleanup selected on 2026-10-24; PC/version-specific explicit file manifests and separate explicit configuration migration are also selected; remaining concrete distribution details are a proposed baseline. See [selection record](../decisions/selected-policy-decisions-20261024.md).
+- Status: E1 release-event/manual-approval gate and all-version retention/no automatic cleanup selected on 2026-10-24; PC/version-specific explicit file manifests and separate explicit configuration migration are also selected; remaining concrete distribution details are a proposed baseline. See [selection record](../archive/decisions/selected-policy-decisions-20261024.md).
 - Last updated: 2026-10-24 (policy selections and implementation limits; production workflow remains unimplemented)
 - Repository: `wasawo/eo-log-maintenance-public`
 - Canonical source: GitHub repository, `main` branch plus reviewed release tag

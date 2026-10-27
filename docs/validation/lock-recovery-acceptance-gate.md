@@ -241,7 +241,7 @@ new-run/fresh-inventory integration. LOCK/REC and P0 acceptance remain open.
 
 ## Latest candidate selection evidence (2026-10-23)
 
-The read-only [C4 core](../design/latest-manifest-selection.md) independently parses the defined filename and selects only a unique validated latest start time. It rejects ambiguous/malformed/unreadable candidates and never falls back from a newer incomplete run to old success. It does not enumerate/read operational manifests, establish owner termination, dispose stale locks or start a new run; REC-04/REC-07 runtime acceptance remains open.
+The read-only [C4 core](../design/reference/latest-manifest-selection.md) independently parses the defined filename and selects only a unique validated latest start time. It rejects ambiguous/malformed/unreadable candidates and never falls back from a newer incomplete run to old success. It does not enumerate/read operational manifests, establish owner termination, dispose stale locks or start a new run; REC-04/REC-07 runtime acceptance remains open.
 
 ## Latest-directory composition evidence (2026-10-23)
 
@@ -259,6 +259,6 @@ explicit disposition, termination proof and protection through use remain open.
 
 Maintainer approved designing a dedicated explicit recovery command while normal synchronization continues to stop on stale records. [The command design](../design/explicit-recovery-command-design.md) defines read-only diagnosis/planning, non-authorizing results, safe mutex lifetime and a pending synthetic test matrix. It does not implement an entrypoint or authorize disposition. Persistent owner identity, root/clock qualification, private evidence storage and protected state changes remain open.
 
-Diagnosis-only lease slice (2026-10-23): RecoveryDiagnosticMutex adds record-free acquisition of the existing named mutex and non-authorizing abandonment observations. Thirteen lifetime tests cover actual Windows contention, consumed abandonment and cross-process reacquisition after failure. It does not change acquire_owned_lock or authorize stale-record removal. See the [legacy-record policy proposal](../decisions/recovery-owner-evidence-v2-proposal.md).
+Diagnosis-only lease slice (2026-10-23): RecoveryDiagnosticMutex adds record-free acquisition of the existing named mutex and non-authorizing abandonment observations. Thirteen lifetime tests cover actual Windows contention, consumed abandonment and cross-process reacquisition after failure. It does not change acquire_owned_lock or authorize stale-record removal. See the [legacy-record policy proposal](../archive/decisions/recovery-owner-evidence-v2-proposal.md).
 
 Owner-evidence design slice (2026-10-23): v1 preservation/v2-only future recovery direction is approved. The [logical contract](../design/recovery-owner-evidence-v2-contract.md) specifies source/binding requirements, non-authorizing termination observation and OWNER-01 through OWNER-06 as pending tests. No OS provider, v2 schema/writer or record disposition is implemented. Old lock/manifest bytes remain unchanged.

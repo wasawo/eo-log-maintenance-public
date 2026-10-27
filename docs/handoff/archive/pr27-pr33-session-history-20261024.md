@@ -35,7 +35,7 @@
 
 - ローカル書込を行わない案Aと、限定した診断report/所有一時物だけを許す案Bを比較する。Drive/元ログ/archive変更、運用manifest/lock/state更新、予算消費、private証拠処分は認めない。方針は承認待ちのままで、提案PRのマージを運用方針の承認と扱わない。
 - analystは `gpt-6-luna` / highで調査。implementerは `gpt-6.1-sol` / mediumで提案と参照先を編集。独立reviewerは同モデル/highで根拠・差分・新anchor/fixture参照を確認し、ブロッカー指摘なし。rootはhandoff・Git/PR/CI/マージを担当。各担当は履歴なしで対象資料だけを渡して起動し、指定モデル/思考量での作業を実施した。
-- [判断案](../../decisions/dry-run-side-effect-policy-proposal.md) とDRY-01〜10計画、関連参照を追加。全67 Markdownのローカルリンク切れ0、索引漏れ0、差分検査成功。文書のみで実装/schema/CI変更0、ローカル機能テストは再実行していない。DRY fixtureは未実装/未実行。利用者のA/B判断前は依存runtimeを実装しない。PRの最新HEAD CIと実マージ状態は本PRで照合する。
+- [判断案](../../archive/decisions/dry-run-side-effect-policy-proposal.md) とDRY-01〜10計画、関連参照を追加。全67 Markdownのローカルリンク切れ0、索引漏れ0、差分検査成功。文書のみで実装/schema/CI変更0、ローカル機能テストは再実行していない。DRY fixtureは未実装/未実行。利用者のA/B判断前は依存runtimeを実装しない。PRの最新HEAD CIと実マージ状態は本PRで照合する。
 
 ## 直前の作業: リポジトリ構成の整理
 

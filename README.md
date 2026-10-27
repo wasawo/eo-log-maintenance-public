@@ -10,7 +10,7 @@ ElectronicObserver の BattleLog / ErrorReport を、Windows PC-A と PC-B 間�
 
 > **現在の段階:** 既存実装は安全基盤・検証補助処理が中心で、現在は文書/詳細契約を整備しています。正式な同期／アーカイブ入口と削除経路は未完成、P0受け入れも未完了です。判定基準は[実装計画](docs/development/implementation-workflow.md) §2と[P0台帳](docs/requirements/p0-gap-register.md)を参照してください。正式文書化は本番適用の許可ではありません。
 
-[既存の実装資産と不足](docs/development/implementation-workflow.md#9-既存の実装資産と不足)と作業順序は正式な実装計画へ統合しました。過去の選択は[決定記録](docs/decisions/selected-policy-decisions-20261024.md)を参照してください。レビュー用ZIPを生成できることと、本番導入できることは別です。
+[既存の実装資産と不足](docs/development/implementation-workflow.md#9-既存の実装資産と不足)と作業順序は正式な実装計画へ統合しました。過去の選択は[決定記録](docs/archive/decisions/selected-policy-decisions-20261024.md)を参照してください。レビュー用ZIPを生成できることと、本番導入できることは別です。
 
 Codexでの開発は [AGENTS.md](AGENTS.md) から開始します。[root単独運用](docs/development/agent-workflow.md) と [詳細仕様への参照表](docs/development/development-guide.md) を必要時に確認してください。進捗は [引き継ぎ](docs/handoff/next-chat.md) に記録します。
 
