@@ -1,5 +1,7 @@
 # テスト計画
 
+`test_move_journal.py`は両経路の移動記録v1を合成一時領域へ保存し、参照digest、役割/対象/判定、破損・欠落、試行矛盾、別プロセスからの読戻しと別照合記録の保存を検証する。観測値は模擬adapterの合成値であり、実Drive/削除認可/別プロセスでの実FS回復ではない。[記録契約と限界](../docs/design/move-record-v1.md)を参照。
+
 `test_windows_move_delete_probe.py`は自作OS-temp内の合成元/保存先だけを使い、Windowsの同一ハンドル確認・直接削除と、削除前記録の実保存/読戻し・pending・結果不明照合を接続する。caller指定pathを受けず、実運用providerや別プロセス回復は提供しない。[試験範囲と限界](../docs/design/windows-move-delete-probe.md)を参照。
 
 `Test-LogMoveSimulation.ps1`は設定・期間・平坦化・同名比較・内容確認・限定元削除・再実行・結果不明照合を、両経路のメモリ上のモデルで接続する。実ファイル/Driveの削除や永続記録は行わない。[模擬契約と受け入れ限界](../docs/design/log-move-simulation.md)を参照。実行: `pwsh -NoProfile -File tests/Test-LogMoveSimulation.ps1`。

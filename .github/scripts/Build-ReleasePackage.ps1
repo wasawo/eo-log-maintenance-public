@@ -42,6 +42,7 @@ $requiredFiles = @(
     'contracts/manifest-v1.schema.json',
     'contracts/run-input-evidence-v1.schema.json',
     'contracts/private-recovery-evidence-v1.schema.json',
+    'contracts/move-record-v1.schema.json',
     'contracts/completion-wait-checkpoint-v1.schema.json'
 )
 

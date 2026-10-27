@@ -17,8 +17,10 @@
 
 両経路をメモリ上でつなぐ[LogMoveSimulation.ps1](LogMoveSimulation.ps1)を追加した。[模擬契約と限界](../docs/design/log-move-simulation.md)を参照。実ファイル・Drive操作や永続記録を提供せず、正式な移動入口ではない。
 
+[MoveJournal.py](MoveJournal.py)は[移動記録v1](../docs/design/move-record-v1.md)の非上書き保存・参照検査・読戻しを提供する。元/保存先の実観測や削除権限は提供せず、private root・所有権・ACL・排他の資格確認は呼出し側に必要。
+
 ## 詳細と検証
 
 - 全モジュールの従来説明は[Commonモジュール参照ノート](../docs/design/reference/common-module-notes.md)へ移した。個別の観測条件/未実装境界を削っていない。
 - [helper参照索引](../docs/design/reference/README.md)、[現行schema](../contracts/)、[テスト手順](../tests/README.md)から必要な分野だけを読む。
-- runtime名/配置・schema・import・CI/配布allowlistは本整理では変更しない。helperの未使用推測や旧方針を理由にコード/試験を削除しない。
+- 2026-10-27の配置整理ではruntime名/配置・schema・import・CI/配布allowlistを変更していない。その後の実装変更は各設計と引き継ぎで確認する。helperの未使用推測や旧方針を理由にコード/試験を削除しない。

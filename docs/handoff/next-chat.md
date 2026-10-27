@@ -6,11 +6,27 @@
 
 ## 現在地
 
-- 作業branch: `codex/manual-move-preflight`。今回開始HEADは`252871e`、作業ツリーはクリーン。PR #47のmain `36550ab`から作成した同じブランチへ継続して蓄積する。PR #47のmain Validate/Package Validationは前回成功を確認済み。今回もローカルコミットまでとし、新たなpush/PR/mergeは利用者の指示を待つ。
+- 作業branch: `codex/manual-move-preflight`。今回開始HEADは`8ab0e92`、作業ツリーはクリーン。PR #47のmain `36550ab`から作成した同じブランチへ継続して蓄積する。PR #47のmain Validate/Package Validationは前回成功を確認済み。今回もローカルコミットまでとし、新たなpush/PR/mergeは利用者の指示を待つ。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
-## 今回のWindows削除・記録の隔離接続
+## 今回の移動記録v1・別プロセス読戻し
+
+[移動記録v1](../design/move-record-v1.md)として、独立schema、`Common/MoveJournal.py`、合成の保存/読戻し・別プロセス試験を追加した。既存の非上書き公開を再利用し、prepared/deletion_result/reconciliationを別のUUIDファイルへ保存する。元/保存先・経路/PC/ログ種別・move/run/attemptと、先行記録のexact bytesのSHA-256を照合する。要求成功と除去確認、削除確認と照合完了を分離し、観測不足のunknownを記録できる。記録自体を削除認可にはしない。
+
+未知key/重複JSON key/float・不正日付・不正役割・階層再現・不正参照・改変/欠落・試行矛盾を拒否する。専用root全体を読取り、部分ファイルや未知entry、結果なしのpreparedを黙って「対象なし」へ落とさない。既存結果不明のbytesは変更せず、別Pythonプロセスが模擬観測から新しい照合記録を保存する試験を追加した。
+
+実装再開指示に基づき、合意済み要件を満たすために正式設計の記録案を保存層の実装契約へ具体化した。記録案自体を利用者が個別承認済みだったとは扱わない。保存期間による削除、実API権限、完成範囲を変える判断はしていない。実runのprivate root/ACL/所有排他とPowerShell制御、Windows probeの実状態を別プロセスで再観測する処理、実Drive provider、経路間照合は未完。T0/T1/AC全体を完了にはしない。
+
+実装は既存JSON Schema・非上書き公開方式を再利用し、新しい外部依存は追加していない。新schemaを役割別配布allowlistへ含め、module/schemaの同梱回帰と専用CIステップを追加した。正式入口不在の配布拒否とPC-Bの実archive除外は維持する。
+
+ローカルはPython 3.11.9/PowerShell 7.6.7。CI定義はPython 3.12であり、このブランチのリモートCIは未実行。最初のsandbox試験は既存公開処理のhardlinkが拒否され、合成一時領域限定でsandbox外実行へ切り替えた。独立レビュー・実環境のruntime受け入れ・実ログ/本番Drive操作は未実施。
+
+最終検証は移動記録の15試験（skipなし）、役割別配布回帰、Python構文解析2ファイル、変更したPowerShell 2ファイルの構文解析/PSScriptAnalyzer Error検査が成功。文書97件の相対リンク961件・見出し参照112件に欠落なし。`git diff --check`成功。無関係な全試験は再実行していない。
+
+文書の「記録形式/名前/schema/writerが未選定」という記述を、今回具体化した保存層と、未完の実provider/正式run接続へ分けて更新した。Common索引のschema/allowlist不変の説明も、以前の配置整理時点の記録だと明記した。既存コードの実装規約と文書の新たな食い違いは見つかっていない。
+
+## 前回のWindows削除・記録の隔離接続
 
 [Windows隔離probe](../design/windows-move-delete-probe.md)を追加し、自作OS-tempの合成元/保存先で、128-bit File ID・size/hashの確認、削除前記録の実保存/読戻し、同一元ハンドルでの直接削除、除去確認、結果記録と照合を接続した。競合する書込/DELETE openは共有違反で拒否し、既存writerがあれば元の削除guardを取得できない。元/保存先の同内容別実体への差替えでも元を残す。
 

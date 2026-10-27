@@ -1,0 +1,597 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_version",
+    "record_id",
+    "run_id",
+    "move_id",
+    "attempt_id",
+    "event_kind",
+    "route",
+    "machine_id",
+    "log_type",
+    "observed_at_utc",
+    "recorded_at_utc",
+    "prior_record_refs",
+    "event_data"
+  ],
+  "properties": {
+    "record_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "record_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "move_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "attempt_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "event_kind": {
+      "type": "string",
+      "enum": [
+        "prepared",
+        "deletion_result",
+        "reconciliation"
+      ]
+    },
+    "route": {
+      "type": "string",
+      "enum": [
+        "local_to_cloud",
+        "cloud_to_archive"
+      ]
+    },
+    "machine_id": {
+      "type": "string",
+      "enum": [
+        "PC-A",
+        "PC-B"
+      ]
+    },
+    "log_type": {
+      "type": "string",
+      "enum": [
+        "BattleLog",
+        "ErrorReport"
+      ]
+    },
+    "observed_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recorded_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prior_record_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/reference"
+      }
+    },
+    "event_data": {
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eo-log-maintenance.invalid/contracts/move-record-v1.schema.json",
+  "title": "Move record v1: observations and immutable references, not operation authority",
+  "$defs": {
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "size",
+        "sha256"
+      ],
+      "properties": {
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "record_id",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "record_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "local": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "machine_id",
+        "root_key",
+        "relative_path",
+        "identity"
+      ],
+      "properties": {
+        "kind": {
+          "const": "local"
+        },
+        "machine_id": {
+          "type": "string",
+          "enum": [
+            "PC-A",
+            "PC-B"
+          ]
+        },
+        "root_key": {
+          "type": "string",
+          "enum": [
+            "battleLogLocal",
+            "errorLogLocal",
+            "battleLogArchive",
+            "errorLogArchive"
+          ]
+        },
+        "relative_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "volume_serial",
+            "file_id"
+          ],
+          "properties": {
+            "volume_serial": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$"
+            },
+            "file_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        }
+      }
+    },
+    "cloud": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "root_key",
+        "file_id",
+        "parent_id",
+        "name",
+        "version"
+      ],
+      "properties": {
+        "kind": {
+          "const": "cloud"
+        },
+        "root_key": {
+          "type": "string",
+          "enum": [
+            "battleLogDrive",
+            "errorLogDrive"
+          ]
+        },
+        "file_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          ]
+        }
+      }
+    },
+    "prepared": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "destination",
+        "copy_content",
+        "destination_content",
+        "reused",
+        "destination_method"
+      ],
+      "properties": {
+        "source": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/local"
+            },
+            {
+              "$ref": "#/$defs/cloud"
+            }
+          ]
+        },
+        "destination": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/local"
+            },
+            {
+              "$ref": "#/$defs/cloud"
+            }
+          ]
+        },
+        "copy_content": {
+          "$ref": "#/$defs/content"
+        },
+        "destination_content": {
+          "$ref": "#/$defs/content"
+        },
+        "reused": {
+          "type": "boolean"
+        },
+        "destination_method": {
+          "type": "string",
+          "enum": [
+            "windows_handle",
+            "drive_metadata",
+            "drive_download",
+            "unavailable"
+          ]
+        }
+      }
+    },
+    "deletion_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "destination",
+        "source_before_delete",
+        "destination_current",
+        "source_method",
+        "destination_method",
+        "request_outcome",
+        "source_after_delete",
+        "source_after_method",
+        "decision",
+        "completion_basis",
+        "reason_code"
+      ],
+      "properties": {
+        "source": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/local"
+            },
+            {
+              "$ref": "#/$defs/cloud"
+            }
+          ]
+        },
+        "destination": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/local"
+            },
+            {
+              "$ref": "#/$defs/cloud"
+            }
+          ]
+        },
+        "source_before_delete": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/content"
+            }
+          ]
+        },
+        "destination_current": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/content"
+            }
+          ]
+        },
+        "source_method": {
+          "type": "string",
+          "enum": [
+            "windows_handle",
+            "drive_metadata",
+            "drive_download",
+            "unavailable"
+          ]
+        },
+        "destination_method": {
+          "type": "string",
+          "enum": [
+            "windows_handle",
+            "drive_metadata",
+            "drive_download",
+            "unavailable"
+          ]
+        },
+        "request_outcome": {
+          "type": "string",
+          "enum": [
+            "not_sent",
+            "succeeded",
+            "failed",
+            "unknown"
+          ]
+        },
+        "source_after_delete": {
+          "type": "string",
+          "enum": [
+            "present",
+            "absent",
+            "unknown"
+          ]
+        },
+        "source_after_method": {
+          "type": "string",
+          "enum": [
+            "windows_lookup",
+            "provider_observation",
+            "unavailable"
+          ]
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "incomplete",
+            "unknown"
+          ]
+        },
+        "completion_basis": {
+          "type": "string",
+          "enum": [
+            "delete_confirmed",
+            "none"
+          ]
+        },
+        "reason_code": {
+          "type": "string",
+          "enum": [
+            "delete_confirmed",
+            "delete_pending",
+            "delete_failed",
+            "not_sent",
+            "verification_unknown",
+            "source_changed",
+            "destination_mismatch",
+            "reconciled_completion",
+            "state_unconfirmed"
+          ]
+        }
+      }
+    },
+    "reconciliation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "destination",
+        "source_current",
+        "destination_current",
+        "source_method",
+        "destination_method",
+        "decision",
+        "completion_basis",
+        "reason_code"
+      ],
+      "properties": {
+        "source": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/local"
+            },
+            {
+              "$ref": "#/$defs/cloud"
+            }
+          ]
+        },
+        "destination": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/local"
+            },
+            {
+              "$ref": "#/$defs/cloud"
+            }
+          ]
+        },
+        "source_current": {
+          "type": "string",
+          "enum": [
+            "present",
+            "absent",
+            "unknown"
+          ]
+        },
+        "destination_current": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/content"
+            }
+          ]
+        },
+        "source_method": {
+          "type": "string",
+          "enum": [
+            "windows_lookup",
+            "provider_observation",
+            "unavailable"
+          ]
+        },
+        "destination_method": {
+          "type": "string",
+          "enum": [
+            "windows_handle",
+            "drive_metadata",
+            "drive_download",
+            "unavailable"
+          ]
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "incomplete",
+            "unknown"
+          ]
+        },
+        "completion_basis": {
+          "type": "string",
+          "enum": [
+            "reconciled",
+            "none"
+          ]
+        },
+        "reason_code": {
+          "type": "string",
+          "enum": [
+            "delete_confirmed",
+            "delete_pending",
+            "delete_failed",
+            "not_sent",
+            "verification_unknown",
+            "source_changed",
+            "destination_mismatch",
+            "reconciled_completion",
+            "state_unconfirmed"
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "route": {
+            "const": "cloud_to_archive"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "machine_id": {
+            "const": "PC-A"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_kind": {
+            "const": "prepared"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "event_data": {
+            "$ref": "#/$defs/prepared"
+          },
+          "prior_record_refs": {
+            "minItems": 0,
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_kind": {
+            "const": "deletion_result"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "event_data": {
+            "$ref": "#/$defs/deletion_result"
+          },
+          "prior_record_refs": {
+            "minItems": 1,
+            "maxItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_kind": {
+            "const": "reconciliation"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "event_data": {
+            "$ref": "#/$defs/reconciliation"
+          },
+          "prior_record_refs": {
+            "minItems": 1,
+            "maxItems": 2
+          }
+        }
+      }
+    }
+  ]
+}
