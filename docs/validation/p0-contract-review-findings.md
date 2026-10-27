@@ -1,5 +1,7 @@
 # P0 PowerShell/Python Contract Review Findings
 
+> 2026-10-27追記: 以下の監査結果は記載された当時の対象/基準の証拠として保持する。[現行要件台帳](../requirements/requirements-traceability.md)はQ1〜Q10と平坦化を反映済みで、全面削除禁止・両PC期間待ち・自動suffixの旧基準を現在へ復活させない。新しい移動契約に対するsource→要件→実装→試験→証拠の再照合は未完で、本履歴だけでは受け入れを満たさない。
+
 - Status: Technical pre-review complete; operator approval is still pending. Retry/unknown-upload scenario crosswalk refreshed against PR #95 (`d744ec68954d9460159952dca70b896503d03811`).
 - Scope: static comparison of `docs/design/powershell-python-contract.md`, request/response schemas, `tests/test_contract_schemas.py`, C-18/C-29 decisions, and RETRY-01–06 in `docs/validation/runtime-safety-test-scenarios.md`.
 - No runtime adapter or retry orchestrator is implemented in the current tracked tree. These findings and scenario definitions are not evidence of a live PowerShell/Python integration test.

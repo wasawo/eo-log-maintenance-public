@@ -1,5 +1,7 @@
 # Staging File Lifecycle
 
+> 2026-10-27 compatibility boundary: [Q1–Q10 and flattening](../development/requirements-design-task-review-20261027.md) require per-file movement through source deletion without both-PC period waiting. The existing v1 schema/helper behavior and dated evidence below are unchanged. A v1 `verified`/report/latest-manifest result is not proof of completed movement or permission to delete; both-PC selection/report completeness is not a new archive prerequisite. Deletion-state/IPC/persistence revisions remain detailed-design work. Do not alter old immutable artifacts or infer a schema upgrade from this policy note.
+
 ## 1. Purpose and Scope
 
 This document defines the immutable staging-copy lifecycle used before uploading ElectronicObserver log files to Google Drive.

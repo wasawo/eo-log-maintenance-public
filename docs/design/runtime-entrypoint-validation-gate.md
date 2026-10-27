@@ -2,6 +2,8 @@
 
 - Status: implementation gate proposal; not a runtime implementation or authorization to archive/delete.
 - Last updated: 2026-10-22
+
+2026-10-27 policy revision: [Q1–Q10 and flattening](../development/requirements-design-task-review-20261027.md) govern the two move routes. Requirements below are aligned with that policy; the new source-deletion IPC/persistence/verification contracts are not yet specified or implemented. Existing v1 validators remain copy/verification helpers, not proof of completed movement.
 - Related: `docs/development/implementation-workflow.md`, `docs/validation/runtime-safety-test-scenarios.md`, `docs/validation/p0-runtime-entrypoint-safety-audit.md`, `docs/design/manifest-state-transition-v1-proposal.md`
 - Current validation helpers: `Common/AggregationReportValidation.ps1`, `Common/AggregationReferencedArtifacts.ps1`, `Common/validate_aggregation_artifacts.py`, `Common/RunInputEvidenceIntegrity.py`
 
@@ -11,8 +13,8 @@ Define the minimum fail-closed integration contract before official `scripts/Syn
 
 ## 2. Entry-point separation
 
-- Sync entry point: may enumerate a configured local source, freeze the target inventory, sync/verify permitted Drive objects, and write run artifacts according to approved manifest/evidence contracts. It must not delete local source files or Drive files.
-- Archive entry point: PC-A only. It must independently read and validate both PC-A and PC-B completion manifests and the corresponding frozen inventories, then re-query and re-verify current Drive content immediately before any archive action.
+- Sync entry point: each PC moves its own eligible local sources to the shared cloud log-type folders, flattening subfolders. Delete only an individually identified local source after destination-content equality and source unchanged since copying are verified. It cannot delete cloud sources.
+- Archive entry point: PC-A only. Process current eligible cloud files independently of either PC's period-completion manifests. Verify the archive destination and cloud source unchanged since copying before deleting only that cloud source; late arrivals are processed later.
 - PC-B must not receive or expose an archive entry point in its runtime package.
 - Package distribution (GitHub to Drive) is a separate workflow and must not be called from either log-maintenance entry point.
 
@@ -23,12 +25,12 @@ The eventual implementation must perform these gates in order. Any failure, exce
 1. Validate the invocation mode, PC identity, log type, configured roots, and configuration schema. Reject unknown modes and unknown fields; never infer PC identity from a path.
 2. Acquire an exclusive run lock before mutable run state is created. Record ownership with a unique run identity. A process that cannot prove lock ownership must not release another process's lock.
 3. For a new sync run, enumerate the complete configured source scope and record traversal errors. A partial/failed enumeration cannot produce `completed` evidence. Freeze a deterministic inventory before upload/sync decisions.
-4. Recompute A2 inventory SHA-256 and B2 canonical evidence digest; validate the strict manifest/evidence schemas and all cross-field count/order invariants.
+4. For the existing source/manifest/evidence pipeline, recompute A2 inventory SHA-256 and B2 canonical evidence digest; validate strict schemas and cross-field count/order invariants. Archive needs its own current cloud-target binding; do not impose both PCs' local B2 sets as an archive eligibility prerequisite.
 5. Verify that B2 embedded targets exactly match the manifest's frozen file set by relative path, filename, size, and SHA-256. Verify report identity and inventory count/digest against the validated evidence.
 6. For every referenced artifact, validate the canonical relative path beneath the explicitly trusted maintenance root, reject reparse/symlink components, read the exact bytes, verify raw-byte SHA-256, and validate the corresponding strict schema. Never use a report-provided absolute path or an untrusted root.
 7. Reconcile prior run state conservatively. A crash-left `running` manifest remains incomplete; do not rewrite historical state to manufacture success. Unknown remote outcomes must be reconciled before retry.
-8. Before archive, independently validate both PCs' manifests and evidence. Then re-query current Drive state and verify content by trusted Drive SHA-256 or download-and-local-hash; metadata-only identity is insufficient. A stale manifest or prior successful run is not current archive authorization.
-9. Only after all required checks succeed may the implementation enter a separately approved archive transaction. Archive/delete capabilities remain disabled until their own explicit policy, tests, and approval are complete.
+8. Before each archive move, query current Drive state, bind the selected cloud source to the destination, and verify actual content; metadata-only identity is insufficient. Validate records needed for that file, without waiting for both PCs' period completion. Prior success is not current verification.
+9. Before deleting any source in either route, confirm destination-content equality and source unchanged since copying for that exact source. Failure/uncertainty retains it. Record copy/verification/deletion results separately; a copy-only verified state is not completed movement. Verification methods, deletion response/unknown-outcome handling and persistence contracts require further design. During document review no deletion code/schema or real-data operation is added.
 
 The validators cover parts of steps 4–6. Separate source-inventory, lock, publication and recovery helpers now also exist; they are not an integrated official runtime. Current Drive verification and archive authorization remain absent. See [current inventory](../status/first-release-readiness-20261024.md) for implemented scope and remaining environment qualification.
 
@@ -58,13 +60,14 @@ At minimum, tests must cover:
 - manifest/evidence identity and target-set mismatch;
 - A2/B2 digest mismatch, duplicate/unsorted targets, count reconciliation failures;
 - malformed JSON, duplicate keys, unsupported schema versions, unknown fields, path traversal, symlink/reparse points, and referenced-byte replacement;
-- missing/stale/mismatched PC-A or PC-B manifest/evidence;
+- missing/stale/mismatched evidence required for the affected file, and independent current-file archive while PC-B has no successful period manifest;
 - Drive object missing, ambiguous, metadata-only match, hash mismatch, inaccessible API, timeout, and transient failure;
 - lock contention, stale-lock takeover, owner mismatch, crash at each publication boundary, idempotent retry, and conflicting retry;
 - package exclusion of `ArchiveLogs.ps1` from PC-B and absence of active configuration/secrets;
-- assertion that all failure cases perform no archive/delete/overwrite operation.
+- per-file verification failures retain that source and do not overwrite destinations; independent valid files can complete while a different file fails;
+- verified source deletion, changed-source refusal, identical-content reuse, differing-content hold without suffix renaming, and uncertain-outcome reconciliation in isolated synthetic fixtures.
 
-Tests must use synthetic fixtures and temporary directories. No production logs, real credentials, Drive writes, archive enablement, or deletion is permitted as part of these acceptance tests.
+Tests must use synthetic fixtures, temporary directories and mock Drive. Future move tests must check permitted deletion of synthetic sources and refusal outside the two routes/Q5 conditions. No production logs, real credentials, production Drive writes/deletion or deployment is permitted. Existing helper tests are not changed into runtime evidence by this revision.
 
 ## 7. Exit criteria for runtime integration
 
@@ -73,7 +76,7 @@ Runtime integration is not complete until:
 1. Official entry-point scripts exist and call the validators in the required order.
 2. Lock, atomic publication, recovery, and Drive revalidation behavior are implemented and tested.
 3. The runtime package allowlist and PC-specific package exclusions are tested against the actual entry points.
-4. End-to-end synthetic acceptance tests demonstrate no destructive side effect under every failure condition.
+4. End-to-end synthetic acceptance tests demonstrate correct per-source completion, retention on failed/unknown verification, normal rerun, and no operation outside the permitted routes/roles. Failure of one file does not prohibit completion of another independent verified file.
 5. CI passes on the exact PR head and post-merge main commit.
 6. Operator-facing configuration, deployment, recovery, and rollback instructions are updated.
 

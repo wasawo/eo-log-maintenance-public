@@ -2,6 +2,8 @@
 
 ## 1. Purpose
 
+2026-10-27 revision: Q1–Q10 and the flattening instruction in the [review ledger](../development/requirements-design-task-review-20261027.md) supersede copy-only archive and both-PC completion waiting. Filename/date rules are retained; implementation and deletion verification contracts remain pending.
+
 Define deterministic filename validation and date-based eligibility rules
 for ElectronicObserver BattleLog and ErrorReport files.
 
@@ -47,7 +49,8 @@ requirements defined elsewhere in the project.
 - ErrorReport: include files dated on or before December 31 of the
   year two years before the current calendar year.
 - Process every eligible backlog period.
-- Archive means copy, verify, and record only. Never delete the source.
+- Archive completion includes copy (or verified reuse), destination-content verification, source unchanged since copying verified immediately before deletion, and deletion of only that cloud source. Unverifiable/changed/mismatched sources remain. PC-B completion is not a prerequisite.
+- Both move routes select eligible files recursively but place them directly in the shared log-type destination without reproducing source folders. Preserve source identity separately; identical names do not imply the same source.
 
 ## 5. Boundary Examples
 
@@ -69,8 +72,9 @@ boundaries at runtime.
   that disappear from the run report.
 - Never substitute LastWriteTime for a missing or invalid filename date.
 - Do not overwrite a different file merely because its filename matches.
-- Period completion and archive eligibility require the manifest,
-  content-verification, and cloud-verification checks specified elsewhere.
+- File completion and archive processing require current source/destination
+  identity and content checks, and the applicable records specified elsewhere.
+  A different PC's period completion is not a prerequisite.
 - Dry Run and filename selection must not modify, move, or delete source
   files.
 
@@ -87,8 +91,10 @@ boundaries at runtime.
   produce a fully successful completion record for the affected scope.
 - If an invalid filename cannot be assigned to a period, do not certify
   the overall synchronization run as fully successful.
-- Any incomplete, failed, stale, or ambiguous manifest state blocks
-  archival. PC-A must fail closed.
+- Missing, invalid, or ambiguous evidence needed for a particular file blocks
+  that dependent operation. Another PC's missing/failed period manifest alone
+  does not block processing current cloud files. A failed file does not erase
+  successful independent file moves.
 - The exact manifest status names and transition rules are governed by
   the manifest schema specification and must be finalized before
   manifest implementation.

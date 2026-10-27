@@ -1,5 +1,7 @@
 # 2026-10-24 選択形式による仕様決定
 
+> 2026-10-27追記: 本書は2026-10-24等の選択時点の履歴。[再確認Q1〜Q10と平坦化](../development/requirements-design-task-review-20261027.md)により、両PC完了待ち・全面削除禁止・自動suffixを前提とする部分は[現行決定台帳](decision-register-c18-c32.md)の限定改訂に従う。他のcredential/配布/時刻等の選択は維持する。既存helper/schemaの実装証拠を新しい元削除完了へ転用しない。
+
 状態：利用者の明示回答を記録する。仕様の選択と、実装・公開・マージ・実環境適用の許可を分離する。記録基準はmain 179787f（PR #38）、作業開始時の停止記録は54f1418。
 
 実装追従注記（2026-10-25）：以下の各回答時点の未実装/未公開記録は当時の状態。決定記録自体はPR #39で統合済みで、固定retryable表は現1.0 response schemaとPS helperへ追従した。 C-01 L1も現1.0 request schemaとPS/Python字句helperへ追従済みで、実root/使用点・正式adapterは未実装。正式retry orchestrationと他の未完項目は[現行handoff](../handoff/next-chat.md)を参照する。作業単位はローカルコミットまでとし、PR作成/マージは利用者が任意のタイミングで指示する運用へ変更した。

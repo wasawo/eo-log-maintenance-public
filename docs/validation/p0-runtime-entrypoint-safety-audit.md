@@ -1,5 +1,7 @@
 # P0 Runtime Entrypoint and Deletion-Surface Audit
 
+> 2026-10-27追記: 以下の監査結果は記載された当時の対象/基準の証拠として保持する。[現行要件台帳](../requirements/requirements-traceability.md)はQ1〜Q10と平坦化を反映済みで、全面削除禁止・両PC期間待ち・自動suffixの旧基準を現在へ復活させない。新しい移動契約に対するsource→要件→実装→試験→証拠の再照合は未完で、本履歴だけでは受け入れを満たさない。
+
 - Audit type: static tracked-file inspection
 - Repository baseline: `main` at `7f293686a340d84a2c64023f3722805dda49bf3f` (PR #92 merge, 2026-10-20; static review refreshed after PRs #91–#92)
 - Scope: tracked file inventory, operational entry-point presence, PowerShell launch references, and deletion-related commands in PowerShell scripts, schemas, config examples, tests, and CI workflows

@@ -126,7 +126,7 @@ The example configuration files are reference templates only. They may contain e
 - Do not replace `Config/PC-A.json` or `Config/PC-B.json` during package extraction or update.
 - Updating a template must not silently change the active runtime configuration.
 - The selected approach is a separate explicit migration procedure/command, with source/target version, backup, diff and explicit confirmation before execution. Normal updates preserve active configuration. Concrete migration mappings and any live migration require their own review/authorization; no automatic migration is implied.
-- PC-A example config may include `allowArchive: false`; archiving is permitted only when PC-A explicitly sets it to `true` and all archive gates pass. PC-B config must omit `allowArchive`. No config may contain `allowDelete`; the initial runtime contains no local-source or Drive deletion code, operations, or settings.
+- PC-A example config retains `allowArchive: false`; operational archive requires explicit PC-A true plus current per-file checks. PC-B omits `allowArchive`. No generic `allowDelete` override is adopted. Under the [2026-10-27 move policy](../development/requirements-design-task-review-20261027.md), each PC may delete only its verified eligible local move sources, and only A may delete cloud sources after verified archival. Current templates/schema and package tests are unchanged; new runtime/interface/package acceptance remains pending.
 
 ## 7. Validation and release gates
 
@@ -169,7 +169,7 @@ For each PC:
 5. Require explicit operator approval before applying changes.
 6. Keep a recoverable copy of the previous runtime version until post-update verification succeeds.
 
-PC-B must never archive or delete log files. PC-A's initial archive flow only copies, verifies, and records results; it does not delete Drive files. Neither PC contains local-source deletion capability in the initial implementation.
+PC-B must never archive or delete cloud sources. Initial completion includes each PC's own local-source deletion after verified cloud placement and source-unchanged confirmation, and PC-A cloud-source deletion after the corresponding archive checks. Package tests must prove permitted routes and forbidden roles/targets, not perpetual absence of all deletion. This policy revision does not change the current package contents, authorize implementation resumption, or permit production installation/deletion.
 
 ## 10. Implementation sequence
 

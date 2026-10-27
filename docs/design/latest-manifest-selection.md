@@ -1,5 +1,7 @@
 # Latest manifest selection core
 
+> 2026-10-27 compatibility boundary: [Q1–Q10 and flattening](../development/requirements-design-task-review-20261027.md) require per-file movement through source deletion without both-PC period waiting. The existing v1 schema/helper behavior and dated evidence below are unchanged. A v1 `verified`/report/latest-manifest result is not proof of completed movement or permission to delete; both-PC selection/report completeness is not a new archive prerequisite. Deletion-state/IPC/persistence revisions remain detailed-design work. Do not alter old immutable artifacts or infer a schema upgrade from this policy note.
+
 ## Local-only schema references (2026-10-27)
 
 Before constructing the manifest validator, the selector checks the loaded schema tree and requires every `$ref` / `$dynamicRef` value to be a string starting with `#`. Nonlocal HTTP/file/relative references, including unused definitions, reject with existing `manifest_schema_unavailable`. The validator also uses a registry whose retrieval callback always refuses resource retrieval, so reference resolution cannot fall back to network or other external resources. Existing repository-local fragments and structural/format checks remain supported.
