@@ -1,10 +1,10 @@
 # 初期inventoryの読取観測接続
 
-内部比較結果は[共通の出力検査](source-inventory-revalidation.md#internal-comparison-output-validation-2026-10-26)へ通し、batch/各fileの型・status・ID・非認可flagsやheld/results不整合は固定例外で拒否する。件数が合うだけの不正結果を観測へ取り込まない。
+内部比較結果は[共通の出力検査](source-inventory-revalidation.md#内部比較出力の検証-2026-10-26)へ通し、batch/各fileの型・status・ID・非認可flagsやheld/results不整合は固定例外で拒否する。件数が合うだけの不正結果を観測へ取り込まない。
 
-caller指定のdownload plan件数/合計bytes予算は[local入口への接続](source-inventory-revalidation.md#download-plan-output-budgets-at-local-entrypoints-2026-10-26)を参照。不正値はsource再観測前に拒否し、超過時は元B2/選択を保持したheld、比較fileなしとする。
+caller指定のdownload plan件数/合計bytes予算は[local入口への接続](source-inventory-revalidation.md#ローカル-エントリポイントでのダウンロード-プランの出力予算-2026-10-26)を参照。不正値はsource再観測前に拒否し、超過時は元B2/選択を保持したheld、比較fileなしとする。
 
-2026-10-25。[C-32/OSD-01](../../requirements/p0-open-specification-decisions.md#approved-decision-record--osd-01)を支える`inspect_initial_inventory`：[SourceInventoryRevalidation.py](../../../Common/SourceInventoryRevalidation.py)。運用sync/archiveのmanifestとは別の内部immutable型を使い、永続record/schema/rootを採用しない。
+2026-10-25。[C-32/OSD-01](../../requirements/p0-open-specification-decisions.md#承認された決定記録--osd-01)を支える`inspect_initial_inventory`：[SourceInventoryRevalidation.py](../../../Common/SourceInventoryRevalidation.py)。運用sync/archiveのmanifestとは別の内部immutable型を使い、永続record/schema/rootを採用しない。
 
 独立したPC-A source信頼確認・exact B2・明示relative path tuple・log/run/root/scope/reference date/現在時計を既存source batch再観測へ渡す。呼出しごとに実sourceを全列挙/hashし、一致時だけ与えられたDrive前後列挙・download計画/完了hash集合を既存の厳密batch比較へ渡す。実Driveのquery/時系列/出所をこのhelperで認証するものではない。
 

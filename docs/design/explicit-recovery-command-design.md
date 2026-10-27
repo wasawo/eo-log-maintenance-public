@@ -84,22 +84,18 @@ lockなし・manifestなしを推測で回復可能とせず、通常実行の�
 その後にroot/終了証拠/時計と実read接続のゲートを満たす。未確定のdispositionはその前に実装しない。
 P0-010/P0-012、Tier B全体、正式復旧・本番導入は未完了のまま維持する。
 
-<a id="7-implemented-result-model-slice"></a>
 ## 7. 実装された結果モデルのスライス
 
 Common/RecoveryDiagnostic.py は、渡された観測だけから結果を作る副作用のないモデルのみを実装する。8つの明示条件（configuration/root/mutex/lock_record/clock/latest_manifest/owner_termination/drive_reconciliation）にはそれぞれsatisfied/missing/unknown/failedが必要である。欠落・不明なキーや自由文を拒否する。不足時は固定順序の理由とblockedを返し、全条件が満たされた場合は review_required を返す。公開用の投影には schema_version の 1、要求範囲の厳密な値、分類、reason_codes、may_change_state=falseを含める。直接構築・出力時も固定項目を検証する。生の記録、パス、PID、ホスト、トークンは受け付けない。内部ヘルパーのモデルであり、最終コマンドの JSON・終了コードや永続処分スキーマではない。12件の合成試験はこの境界だけを扱い、DIAG-01〜DIAG-10 全体は未完了である。
 
-<a id="8-implemented-record-free-lease-slice"></a>
 ## 8. レコードフリーのリーススライスを実装
 
 Common/RecoveryDiagnosticMutex.py は、通常の所有権と同じグローバル ミューテックス名を使用して分離リースを追加します。最長 60 秒待機し、ロック レコードまたはトークンの作成/読み取り/変更は行わず、may_change_state=false で放棄の証拠を生成し、例外/割り込みで解放/クローズを試みます。タイムアウト/OS/クリーンアップの失敗には固定の理由があります。リース内の呼び出し元によって発生したエラーは、その呼び出し元によってサニタイズする必要があります。 13 のテストには、実際の Windows 競合、放棄された消費、繰り返しの診断、本体 失敗 後のリリースを証明する別のプロセス プローブが含まれます。これは部分的な DIAG-03/04/05 の証拠にすぎません。ルート/クロック/所有者の証明、ライブ コマンド/出力、完全な DIAG マトリックス、保護された配置、およびランタイムの受け入れは 未完了 のままです。
 
-<a id="9-approved-owner-evidence-compatibility-direction"></a>
 ## 9. 承認された所有者証拠の互換性の方向性
 
 メンテナは、v1 の診断/保存および v2 のみの将来のリカバリ設計を承認しました。 [論理所有者証拠契約](recovery-owner-evidence-v2-contract.md) は、不明 PID/ブート/クエリのケースをブロックし、同一ハンドル終了の監視と回復の承認を区別します。 v2 スキーマ、プロバイダー、ライター、またはランタイム接続は追加されません。 [私的証拠保全ポリシー](../archive/decisions/recovery-private-evidence-policy-proposal.md) はプライベート メンテナンスとして承認されています。自動削除なしのローカル保存。実際の永続性、ACL の変更、および回復操作は未実装のままであり、そのポリシーだけでは許可されていません。
 
-<a id="10-approved-private-evidence-direction"></a>
 ## 10. 承認された私的証拠の指示
 
 プライベートメンテナンス自動削除なしのローカル保存が承認されています。 [ストレージ/検証契約](recovery-private-evidence-contract.md) は、メモリ内メタデータ/生バイトのバインディングを、実装されていない ACL で保護された永続性および性質から分離します。診断は持続しないままです。 [実行アカウントポリシー](../archive/decisions/recovery-execution-account-policy-proposal.md) は、手動実行および今後のタスクのために、各 PC 内の同じ Windows アカウントに対しても承認されます。タスク登録、ライブ ID/ACL 認定、およびランタイム統合は 未確定 のままです。

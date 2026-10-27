@@ -75,7 +75,6 @@ PCごとのパスや権限は設定ファイルで与え、PC-Bではアーカ�
 `docs/validation/target-filesystem-acceptance.md` は、成果物 セットの公開とリカバリの証拠境界を定義します。ホスト型 Windows CI、PC-A/PC-B の使い捨てローカル ボリューム認定、および個別にゲートされた同期/ネットワーク ターゲット認定。現在の CI の結果は、ターゲット ファイル システムの動作、リモート可視性、または停電時の耐久性を証明するものではありません。これらのヘルパー モジュールでは、正式なエントリポイントの統合や破壊的な操作は許可されていません。
 
 
-<a id="read-only-configuration-structure-loader"></a>
 ## 読み取り専用構成構造ローダー
 
 `Common/MachineConfiguration.ps1` は `ConvertFrom-EoMachineConfigurationJson` と `Read-EoMachineConfiguration` を提供する。読み取り処理は厳密な UTF-8（BOMは任意）を受け付け、新しい検証済みオブジェクトを返す。設定、ルートディレクトリ、マニフェスト、その他の成果物は作成しない。
@@ -86,18 +85,17 @@ PCごとのパスや権限は設定ファイルで与え、PC-Bではアーカ�
 
 構造・字句上の証拠であり、承認ルートのファイルシステム判定ではない。実対象ボリュームの検査、短い名前・再解析別名の解決、ルート間の物理分離の証明、実行ロックの取得、Drive接続、正式入口の統合は行わない。副作用の前には引き続きこれらが必須である。後述の未作成時だけ生成する初期設定ヘルパーは実装済みだが、正式な導入・更新との統合と移行は未完了である。
 
-<a id="create-only-configuration-bootstrap-helper"></a>
 ## 作成専用構成ブートストラップ ヘルパー
 
-Initialize-EoMachineConfiguration、安全境界、および 未確定 展開の統合については、[構成仕様](../configuration-local-root.md#create-only-configuration-bootstrap-helper) を参照してください。 tests/Test-MachineConfigurationBootstrap.ps1 を実行して、合成チェックと保存チェックを行います。
+Initialize-EoMachineConfiguration、安全境界、および 未確定 展開の統合については、[構成仕様](../configuration-local-root.md#作成専用構成ブートストラップ-ヘルパー) を参照してください。 tests/Test-MachineConfigurationBootstrap.ps1 を実行して、合成チェックと保存チェックを行います。
 
-SourceInventoryEvidenceBuilder は、ハッシュの前後にソース パス名とオープン ハンドル ID をチェックします。監視可能な 不一致 または 利用不能 ID は列挙 未完了 を保持します。これはスナップショットや後で使用するための保護ではありません。 [ファイルシステムの証拠](../../validation/target-filesystem-acceptance.md#source-hash-handle-identity-2026-10-23)を参照してください。
+SourceInventoryEvidenceBuilder は、ハッシュの前後にソース パス名とオープン ハンドル ID をチェックします。監視可能な 不一致 または 利用不能 ID は列挙 未完了 を保持します。これはスナップショットや後で使用するための保護ではありません。 [ファイルシステムの証拠](../../validation/target-filesystem-acceptance.md#ソース-ハッシュ-ハンドル-id-2026-10-23)を参照してください。
 
-ソース インベントリは、lstat シンボリックリンク/再解析ルート/祖先を拒否し、キューに入れられたディレクトリを再チェックし、新しいエントリ属性を分類し、ハッシュ前後のファイル パスをチェックします。不明な属性はフェールクローズされます。 [ソース再解析の証拠と制限](../../validation/target-filesystem-acceptance.md#source-inventory-reparse-rejection-2026-10-23)を参照してください。
+ソース インベントリは、lstat シンボリックリンク/再解析ルート/祖先を拒否し、キューに入れられたディレクトリを再チェックし、新しいエントリ属性を分類し、ハッシュ前後のファイル パスをチェックします。不明な属性はフェールクローズされます。 [ソース再解析の証拠と制限](../../validation/target-filesystem-acceptance.md#ソース-インベントリ再解析拒否-2026-10-23)を参照してください。
 
-ロック/リカバリ証拠の解析では、重複した JSON キーと間違ったプリミティブ タイプが拒否されます。不正なロック レコードは、ミューテックスが解放されている間保持されます。 [厳密な証拠の範囲](../../validation/lock-recovery-acceptance-gate.md#strict-lock-and-recovery-evidence-2026-10-23)を参照してください。これは、古いロックの処理や動作の回復を実装しません。
+ロック/リカバリ証拠の解析では、重複した JSON キーと間違ったプリミティブ タイプが拒否されます。不正なロック レコードは、ミューテックスが解放されている間保持されます。 [厳密な証拠の範囲](../../validation/lock-recovery-acceptance-gate.md#厳密なロックと回復の証拠-2026-10-23)を参照してください。これは、古いロックの処理や動作の回復を実装しません。
 
-MachineConfigurationRootInspection.ps1 は、既存の構成ルートのオプトイン読み取り専用メタデータ検査を追加します。これは実行時の認証ではありません。 [構成スコープ](../configuration-local-root.md#read-only-existing-root-metadata-inspection)を参照してください。
+MachineConfigurationRootInspection.ps1 は、既存の構成ルートのオプトイン読み取り専用メタデータ検査を追加します。これは実行時の認証ではありません。 [構成スコープ](../configuration-local-root.md#読み取り専用の既存ルートメタデータ検査)を参照してください。
 
 LatestManifestSelection.py は、定義されたマニフェストのベース名を個別に解析し、指定された観測値から一意の検証済みの最新開始時刻を選択します。古い 成功 に戻ることはありません。 [選択範囲とゲート](latest-manifest-selection.md)を参照してください。
 
@@ -189,7 +187,6 @@ source builderは[列挙完了前の再確認](source-enumeration-stability.md)�
 
 `StagingResidualObservation.py`は[残存staging直下entry](staging-residual-observation.md)を内容非読取・非再帰で件数観測します。不明/変化は保留して初回件数を保持し、metadata検査やcleanup/Upload/Archiveを許可しません。
 
-<a id="shared-marker-last-basename-validation-2026-10-27"></a>
 ## 共有マーカーの最後のベース名の検証 (2026-10-27)
 
 `ArtifactSetRecovery.is_artifact_basename`は既存marker-last publisherの名前条件を共通化します。空/非文字列、先頭dot、slash/backslash/NUL、末尾ASCII空白/dotを拒否し、Unicode・内部空白/dotを変更せず判定します。trim・casefold・Unicode正規化や自動修正は行いません。これは既存の限定したleaf文法であり、全Windows予約名/禁止文字/長さや実FS資格の検査を追加するものではありません。
@@ -198,7 +195,6 @@ publisherは全payload名/marker名を単一file公開前に同じ関数で検�
 
 [公開試験](../../../tests/test_artifact_set_publication.py)・[分類試験](../../../tests/test_artifact_set_recovery.py)・[directory試験](../../../tests/test_artifact_set_directory_verification.py)で不正名の全件事前拒否、非I/O・保全、Unicode/内部空白の公開→marker→検証と文字列の原形保持を確認します。単一file primitiveのtemp名方針や公開/復旧認可を変更せず、同時snapshot/ABA・FS/provider真正性・正式runtime/Drive・電源断/Tier B/C受け入れやP0閉鎖は証明しません。
 
-<a id="caller-selected-marker-last-publication-byte-budgets-2026-10-27"></a>
 ## 呼び出し元が選択したマーカーの最後のパブリケーションのバイト バジェット (2026-10-27)
 
 `publish_artifact_set_marker_last`はoptional `maximum_artifact_bytes` / `maximum_total_bytes`を受け、Noneまたは正のexact intだけを許します。不正値は既存transaction文法検査後、payload Mappingのsnapshot・hash・単一file公開前に`artifact_publish_limit_invalid`で拒否します。固定本番値・新schema/配布契約は追加しません。
@@ -209,7 +205,6 @@ publisherは全payload名/marker名を単一file公開前に同じ関数で検�
 
 [公開回帰](../../../tests/test_artifact_set_publication.py)でexact境界の公開/再公開/読戻し、不正値の非snapshot、payload超過の非hash、markerだけの超過・非部分公開、bytes派生型と空payloadを確認します。root/FS/provider資格・所有権/真正性、同時snapshot/ABA・電源断/Tier B/C/runtime受け入れや公開/Archiveの認可は追加しません。
 
-<a id="bounded-stable-owner-record-observations-2026-10-27"></a>
 ## 有界の安定した所有者レコードの観測 (2026-10-27)
 
 `acquire_owned_lock`はoptional `maximum_record_bytes`を受け、Noneまたは正のexact intだけを許します。不正値はscope検査後・token/path/mutex準備前に`lock_record_limit_invalid`で拒否します。生成recordが超過する場合は所有mutex内で`lock_record_limit_exceeded`としてrecord作成前に拒否し、mutexを解放します。固定本番値・schemaやowner-v2/provider契約を追加しません。
@@ -220,7 +215,6 @@ strict field集合、scope/tokenとpid/hostの従来検査は維持し、canonic
 
 [owner lock試験](../../../tests/test_owned_run_lock.py)でexact境界・不正値の早期拒否・作成前超過・解放時超過の非読取/保全、path→handle間増大、不明観測/deep JSONでもmutex解放、JSON表記互換を確認します。
 
-<a id="owner-record-creation-failure-preservation-2026-10-27"></a>
 ## 所有者レコードの作成 失敗 保存 (2026-10-27)
 
 owner recordの`write`は戻り値がexact intかつ全payload長と一致することを要求し、short/過大/不正値は`lock_record_write_incomplete`で停止します。続くcloseもOSErrorになった場合は元の固定reasonを保持します。write/flush/fsync/closeのOSErrorは従来の`lock_record_create_failed`を維持し、呼出し元へowner tokenを渡しません。
@@ -229,7 +223,6 @@ owner recordの`write`は戻り値がexact intかつ全payload長と一致する
 
 [単体回帰](../../../tests/test_owned_run_lock.py)と[隔離保存接続](../../../tests/test_terminal_bundle_integration.py)で、各書込件数・二重close失敗、write/flush/fsync/closeの失敗、初回確認失敗、parse可能な不完全recordの保全・候補非作成と同一mutexの再取得を確認します。これはmutex解放の合成証拠であり、残存recordの復旧/次run認可、root/FS/provider資格、ABA排除・電源断/Tier B/C/runtime受け入れやP0閉鎖を示しません。
 
-<a id="strict-owned-mutex-adapter-observations-2026-10-27"></a>
 ## 厳密な所有ミューテックス アダプターの監視 (2026-10-27)
 
 `acquire_owned_lock`は既存`_NamedMutex`/診断mutexと同じadapter契約を前提とし、`acquire`の戻り値をexact boolとして検査します。数値/文字列/None等を`bool()`で所有確認へ変換しません。不正値と待機例外は固定`named_mutex_wait_failed`で、record payload生成・作成・bodyへ進みません。確定Falseは従来の`lock_timeout`でcloseのみ、確定Trueだけが次の観測へ進みます。
@@ -238,14 +231,12 @@ owner recordの`write`は戻り値がexact intかつ全payload長と一致する
 
 取得後の`abandoned`もexact boolを要求し、欠落・取得不能・不正型をFalseへ補完せず`named_mutex_observation_invalid`で停止します。Trueは従来どおり`abandoned_mutex_requires_recovery`で保全停止、Falseだけが既存record作成境界へ進みます。[単体回帰](../../../tests/test_owned_run_lock.py)で不正型/例外/中断とcleanup・非record作成を検査し、実mutexを使う隔離保存/診断接続で既存正常動作を確認します。正式runtime、owner-v2/provider真正性、復旧/次run認可、電源断/Tier B/C受け入れやP0閉鎖は追加しません。
 
-<a id="mutex-cleanup-after-record-cleanup-interruption-2026-10-27"></a>
 ## レコード クリーンアップ中断後のミューテックス クリーンアップ (2026-10-27)
 
 owned lockのrecord解放時確認とunlinkを外側のfinallyで囲み、その途中のKeyboardInterrupt/SystemExit等でもmutex release・closeを試みます。release自身が失敗/中断してもcloseを試みる既存順序を維持し、中断を正常終了へ変換しません。record cleanupのOSErrorを保全へ落とす既存動作と、通常の所有確認/cleanup条件は変更しません。
 
 [単体回帰](../../../tests/test_owned_run_lock.py)で解放時観測/unlinkの中断、release失敗/中断、unlinkのOSErrorとbody例外の保全を確認します。[隔離保存接続](../../../tests/test_terminal_bundle_integration.py)は両PCの候補公開後にrecord解放確認を中断し、prior・候補・recordを保全したまま別合成record pathで同一mutexを再取得して解放を確認します。これは中断後のmutex解放に関する合成証拠であり、残存recordの採用/復旧・次run認可、敵対的競合/ABA・強制process終了や電源断耐久性、正式runtime/Tier B/C受け入れやP0閉鎖を示しません。
 
-<a id="local-only-recovery-schema-references-2026-10-27"></a>
 ## ローカルのみのリカバリ スキーマ参照 (2026-10-27)
 
 `PrivateRecoveryEvidence`のbuild/validateと`CrashRecoveryDecision`のprior manifest検査も、既存manifest selectorのlocal-only参照検査・取得禁止Registryを使用します。schema全treeの`$ref` / `$dynamicRef`は`#`で始まる文字列だけを許し、HTTP/file/相対resource・不正型を、未使用のdefs内でも拒否します。validator自身にもresource retrievalを拒否するRegistryを明示し、事前検査だけに依存しません。

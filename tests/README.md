@@ -283,11 +283,11 @@ Bootstrap/create-once migration is a separate pending implementation.
 
 ## Create-only configuration bootstrap helper
 
-See [configuration specification](../docs/design/configuration-local-root.md#create-only-configuration-bootstrap-helper) for Initialize-EoMachineConfiguration, safety boundaries and pending deployment integration. Run tests/Test-MachineConfigurationBootstrap.ps1 for synthetic create-once and preservation checks.
+See [configuration specification](../docs/design/configuration-local-root.md#作成専用構成ブートストラップ-ヘルパー) for Initialize-EoMachineConfiguration, safety boundaries and pending deployment integration. Run tests/Test-MachineConfigurationBootstrap.ps1 for synthetic create-once and preservation checks.
 
-Internal publication crash tests: python -m unittest discover -s tests -p test_internal_publication_crash.py -v. See [filesystem acceptance](../docs/validation/target-filesystem-acceptance.md#internal-single-file-crash-boundaries-2026-10-23) for the 10 crash scenarios, orphan rejection and evidence limits. Included in opt-in local-volume checks.
+Internal publication crash tests: python -m unittest discover -s tests -p test_internal_publication_crash.py -v. See [filesystem acceptance](../docs/validation/target-filesystem-acceptance.md#単一ファイルの内部クラッシュ境界-2026-10-23) for the 10 crash scenarios, orphan rejection and evidence limits. Included in opt-in local-volume checks.
 
-Source hash identity regressions: python -m unittest discover -s tests -p test_source_hash_identity.py -v. These use synthetic file replacement/restoration and injected fstat failures; see [scope and limitations](../docs/validation/target-filesystem-acceptance.md#source-hash-handle-identity-2026-10-23).
+Source hash identity regressions: python -m unittest discover -s tests -p test_source_hash_identity.py -v. These use synthetic file replacement/restoration and injected fstat failures; see [scope and limitations](../docs/validation/target-filesystem-acceptance.md#ソース-ハッシュ-ハンドル-id-2026-10-23).
 
 Source reparse regressions: python -m unittest discover -s tests -p test_source_inventory_reparse.py -v. Seven tests include real Windows junction root/ancestor/child/queued replacement and metadata failures. Included in opt-in local-volume checks; synthetic fixtures only.
 

@@ -1,11 +1,9 @@
-<a id="diagnostic-contract-c-45c-54-implementation-and-test-evidence"></a>
 # 診断契約 C-45–C-54: 実装およびテストの証拠
 
 > 履歴/検討資料。承認済みの選択・未決候補・当時の監査根拠を含み、この移動は撤回/失効を意味しない。現在の基準は[正式要件](../../requirements/log-move-requirements.md)と[現行決定台帳](../../decisions/decision-register-c18-c32.md)。当時の対象/証拠を現在のruntime受け入れへ拡張しない。
 
 **ステータス:** の非規範的証拠の対応表、2026-10-21 の PR #140、#141、#144、および #146 について更新されました。規範的な決定は docs/archive/decisions/aggregation-inventory-integrity-options.md および docs/archive/decisions/decision-record-c54-sensitive-path-detection.md. に残ります
 
-<a id="current-tracked-implementation"></a>
 ## 現在追跡されている実装
 
 |契約|追跡された実装/テスト|テストで確立されるもの|残りのギャップ|
@@ -21,19 +19,16 @@
 |C-53 パス構文とフィールドのヌル化|ConvertTo-SafeDiagnosticRelativePath; ConvertTo-FinalizedDiagnosticJson;どちらの診断テストも|相対パス構文、正規の区切り文字、機密ポリシーの順序付け、Unicode の有効性、1024 スカラーの最大値、安全でないオプション パスでの明示的な JSON null、およびイベント ID/分類の保持。|実際のランタイム診断パイプラインや生の JSON 取り込み境界はありません。|
 |C-54 センシティブなパスの検出|ConvertTo-SafeDiagnosticRelativePath; tests/Test-C54PatternContract.ps1; tests/Test-DiagnosticPathSanitization.ps1|承認された固定機密名/トークンおよび P1 ～ P6 パターンは、合成フィクスチャでカバーされます。|運用ログ/認証情報やエンドツーエンドのロギング シンクは実行されません。実行時の非公開は未検証のままです。|
 
-<a id="ci-evidence"></a>
 ## CI 証拠
 
 - PR #140 は 454041f4337d5f22550a288dfd74afecde76635a にマージされました。正確なヘッド検証の実行 39509321771 とパッケージ検証の実行 39509321735 が 6a7222db4387019c6dc598c2b9bf38b6efca3c4c で成功しました。マージ後のメイン検証実行 39509466949 とパッケージ検証実行 39509467065 が 454041f4337d5f22550a288dfd74afecde76635a で成功しました。
 - PR #141 は 58aeb10e3661b7cd893e1a6bfed0469e29e4089f にマージされました。正確なヘッド検証の実行 39509756240 とパッケージ検証の実行 39509756267 が fe5428248fe5fbef51acd396a1e4bca33438ae53 で成功しました。マージ後のメイン検証実行 39509903050 とパッケージ検証実行 39509903012 は両方とも SHA 58aeb10e3661b7cd893e1a6bfed0469e29e4089f のマージに成功しました。
 
-<a id="acceptance-boundary"></a>
 ## 許容境界
 
 この対応表は、ヘルパーおよび合成テストのカバレッジのみを記録します。 C-50 には純粋なトークンからコードへのヘルパーが追加されましたが、これには、信頼できるプロデューサーの統合、優先順位の強制、ランタイム診断の生成、イベント伝播、生の JSON 重複キーの拒否、ランタイム ログシンクの非公開、または P0 の受け入れは要求されません。 P0-008、P0-010、および P0-012 は開いたままになります。 docs/schema/helper/package CI は実行時証拠に昇格させてはなりません。
 
 
-<a id="osd-02-timestampfreshness-policy--acceptance-crosswalk-pr-scope"></a>
 ## OSD-02 タイムスタンプ/鮮度ポリシー — 受け入れクロスウォーク (PR スコープ)
 
 - 承認されたポリシー: UTC ISO 8601 (大文字の `Z`)。不正な形式/オフセット/タイムゾーンのないタイムスタンプと開始前終了を拒否します。

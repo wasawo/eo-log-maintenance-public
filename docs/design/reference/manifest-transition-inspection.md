@@ -1,4 +1,3 @@
-<a id="manifest-v1-transition-snapshot-inspection"></a>
 # マニフェスト v1 移行スナップショット検査
 
 2026-10-25。根拠は[採用済み遷移表](../manifest-state-transition-v1-proposal.md)、[C1〜C4](../../archive/decisions/osd-02-crash-concurrency-options.md)、[OSD-03](../../archive/decisions/osd-03-status-aggregation-options.md)。実装は[ManifestTransitionInspection.py](../../../Common/ManifestTransitionInspection.py)。
@@ -56,12 +55,11 @@ missing priorを新規runへ置き換えず、running提案から終端reportも
 
 [接続試験](../../../tests/test_terminal_manifest_plan.py)はT01〜T12相当の両log種別、PC-B、正しい集約でも不正遷移/凍結inventory変更、掲載ペアでも偽成功/未終端file、B2改変・関連errorとno_work、終端不変・欠落prior・時計/schema/path不正、exact非canonical bytes・決定性・I/Oなしを確認する。C1/C2の実比較更新、実upload/Drive内容、履歴event証拠、真正な使用点readback、marker-lastの実publication、Tier B/Cとruntime受け入れは引き続き未完。
 
-終端planのreportを専用合成領域へ置いた後、参照validatorが元manifest/B2のexact hashだけでなく、全reportの[決定的意味論再導出](aggregation-report-v1-proposal.md#deterministic-semantic-readback-2026-10-25)も比較する接続試験を追加した。これは読取検証で、実manifest更新やC1/C2 publicationの資格試験ではない。
+終端planのreportを専用合成領域へ置いた後、参照validatorが元manifest/B2のexact hashだけでなく、全reportの[決定的意味論再導出](aggregation-report-v1-proposal.md#決定論的セマンティックリードバック-2026-10-25)も比較する接続試験を追加した。これは読取検証で、実manifest更新やC1/C2 publicationの資格試験ではない。
 
 
 ## 隔離候補bundleの公開・読戻し接続
 
-<a id="explicit-fixture-publicationreadback-budgets-2026-10-27"></a>
 ### 明示的なフィクスチャのパブリケーション/リードバック バジェット (2026-10-27)
 
 fixtureの`publish` / `readback`と全履歴使用点保存接続はoptional `maximum_record_bytes`も受け、owner取得の`acquire_owned_lock`へ渡す。不正値は他のfixture予算と同様guard/owner取得前に拒否する。record作成前超過は候補保存/検証・履歴再導出へ進まず、priorと既存候補を保持する。予算内の公開/読戻しを実際の生成record bytes長の境界で確認するが、固定本番値やowner真正性を採用しない。

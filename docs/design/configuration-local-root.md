@@ -1,11 +1,9 @@
-<a id="local-maintenance-artifact-root"></a>
 # ローカル メンテナンス 成果物 ルート
 
 - オペレーターによって承認されました: 2026-10-23。
 - 範囲: 両方の PC 構成で `maintenanceLocal` が必要です。運用環境へのデプロイメントの承認がありません。
 - 関連: EOLM-CFG-001/006/007、承認済みローカル権限/確認済み-ドライブ コピー ストレージ方向、P0-006/P0-009/P0-010/P0-012。
 
-<a id="meaning-and-separation"></a>
 ## 意味と分離
 
 `maintenanceLocal` は、現在のPCのマニフェスト、確定した一覧・証拠、集計レポートのローカル正本ルートである。別途定める場合は、関連する公開マーカー・ロック記録も含む。他方のPCの元保管場所やDrive上のコピーではない。PC-A と PC-B はそれぞれ自分のルートを設定し、実値は追跡対象外の設定に保持する。
@@ -14,20 +12,17 @@
 
 パッケージビルダーは、Windows による絶対パス正規化後に、必須項目、パスの型・構文、字句上の非重複を検証する。大文字・小文字と末尾のディレクトリ区切りは無視する。ディレクトリ境界のない共通文字列接頭辞は包含としない。エラーで設定パスを再表示しない。
 
-<a id="evidence-boundary"></a>
 ## 証拠の境界
 
 パッケージ検証は、存在しないパスも含む公開例の文字列を対象とする。ルート作成、実設定の読み取り、実ボリューム・再解析別名の検査、物理分離の証明、アーカイブの認可は行わない。実行時の設定読み取り・パス判定は独自の厳密な検証を行い、副作用の前に識別・再解析の検査を繰り返す必要がある。現在の承認では、残る OSD-09 の導入・移行判断をすべて解決していない。
 
 導入時は、対象PCの実設定がない場合だけ公開例から作成し、利用者は実パスだけを編集する。更新時は既存の実設定を保全する。maintenanceLocalを持たない旧設定は明示的に更新し、現在のディレクトリ、runtimeRoot、Driveからルートを推測しない。この変更では、まだその導入フローを実装していない。
 
-<a id="regression-evidence"></a>
 ## 回帰の証拠
 
 両PCについて、maintenanceLocalの欠落・誤型・相対パス、他の全設定ルートとの一致、祖先・子孫の包含、大文字・小文字と末尾区切り、正規化した親遡及、共通接頭辞を持つ許可された兄弟ルートを試験する。PC-A の安全なallowArchive既定値と PC-B のアーカイブ除外は維持する。
 
 
-<a id="read-only-configuration-structure-loader"></a>
 ## 読み取り専用構成構造ローダー
 
 `Common/MachineConfiguration.ps1` は `ConvertFrom-EoMachineConfigurationJson` と `Read-EoMachineConfiguration` を提供する。読み取り処理は厳密な UTF-8（BOMは任意）を受け付け、新しい検証済みオブジェクトを返す。設定、ルートディレクトリ、マニフェスト、その他の成果物は作成しない。
@@ -38,7 +33,6 @@
 
 構造・字句上の証拠であり、承認ルートのファイルシステム判定ではない。実対象ボリュームの検査、短い名前・再解析別名の解決、ルート間の物理分離の証明、実行ロックの取得、Drive接続、正式入口の統合は行わない。副作用の前には引き続きこれらが必須である。後述の未作成時だけ生成する初期設定ヘルパーは実装済みだが、正式な導入・移行は未完了である。
 
-<a id="create-only-configuration-bootstrap-helper"></a>
 ## 作成専用構成ブートストラップ ヘルパー
 
 Common/MachineConfigurationBootstrap.ps1 は、ConfigDirectoryとMachineIdを明示指定するInitialize-EoMachineConfigurationを提供する。信頼された展開済みパッケージの既存設定ディレクトリだけを扱い、ドットソースしただけでは動作しない。既存の実設定エントリは、そのバイトを解釈・変更せず保全する。新設定は対応する安全な公開例から検証し（PC-A のallowArchiveはfalse必須）、排他的に作成した兄弟の一時ファイルへ書き、フラッシュ後、同一ディレクトリ内の上書きしない移動で公開する。
@@ -49,7 +43,6 @@ Common/MachineConfigurationBootstrap.ps1 は、ConfigDirectoryとMachineIdを明
 
 明示実行するヘルパーと合成試験であり、インストーラーの実行、本番展開の承認、OSD-09 の最終的な許可リスト・移行判断、P0完了ではない。実設定は引き続きソース管理・配布から除外する。
 
-<a id="read-only-existing-root-metadata-inspection"></a>
 ## 読み取り専用の既存ルートメタデータ検査
 
 Common/MachineConfigurationRootInspection.ps1 はTest-EoMachineConfigurationRoots -Json ... -ExpectedMachineId PC-A/PC-B を提供する。最初に既存の厳密な構造解析器を実行する。明示呼び出し時に、設定した全ルートを既存ディレクトリとして検査する。不在、非ディレクトリ、読み取り不能、再解析・シンボリックリンク、未対応プロバイダーは安全側で拒否する。ドットソース時は定義の読み込みと既存の版チェック以外を行わない。

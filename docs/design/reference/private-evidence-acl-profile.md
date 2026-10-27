@@ -34,7 +34,6 @@ profile_matches=trueは限定形状への一致であり、実効アクセスの
 実taskのログオン方式・昇格などは同一accountだけでは決まらない。OSD-08の残る運用方針を別途確定する。
 STORE-01やACL全体・P0/Tier Bをこの部分実装で完了にしない。
 
-<a id="binary-descriptor-normalization-slice"></a>
 ## バイナリ記述子正規化スライス
 
 Common/PrivateFileSecurityDescriptor.ps1 は、提供された自己相対バイナリ記述子に ConvertFrom-EoPrivateFileSecurityDescriptor を追加します。入力バイトのクローンを作成し、正確なバイナリ ラウンド トリップを必要とし、ACE の順序/拒否/フラグと署名なしマスクを保持し、所有者の不在、オブジェクト/コールバック ACE、SACL、およびサポートされていない制御フラグを削除する代わりに拒否します。出力は、SID を含むプライベート内部データです。既存の Python 評価のみがサニタイズされた診断に適しています。 6 つのクロスランタイム テストは 16 個の合成記述子をカバーします。 Get-Acl/ファイル/トークン クエリ、ACL 書き込み、実際の実行ユーザー バインディング、有効アクセス/祖先資格、実行時許可は追加されません。 .NET 表現については、[RawSecurityDescriptor](https://learn.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.rawsecuritydescriptor) および [CommonAce](https://learn.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.commonace) を参照してください。
