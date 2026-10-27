@@ -1,435 +1,481 @@
-# Decision Register: C-18–C-32
+<a id="decision-register-c-18c-32"></a>
+# 決定レジスタ: C-18–C-32
 
 > 2026-10-27改訂: [Q1〜Q10と平坦化](../requirements/log-move-requirements.md)により、現行Fixed decisionsのC-19/C-22/C-24/C-28/C-30を限定更新。元削除は2経路/Q5/役割に限り、両PC期間待機と自動suffixは初回要件から外す。以降の過去日付付き承認・実装追従は当時の記録として保持し、旧全面削除禁止/両PC待機を復活させる根拠にしない。現schema/helperは変更せず、詳細契約・実装再開・実データ操作は未完。
 
-- Status: Fixed and deferred decisions are recorded here; overall P0 acceptance remains incomplete. The authoritative P0 readiness/acceptance gate is in docs/development/implementation-workflow.md §4.
-- Scope: Initial implementation of ElectronicObserver log maintenance
-- Canonical source: GitHub; current main baseline for this update is PR #38 merge `179787f`.
-- Current dispositions for C-23/C-24/C-26/C-27 and the fixed retryable table are in the [2026-10-24 selection](../archive/decisions/selected-policy-decisions-20261024.md) and [implementation-grounded four decisions](../archive/decisions/implementation-grounded-four-decisions-20261024.md). Dated approval paragraphs below retain their at-the-time scope.
+- ステータス: 修正された決定と延期された決定がここに記録されます。全体的な P0 受け入れは 未完了 のままです。権限のある P0 準備/受け入れゲートは docs/development/implementation-workflow.md §4 にあります。
+- 範囲: ElectronicObserver ログ メンテナンスの初期実装
+- 正規のソース: GitHub;このアップデートの現在の主なベースラインは PR #38 マージ `179787f` です。
+- C-23/C-24/C-26/C-27 および固定再試行可能テーブルの現在の処理は、[2026-10-24 の選択](../archive/decisions/selected-policy-decisions-20261024.md) および [実装に基づいた 4 つの決定](../archive/decisions/implementation-grounded-four-decisions-20261024.md) にあります。以下の承認日の記載された段落は、当時の範囲を維持します。
 
-## Fixed decisions
+<a id="fixed-decisions"></a>
+## 確定した判断
 
-- **C-18 / C-29 — Retry ownership:** Python performs one API attempt per invocation and returns one result. No Python-level, HTTP-client, or library automatic retries, backoff, or jitter. PowerShell alone classifies retryable results and controls up to four total attempts, with waits of 1, 5, and 15 minutes. Before retrying an upload with an unknown outcome, query Drive state.
-- **C-19 / C-22 — Test scope (revised 2026-10-27):** Test both move routes through permitted source deletion, destination equality and source unchanged since copying, plus retention on uncertainty/mismatch/change and rejection of wrong-role/out-of-route targets. Use isolated synthetic files and mock Drive; Dry Run remains non-mutating. Existing no-delete interface tests do not verify the new runtime. No real-data operation is authorized.
-- **C-20 / C-21 — Documentation/configuration:** Use `SyncLogs.ps1` for sync and PC-A-only `ArchiveLogs.ps1` for archive. `ArchiveAndUploadLogs.ps1` is not an official entry point. Remove `allowDelete`; omit `allowArchive` from PC-B; PC-A's `allowArchive` must be explicitly true to archive. Unknown, missing, malformed, or role-inappropriate config fails before processing. Use canonical `BattleLog` casing.
-- **C-23 — OAuth direction selected:** I1 same Google principal on both PCs, A1 Desktop user OAuth, S1 drive.file and T1 Windows user-bound encrypted dedicated file are selected. Official Python client is selected. Specific store API/ACL/lifecycle, SDK version/flow and actual My Drive folder visibility/ownership/quota require separate qualification; do not automatically broaden scope.
-- **C-24 — Scheduler policy selected:** Monthly day 1 PC-B 20:00 / PC-A 21:00 JST, missed-run compensation, logged-on-only, same Windows account within each PC, AC-only and no wake are selected. PC-A checks within 24 hours/25 attempts; its budget checkpoint has a closed schema, pure reader and one-attempt candidate plan with lossless conversion or precision refusal; fresh byte/scope/clock/AC use-point inspection and mock publication integration are synthetic evidence only. Official task, trusted persistence, AC-loss behavior and acceptance remain pending. **2026-10-27 supersession:** the PC-B-completion wait/check budget is not an archive prerequisite under Q3. Other selected schedule/power policies are not changed here; scheduling follows manual move completion. Existing wait-budget helpers remain historical/current-interface assets, not required archive authorization.
-- **C-25 — Filename patterns (resolved):** The complete patterns and real-date validation rules are defined in `docs/design/filename-and-period-selection.md`. BattleLog: `^(?<Date>\d{8})_\d{8}@.+\.txt$`; ErrorReport: `^(?<Date>\d{8})_\d{8}\.txt$`. Extract the first eight characters, parse strictly as `yyyyMMdd` using invariant culture, and never fall back to LastWriteTime. Unexpected or invalid filenames are validation errors; an unclassifiable filename prevents the run from being reported as fully successful. Manifest transitions are selected under C-26; enforcement remains pending.
-- **C-26 — Manifest policy selected under OSD-02:** Approved v1 field/schema direction, timestamp/freshness values, C1–C4 and the conditional normative transition tables govern processing; unlisted transitions fail closed, verified/failed states are terminal within a run and history is immutable. A read-only snapshot/pair inspector and synthetic table/immutability tests exist. Event prerequisites, writer/persistence and runtime conformance evidence remain pending. B2 V1 and report G1 source/builder/reference-validator alignment is implemented with synthetic tests; runtime publication remains pending.
-- **C-27 — Distribution direction selected:** E1 reviewed release event plus explicit maintainer manual approval, followed by GitHub Actions publication; retain all package versions without automatic cleanup. Use exact PC/version JSON file manifests and separate confirmed PowerShell config migration. CI distribution identity/provenance, final runtime file lists and migration mapping remain undecided; no release is authorized.
-- **C-28 — Archive gate (revised 2026-10-27):** PC-A requires explicit valid allowArchive; PC-B omits it and never archives/deletes cloud sources. Process eligible current cloud files without waiting for both PCs' period completion. Verify each archive destination and cloud source unchanged since copying immediately before deleting only that source. Preserve failed/unknown items; late arrivals are handled later. Required per-file evidence remains mandatory; detailed deletion contracts are pending.
-- **C-30 — Initial completion (revised 2026-10-27):** Both manual move routes include copy/reuse, destination verification, source-unchanged confirmation, source deletion and individual results. Rerun the same operation for ordinary failures. Initial conflict support is summary/local detailed report and operator judgment; no automatic suffix/overwrite/merge. Scheduling and dedicated conflict-resolution tools are later candidates. See the [delivery-plan proposal](../development/implementation-workflow.md); detailed contracts and implementation resumption remain pending.
-- **C-31 — Retention and naming:** BattleLog syncs all eligible periods through the previous month; archive eligibility is previous year and older. ErrorReport syncs through the previous year; archive eligibility is two years before the current year and older. In October 2026, BattleLog sync is September 2026 and earlier and archive is December 2025 and earlier; ErrorReport sync is 2025 and earlier and archive is 2024 and earlier. Period selection uses filename date, never LastWriteTime.
-- **C-32 — Initial inventory:** Keep inventory/restoration records separate from operational manifests. Compare Drive files against PC-A backups by name, size, and SHA-256. Use Dry Run review before restore. Unmatched, conflicting, or unknown-origin files are held and never automatically restored, archived, or deleted. Inventory completion is not evidence of operational sync success or archive eligibility.
+- **C-18 / C-29 — 再試行の担当:** Python は呼び出しごとに API を1回試行し、結果を1つ返す。Python 側、HTTPクライアント、ライブラリによる自動再試行・バックオフ・ジッターは禁止する。PowerShell だけが再試行可能な結果を分類し、最大合計4回、試行間に 1、5、15 分の待機を制御する。結果不明のアップロードを再試行する前にDriveの状態を照会する。
+- **C-19 / C-22 — テスト範囲 (改訂 2026-10-27):** 許可されたソースの削除、宛先の等価性とコピー後に変更されていないソース、さらに不確実性の保持/不一致/変更と間違った役割/ルート外のターゲットの拒否による両方の移動ルートをテストします。分離された合成ファイルと模擬ドライブを使用します。 Dry Run は非変異のままです。既存の非削除インターフェイス テストでは、新しいランタイムは検証されません。実際のデータ操作は許可されません。
+- **C-20 / C-21 — ドキュメント/構成:** 同期には `SyncLogs.ps1` を使用し、アーカイブには PC-A のみの `ArchiveLogs.ps1` を使用します。 `ArchiveAndUploadLogs.ps1` は正式なエントリ ポイントではありません。 `allowDelete` を削除します。 PC-B から `allowArchive` を省略します。 PC-A の `allowArchive` をアーカイブするには、明示的に true にする必要があります。不明な構成、欠落している構成、不正な形式の構成、または役割が不適切な構成は、処理する前に失敗します。正規の `BattleLog` ケーシングを使用します。
+- **C-23 — OAuth 方向が選択されました:** I1 両方の PC で同じ Google プリンシパル、A1 デスクトップ ユーザー OAuth、S1 drive.file および T1 Windows ユーザー バインドされた暗号化専用ファイルが選択されています。公式 Python クライアントが選択されました。特定のストア API/ACL/ライフサイクル、SDK バージョン/フロー、および実際のマイ ドライブ フォルダーの可視性/所有権/割り当てには、別個の認定が必要です。範囲を自動的に拡大しません。
+- **C-24 — 定期実行方針を選択:** 毎月 1 日の PC-B 20:00 / PC-A 21:00 JST、未実行分の補完、ログオン中のみ、各PC内で同一の Windows アカウント、AC電源時のみ、スリープ解除なしを選択した。PC-A は 24 時間・25 回以内で確認する。その予算チェックポイントには、閉じたスキーマ、副作用のない読み取り、精度を失わない変換または精度不足の拒否を行う1回分の候補計画がある。利用時点の新しいバイト・範囲・時計・ACの検査と模擬公開の統合は合成証拠に限られる。正式タスク、信頼できる永続化、AC切断時の挙動、受け入れは未完。**2026-10-27 による置き換え:** Q3 の下では PC-B の完了待ち・確認予算をアーカイブの前提条件としない。他の定期実行・電源方針は変更せず、定期実行は手動での移動完了後に接続する。既存の待機予算ヘルパーは履歴・現行インターフェースの資産として残し、必須のアーカイブ認可とはしない。
+- **C-25 — ファイル名パターン (解決済み):** 完了 パターンと実際の日付検証ルールは `docs/design/filename-and-period-selection.md` で定義されています。 BattleLog: `^(?<Date>\d{8})_\d{8}@.+\.txt$`; ErrorReport: `^(?<Date>\d{8})_\d{8}\.txt$`。最初の 8 文字を抽出し、インバリアント カルチャを使用して `yyyyMMdd` として厳密に解析し、LastWriteTime にフォールバックすることはありません。予期しないファイル名または無効なファイル名は検証エラーです。分類できないファイル名があると、実行が完全に成功したと報告されなくなります。マニフェスト遷移は C-26 で選択されます。施行はpendingのままです。
+- **C-26 — OSD-02:** で選択されたマニフェスト ポリシー 承認された v1 フィールド/スキーマの方向、タイムスタンプ/鮮度の値、C1 ～ C4、および条件付き規範遷移テーブルが処理を制御します。リストにない遷移はフェールクローズされ、確認済み/失敗した 状態は実行内の最終状態であり、履歴は不変です。読み取り専用のスナップショット/ペア インスペクターと合成テーブル/不変性テストが存在します。イベントの前提条件、ライター/永続性、および実行時の適合性の証拠は 未確定 のままです。 B2 V1 およびレポート G1 ソース/ビルダー/リファレンスバリデーターの調整は合成テストで実装されます。ランタイム パブリケーションは 未確定 のままです。
+- **C-27 — 配布方向の選択:** E1 でリリース イベントと明示的なメンテナによる手動承認をレビューし、その後 GitHub Actions 公開。自動クリーンアップを行わずにすべてのパッケージのバージョンを保持します。正確な PC/バージョン JSON ファイル マニフェストと、個別に確認された PowerShell 構成の移行を使用します。 CI ディストリビューションの同一性/来歴、最終的なランタイム ファイル リスト、および移行マッピングは未定のままです。リリースは許可されていません。
+- **C-28 — アーカイブ ゲート (改訂された 2026-10-27):** PC-A には明示的な有効なallowArchiveが必要です。 PC-B はそれを省略し、クラウド ソースをアーカイブ/削除しません。両方の PC の期間の完了を待たずに、対象となる現在のクラウド ファイルを処理します。ソースのみを削除する直前に、各アーカイブ先とクラウド ソースがコピー以来変更されていないことを確認します。 失敗した/不明 アイテムを保存します。遅れた到着は後で処理されます。ファイルごとに必要な証拠は引き続き必須です。詳細な削除契約はpendingです。
+- **C-30 — 初期完了 (改訂 2026-10-27):** 両方の手動移動ルートには、コピー/再利用、宛先の検証、ソースが変更されていないことの確認、ソースの削除、および個別の結果が含まれます。通常の障害の場合は、同じ操作を再実行します。初期の競合サポートは、概要/ローカルの詳細レポートとオペレーターの判断です。自動サフィックス/上書き/マージはありません。スケジュール設定ツールと専用の競合解決ツールが後の候補です。 [配送計画の提案](../development/implementation-workflow.md) を参照してください。詳細な契約と実装の再開はpendingのままです。
+- **C-31 — 保持と命名:** BattleLog は、前月までのすべての対象期間を同期します。アーカイブの対象条件は前年以降のものです。 ErrorReport は前年まで同期します。アーカイブの対象条件は、今年の 2 年前以降です。 10 月 2026、BattleLog の同期は 9 月 2026 以前、アーカイブは 12 月 2025 以前です。 ErrorReport 同期は 2025 以前、アーカイブは 2024 以前です。期間の選択では、LastWriteTime ではなく、ファイル名の日付が使用されます。
+- **C-32 — 初期インベントリ:** インベントリ/復元記録を運用マニフェストとは別に保管します。名前、サイズ、SHA-256 に基づいてドライブ ファイルを PC-A バックアップと比較します。復元する前に Dry Run レビューを使用してください。一致しないファイル、競合するファイル、または 不明 起源のファイルは保持され、自動的に復元、アーカイブ、または削除されることはありません。インベントリの完了は、運用上の同期 成功 やアーカイブの適格性を証明するものではありません。
 
-## Deferred items and implementation gates
+<a id="deferred-items-and-implementation-gates"></a>
+## 後続事項と実装前の条件
 
-| Item | Required before | Gate |
+|アイテム|前に必須|ゲート|
 |---|---|---|
-| Filename-pattern runtime qualification (SEL-05) | Target-selection implementation | Sample review from PC-A and PC-B; normal and exception cases documented |
-| Exact manifest schema | Manifest implementation | Schema and negative tests reviewed |
-| OAuth qualification (AUTH-17) | Production Drive adapter | Selected drive.file must pass both-PC listing/metadata/upload/download and real folder visibility/ownership/quota checks under a separately approved plan |
-| Scheduler rollout (SCH-05) | Task Scheduler setup | Approved times/account/logon/AC/no-wake/budget; trusted persistence, AC-loss, trigger and rollout tests pending |
-| Distribution identity/provenance/final files | Release publication | E1/Actions/all-version retention selected; CI credential, provenance, final PC/version manifest and migration mapping pending |
-| Local move-source deletion | Required for initial completion under Q2/Q5 | Each PC's own eligible source only, after destination equality and source unchanged since copying. Verification/identity/persistence contracts, tests and implementation-resumption instruction remain pending |
-| Cloud move-source deletion | Required for initial completion under Q2/Q5, PC-A only | Only the exact verified archive source. New IPC/role/verification/result contract and tests remain pending; production operations need a separate concrete instruction |
+|ファイル名パターンのランタイム修飾 (SEL-05)|ターゲット選択の実装|PC-A と PC-B からのサンプル レビュー。通常のケースと例外のケースを文書化|
+|正確なマニフェスト スキーマ|マニフェストの実装|スキーマとネガティブ テストをレビューしました|
+|OAuth 資格 (AUTH-17)|実稼働ドライブ アダプター|選択した drive.file は、別途承認されたプランに基づいて、PC リスト/メタデータ/アップロード/ダウンロードと実際のフォルダーの可視性/所有権/クォータ チェックの両方に合格する必要があります。|
+|スケジューラのロールアウト (SCH-05)|タスク スケジューラのセットアップ|承認された時間/アカウント/ログオン/AC/スリープ解除なし/予算。信頼できる永続性、AC 損失、トリガーおよびロールアウトのテストは保留中です|
+|配布同一性/来歴/最終ファイル|リリース出版物|E1/アクション/全バージョンの保持が選択されています。 CI 認証情報、出所、最終的な PC/バージョン マニフェスト、および保留中の移行マッピング|
+|ローカル移動元削除|Q2/Q5 に基づく初期完了に必須|宛先が等しく、コピー後にソースが変更されていない場合、各 PC 独自の適格なソースのみ。検証/同一性/永続契約、テスト、および実装再開の指示は保留中のままです|
+|クラウド移動元の削除|Q2/Q5、PC-A でのみ初期完了に必要|正確に検証されたアーカイブ ソースのみ。新しい IPC/役割/検証/結果契約とテストは保留中です。生産業務には個別の具体的な指示が必要です|
 
-## Current implementation status
+<a id="current-implementation-status"></a>
+## 現在の実装ステータス
 
-The repository has schema/isolated helper tests and a non-deployable review package. Official Sync/Archive scripts, Drive adapter, trusted checkpoint persistence, closed IPC results and runtime safety evidence remain incomplete. This register records decisions; it does not claim runtime acceptance. As of 2026-10-25 the response schema and PS helper enforce the nine-code retryable truth table; retry orchestration and unknown-upload reconciliation remain unimplemented.
+リポジトリには、スキーマ/分離ヘルパー テストとデプロイ不可能なレビュー パッケージがあります。公式の同期/アーカイブ スクリプト、ドライブ アダプター、信頼できるチェックポイントの永続性、クローズド IPC の結果、および実行時の安全性の証拠は 未完了 のままです。このレジスターは決定を記録します。実行時に受け入れられるとは主張しません。 2026-10-25 以降、応答スキーマと PS ヘルパーは 9 コードの再試行可能な真理値表を強制します。再試行オーケストレーションと 不明 アップロード調整は未実装のままです。
 
 
-## C-26 — OSD-02 verification-result mapping approval — 2026-10-21
+<a id="c-26--osd-02-verification-result-mapping-approval--2026-10-21"></a>
+## C-26 — OSD-02 検証結果マッピングの承認 — 2026-10-21
 
-The maintainer approved this mapping for a file's verification result to its per-file status:
+メンテナは、ファイルの検証結果をファイルごとのステータスにマッピングすることを承認しました。
 
 - `verified` → `verified`
 - `mismatch` → `failed`
 - `unavailable` → `unknown`
 - `ambiguous` → `unknown`
-- verification-operation `failed` → `unknown`
-- `not_checked` → leave the current file status unchanged
+- 検証操作 `failed` → `unknown`
+- `not_checked` → 現在のファイルのステータスを変更しない
 
-A known content mismatch is a confirmed failure. Unavailable, ambiguous, or failed verification does not establish the cloud object's content/state and must remain `unknown`; none may authorize success or archive. This approval is limited to the mapping and does not approve verification method/time/hash combinations, retry exhaustion, terminal-state rules, OSD-03 aggregation, freshness, crash/concurrency, or the full transition table. OSD-02 and P0-010 remain open.
-
-
-## C-26 — OSD-02 retry-exhaustion decision — 2026-10-21
-
-The maintainer approved that exhausting the retry budget does not by itself determine file status. Set `failed` only when reliable evidence establishes definitive non-success (for example, an explicit non-retryable rejection that guarantees no object was created, or a confirmed content mismatch). If the cloud upload outcome remains uncertain, retain `unknown`. Timeout, communication failure, incomplete Drive enumeration, and retry exhaustion alone must not be converted to `failed`. Verification `unavailable`, `ambiguous`, or verification-operation `failed` remains `unknown`; confirmed `mismatch` maps to `failed`. This resolves retry-exhaustion classification only; OSD-02/P0-010 remain open.
+既知のコンテンツ 不一致 は確認済みの 失敗 です。利用不可、曖昧、または 失敗した 検証ではクラウド オブジェクトのコンテンツ/状態が確立されないため、`unknown` のままにする必要があります。誰も 成功 またはアーカイブを承認できません。この承認はマッピングに限定されており、検証方法/時間/ハッシュの組み合わせ、再試行の枯渇、終了状態のルール、OSD-03 集計、鮮度、クラッシュ/同時実行性、または完全な遷移テーブルは承認されません。 OSD-02 と P0-010 は開いたままになります。
 
 
-## C-26 — OSD-02 retry-exhaustion exception-case approval — 2026-10-21
+<a id="c-26--osd-02-retry-exhaustion-decision--2026-10-21"></a>
+## C-26 — OSD-02 リトライ枯渇判定 — 2026-10-21
 
-- **Approving authority:** project maintainer (explicit approval in conversation on 2026-10-21).
-- **Approved artifact:** exception cases EX-01–EX-10 and cross-cutting rules in `docs/design/manifest-state-transition-v1-proposal.md` §6.
-- **Chosen policy:** file status is based on reliable evidence, not retry count alone. A definitive rejection maps to `failed` only when the operation contract establishes that no remote object was created. Timeouts, communication failures, incomplete/uncertain Drive listing, ambiguous candidates, and verification-operation failures map to or remain `unknown` when cloud state cannot be established. A confirmed content mismatch maps to `failed`.
-- **Reconciliation:** `unknown → pending` requires complete, trustworthy enumeration proving target absence and a retry permitted by policy. A unique same-content candidate can map to `verified` only after OSD-01 trust and actual content-verification requirements are met.
-- **Archive safety:** previous verification does not authorize archive by itself; archive must re-query and verify current Drive content. If current verification is mismatch, archive is blocked; if unavailable/ambiguous/verification failed, state remains unknown and archive is blocked.
-- **Scope boundary:** this approval does not close OSD-02 or P0-010. Post-verification/terminal-state transitions, cross-field verification constraints, OSD-03 aggregation, timestamp freshness/clock-skew, crash/concurrency/latest-manifest resolution, executable tests, and runtime evidence remain pending. No runtime implementation or test pass is claimed.
+保守者は、再試行バジェットを使い果たすこと自体がファイルのステータスを決定するものではないことを承認しました。 `failed` は、信頼できる証拠によって決定的な非 成功 が確立された場合 (たとえば、オブジェクトが作成されていないことを保証する明示的な再試行不可能な拒否、または確認されたコンテンツ 不一致) にのみ設定します。クラウド アップロードの結果が不確実な場合は、`unknown` を保持してください。タイムアウト、通信 失敗、未完了 ドライブ列挙、およびリトライ枯渇のみを `failed` に変換しないでください。検証 `unavailable`、`ambiguous`、または検証操作 `failed` は `unknown` のままです。 `mismatch` が `failed` にマッピングされることを確認しました。これは、再試行枯渇分類のみを解決します。 OSD-02/P0-010 は開いたままになります。
 
 
-## C-26 — OSD-02 terminal file-state policy — 2026-10-21
+<a id="c-26--osd-02-retry-exhaustion-exception-case-approval--2026-10-21"></a>
+## C-26 — OSD-02 リトライ枯渇例外ケース承認 — 2026-10-21
 
-- **Approving authority:** project maintainer (explicit selection of option A in conversation on 2026-10-21).
-- **Chosen rule:** within a single `run_id`, `verified` and `failed` are terminal file states. No transition out of either state is permitted within that run; a later run must use a new `run_id` and a new manifest.
-- **Archive-time re-verification:** archive must independently re-query and verify the current Drive object. If the current check finds a mismatch, is unavailable/ambiguous, or the verifier fails, block archive and record sanitized operational diagnostics. Do not rewrite the historical manifest or change the file's terminal state in the prior run.
-- **Rationale:** preserve run history and avoid retroactively mutating an execution record, while ensuring stored `verified` evidence never bypasses current archive checks.
-- **Scope boundary:** this resolves file-level terminal-state immutability only. Run-level transitions, OSD-03 aggregation, verification method/time/hash combinations, timestamp freshness/clock-skew, crash/concurrency/latest-manifest resolution, executable tests, and runtime evidence remain open. OSD-02 and P0-010 remain open.
+- **承認権限:** プロジェクト管理者 (2026-10-21 の会話で明示的に承認)。
+- **承認された成果物:** 例外ケース EX-01–EX-10 および `docs/design/manifest-state-transition-v1-proposal.md` §6 の横断的なルール。
+- **採用方針:** ファイル状態は、再試行回数だけでなく信頼できる証拠に基づいて決める。明確な拒否を `failed` に対応させるのは、リモートにオブジェクトが作成されていないことを操作契約で保証できる場合だけとする。タイムアウト、通信失敗、未完了 または不確かなDrive一覧、曖昧 な候補、検証操作の失敗によりクラウドの状態を確定できない場合は、`unknown` に対応させるか、そのまま維持する。内容の 不一致 を確認できた場合は `failed` に対応させる。
+- **調整:** `unknown → pending` には、ターゲットの不在を証明する信頼できる列挙とポリシーで許可された再試行である 完了 が必要です。一意の同一コンテンツ候補は、OSD-01 の信頼と実際のコンテンツ検証要件が満たされた場合にのみ、`verified` にマッピングできます。
+- **アーカイブの安全性:** 以前の検証では、アーカイブ自体は許可されません。アーカイブは、現在のドライブのコンテンツを再クエリして確認する必要があります。現在の検証が 不一致 の場合、アーカイブはブロックされます。 利用不能/曖昧/検証 失敗した の場合、状態は 不明 のままで、アーカイブはブロックされます。
+- **範囲境界:** この承認は OSD-02 または P0-010 を終了しません。検証後/端末状態の遷移、クロスフィールド検証制約、OSD-03 集計、タイムスタンプの鮮度/クロック スキュー、クラッシュ/同時実行/最新マニフェスト解決、実行可能テスト、および実行時の証拠は 未確定 のままです。実行時の実装やテストのパスは要求されません。
 
-## C-26 — OSD-02 verification object method/time/hash consistency — 2026-10-21
 
-- **Approving authority:** project maintainer (explicit approval of option A in conversation on 2026-10-21).
-- **Chosen rule:** `verification.method` describes the method actually used to obtain `observed_sha256`, not a method merely attempted.
-- **Allowed combinations:**
+<a id="c-26--osd-02-terminal-file-state-policy--2026-10-21"></a>
+## C-26 — OSD-02 端末ファイル状態ポリシー — 2026-10-21
+
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話でオプション A を明示的に選択)。
+- **選択されたルール: 単一の `run_id`、`verified`、および `failed` 内の ** は端末ファイルの状態です。その実行内ではどちらの状態からの遷移も許可されません。後で実行する場合は、新しい `run_id` と新しいマニフェストを使用する必要があります。
+- **アーカイブ時の再検証:** アーカイブは、現在のドライブ オブジェクトを個別に再クエリして検証する必要があります。現在のチェックで 不一致 が検出された場合、利用不能/曖昧 である場合、またはベリファイアが失敗した場合は、アーカイブをブロックし、サニタイズされた動作診断を記録します。履歴マニフェストを書き換えたり、前回の実行でファイルの最終状態を変更したりしないでください。
+- **根拠:** は、保存された `verified` 証拠が現在のアーカイブ チェックをバイパスしないようにしながら、実行履歴を保存し、実行レコードの遡及的な変更を回避します。
+- **スコープ境界:** これはファイルレベルの終了状態の不変性のみを解決します。実行レベルの遷移、OSD-03 集計、検証方法/時間/ハッシュの組み合わせ、タイムスタンプの鮮度/クロック スキュー、クラッシュ/同時実行性/最新のマニフェスト解決、実行可能テスト、および実行時の証拠はオープンなままです。 OSD-02 と P0-010 は開いたままになります。
+
+<a id="c-26--osd-02-verification-object-methodtimehash-consistency--2026-10-21"></a>
+## C-26 — OSD-02 検証オブジェクトのメソッド/時間/ハッシュの整合性 — 2026-10-21
+
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話におけるオプション A の明示的な承認)。
+- **選択されたルール:** `verification.method` は、単に試行された方法ではなく、`observed_sha256` を取得するために実際に使用された方法を説明します。
+- **許可される組み合わせ:**
   - `not_checked` → `not_performed`, `checked_at_utc: null`, `observed_sha256: null`.
-  - `verified` or `mismatch` → `drive_sha256` or `download_sha256`, non-null `checked_at_utc`, and a valid observed SHA-256. `mismatch` requires an observed hash different from the expected source hash.
-  - `unavailable`, `ambiguous`, or verification-operation `failed` when no observed hash was obtained → `not_performed`, non-null `checked_at_utc` representing the attempt time, and `observed_sha256: null`.
-- **Diagnostics:** attempted method, sanitized error details, and retry-by-retry details are recorded in sanitized operational logs, not added to the approved manifest schema. Do not store an arbitrary candidate hash when identity is ambiguous.
-- **Invalid combinations:** every status/method/time/hash combination outside the approved table in `docs/design/manifest-state-transition-v1-proposal.md` §4 must be rejected.
-- **Rationale:** separates an attempted operation from successful hash acquisition, preserves the approved field set, and avoids claiming evidence that was not obtained.
-- **Scope boundary:** this resolves verification-object field consistency only. Run-level status/time consistency, OSD-03 aggregation, timestamp freshness/clock-skew, crash/concurrency/latest-manifest selection, executable validation tests, and runtime evidence remain open. OSD-02 and P0-010 remain open.
+  - `verified` または `mismatch` → `drive_sha256` または `download_sha256`、非 null `checked_at_utc`、および有効に観察された SHA-256。 `mismatch` には、予想されるソース ハッシュとは異なる観測されたハッシュが必要です。
+  - `unavailable`、`ambiguous`、または観察されたハッシュが取得できなかった場合の検証操作 `failed` → `not_performed`、null 以外の試行時間を表す `checked_at_utc`、および `observed_sha256: null`。
+- **Diagnostics:** 試行されたメソッド、サニタイズされたエラーの詳細、および再試行ごとの詳細は、承認されたマニフェスト スキーマには追加されず、サニタイズされた操作ログに記録されます。 ID が 曖昧 の場合、任意の候補ハッシュを保存しないでください。
+- **無効な組み合わせ:** `docs/design/manifest-state-transition-v1-proposal.md` §4 の承認されたテーブルの外にあるすべてのステータス/メソッド/時間/ハッシュの組み合わせは拒否されなければなりません。
+- **根拠:** は、試行された操作と成功したハッシュ取得を分離し、承認されたフィールド セットを保持し、取得されなかった証拠の主張を回避します。
+- **スコープ境界:** これは検証オブジェクト フィールドの整合性のみを解決します。実行レベルのステータス/時間の一貫性、OSD-03 集計、タイムスタンプの鮮度/クロック スキュー、クラッシュ/同時実行性/最新マニフェストの選択、実行可能検証テスト、および実行時の証拠は未解決のままです。 OSD-02 と P0-010 は開いたままになります。
+
+<a id="c-26--osd-02-run-status-and-finish-time-consistency--2026-10-21"></a>
+## C-26 — OSD-02 実行ステータスと終了時間の一貫性 — 2026-10-21
+
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話におけるオプション A の明示的な承認)。
+- **選択されたルール:** `started_at_utc` はすべての実行ステータスに必要です。 `running` には `finished_at_utc: null` が必要です。端末ステータス `success`、`partial_failure`、および `failure` には、null 以外の `finished_at_utc` が必要です。
+- **Validation:** ステータスと終了時間の組み合わせがこのルールに違反するマニフェストを拒否します。
+- **Boundary:** これは、時系列順序、鮮度、将来時間、またはクロック スキューの制約を確立せず、クラッシュ リカバリや OSD-03 集計も確立しません。クラッシュしたままの `running` マニフェストは、自動的には `failure` に書き換えられません。
+- **スコープ境界:** これは実行ステータス/終了時間の一貫性のみを解決します。 OSD-03 集計、タイムスタンプの順序付け/鮮度/クロック スキュー、クラッシュ/同時実行性/最新マニフェストの選択、実行可能テスト、および実行時の証拠は未解決のままです。 OSD-02 と P0-010 は開いたままになります。
+
+<a id="c-26--osd-02-timestamp-validation-policy-shape--2026-10-21"></a>
+## C-26 — OSD-02 タイムスタンプ検証ポリシーの形状 — 2026-10-21
+
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話におけるオプション A の明示的な承認)。
+- **選択されたルール:** タイムスタンプ フィールドは、`Z` 指定子を持つ UTC ISO 8601 を使用します。無効な値や解析不可能な値は、正規化や修復を行わずに拒否されます。
+- **Ordering:** 両方のタイムスタンプが存在する場合、`started_at_utc` より前の `finished_at_utc` は拒否されます。
+- **将来の時間と鮮度:** 構成主導の将来の時間/クロック スキュー許容値とコンテキストに適した鮮度のしきい値を使用します。設定された将来の許容範囲を超えるタイムスタンプを拒否します。未承認の数値をハードコーディングしたり、タイムスタンプをサイレントに書き換えたりしないでください。
+- **まだオープンしています:** 実際の数値、鮮度が強制される正確なコンテキスト、EOLM-MAN-011 でのクロック同期/監視の期待。
+- **スコープ境界:** これはポリシー形状のみを承認します。 OSD-03 集計、クラッシュ/同時実行/最新マニフェスト解決、実行可能テスト、実行時の証拠、および特定のタイムスタンプ構成は開いたままになります。 OSD-02 と P0-010 は開いたままになります。
+
+<a id="c-26--osd-02-crashconcurrencylatest-manifest-policy-shape--2026-10-21"></a>
+## C-26 — OSD-02 クラッシュ/同時実行/最新マニフェスト ポリシー シェイプ — 2026-10-21
+
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話におけるオプション A の明示的な承認)。
+- **マニフェスト適格性:** 構造を検証し、ファイル名の同一性をマニフェスト内に記録されている ID と照合してから、現在の状態の候補とみなします。
+- **最新の選択:** タイを解決するためにタイムスタンプのみを使用しないでください。候補が 曖昧 のままの場合は、任意に選択するのではなく、依存する操作を停止します。
+- **同時更新:** では、古い読み取りによって新しい状態が上書きされることは許可されません。競合が検出された場合は、再読み込みして再検証するか、安全に失敗します。
+- **クラッシュ動作:** クラッシュ後に残された `running` マニフェストは未完成のままです。黙って `success` または `failure` に書き換えないでください。
+- **アーカイブ/削除ゲート:** は、現在のリモート状態が再確立されるまで、および 確認済み まで、破壊的なアクションをブロックします。
+- **まだオープン中:** アトミック性/ロックの実装、正確な ID フィールドとファイル名規則、失効した実行の回復手順、および実行可能テスト。 OSD-02 と P0-010 は開いたままになります。ランタイムサポートは要求されていません。
+
+
+<a id="c-25--osd-03--run-and-period-aggregation-policy-approval--2026-10-21"></a>
+## C-25 / OSD-03 — 実行および期間集計ポリシーの承認 — 2026-10-21
+
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話におけるオプション A とオプション C の組み合わせの明示的な承認)。
+- **実行ステータス:** すべての適格なファイル 確認済み 関連するエラーなし => `success`;対象となるターゲットがゼロの列挙/検証が成功しました => `success` プラス `outcome: no_work`; 確認済み 動作に加え、対象となるファイル `failed`/`unknown` または分類不能な実行範囲エラー => `partial_failure`;処理/検証 失敗 を伴う 確認済み 対象となる作業がない、または作業がないことを証明できない => `failure`。
+- **期間の完了:** 期間に割り当てられたすべての対象ファイルは `verified` である必要があり、その期間に影響を与える既知の関連エラーはありません。 `failed`/`unknown` はその期間をブロックします。
+- **分類できない名前:** は実行範囲エラーのままであり、タイムスタンプ フォールバックによって割り当てることはできません。これらは実行レベル 成功 をブロックしますが、既知の 完了 期間を独立して自動的に無効にすることはありません。
+- **安全な進行状況:** 独立した有効なファイルを安全な場所で処理します。サブ作業が成功しても、エラーが消去されたり隠蔽されたりすることはありません。
+- **まだオープンしています:** OSD-02 は、期間の要約と実行範囲エラーのマニフェスト表現を決定するか、新しいマニフェスト フィールドのない派生レポートを明示的に使用する必要があります。実装、テーブル駆動テスト、実行時の証拠は 未確定 のままです。 OSD-03 および P0-008/P0-010 は、このポリシーの承認だけでは終了しません。
+
 
-## C-26 — OSD-02 run status and finish-time consistency — 2026-10-21
+<a id="c-33--osd-02--osd-03-derived-aggregation-report-representation--2026-10-21"></a>
+## C-33 — OSD-02 / OSD-03 派生集計レポート表現 — 2026-10-21
 
-- **Approving authority:** project maintainer (explicit approval of option A in conversation on 2026-10-21).
-- **Chosen rule:** `started_at_utc` is required for all run statuses; `running` requires `finished_at_utc: null`; terminal statuses `success`, `partial_failure`, and `failure` require a non-null `finished_at_utc`.
-- **Validation:** reject manifests whose status/finish-time combination violates this rule.
-- **Boundary:** this does not establish chronological ordering, freshness, future-time, or clock-skew constraints, nor crash recovery or OSD-03 aggregation. A crash-left `running` manifest is not automatically rewritten to `failure`.
-- **Scope boundary:** this resolves run status/finish-time consistency only. OSD-03 aggregation, timestamp ordering/freshness/clock-skew, crash/concurrency/latest-manifest selection, executable tests, and runtime evidence remain open. OSD-02 and P0-010 remain open.
+- **承認権限:** プロジェクト管理者 (2026-10-21 の会話で明示的に承認)。
+- **Decision:** はオプション A を正式に採用します。承認されたマニフェスト v1 フィールド セットを保持します。期間の要約または未割り当ての実行範囲検証エラーのフィールドを追加しないでください。
+- **Representation:** これらの結果を、`run_id` を介して元のマニフェスト/実行に関連付けられた別の永続的な派生集計レポートに書き込みます。
+- **必要な安全対策:** 元の実行および凍結された対象一覧に対してレポートの ID と内容を検証します。レポート データが欠落している、形式が間違っている、古い、または一貫性がない場合は、期間の完了を証明できません。分類できないファイル名は実行範囲エラーのままであり、`LastWriteTime` を使用して期間に割り当てることはできません。
+- **根拠:** は、明示的な期間レベルの結果と実行範囲の検証証拠を保持しながら、承認された v1 スキーマの変更を回避します。
+- **影響を受ける要件:** EOLM-MAN-003–006、EOLM-MAN-009–012、EOLM-OPS-003、EOLM-TST-003、EOLM-TST-010。 OSD-02、OSD-03、P0-008、P0-010。
+- **まだオープンしています:** レポートのスキーマ/バージョン、正規のパス/名前、パブリケーション/アトミック性、クラッシュ/リカバリ動作、最新性と一貫性のチェック、ランタイム実装、および実行可能テスト。
+- **Disposition:** 表現の選択が承認されました。依存する設計と実装の証拠は未解決のままです。
 
-## C-26 — OSD-02 timestamp validation policy shape — 2026-10-21
+<a id="c-34--aggregation-artifact-storage-direction--2026-10-21"></a>
+## C-34 — 集約成果物のストレージ方向 — 2026-10-21
 
-- **Approving authority:** project maintainer (explicit approval of option A in conversation on 2026-10-21).
-- **Chosen rule:** timestamp fields use UTC ISO 8601 with a `Z` designator; invalid/unparseable values are rejected without normalization or repair.
-- **Ordering:** when both timestamps exist, reject `finished_at_utc` earlier than `started_at_utc`.
-- **Future time and freshness:** use configuration-driven future-time/clock-skew tolerance and context-appropriate freshness thresholds. Reject timestamps beyond the configured future tolerance; do not hard-code unapproved numeric values or silently rewrite timestamps.
-- **Still open:** actual numeric values, exact contexts where freshness is enforced, and clock synchronization/monitoring expectations under EOLM-MAN-011.
-- **Scope boundary:** this approves policy shape only. OSD-03 aggregation, crash/concurrency/latest-manifest resolution, executable tests, runtime evidence, and the specific timestamp configuration remain open. OSD-02 and P0-010 remain open.
+- **承認権限:** プロジェクト管理者、2026-10-21 でオプション A を明示的に選択。両方の PC が集計レポートと証拠にアクセスする必要があります。
+- **選択されたオプション:** C3 — ローカルの信頼できる成果物と 確認済み Google Drive のコピー。
+- **必要な動作:** まず、不変のレポート/証拠成果物をローカルで作成して検証します。ローカル検証後にのみ、構成されたドライブ メンテナンスの宛先にレプリケートします。正確な ID とコンテンツの検証が成功した場合にのみ、ドライブのコピーを他の PC で使用できるようになります。
+- **障害処理:** ドライブ レプリケーション 失敗 では、検証されたローカル 成果物がそのまま残されるため、クロス PC 可用性として表すことはできません。アップロードの結果が不確かな場合は、再試行する前に現在のドライブの状態を調整してください。
+- **スコープ境界:** これはストレージ方向のみを選択します。インベントリ ダイジェスト フレーム/フィールド セット、パスの正規化、列挙完全性証拠スキーマ、正確なローカル ルートとドライブのマッピング、アップロード/検証の実装、ロック、クラッシュ リカバリ、および実行可能テストはオープンなままです。 OSD-02、OSD-03、P0-008、および P0-010 は開いたままになります。実行時の実装や証拠は主張されていません。
+
+
+<a id="c-35--frozen-inventory-digest-framing--2026-10-21"></a>
+## C-35 — 凍結されたインベントリ ダイジェスト フレーム — 2026-10-21
+
+- **承認権限:** プロジェクト管理者、2026-10-21 での会話での明示的な承認。
+- **選択されたオプション:** A2 — バージョン化された長さプレフィックス付きレコード。
+- **承認された契約:** 固定 ASCII ドメイン/バージョン プレフィックス。符号なし 64 ビットのビッグエンディアン レコード数。検証された正規相対パスの符号なし辞書編集 UTF-8 バイトによってソートされたレコード。フィールドは相対パス、ファイル名、正規の 10 進数のサイズ、および小文字の SHA-256 として順序付けされます。各フィールドは、符号なし 32 ビットのビッグエンディアン バイト長とそれに続く UTF-8 バイトとしてエンコードされます。
+- **パスと値の規則:** ソース区切り文字変換後の相対パスはスラッシュです。絶対/ドライブ/UNC パス、空、ドット、ドット-ドット セグメント、NUL、バックスラッシュ、ファイル名/パスの不一致、および重複した正規パスを拒否します。 Unicode 正規化または大文字小文字の区別は行わないでください。サイズは、正規の 10 進数 ASCII としてエンコードされた非負の整数である必要があります。予期される SHA-256 は、64 小文字の 16 進 ASCII 文字である必要があります。
+- **空の一覧:** 固定プレフィックスと符号なし 64 ビットのゼロ レコード カウントをハッシュします。証拠がないことは空の一覧と同等ではありません。
+- **参照ベクトル:** 提案文書には、独立したクロスランタイム テスト用の空のインベントリ ベクトルと 1 レコード ベクトルが含まれています。これらは仕様ベクトルであり、生産テストの証拠ではありません。
+- **スコープ境界:** 実装、実行可能スキーマ、クロスランタイム テスト、証拠成果物の形状、およびパブリケーション/リカバリ動作はオープンのままです。 OSD-02、OSD-03、P0-008、および P0-010 は開いたままになります。
+
+
+<a id="c-36--immutable-enumerationvalidation-evidence-artifact--2026-10-21"></a>
+## C-36 — 不変の列挙/検証証拠成果物 — 2026-10-21
+
+- **承認権限:** プロジェクト管理者、2026-10-21 の明示的な承認。
+- **選択されたオプション:** B2 — 個別の不変実行入力証拠成果物。
+- **必要な動作:** マニフェストおよび派生集計レポートから独立して、初期列挙とファイル名検証の結果を保持します。証拠は、完了した列挙/検証と 失敗した または 未完了 の作業を区別する必要があります。欠落している成果物、欠落しているカウント、または欠落しているエラー リストを、エラーがゼロであるか、または成功した空のインベントリとして解釈してはなりません。
+- **同一性と不変性:** 証拠の同一性は、元の実行 ID、PC ID、およびログ タイプと一致する必要があります。同じ実行 ID の競合する成果物は調整する必要があり、サイレントに上書きすることはできません。
+- **Storage:** 最初にローカルの信頼できる成果物を作成して検証します。ローカル検証後にのみ、構成された Google Drive 宛先にレプリケートします。クロス PC 消費者は、ID とコンテンツの検証後にのみリモート コピーを使用できます。
+- **スコープ境界:** これは、完全な JSON スキーマ、埋め込みインベントリと参照インベントリ、カウント調整ルール、証拠ダイジェストの正規化、正確なパス、ロック、ドライブ検証の実装、または回復動作ではなく、個別の成果物の方向を承認します。それらは開いたままです。実行時の実装やテストの証拠は主張されていません。
+
+
+<a id="c-37--embedded-inventory-in-b2-evidence--2026-10-21"></a>
+## C-37 — B2 証拠に埋め込まれた一覧 — 2026-10-21
 
-## C-26 — OSD-02 crash/concurrency/latest-manifest policy shape — 2026-10-21
+- **承認権限:** プロジェクト管理者、2026-10-21 の明示的な承認。
+- **選択されたオプション:** A — 完了 凍結された適格ターゲット一覧を不変の実行入力証拠成果物に埋め込みます。
+- **根拠:** 証拠は自己完結型であり、リカバリは存在する別のインベントリ ファイルに依存しません。マニフェスト ターゲット レコードとの重複は意図的です。
+- **必要な検証:** 埋め込みターゲットは、元のマニフェストの凍結ターゲット セットおよび承認された A2 インベントリ ダイジェストと一致する必要があります。カウント、パス、サイズ、ファイル名、ハッシュ、またはダイジェスト 不一致 は整合性 失敗 です。黙って 1 つのコピーを選択して修復しないでください。
+- **Compatibility:** はマニフェスト v1 フィールドを変更しません。証拠スキーマは、別のバージョンの成果物として残ります。
+- **スコープ境界:** すべての列挙されたエントリ カテゴリにわたる正確な数の調整、証拠ダイジェストの正規化、パス/ルート構成、アトミック ローカル パブリケーション、ドライブ検証、ロック/リカバリ、および実行可能テストはオープンなままです。実行時の実装やテストの証拠は主張されていません。
 
-- **Approving authority:** project maintainer (explicit approval of option A in conversation on 2026-10-21).
-- **Manifest eligibility:** validate structure and cross-check filename identity with the identity recorded inside the manifest before considering it a current-state candidate.
-- **Latest selection:** do not use timestamp alone to resolve ties. If candidates remain ambiguous, stop the dependent operation rather than selecting arbitrarily.
-- **Concurrent updates:** do not allow stale reads to overwrite newer state; re-read and re-validate or fail safely when a conflict is detected.
-- **Crash behavior:** a crash-left `running` manifest remains unfinished; do not silently rewrite it to `success` or `failure`.
-- **Archive/deletion gate:** block destructive actions until current remote state is re-established and verified.
-- **Still open:** atomicity/locking implementation, exact identity fields and filename convention, stale-run recovery procedure, and executable tests. OSD-02 and P0-010 remain open; no runtime support is claimed.
 
+<a id="c-38--exhaustive-b2-enumeration-classification-and-count-reconciliation--2026-10-21"></a>
+## C-38 — 徹底的な B2 列挙分類とカウント調整 — 2026-10-21
 
-## C-25 / OSD-03 — Run and period aggregation policy approval — 2026-10-21
+- **承認権限:** プロジェクト管理者、2026-10-21 の明示的な承認。
+- **選択されたオプション:** A — 徹底的な相互排他的な分類とカウント調整。
+- **必須不変式:** 完了した列挙によって返される各エントリは、`eligible_targets`、`valid_ineligible`、`invalid_relevant`、または明示的に契約で承認された `ignored_entries` の 1 つに正確に属します。それらのカウントは正確に `entries_observed` になる必要があります。エントリを省略したり、2 回カウントしたりすることはできません。
+- **エラー処理:** `enumeration_errors` は個別の診断数であり、カテゴリ合計の一部ではありません。列挙エラーがあると、列挙ステータス `completed` が妨げられます。部分的な列挙を空の一覧または 完了 一覧として解釈してはなりません。
+- **フォローアップ:** ソース エントリ ユニバースとリンクの処理は C-40 で指定されます。完了/エラー検出ルールは C-41 で指定されます。実行可能な列挙テストはオープンのままです。この決定は、実装またはテストの証拠を主張するものではありません。
 
-- **Approving authority:** project maintainer (explicit approval of combined Option A + Option C in conversation on 2026-10-21).
-- **Run status:** all eligible files verified with no relevant errors => `success`; successful enumeration/validation with zero eligible targets => `success` plus `outcome: no_work`; verified work plus any eligible-file `failed`/`unknown` or unclassifiable run-scope error => `partial_failure`; no verified eligible work with a processing/validation failure or inability to prove no-work => `failure`.
-- **Period completion:** every eligible file assigned to the period must be `verified`, with no known relevant error affecting that period. `failed`/`unknown` blocks that period.
-- **Unclassifiable names:** remain run-scope errors and cannot be assigned by timestamp fallback. They block run-level success, but do not automatically invalidate independently complete known periods.
-- **Safe progress:** process independent valid files where safe; successful sub-work never erases or hides an error.
-- **Still open:** OSD-02 must determine manifest representation for period summaries and run-scope errors, or explicitly use a derived report without new manifest fields. Implementation, table-driven tests, and runtime evidence remain pending. OSD-03 and P0-008/P0-010 are not closed by this policy approval alone.
 
+<a id="c-39--canonical-integrity-digest-for-b2-evidence--2026-10-21"></a>
+## C-39 — B2 証拠の正規整合性ダイジェスト — 2026-10-21
 
-## C-33 — OSD-02 / OSD-03 derived aggregation report representation — 2026-10-21
+- **承認権限:** プロジェクト管理者、2026-10-21 の明示的な承認。
+- **選択されたオプション:** A — 独自の入力から `integrity.digest` のみを除外して、固定正規表現をハッシュします。
+- **正規バイト:** 規範的なルールは `docs/design/run-input-evidence-v1-proposal.md` §5 にあります。 UTF-8 JSON BOM、意味のない空白、または末尾の改行なし。すべてのレベルで符号なし UTF-8 バイト順にソートされたオブジェクト キー。 `inventory.targets` は正規の相対パス UTF-8 バイトで並べ替えられます。 `validation.errors` 相対パス、コード、ファイル名、エラー ID によって並べ替えられます。決定的な文字列エスケープ。正規の整数表記のみ。浮動小数点値は禁止されています。
+- **ハッシュ前の検証:** 重複したオブジェクト キー、無効な UTF-8、不明 スキーマ バージョン、欠落しているフィールド、無効な型、および制約外の値を拒否します。無言の強制や修復はありません。
+- **Digest:** SHA-256 は、正確に 64 小文字の 16 進 ASCII 文字として表されます。 `integrity.algorithm` と `integrity.canonicalization` はハッシュされたオブジェクトに残ります。 `integrity.digest` のみ省略されています。
+- **Versioning:** 正規化ルールを変更するには、新しい正規化識別子または証拠スキーマのバージョンが必要です。
+- **スコープ境界:** 実行可能スキーマ、重複キーセーフなパーサー、独立したクロスランタイム標準バイト/ダイジェスト ベクトル、ソース エントリ ユニバースとページネーション セマンティクス、パブリケーション/ルート構成、ドライブ検証、ロック、およびリカバリは開いたままになります。今後の配列では、実装前に指定された順序付けが必要になります。実行時の実装やテストの証拠は主張されていません。
 
-- **Approving authority:** project maintainer (explicit approval in conversation on 2026-10-21).
-- **Decision:** formally adopt Option A. Preserve the approved manifest v1 field set; do not add fields for period summaries or unassigned run-scope validation errors.
-- **Representation:** write those results to a separate durable derived aggregation report associated with the originating manifest/run through `run_id`.
-- **Required safeguards:** validate report identity and contents against the originating run and frozen eligible inventory. Missing, malformed, stale, or inconsistent report data cannot certify period completion. Unclassifiable filenames remain run-scope errors and must never be assigned to periods using `LastWriteTime`.
-- **Rationale:** avoids changing the approved v1 schema while retaining explicit period-level outcomes and run-scope validation evidence.
-- **Affected requirements:** EOLM-MAN-003–006, EOLM-MAN-009–012, EOLM-OPS-003, EOLM-TST-003, EOLM-TST-010; OSD-02, OSD-03, P0-008, P0-010.
-- **Still open:** report schema/version, canonical path/name, publication/atomicity, crash/recovery behavior, freshness and consistency checks, runtime implementation, and executable tests.
-- **Disposition:** representation choice approved; dependent design and implementation evidence remain open.
 
-## C-34 — Aggregation artifact storage direction — 2026-10-21
+<a id="c-40--b2-source-entry-universe-and-link-handling--2026-10-21"></a>
+## C-40 — B2 ソースエントリユニバースとリンクの処理 — 2026-10-21
 
-- **Approving authority:** project maintainer, explicit selection of option A on 2026-10-21; both PCs need access to aggregation reports and evidence.
-- **Chosen option:** C3 — local authoritative artifacts plus verified Google Drive copies.
-- **Required behavior:** create and validate immutable report/evidence artifacts locally first. Replicate to the configured Drive maintenance destination only after local validation. A Drive copy is available to the other PC only after exact identity and content verification succeeds.
-- **Failure handling:** Drive replication failure leaves the validated local artifact intact and must not be represented as cross-PC availability. If upload outcome is uncertain, reconcile current Drive state before retrying.
-- **Scope boundary:** this selects the storage direction only. Inventory digest framing/field set, path normalization, enumeration-completeness evidence schema, exact local root and Drive mapping, upload/verification implementation, locking, crash recovery, and executable tests remain open. OSD-02, OSD-03, P0-008, and P0-010 remain open; no runtime implementation or evidence is claimed.
+- **承認権限:** プロジェクト管理者、2026-10-21 でオプション A を明示的に選択。
+- **選択されたスコープ:** 構成されたソース スコープを再帰的に列挙します。ディレクトリ エントリはトラバーサル ノードであり、`entries_observed` から除外されます。検出されたディレクトリ以外のエントリはそれぞれ 1 回カウントされます。
+- **通常ファイル:** ファイル名/適格性検証ルールによってそれぞれを分類します。対象となる通常のファイルのみが、凍結されたターゲット インベントリに表示されます。
+- **シンボリック リンクと再解析ポイント:** はそれらをたどることはありません。リンク/再解析ポイント エントリ自体は、このソース コントラクトによって明示的に許可されている `ignored_entries` として 1 回カウントされます。ソース ルート内のターゲットを含め、リンク ターゲットを決して走査しないでください。
+- **サポートされていない/アクセスできないエントリ:** サポートされていない非正規のエントリ タイプ、またはディレクトリを列挙できないため、`enumeration.status = completed` は発生しません。エントリまたはサブツリーを暗黙的に省略しないでください。
+- **スコープ境界:** C-41 は、トラバーサルの完了/エラー検出を指定します。同時ソース突然変異セマンティクスと実行可能な列挙テストはオープンのままです。実行時の実装やテストの証拠は主張されていません。
 
 
-## C-35 — Frozen inventory digest framing — 2026-10-21
+<a id="c-41--b2-enumeration-completion-determination--2026-10-21"></a>
+## C-41 — B2列挙完了判定 — 2026-10-21
 
-- **Approving authority:** project maintainer, explicit approval in conversation on 2026-10-21.
-- **Chosen option:** A2 — versioned length-prefixed records.
-- **Approved contract:** fixed ASCII domain/version prefix; unsigned 64-bit big-endian record count; records sorted by unsigned lexicographic UTF-8 bytes of validated canonical relative path; fields ordered as relative path, filename, canonical decimal size, and lowercase SHA-256; each field encoded as unsigned 32-bit big-endian byte length followed by UTF-8 bytes.
-- **Path and value rules:** forward-slash relative paths after source-separator conversion; reject absolute/drive/UNC paths, empty, dot, or dot-dot segments, NUL, backslash, filename/path disagreement, and duplicate canonical paths. Do not Unicode-normalize or case-fold. Size must be a non-negative integer encoded as canonical decimal ASCII; expected SHA-256 must be 64 lowercase hexadecimal ASCII characters.
-- **Empty inventory:** hash the fixed prefix plus an unsigned 64-bit zero record count; absent evidence is not equivalent to an empty inventory.
-- **Reference vectors:** the proposal document includes empty-inventory and one-record vectors for independent cross-runtime tests. These are specification vectors, not production test evidence.
-- **Scope boundary:** implementation, executable schema, cross-runtime tests, evidence artifact shape, and publication/recovery behavior remain open. OSD-02, OSD-03, P0-008, and P0-010 remain open.
+- **承認権限:** プロジェクト管理者 (2026-10-21 でオプション A を明示的に選択)。
+- **選択されたオプション:** A — 完了するには、構成されたソース スコープ内のすべてのディレクトリを完全に走査する必要があります。
+- **完了ルール:** ルートと到達したすべてのディレクトリを通常の範囲で列挙する必要があります。ディレクトリ列挙子の作成、反復/進行、分類に必要なエントリ検査、および列挙子のクリーンアップ/破棄の失敗は、網羅的な走査の証明を妨げる場合、列挙エラーとしてカウントされます。反復中に発生した遅延例外はキャッチされ、エラーとして処理される必要があります。列挙子の作成が成功しただけでは、完了の証拠にはなりません。
+- **障害動作: 最初の列挙/アクセス/I/O エラーで **、トラバーサルを停止し、列挙ステータスを `failed` または `incomplete` に設定します (ランタイムはスキーマ定義のステータスの区別を一貫して使用する必要があります)。サニタイズされた診断を記録し、個別の `enumeration_errors` カウントを増加します。 失敗した/未完了 列挙からカウント調整、完了 一覧、無作業、または期間完了を要求しないでください。影響を受けるディレクトリまたはサブツリーを黙ってスキップしないでください。
+- **スコープ境界:** C-42 はベストエフォート型の突然変異検出を定義しますが、アトミック スナップショットの保証は提供しません。実行可能な列挙/変更検出テストはオープンのままです。実行時の実装やテストの証拠は主張されていません。
 
 
-## C-36 — Immutable enumeration/validation evidence artifact — 2026-10-21
+<a id="c-42--b2-source-mutation-detection-during-enumeration--2026-10-21"></a>
+## C-42 — 列挙中の B2 ソース変異検出 — 2026-10-21
 
-- **Approving authority:** project maintainer, explicit approval on 2026-10-21.
-- **Chosen option:** B2 — a separate immutable run-input evidence artifact.
-- **Required behavior:** preserve initial enumeration and filename-validation outcomes independently from the manifest and derived aggregation report. Evidence must distinguish completed enumeration/validation from failed or incomplete work; a missing artifact, missing count, or missing error list must not be interpreted as zero errors or a successful empty inventory.
-- **Identity and immutability:** evidence identity must match the originating run ID, PC ID, and log type. A conflicting artifact for the same run identity must be reconciled, never silently overwritten.
-- **Storage:** create and validate the local authoritative artifact first; replicate to the configured Google Drive destination only after local validation. Cross-PC consumers may use the remote copy only after identity and content verification.
-- **Scope boundary:** this approves the separate-artifact direction, not the full JSON schema, embedded versus referenced inventory, count reconciliation rules, evidence digest canonicalization, exact paths, locking, Drive verification implementation, or recovery behavior. Those remain open; no runtime implementation or test evidence is claimed.
+- **承認権限:** プロジェクト管理者 (2026-10-21 でオプション A を明示的に選択)。
+- **選択されたオプション:** A — フェールクローズ処理によるベストエフォート型の変更検出。ファイルシステムのスナップショットを要求しないでください。
+- **検出コントラクト:** は、走査された各ディレクトリの観察されたエントリ名/タイプ セットと、観察された各通常ファイルの関連メタデータを記録します。最初の列挙と適格ターゲット ハッシュの収集の後、ディレクトリを再度列挙し、エントリ セットを比較します。観察されたすべての通常ファイルと適格なターゲットについて、関連するメタデータを再確認します。関連するメタデータには、サポートされている API によって公開される精度でのエントリ タイプ、サイズ、最終書き込みタイムスタンプが含まれます。対象となるターゲット コンテンツのハッシュは、インベントリに凍結された実際のバイトから計算する必要があります。読み取り中にメタデータが変更された場合は、スキャンを拒否します。ターゲットのバイトを一貫して読み取ってハッシュ化できない場合、スキャンは 完了 ではありません。
+- **変更応答:** 凍結されたターゲット セットと再チェックの間で検出された追加、削除、名前変更、タイプ変更、サイズ変更、タイムスタンプ変更、または 不一致 は証拠を無効にします。列挙 失敗した/未完了 をマークし、サニタイズされた診断を保存し、完全な証拠として公開または使用しないでください。 2 番目のパス中のエラーも、C-41 の列挙エラーになります。
+- **制限事項:** これはベストエフォート型の検出であり、アトミックなスナップショットではありません。チェック間で発生して元に戻る変更、またはチェックされたすべてのメタデータを保持し、計算されたターゲット ハッシュに反映されないコンテンツ変更は、検出を回避する可能性があります。実装では、すべての同時変異の検出を主張してはなりません。
+- **スコープ境界:** 追加/削除/名前変更、タイプ/サイズ/タイムスタンプの変更、読み取り/ハッシュ競合、2 回目のパス エラー、および制限に関する実行可能テストは引き続き必要です。実行時の実装やテストの証拠は主張されていません。
+
 
+<a id="c-43--enumeration-status-semantics--2026-10-21"></a>
+## C-43 — 列挙ステータスのセマンティクス — 2026-10-21
 
-## C-37 — Embedded inventory in B2 evidence — 2026-10-21
+- **承認権限:** プロジェクト管理者、2026-10-21 でオプション A を明示的に選択。
+- **選択されたオプション:** A — `completed`、`failed`、および `incomplete` に個別の意味を持たせて、観察された結果によってステータスを定義します。
+- **`completed`:** ルートと到達したすべてのディレクトリが通常の枯渇に達し、必要な C-42 整合性/変更検出チェックがすべて正常に完了しました。
+- **`failed`:** 明示的な 失敗 または無効化条件が観察されました。これには、列挙/アクセス/I/O またはエントリ検査エラー、サポートされていない非正規エントリ タイプ、検出されたソースの変更、または一貫性のないメタデータ/ハッシュ読み取りが含まれます。
+- **`incomplete`:** 実行は、キャンセル、タイムアウト、中断、プロセス終了などの観察された 失敗 原因が発生せずに完了する前に終了しましたが、永続的な証拠レコードをまだ完成させることができます。終了によって最終処理が妨げられた場合、不足または未確定の証拠は無効になります。証拠となる成果物を合成しないでください。
+- **安全性不変:** `completed` のみが無作業または完全性の認証をサポートできます。 `failed` と `incomplete` はどちらも 完了 ではないため、フェール クローズする必要があります。
+- **フォローアップ:** C-44 は、重複伝播が重複排除された個別のエラー イベント数として `enumeration_errors` を定義します。実行可能な状態遷移および中断テストは引き続き必要です。実行時の実装やテストの証拠は主張されていません。
+
 
-- **Approving authority:** project maintainer, explicit approval on 2026-10-21.
-- **Chosen option:** A — embed the complete frozen eligible-target inventory in the immutable run-input evidence artifact.
-- **Rationale:** the evidence is self-contained and recovery does not depend on a separate inventory file being present. Duplication with manifest target records is intentional.
-- **Required validation:** embedded targets must match the originating manifest's frozen target set and approved A2 inventory digest. Any count, path, size, filename, hash, or digest mismatch is an integrity failure; never repair by silently choosing one copy.
-- **Compatibility:** do not change manifest v1 fields. The evidence schema remains a separate versioned artifact.
-- **Scope boundary:** exact count reconciliation across all enumerated entry categories, evidence digest canonicalization, path/root configuration, atomic local publication, Drive verification, locking/recovery, and executable tests remain open. No runtime implementation or test evidence is claimed.
+<a id="c-44--enumeration_errors-counting-semantics--2026-10-21"></a>
+## C-44 — `enumeration_errors` カウントセマンティクス — 2026-10-21
 
+- **承認権限:** プロジェクト管理者、2026-10-21 でオプション A を明示的に選択。
+- **選択されたオプション:** A — 呼び出しや影響を受けるエントリをキャッチ/ログするのではなく、根本的なエラー イベントを個別にカウントします。
+- **カウント不変式:** `enumeration_errors` は、実行の一意のサニタイズされた診断レコードによって表される個別の列挙エラー イベントの数と等しくなります。各イベントには 1 つの安定した `error_id` があります。このカウントは、相互に排他的なエントリ分類の合計には追加されません。
+- **重複排除:** 同じ基礎となる 失敗 がトラバーサル、検証、クリーンアップ、またはロギング レイヤーを通じて伝播する場合、1 つの診断イベントを保持し、それを 1 回カウントします。別のレイヤーが同じ 失敗 を観察または報告するという理由だけで、カウンターを再度インクリメントしないでください。
+- **複数の障害:** 独立して観測された 失敗 イベントは、同じディレクトリ内で発生した場合や同じエントリに影響を与えた場合でも、個別にカウントされます。エラー コードやパスが一致するという理由だけで、個別の障害を折りたたまないでください。実装で 2 つの観測値が同じイベントであることを確実に確立できない場合は、文書化された決定論的相関ルールを使用してテストする必要があります。異なる可能性がある 失敗 を黙って破棄してはなりません。
+- **Failure invariant:** 列挙エラー イベントによって `enumeration.status = completed` が阻止されます。サニタイズされた診断レコードは、シークレットやサニタイズされていない例外テキストを公開してはなりません。
+- **フォローアップ:** C-45 は、最初の観測時に ID を定義し、同じイベント ID をレイヤー間で伝播します。同一例外の伝播、複数の独立した障害、診断/カウントの等価性、およびフェールクローズ状態に関する実行可能なテストは引き続き必要です。実行時の実装やテストの証拠は主張されていません。
+
 
-## C-38 — Exhaustive B2 enumeration classification and count reconciliation — 2026-10-21
+<a id="c-45--error-event-identity-and-deduplication--2026-10-21"></a>
+## C-45 — エラー イベントの識別と重複排除 — 2026-10-21
 
-- **Approving authority:** project maintainer, explicit approval on 2026-10-21.
-- **Chosen option:** A — exhaustive mutually exclusive classification and count reconciliation.
-- **Required invariant:** each entry returned by a completed enumeration belongs to exactly one of `eligible_targets`, `valid_ineligible`, `invalid_relevant`, or explicitly contract-authorized `ignored_entries`. Their counts must sum exactly to `entries_observed`; no entry may be omitted or counted twice.
-- **Error treatment:** `enumeration_errors` is a separate diagnostic count, not part of the category sum. Any enumeration error prevents enumeration status `completed`; partial enumeration must not be interpreted as an empty or complete inventory.
-- **Follow-up:** source-entry universe and link handling are specified by C-40; the completion/error-detection rule is specified by C-41. Executable enumeration tests remain open. This decision does not claim implementation or test evidence.
+- **承認権限:** プロジェクト管理者、2026-10-21 でオプション A を明示的に選択。
+- **選択されたオプション:** A — 最初の観測時にエラー イベント ID を割り当て、それをすべての層に伝播します。
+- **同一性 ルール:** 基礎となる列挙型 失敗 を最初に診断イベントに変換するレイヤーは、1 つの `error_id` を割り当てます。ラッパーと下流のトラバーサル、検証、クリーンアップ、およびロギング層は、その ID を保存および伝播します。同じ 失敗 に対して新しい ID は作成されません。
+- **重複排除:** は、`error_id` ごとに 1 つの正規診断を保持します。その ID で観察を繰り返しても、別のイベントが作成されたり、`enumeration_errors` が増加したりすることはありません。 1 つの ID で競合するコア属性は内部整合性エラーであり、サイレントにマージされません。
+- **独立したイベント:** 個別に観察された障害は、パスまたはエラー コードを共有している場合でも、個別の ID を受け取ります。パス、コード、時間だけから ID を推測しないでください。
+- **Scope:** ID は実行/証拠成果物内で一意である必要があります。正確なエンコーディングと衝突処理は未解決のままです。実行時の実装やテストの証拠は主張されていません。
+- **フォローアップ:** C-46 は `error_id` エンコーディングと一意性/衝突ポリシーを定義します。実行可能ファイルの伝播テストと重複排除テストは引き続き必要です。
+
 
+<a id="c-46--error_id-format-and-collision-handling--2026-10-21"></a>
+## C-46 — `error_id` 形式と衝突処理 — 2026-10-21
 
-## C-39 — Canonical integrity digest for B2 evidence — 2026-10-21
+- **承認権限:** プロジェクト管理者、2026-10-21 でオプション A を明示的に選択。
+- **選択されたオプション:** A — 実行ごとの単調シーケンス、フォーマットされた `ERR-000001`、`ERR-000002` など。
+- **Allocation:** 個別のイベントが最初に作成されたときに、次のシーケンス値を 1 回だけ割り当てます。伝播層は割り当てられた ID を保持し、同じイベントに置き換えを割り当てることはありません。
+- **一意性の範囲:** ID は 1 つの実行/証拠成果物内で再利用してはなりません。クロスラン識別では、ラン識別子に `error_id` を加えたものを使用します。 ID だけではグローバル識別子ではありません。
+- **Exhaustion:** サポートされているシーケンス範囲が使い果たされた場合、フェールクローズされます。 ID をラップしたり、再利用したり、切り捨てたりしないでください。
+- **フォローアップ:** シーケンスの書式設定、一意性、伝播、枯渇、重複カウントに関する実行可能テストは引き続き必要です。実行時の実装やテストの証拠は主張されていません。
 
-- **Approving authority:** project maintainer, explicit approval on 2026-10-21.
-- **Chosen option:** A — hash a fixed canonical representation, excluding only `integrity.digest` from its own input.
-- **Canonical bytes:** normative rules are in `docs/design/run-input-evidence-v1-proposal.md` §5. UTF-8 JSON without BOM, insignificant whitespace, or trailing newline; object keys sorted by unsigned UTF-8 byte order at every level; `inventory.targets` sorted by canonical relative-path UTF-8 bytes; `validation.errors` sorted by relative path, code, filename, and error ID; deterministic string escaping; canonical integer notation only; floating-point values prohibited.
-- **Validation before hashing:** reject duplicate object keys, invalid UTF-8, unknown schema versions, missing fields, invalid types, and values outside constraints; no silent coercion or repair.
-- **Digest:** SHA-256 represented as exactly 64 lowercase hexadecimal ASCII characters. `integrity.algorithm` and `integrity.canonicalization` remain in the hashed object; only `integrity.digest` is omitted.
-- **Versioning:** changes to canonicalization rules require a new canonicalization identifier or evidence schema version.
-- **Scope boundary:** executable schema, duplicate-key-safe parser, independent cross-runtime canonical-byte/digest vectors, source-entry universe and pagination semantics, publication/root configuration, Drive verification, locking, and recovery remain open. Any future array requires a specified ordering before implementation. No runtime implementation or test evidence is claimed.
 
+<a id="c-47--diagnostic-fields-nullability-and-sanitization--2026-10-21"></a>
+## C-47 — 診断フィールド、null 可能性、およびサニタイズ — 2026-10-21
 
-## C-40 — B2 source-entry universe and link handling — 2026-10-21
+- **承認権限:** プロジェクト管理者、2026-10-21 でオプション A を明示的に選択。
+- **選択されたオプション:** A — フィールド固有の null 可能性とサニタイズを備えた必須のスキーマを修正しました。
+- **必要なキー:** `error_id`、`error_code`、`phase`、`operation`、`target_relative_path`、および `message`。すべてのキーが存在します。 Null 許容値は明示的に JSON `null` です。
+- **Nullability:** `error_id`、`error_code`、`phase`、および `operation` は null ではありません。安全な値を生成できない場合、`target_relative_path` および `message` は null になる可能性があります。
+- **サニタイズ:** `error_id` は C-46 の後に続きます。コード/フェーズ/操作では、制限された文書化された列挙型を使用します。パスは相対的で、正規化され、安全に通過でき、編集されています。メッセージは短く、制限があり、シークレット、個人データ、絶対パス、制御文字をスクラブします。生の例外テキスト、例外オブジェクト、スタック トレース、環境変数、リクエスト/レスポンス本体、および任意のメタデータは禁止されています。
+- **失敗動作: ** オプションのテキスト/パスを安全にサニタイズできない場合は、null を出力します。 null 以外の必須フィールドを有効に入力できない場合は、不正な形式の診断を発行しないでください。終了した証拠の最終処理に失敗し、外部ステータス チャネルを通じて証拠 利用不能/失敗した を報告します。
+- **決定性:** サニタイズとシリアル化は決定的である必要があります。フィールドの最大長と正確な許可リストは、実装前にスキーマ内で修正する必要があります。
+- **フォローアップ:** C-48 は、診断スキーマのバージョン管理と互換性ポリシーを定義します。 C-49 は、`error_code`、`phase`、および `operation` の管理語彙を定義します。ランタイム実装と実行可能なサニタイズ/スキーマ テストは 未確定 のままです。
+
+
+<a id="c-48--diagnostic-schema-versioning-and-compatibility--2026-10-21"></a>
+## C-48 — 診断スキーマのバージョン管理と互換性 — 2026-10-21
 
-- **Approving authority:** project maintainer, explicit selection of option A on 2026-10-21.
-- **Chosen scope:** recursively enumerate the configured source scope; directory entries are traversal nodes and are excluded from `entries_observed`; each encountered non-directory entry is counted once.
-- **Regular files:** classify each by the filename/eligibility validation rules. Only eligible regular files appear in the frozen target inventory.
-- **Symbolic links and reparse points:** never follow them. Count the link/reparse-point entry itself once as `ignored_entries`, explicitly authorized by this source contract. Never traverse a link target, including a target inside the source root.
-- **Unsupported/inaccessible entries:** any unsupported non-regular entry type or inability to enumerate a directory prevents `enumeration.status = completed`; do not silently omit the entry or subtree.
-- **Scope boundary:** C-41 specifies traversal completion/error detection; concurrent source mutation semantics and executable enumeration tests remain open. No runtime implementation or test evidence is claimed.
+- **承認権限:** プロジェクト管理者、2026-10-21 でオプション A を明示的に選択。
+- **選択されたオプション:** A — すべての診断レコードの明示的な正の整数 `schema_version`。厳密なバージョン固有の検証。
+- **Validation:** 欠落しているバージョン、不正な形式、非整数、非正のバージョン、またはサポートされていないバージョンを拒否します。 不明 フィールドを拒否し、必要なすべてのキー、型、NULL 可能性、フィールド制約、およびサニタイズ ルールを選択したバージョンに対して検証します。
+- **互換性:** リリースされた各バージョンの構造とセマンティクスは不変です。互換性のない変更には、新しい整数バージョンが必要です。 不明 フィールドは拒否されるため、フィールドを追加するには新しいバージョンも必要です。
+- **歴史的証拠:** 暗黙的な移行、修復、書き換え、または再ラベル付けはありません。古いバージョンは、そのバージョンの明示的なバリデータが実装されたままである間、読み取り専用になる可能性があります。検証ではレコードを変更してはなりません。
+- **バージョン スコープ:** 診断 `schema_version` は、それを囲んでいる成果物の `evidence_schema_version` から独立しています。
+- **必要なテスト:** サポートされている有効なバージョン。 missing/null/string/fractional/zero/negative/サポートされていないバージョン; 不明 およびフィールドが欠落しています。型/null 可能性のチェック。バージョン固有の検証。検証中に突然変異はありません。履歴バージョンの受け入れは、明示的なバリデータを使用した場合にのみ可能です。
+- **フォローアップ:** C-49 は初期の許可リストを修正します。 C-50 は、具体的な 失敗 条件から `error_code` への詳細なマッピングを定義します。ランタイム実装と実行可能テストは 未確定 のままです。
 
 
-## C-41 — B2 enumeration completion determination — 2026-10-21
+<a id="c-49--diagnostic-controlled-vocabularies--2026-10-21"></a>
+## C-49 — 診断管理対象語彙 — 2026-10-21
 
-- **Approving authority:** project maintainer (explicit selection of option A on 2026-10-21).
-- **Chosen option:** A — completion requires successful, exhaustive traversal of every directory in the configured source scope.
-- **Completion rule:** the root and every reached directory must be enumerated to normal exhaustion. Directory-enumerator creation, iteration/advancement, entry inspection needed for classification, and enumerator cleanup/disposal failures count as enumeration errors when they prevent proving exhaustive traversal. Lazy exceptions raised during iteration must be caught and treated as errors; successful enumerator creation alone is not proof of completion.
-- **Failure behavior:** on the first enumeration/access/I/O error, stop traversal and set enumeration status to `failed` or `incomplete` (the runtime must use the schema-defined status distinction consistently). Record a sanitized diagnostic and increment the separate `enumeration_errors` count. Do not claim count reconciliation, complete inventory, no-work, or period completion from a failed/incomplete enumeration. Never silently skip the affected directory or subtree.
-- **Scope boundary:** C-42 defines best-effort mutation detection but does not provide an atomic snapshot guarantee. Executable enumeration/change-detection tests remain open. No runtime implementation or test evidence is claimed.
+- **承認権限:** プロジェクト管理者、2026-10-21 でオプション A を明示的に選択。
+- **選択されたオプション:** `error_code`、`phase`、および `operation` の大文字と小文字を区別する許可リストが修正されました。
+- **不明な処理:** 認識されない 失敗 タイプは予約済み `unknown_error` にマップされます。本当に識別できないフェーズ/動作は予約済み `unknown` にマップされます。生の例外クラス名/メッセージが列挙値になることはありません。
+- **初期許可リスト:** `error_code`: `enumeration_failed`、`invalid_filename`、`file_access_denied`、`file_read_failed`、`file_metadata_failed`、`hash_failed`、`source_mutation_detected`、`manifest_invalid`、`evidence_invalid`、`validation_failed`、 `serialization_failed`、`aggregation_failed`、`publication_failed`、`unknown_error`。 `phase`: `enumeration`、`classification`、`metadata`、`content_read`、`hashing`、`manifest_validation`、`evidence_validation`、`evidence_finalization`、`aggregation`、`report_serialization`、`report_publication`、`unknown`。 `operation`: `enumerate_entries`、`classify_target`、`read_metadata`、`read_content`、`compute_hash`、`detect_source_mutation`、`validate_manifest`、`validate_evidence`、`finalize_evidence`、`aggregate_results`、`serialize_report`、`publish_report`、`unknown`。
+- **Validation:** リストにない値、大文字と小文字の違い、空の文字列、および null を拒否します。エイリアスや動的な列挙型拡張子はありません。許可リストを変更するには、契約の更新とテストを確認する必要があります。スキーマに互換性のない変更は C-48 に従います。
+- **必須テスト:** 許可リストにあるすべての値を受け入れます。無効な値を拒否します。決定的な既知のfailureマッピング。マップされていない障害に対するフォールバック動作。例外データの漏洩はありません。
+- **フォローアップ:** C-50 は、失敗 条件から `error_code` への詳細なマッピングを定義します。ランタイム実装と実行可能テストは 未確定 のままです。
 
 
-## C-42 — B2 source mutation detection during enumeration — 2026-10-21
+<a id="c-50--deterministic-diagnostic-error_code-mapping--2026-10-21"></a>
+## C-50 — 確定的診断 `error_code` マッピング — 2026-10-21
 
-- **Approving authority:** project maintainer (explicit selection of option A on 2026-10-21).
-- **Chosen option:** A — best-effort change detection with fail-closed handling; do not claim a filesystem snapshot.
-- **Detection contract:** record each traversed directory's observed entry-name/type set and relevant metadata for each observed regular file. After initial enumeration and eligible-target hash collection, enumerate the directories again and compare entry sets; re-check the relevant metadata for every observed regular file and eligible target. Relevant metadata includes entry type, size, and last-write timestamp at the precision exposed by the supported API. Eligible-target content hashes must be calculated from the actual bytes frozen into the inventory; if metadata changes across the read, reject the scan. If a target's bytes cannot be read and hashed consistently, the scan is not complete.
-- **Change response:** any detected addition, deletion, rename, type change, size change, timestamp change, or mismatch between the frozen target set and the re-check invalidates the evidence. Mark enumeration failed/incomplete, preserve sanitized diagnostics, and do not publish or use it as completed evidence. Errors during the second pass are also enumeration errors under C-41.
-- **Limitations:** this is best-effort detection, not an atomic snapshot. A change that occurs and reverts between checks, or a content change that preserves all checked metadata and is not reflected in the computed target hash, may evade detection. The implementation must not claim detection of all concurrent mutations.
-- **Scope boundary:** executable tests for add/remove/rename, type/size/timestamp changes, read/hash races, second-pass errors, and limitations remain required. No runtime implementation or test evidence is claimed.
+- **承認権限:** プロジェクト管理者、2026-10-21 でオプション A を明示的に選択。
+- **選択されたオプション:** A — 決定的な優先順位と `unknown_error` フォールバックを備えた明示的な 失敗 条件マッピング テーブル。
+- **Contract:** すべての個別の診断イベントは 1 つのプライマリ `error_code` を受け取ります。伝播された観測では、元の `error_id` とコードが保存されます。独立した障害は独立したイベント ID を受け取り、個別に分類されます。
+- **Mapping:** は、`docs/archive/decisions/aggregation-inventory-integrity-options.md`、C-50 の標準の優先順位付きテーブルを使用します。この表は、無効な読み取り可能なマニフェストを `manifest_invalid` にマップします。 `evidence_invalid` に対する無効な読み取り可能な証拠。 `source_mutation_detected` に対するソースの不一致が観察されました。違反の名前を `invalid_filename` に指定します。 `file_access_denied` への明示的なアクセス拒否シグナル。 `enumeration_failed` へのディレクトリ トラバーサルの失敗。それぞれのコードに対するメタデータ/コンテンツ読み取り/ハッシュの失敗。一般的な契約の検証は`validation_failed`まで。それぞれのコードに対するシリアル化、集約、およびパブリケーションの失敗。 `unknown_error` に一致しない条件。
+- **優先順位と証拠:** 明示的な条件を優先順位で評価します。構造化された操作コンテキストと安定したプラットフォーム エラー カテゴリに依存し、自由形式の例外テキストやローカリゼーションを使用しないでください。読み取り不可能な成果物を無効なコンテンツとして扱わないでください。 不一致 が観察されない限り、ソースの突然変異を推測しないでください。伝播された同じイベントを後の層で再分類しないでください。
+- **Allowlist/versioning:** 発行されたコードは、C-49 診断スキーマ v1 ホワイトリストのメンバーである必要があります。この決定により、新しいコードやフィールドは追加されず、スキーマのバージョンも変更されません。その後のホワイトリストまたはセマンティック契約の変更には、C-48 に基づくレビューが必要です。
+- **必須テスト:** 各マッピング行。優先衝突。アクセス拒否 I/O と汎用 I/O。読み取りとハッシュ。無効な読み取り可能なマニフェスト/証拠と読み取り不可能な成果物。突然変異と通常の読み取り 失敗;連載版と出版版。伝播と重複排除。独立したイベント。 不明 フォールバック;メッセージテキストの解析はありません。生の例外データの漏洩はありません。
+- **ランタイム入力モデル:** 承認済み オプション A — 信頼できるプロデューサーによって選択された、大文字と小文字を区別する 1 つの必須のスカラー条件トークン。正確なトークン、構造化された前提条件、および無効な入力動作は、docs/archive/decisions/aggregation-inventory-integrity-options.md、C-50 で規定されています。不明または不正なトークンは、修正された非開示エラーで拒否されます。 unmatched_failure のみが unknown_error にマップされます。
+- **実装境界:** Resolve-DiagnosticErrorCode は、1 つのトークンを既存の C-49 ホワイトリストにマップし、例外データからの推論、イベント ID の割り当て、フェーズ/操作の選択、またはプロデューサー側の優先順位の実装を行いません。伝播レイヤーは元の分類を保持します。
+- **フォローアップ:** ランタイム プロデューサーの統合と、優先順位の選択、伝播/重複排除、およびエンドツーエンドの証拠のテストが引き続き必要です。ヘルパー テストは P0 の受け入れを確立しません。
 
 
-## C-43 — Enumeration status semantics — 2026-10-21
+<a id="c-51--deterministic-diagnostic-phaseoperation-mapping--approved-2026-10-21"></a>
+## C-51 — 確定的な診断フェーズ/操作マッピング — 承認済み 2026-10-21
 
-- **Approving authority:** project maintainer, explicit selection of option A on 2026-10-21.
-- **Chosen option:** A — define status by observed outcome, with distinct meanings for `completed`, `failed`, and `incomplete`.
-- **`completed`:** the root and every reached directory reached normal exhaustion, and all required C-42 consistency/change-detection checks completed successfully.
-- **`failed`:** an explicit failure or invalidating condition was observed, including enumeration/access/I/O or entry-inspection error, unsupported non-regular entry type, detected source mutation, or inconsistent metadata/hash read.
-- **`incomplete`:** the run ended before completion without an observed failure cause, such as cancellation, timeout, interruption, or process termination, where a durable evidence record can still be finalized. If termination prevents finalization, missing/unfinalized evidence is invalid; do not synthesize an evidence artifact.
-- **Safety invariant:** only `completed` can support no-work or completeness certification. Both `failed` and `incomplete` are non-complete and must fail closed.
-- **Follow-up:** C-44 defines `enumeration_errors` as distinct error-event count with duplicate propagation deduplicated. Executable status-transition and interruption tests remain required. No runtime implementation or test evidence is claimed.
+- **承認権限:** プロジェクト管理者、2026-10-21 でオプション A を明示的に選択。
+- **選択されたオプション:** 決定的 `unknown/unknown` フォールバックを備えた明示的な処理コンテキスト マッピング テーブル。`docs/archive/decisions/aggregation-inventory-integrity-options.md` のセクション「決定的フェーズと操作のマッピング - C-51」で規範的に定義されています。
+- **Contract:** は、失敗した アクションを記述する信頼できる構造化コンテキストから、個別の診断イベントが最初に作成されるときに、`phase` と `operation` を一緒に割り当てます。ラッパー、再試行、クリーンアップ、およびロギングでは、元のペアが保持されます。例外テキストから推測したり、後のオブザーバーのコンテキストを置き換えたりしないでください。
+- **Fallback:** `unknown/unknown` は、信頼できる構造化状態が本当にペアを識別できない場合にのみ使用します。欠落しているインストルメンテーションまたは未実装のマッピングは、非表示ではなく公開する必要があります。意味的に未定義のペアを拒否します。
+- **互換性:** フィールドや許可リストの値は追加されません。スキーマ v1 は変更されません。
+- **必須テスト:** すべてのマッピング行、無効なペアの拒否、イベント伝播の不変性、失敗した アクションとオブザーバーのコンテキスト、読み取りと検証 失敗、本物の 不明 フォールバック、インストルメンテーションの欠落、決定論的な繰り返し結果、および例外テキストの解析なし。
+- **フォローアップ:** C-52 は、診断メッセージ テンプレートとサニタイズ動作を定義します。ランタイム実装と実行可能テストは 未確定 のままです。
 
 
-## C-44 — `enumeration_errors` counting semantics — 2026-10-21
+<a id="c-52--deterministic-diagnostic-message-templates--approved-2026-10-21"></a>
+## C-52 — 確定的診断メッセージ テンプレート — 承認済み 2026-10-21
 
-- **Approving authority:** project maintainer, explicit selection of option A on 2026-10-21.
-- **Chosen option:** A — count distinct underlying error events, not catch/log invocations or affected entries.
-- **Counting invariant:** `enumeration_errors` equals the number of distinct enumeration-error events represented by unique sanitized diagnostic records for the run. Each event has one stable `error_id`; the count is not added to the mutually exclusive entry-classification totals.
-- **Deduplication:** if the same underlying failure propagates through traversal, validation, cleanup, or logging layers, retain one diagnostic event and count it once. Do not increment the counter again merely because another layer observes or reports that same failure.
-- **Multiple failures:** independently observed failure events are counted separately, even if they occur in the same directory or affect the same entry. Do not collapse separate failures solely because their error codes or paths match. When implementation cannot reliably establish that two observations are the same event, it must use a documented deterministic correlation rule and test it; it must not silently discard a possibly distinct failure.
-- **Failure invariant:** any enumeration-error event prevents `enumeration.status = completed`. Sanitized diagnostic records must not expose secrets or unsanitized exception text.
-- **Follow-up:** C-45 defines identity at first observation and propagates the same event ID across layers. Executable tests for same-exception propagation, multiple independent failures, diagnostic/count equality, and fail-closed status remain required. No runtime implementation or test evidence is claimed.
+- **承認権限:** プロジェクト管理者、2026-10-21 でオプション A を明示的に選択。
+- **選択されたオプション:** 検証済みの `error_code` によって選択された固定の確定的なメッセージ テンプレート。標準的なコードとテンプレートの表は、`docs/archive/decisions/aggregation-inventory-integrity-options.md` のセクション「診断メッセージ テンプレートとサニタイズ — C-52」にあります。
+- **データ ポリシー:** schema-v1 テンプレートには動的パラメーターが含まれません。生の例外テキスト/クラス、スタック トレース、OS 提供のエラー テキスト、環境変数、リクエスト/レスポンス本体、認証情報、トークン、接続文字列、絶対パス、またはその他の制御されていないデータは含めないでください。安全なターゲット コンテキストは、必要に応じて、個別に検証された `target_relative_path` フィールドによってのみ表されます。
+- **フォールバックと検証:** ホワイトリストに登録されたすべての C-49 `error_code` には、`unknown_error` を含む 1 つの正確なテンプレートがあります。欠落または無効なコードは診断の終了を拒否します。例外テキストからメッセージを推測しないでください。有効なコードは、最大 512 Unicode 文字からなる非 null メッセージを生成します。
+- **決定性/バージョン管理:** テンプレートは、スキーマ v1 の固定英語 ASCII 文字列です。将来の補間またはテンプレートのセマンティクスの変更には、明示的な契約のレビューとテストが必要です。パラメータは、後で承認される場合、フィールド固有の許可リストとサニタイズ契約を使用して、信頼できる構造化された状態から定義する必要があります。
+- **必須テスト: ** コードごとの正確なメッセージ フィクスチャ、無効なコードの拒否、不明 フォールバック、バイトごとの決定論、補間なし、長さとエンコードの制約、シークレット/パス/例外/スタックトレースの非開示、およびメッセージが分類、イベント ID、重複排除、または集計に影響を与えないことの証明。
+- **フォローアップ:** C-53 では、正確な正規化/秘匿化順序を含む、パスおよびその他の構造化フィールドの診断サニタイズ メカニズムについて説明します。ランタイム実装と実行可能テストは 未確定 のままです。
 
 
-## C-45 — Error-event identity and deduplication — 2026-10-21
+<a id="c-53--structured-field-sanitization-and-path-safety--approved-2026-10-21"></a>
+## C-53 — 構造化フィールドの消毒と通路の安全 — 承認済み 2026-10-21
 
-- **Approving authority:** project maintainer, explicit selection of option A on 2026-10-21.
-- **Chosen option:** A — assign an error-event ID at first observation and propagate it through all layers.
-- **Identity rule:** the layer that first converts an underlying enumeration failure into a diagnostic event assigns one `error_id`. Wrappers and downstream traversal, validation, cleanup, and logging layers preserve and propagate that ID; they do not mint a new ID for the same failure.
-- **Deduplication:** retain one canonical diagnostic per `error_id`. Repeat observations with that ID do not create another event or increment `enumeration_errors`. Conflicting core attributes for one ID are an internal consistency error, not silently merged.
-- **Independent events:** separately observed failures receive separate IDs, even if they share a path or error code. Do not infer identity from path, code, or time alone.
-- **Scope:** IDs must be unique within the run/evidence artifact. Exact encoding and collision handling remain open. No runtime implementation or test evidence is claimed.
-- **Follow-up:** C-46 defines `error_id` encoding and uniqueness/collision policy; executable propagation and deduplication tests remain required.
+- **承認権限:** プロジェクト管理者、2026-10-21 でオプション A を明示的に選択。
+- **選択されたオプション:** 構造化された値を検証し、安全であることが証明された値のみを出力します。オプションのターゲット パスが安全でない場合は、部分的に編集するのではなく、パス フィールド全体に対して JSON `null` を出力します。標準的な処理順序は、`docs/archive/decisions/aggregation-inventory-integrity-options.md` のセクション「構造化フィールドの消毒と経路の安全性 - C-53」で定義されています。
+- **パス処理:** 検証の場合のみ区切り文字の方向を正規化します。絶対パス、ドライブ修飾パス、UNC/デバイスパス、NUL/コントロールを含むパス、コロンを含むパス、空セグメント、ドットセグメント、トラバーサルセグメント、またはその他の無効な相対パスを拒否します。安全でないセグメントを折りたたんだり解決したりしないでください。送信前に、機密パス ポリシーに対して候補をチェックします。パスを部分的にマスクしないでください。
+- **その他のフィールド:** 必須の列挙型/同一性 フィールドはスキーマと許可リストの検証に合格する必要があり、そうでない場合は診断の終了が失敗します。メッセージは、補間なしで正確な C-52 テンプレートを使用します。 JSON エスケープは検証に代わるものではありません。
+- **決定性:** ファイルシステム、シンボリックリンク、現在の作業ディレクトリ、ロケール、またはマシン固有のパス解決の依存関係はありません。サニタイズによって、イベントの ID、分類、集計、またはソース 成果物が変更されてはなりません。
+- **必須テスト:** 不正な形式および敵意のあるパスのケース、すべてのセグメント位置での機密一致、部分リダクションなし、有効な正規の相対パス、決定論的なクロスプラットフォーム動作、シリアライザーのエスケープ、無効な必須フィールド、およびオプションのパスが null になった場合のイベント ID/分類の保持。
+- **フォローアップ:** C-54 は、具体的な機密パス パターン/セグメント ポリシーと一致する優先順位を定義します。ランタイム実装と実行可能テストは 未確定 のままです。
 
 
-## C-46 — `error_id` format and collision handling — 2026-10-21
+<a id="c-54--concrete-sensitive-path-secret-format-grammars--approved-2026-10-21"></a>
+## C-54 — 具体的な機密パスの秘密形式の文法 — 承認済み 2026-10-21
 
-- **Approving authority:** project maintainer, explicit selection of option A on 2026-10-21.
-- **Chosen option:** A — per-run monotonic sequence, formatted `ERR-000001`, `ERR-000002`, etc.
-- **Allocation:** allocate the next sequence value exactly once when a distinct event is first created. Propagation layers preserve the assigned ID and never allocate a replacement for the same event.
-- **Uniqueness scope:** IDs must not be reused within one run/evidence artifact. Cross-run identification uses the run identifier plus `error_id`; the ID alone is not a global identifier.
-- **Exhaustion:** if the supported sequence range is exhausted, fail closed. Do not wrap, reuse, or truncate IDs.
-- **Follow-up:** executable tests for sequence formatting, uniqueness, propagation, exhaustion, and duplicate counting remain required. No runtime implementation or test evidence is claimed.
+- **承認:** メンテナは、P1、P2、P3、P4、P5、および P6 に対して明示的に A を選択しました。
+- **標準ソース:** `docs/archive/decisions/decision-record-c54-sensitive-path-detection.md`、セクション「C-54 承認された秘密形式の文法 — P1 ～ P6」。
+- **Decision:** URI ユーザー情報の正規表現と文字制限 (P1) を承認します。空ではない ASCII トークン アルファベットとオプションの末尾の等号パディング (P2) を指定した、大文字と小文字を区別しないベアラー スキーム。大文字と小文字を区別する `ghp_` および `github_pat_` プレフィックスには、個別の ASCII 接尾辞アルファベットと最小長の 20 (P3) が付きます。正確に大文字の `AKIA` と 16 大文字の ASCII 英数字。その他の AWS アクセス キー プレフィックスは範囲外 (P4)。決定レコード (P5) にリストされている、大文字と小文字を区別する 5 つの固定 PEM 秘密鍵マーカー。およびそれらのパターンに埋め込まれた正確な ASCII 境界/大文字小文字の規則 (P6)。
+- **変更制御:** は、明示的な承認とテストなしに、パターンの拡張、他のプロバイダー プレフィックスの推論、PEM ラベルの追加、Unicode 正規化の適用、または汎用の部分文字列/エントロピー マッチングの置き換えを行いません。
+- **テスト/証拠:** `tests/Test-C54PatternContract.ps1` は、合成の陽性、陰性、境界、およびケースのフィクスチャをチェックし、検証 CI で実行します。これは、承認されたパターン文法のみを検証します。ランタイム C-53/C-54 サニタイザー、フィールド全体のヌル化、または診断の非公開を証明するものではありません。それらはpendingのままです。
+- **P0 境界:** この決定により、ランタイム サニタイズは実装されません/確認済み。 P0-010 と P0-012 は開いたままになります。
 
 
-## C-47 — Diagnostic fields, nullability, and sanitization — 2026-10-21
+<a id="osd-02--timestamp-freshness-and-clock-policy--2026-10-21"></a>
+## OSD-02 — タイムスタンプ、鮮度、およびクロック ポリシー — 2026-10-21
 
-- **Approving authority:** project maintainer, explicit selection of option A on 2026-10-21.
-- **Chosen option:** A — fixed required schema with field-specific nullability and sanitization.
-- **Required keys:** `error_id`, `error_code`, `phase`, `operation`, `target_relative_path`, and `message`. All keys are present; nullable values are explicit JSON `null`.
-- **Nullability:** `error_id`, `error_code`, `phase`, and `operation` are non-null. `target_relative_path` and `message` may be null when no safe value can be produced.
-- **Sanitization:** `error_id` follows C-46; codes/phases/operations use bounded documented enums; paths are relative, normalized, traversal-safe, and redacted; messages are short, bounded, and scrub secrets, personal data, absolute paths, and control characters. Raw exception text, exception objects, stack traces, environment variables, request/response bodies, and arbitrary metadata are prohibited.
-- **Failure behavior:** if optional text/path cannot be safely sanitized, emit null. If a non-null required field cannot be validly populated, do not emit a malformed diagnostic; fail evidence finalization closed and report evidence unavailable/failed through the outer status channel.
-- **Determinism:** sanitization and serialization must be deterministic. Field maximum lengths and exact allowlists must be fixed in the schema before implementation.
-- **Follow-up:** C-48 defines diagnostic schema versioning and compatibility policy; C-49 will define controlled vocabularies for `error_code`, `phase`, and `operation`. Runtime implementation and executable sanitization/schema tests remain pending.
+- **承認権限:** プロジェクト管理者、2026-10-21 での会話での明示的な承認。
+- **Decision:** には、大文字の `Z` を含む解析可能な UTC ISO 8601 タイムスタンプが必要です。不正な形式、オフセット形式、タイムゾーンのない、解析不可能な値を拒否します。
+- **注文:** 拒否 `finished_at_utc < started_at_utc`;タイムスタンプ値を決して修復しないでください。
+- **将来の許容範囲:** 5 実行時から UTC 分、現在、構成可能。この境界を超える値は拒否されます。
+- **Freshness:** 24 時間の構成可能なしきい値。現在の実行で生成/更新されたタイムスタンプ (実行の開始/終了および検証試行のタイムスタンプ) にのみ適用されます。経過時間だけを理由に履歴マニフェストを無効にしないでください。
+- **クロック同期:** ホスト OS の時刻同期が設定されていると想定されます。 利用不能/明らかに無効なクロック読み取り値が露出している場合は検出します。現在の UTC を確実に取得できない場合は、時間依存の操作に対してフェールクローズします。個別の外部監視/アラートは必要ありません。
+- **構成の検証:** 無効、負、非有限、または解析不可能な許容値/しきい値を拒否します。サイレントフォールバックはありません。
+- **必要な証拠:** 固定クロック境界テスト、不正な形式および順序付けテスト、無効な構成テスト、クロック 利用不能 フェールクローズ テスト、および履歴マニフェスト経過時間テスト。
+- **影響を受ける要件:** EOLM-MAN-011、EOLM-MAN-001–010、EOLM-TST-004–006、EOLM-TST-010、および依存するアーカイブ鮮度ゲート。
+- **Boundary:** これは、数値のタイムスタンプ/鮮度/クロック同期の問題のみを解決します。クラッシュ/同時実行/最新マニフェストの決定、OSD-03 集約、完了 移行の強制、ランタイム実装、実行可能テスト、および運用上の証拠は未解決のままです。ランタイムサポートは要求されていません。
 
 
-## C-48 — Diagnostic schema versioning and compatibility — 2026-10-21
+<a id="osd-02-approved-crashconcurrencylatest-manifest-policy-2026-10-21"></a>
+## OSD-02 がクラッシュ/同時実行/最新マニフェスト ポリシーを承認しました (2026-10-21)
 
-- **Approving authority:** project maintainer, explicit selection of option A on 2026-10-21.
-- **Chosen option:** A — explicit positive integer `schema_version` on every diagnostic record; strict, version-specific validation.
-- **Validation:** reject missing, malformed, non-integer, non-positive, or unsupported versions. Reject unknown fields and validate all required keys, types, nullability, field constraints, and sanitization rules against the selected version.
-- **Compatibility:** each released version's structure and semantics are immutable. Any incompatible change requires a new integer version; adding a field also requires a new version because unknown fields are rejected.
-- **Historical evidence:** no implicit migration, repair, rewrite, or relabeling. An older version may be read only while an explicit validator for that version remains implemented; validation must not mutate the record.
-- **Version scope:** diagnostic `schema_version` is independent of the enclosing artifact's `evidence_schema_version`.
-- **Required tests:** valid supported version; missing/null/string/fractional/zero/negative/unsupported version; unknown and missing fields; type/nullability checks; version-specific validation; no mutation during validation; historical-version acceptance only with an explicit validator.
-- **Follow-up:** C-49 fixes the initial allowlists; C-50 will define detailed mapping from concrete failure conditions to `error_code`. Runtime implementation and executable tests remain pending.
+メンテナは C1-A/C2-C/C3-B/C4-A を承認しました。 C1-A では、保証が 利用不能 の場合、検証済みの同じディレクトリへの一時書き込み、アトミックな存在しない場合の作成、置換前の比較、およびフェールクローズ動作が必要です。 C2-C には、mutex という名前のスコープごとの OS と排他的所有権トークン ロック レコードが必要です。古いロックの回復は明示的であり、所有者がいなくなっていることを確認する必要があります。 C3-B は、クラッシュ時に残された `running` 履歴を保存し、回復チェック後にのみ、新しいインベントリと不確実なアップロードの調整を使用して、新しい `run_id` を作成します。 C4-A は、正確な PC/ログタイプ/期間スコープに対して、検証された一意の最大値 `started_at_utc` のみを選択します。同点、不正な形式/競合する候補、読み取りエラー、または 未完了 列挙ブロック操作が発生し、古い 成功 へのフォールバックはありません。タイムスタンプの鮮度/将来の許容範囲は、ロックまたは再試行タイムアウトではありません。
 
+クラッシュ ポイント、同時作成/更新、ロックの所有権/回復、中断された実行、不確実なアップロード、およびリゾルバーの曖昧さに関する総合テストが必要ですが、**まだ実行も証拠化もされていません** です。これらの決定は、ランタイム実装を要求したり、P0-008/P0-010/P0-012 を終了したりするものではありません。
 
-## C-49 — Diagnostic controlled vocabularies — 2026-10-21
 
-- **Approving authority:** project maintainer, explicit selection of option A on 2026-10-21.
-- **Chosen option:** fixed, case-sensitive allowlists for `error_code`, `phase`, and `operation`.
-- **Unknown handling:** unrecognized failure types map to reserved `unknown_error`; genuinely unidentifiable phase/operation map to reserved `unknown`. Raw exception class names/messages are never enum values.
-- **Initial allowlists:** `error_code`: `enumeration_failed`, `invalid_filename`, `file_access_denied`, `file_read_failed`, `file_metadata_failed`, `hash_failed`, `source_mutation_detected`, `manifest_invalid`, `evidence_invalid`, `validation_failed`, `serialization_failed`, `aggregation_failed`, `publication_failed`, `unknown_error`. `phase`: `enumeration`, `classification`, `metadata`, `content_read`, `hashing`, `manifest_validation`, `evidence_validation`, `evidence_finalization`, `aggregation`, `report_serialization`, `report_publication`, `unknown`. `operation`: `enumerate_entries`, `classify_target`, `read_metadata`, `read_content`, `compute_hash`, `detect_source_mutation`, `validate_manifest`, `validate_evidence`, `finalize_evidence`, `aggregate_results`, `serialize_report`, `publish_report`, `unknown`.
-- **Validation:** reject unlisted values, case variants, empty strings, and nulls. No aliases or dynamic enum extension. Any allowlist change requires a reviewed contract update and tests; schema-incompatible changes follow C-48.
-- **Required tests:** accept all allowlisted values; reject invalid values; deterministic known-failure mappings; fallback behavior for unmapped failures; no exception-data leakage.
-- **Follow-up:** C-50 defines detailed failure-condition-to-`error_code` mappings. Runtime implementation and executable tests remain pending.
+<a id="maintainer-approved-osd-03-report-contract-2026-10-21"></a>
+## メンテナ承認の OSD-03 レポート契約 (2026-10-21)
 
+メンテナは、**R1-B、R2-A、R3-B、R4-A、R5-A、R6-A、R7-A** を明示的に承認しました。これはレポート契約オプションを決定しますが、実行可能 JSON Schema、ランタイム実装、またはテスト証拠を構成するものではありません。
 
-## C-50 — Deterministic diagnostic `error_code` mapping — 2026-10-21
+- **R1-B — 概要のみ:** 期間エントリには、ターゲットごとの重複した行ではなく、カウントと完了状態が含まれます。不変の実行入力証拠および元のマニフェストに対して、適格なインベントリとファイルごとの結果を検証します。
+- **R2-A — タプル ID:** レポート ID は正確に (pc_id、log_type、run_id、report_schema_version) です。 report_id を省略します。そのタプルから正規のファイル名を導出します。マニフェスト v1 にはフィールドを追加しないでください。
+- **R3-B — コンテンツ バインドされた参照:** manifest_ref および evidence_ref にはそれぞれ、正規の相対パス、スキーマ バージョン、および正確に検証されたバイトの小文字の 64 文字 SHA-256 が含まれます。参照された成果物の ID をレポート タプルに対して検証します。絶対パス、トラバーサル、同一性 不一致、不正な形式のダイジェスト、または変更されたバイトを拒否します。
+- **R4-A — OSD-02 コントロールを再利用します。** は、同じディレクトリにある一意の一時ファイル、フラッシュ/クローズ、リードバック検証、およびアトミックな存在しない場合の作成を使用します。通常の公開中に既存の PC ごとのメンテナンス ロックを再利用します。再生成/回復では、同じ名前のミューテックスと所有権トークンのロック レコードを取得する必要があります。既存の同一性の同一バイトは冪等です。異なるバイトは競合し、上書きされることはありません。一時ファイルは、所有権が証明された場合にのみ削除してください。孤立した一時ファイルには権限がないため、経過時間だけを理由に削除してはなりません。
+- **R5-A — 決定論的再生成:** 正確に検証されたマニフェストと不変の B2 実行入力証拠からのみ再生成します。過去のインベントリを再構築するために、変更可能なソース ディレクトリを再スキャンしないでください。 ID、インベントリダイジェスト、すべてのカウント、およびエラー範囲を検証します。入力が 未完了/利用不能 の場合は、未解決のままになります。同一の出力は冪等です。同じ同一性に対する異なるコンテンツは競合です。
+- **R6-A — 3 状態の期間完了:** 完了 期間のすべての適格なターゲットが 確認済み であり、それに影響する関連エラーがない場合のみ。既知の 失敗した/不明 ターゲットまたは既知の関連エラーの場合は 未完了。 確定不能 必要な証拠が欠落している、形式が間違っている、矛盾している、または検証できない場合。 確定不能 を 完了 にマップしないでください。これらはレポート専用の値であり、マニフェストの実行ステータス列挙型に追加しないでください。
+- **R7-A — ローカル/ドライブの個別の状態:** ローカルで検証されたパブリケーションが信頼可能です。ドライブのレプリケーションは別の 確認済み ステップです。レプリケーション 失敗 はローカル 成果物を無効化/削除しません。ドライブ コピーの ID と正確なコンテンツが 確認済み になるまで、PC 間での可用性を主張しないでください。
+- 参照されたマニフェストと B2 証拠からすべてのサマリー カウントを再計算します。欠落/重複した期間行、ターゲット会計 不一致、一覧ダイジェスト/カウント 不一致、レポート/マニフェスト/証拠 ID 不一致、および一貫性のないエラー範囲を拒否します。 generated_at_utc は UTC ISO 8601 大文字の Z と承認された将来の検証を使用します。報告の経過時間だけでは、不変の歴史的証拠が無効になるわけではありません。
+- 必要な合成受け入れテストが指定されていますが、**まだ実行/証明されていません**。ランタイム実装、実行可能スキーマ、および運用上の証拠は 未確定 のままです。このドキュメントの変更によって閉じられる P0 項目はありません。
 
-- **Approving authority:** project maintainer, explicit selection of option A on 2026-10-21.
-- **Chosen option:** A — explicit failure-condition mapping table with deterministic precedence and `unknown_error` fallback.
-- **Contract:** every distinct diagnostic event receives exactly one primary `error_code`; propagated observations preserve the original `error_id` and code. Independent failures receive independent event IDs and are classified separately.
-- **Mapping:** use the normative priority-ordered table in `docs/archive/decisions/aggregation-inventory-integrity-options.md`, C-50. The table maps invalid readable manifest to `manifest_invalid`; invalid readable evidence to `evidence_invalid`; observed source inconsistency to `source_mutation_detected`; naming violations to `invalid_filename`; explicit access-denied signals to `file_access_denied`; directory traversal failures to `enumeration_failed`; metadata/content-read/hash failures to their respective codes; general contract validation to `validation_failed`; serialization, aggregation, and publication failures to their respective codes; and unmatched conditions to `unknown_error`.
-- **Precedence and evidence:** evaluate explicit conditions in priority order; rely on structured operation context and stable platform error categories, never free-form exception text or localization. Do not treat unreadable artifacts as invalid content. Do not infer source mutation without an observed mismatch. Never reclassify the same propagated event at a later layer.
-- **Allowlist/versioning:** emitted codes must be members of the C-49 diagnostic schema-v1 allowlist. This decision adds no new code or field and does not change the schema version. Any later allowlist or semantic contract change requires review under C-48.
-- **Required tests:** each mapping row; precedence collisions; access-denied versus generic I/O; read versus hash; invalid readable manifest/evidence versus unreadable artifact; mutation versus ordinary read failure; serialization versus publication; propagation and deduplication; independent events; unknown fallback; no message-text parsing; no raw exception-data leakage.
-- **Runtime input model:** approved Option A — one required, case-sensitive scalar Condition token selected by the trusted producer. Exact tokens, structured prerequisites, and invalid-input behavior are normative in docs/archive/decisions/aggregation-inventory-integrity-options.md, C-50. Unknown/malformed tokens reject with a fixed non-disclosing error; only unmatched_failure maps to unknown_error.
-- **Implementation boundary:** Resolve-DiagnosticErrorCode maps one token to the existing C-49 allowlist and does not infer from exception data, allocate event IDs, select phase/operation, or implement producer-side precedence. Propagation layers preserve the original classification.
-- **Follow-up:** runtime producer integration and tests for precedence selection, propagation/deduplication, and end-to-end evidence remain required. Helper tests do not establish P0 acceptance.
+<a id="local-authoritative-maintenance-root-approval-2026-10-23"></a>
+## ローカルの権威保守ルートの承認 (2026-10-23)
 
+オペレーターは、両方の PC 構成に必要な maintenanceLocal を追加することを承認しました。公開されたダミーのデフォルトと実際のパスは追跡されていないアクティブな構成にのみ保持されます。これは、PC のローカルで権威のあるマニフェスト/証拠/レポートであることを示します。ランタイム/ソース/ドライブ/アーカイブのルートと等しくない、それを含む、またはそれらのルートに含まれることはできません。 configuration-local-root.mdを参照してください。この承認は、実稼働ファイルシステムへのアクセスを許可したり、OSD-09 移行に関するすべての決定を解決したりするものではありません。
 
-## C-51 — Deterministic diagnostic phase/operation mapping — approved 2026-10-21
+<a id="explicit-recovery-entrypoint-direction-2026-10-23"></a>
+## 明示的なリカバリ エントリポイントの方向 (2026-10-23)
 
-- **Approving authority:** project maintainer, explicit selection of option A on 2026-10-21.
-- **Chosen option:** explicit processing-context mapping table with deterministic `unknown/unknown` fallback, defined normatively in `docs/archive/decisions/aggregation-inventory-integrity-options.md`, section “Deterministic phase and operation mapping — C-51”.
-- **Contract:** assign `phase` and `operation` together when the distinct diagnostic event is first created, from trusted structured context describing the failed action. Wrappers, retries, cleanup, and logging preserve the original pair. Do not infer from exception text or substitute the later observer's context.
-- **Fallback:** use `unknown/unknown` only when trusted structured state genuinely cannot identify the pair; missing instrumentation or an unimplemented mapping must be exposed rather than hidden. Reject semantically undefined pairs.
-- **Compatibility:** no fields or allowlist values are added; schema v1 remains unchanged.
-- **Required tests:** every mapping row, invalid pair rejection, event propagation invariance, failed action versus observer context, read versus validation failure, genuine unknown fallback, missing instrumentation, deterministic repeated results, and no exception-text parsing.
-- **Follow-up:** C-52 defines diagnostic message templates and sanitization behavior. Runtime implementation and executable tests remain pending.
+保守者は、通常同期から分離した専用の明示的復旧コマンドを選択した。既定は読み取り専用の診断・計画とし、状態変更には別の明示操作と全安全条件を必要とする。[録音された応答](../archive/decisions/recovery-disposition-proposal.md) と [コマンドの設計](../design/explicit-recovery-command-design.md) を参照。この承認は入口の設計方針に限り、古い記録の処分、永続証拠のスキーマ、所有者の終了証明、正式ランタイム統合、本番利用は承認しない。既存の自動復旧拒否とP0不足は維持する。
 
+<a id="recovery-owner-evidence-compatibility-direction-2026-10-23"></a>
+## 所有者と証拠の互換性の方向の回復 (2026-10-23)
 
-## C-52 — Deterministic diagnostic message templates — approved 2026-10-21
+メンテナは、既存の v1 の古いレコードを診断/保存に限定し、取得時の証拠を保持する v2 レコードのみについて将来の明示的なリカバリを設計することを承認しました。既存の通常の v1 所有者リリースは変更されていません。自動変換、削除、または実稼働環境での使用は許可されていません。 [録音された応答](../archive/decisions/recovery-owner-evidence-v2-proposal.md) および [論理的証拠契約](../design/recovery-owner-evidence-v2-contract.md) を参照してください。機械可読スキーマ、OS プロバイダー、プライベート ストレージ/ACL/保持、処分および操作上の受け入れは 未完了 のままです。
 
-- **Approving authority:** project maintainer, explicit selection of option A on 2026-10-21.
-- **Chosen option:** fixed, deterministic message templates selected by validated `error_code`; the normative code-to-template table is in `docs/archive/decisions/aggregation-inventory-integrity-options.md`, section “Diagnostic message templates and sanitization — C-52”.
-- **Data policy:** schema-v1 templates contain no dynamic parameters. Do not include raw exception text/class, stack traces, OS-provided error text, environment variables, request/response bodies, credentials, tokens, connection strings, absolute paths, or other uncontrolled data. Safe target context, if needed, is represented only by the separately validated `target_relative_path` field.
-- **Fallback and validation:** every C-49 allowlisted `error_code` has one exact template, including `unknown_error`. Missing/invalid codes reject diagnostic finalization; do not infer a message from exception text. A valid code produces a non-null message of at most 512 Unicode characters.
-- **Determinism/versioning:** templates are fixed English ASCII strings in schema v1. Any future interpolation or template semantics change requires explicit contract review and tests; parameters, if later approved, must be defined from trusted structured state with a field-specific allowlist and sanitization contract.
-- **Required tests:** exact message fixture per code, invalid-code rejection, unknown fallback, byte-for-byte determinism, no interpolation, length and encoding constraints, secret/path/exception/stack-trace non-disclosure, and proof that messages do not affect classification, event identity, deduplication, or aggregation.
-- **Follow-up:** C-53 will address diagnostic sanitization mechanics for path and other structured fields, including exact normalization/redaction order. Runtime implementation and executable tests remain pending.
+<a id="private-recovery-evidence-preservation-direction-2026-10-23"></a>
+## 私的回収証拠保全指示(2026-10-23)
 
+メンテナは、最初は自動削除なしで各 PC メンテナンス ローカル内にプライベート保存する設計を承認しました。診断だけでは証拠は持続しません。 [録音された回答](../archive/decisions/recovery-private-evidence-policy-proposal.md) および [ストレージ契約](../design/recovery-private-evidence-contract.md) を参照してください。これは、実際の永続化、ACL の変更、古いロックの処理、または運用環境での使用を許可するものではありません。実行アカウント ポリシーと実行可能 ACL/パブリケーションの受け入れは引き続きオープンです。
 
-## C-53 — Structured-field sanitization and path safety — approved 2026-10-21
+<a id="same-account-recovery-evidence-direction-2026-10-23"></a>
+## 同一アカウント回復証拠の指示 (2026-10-23)
 
-- **Approving authority:** project maintainer, explicit selection of option A on 2026-10-21.
-- **Chosen option:** validate structured values and emit only values proven safe; if an optional target path is unsafe, emit JSON `null` for the entire path field rather than partially redacting it. Normative processing order is defined in `docs/archive/decisions/aggregation-inventory-integrity-options.md`, section “Structured-field sanitization and path safety — C-53”.
-- **Path handling:** normalize separator direction only for validation; reject absolute, drive-qualified, UNC/device, NUL/control-containing, colon-containing, empty-segment, dot-segment, traversal-segment, or otherwise invalid relative paths. Do not collapse or resolve unsafe segments. Check the candidate against a sensitive-path policy before emission. Do not partially mask a path.
-- **Other fields:** required enum/identity fields must pass schema and allowlist validation or diagnostic finalization fails. Messages use exact C-52 templates with no interpolation. JSON escaping does not replace validation.
-- **Determinism:** no filesystem, symlink, current-working-directory, locale, or machine-specific path-resolution dependency. Sanitization must not change event identity, classification, aggregation, or source artifacts.
-- **Required tests:** malformed and hostile path cases, sensitive match at every segment position, no partial redaction, valid canonical relative path, deterministic cross-platform behavior, serializer escaping, invalid required fields, and preservation of event identity/classification when an optional path becomes null.
-- **Follow-up:** C-54 defines the concrete sensitive-path pattern/segment policy and matching precedence. Runtime implementation and executable tests remain pending.
+メンテナは、各 PC 内での手動操作および将来のスケジュールされた操作に同じ Windows アカウントを使用することを承認しました。 PC-A と PC-B はアカウントを共有する必要はありません。 [録音された回答](../archive/decisions/recovery-execution-account-policy-proposal.md) および [狭い ACL プロファイル](../design/reference/private-evidence-acl-profile.md) を参照してください。タスクの登録、認証情報、自動昇格、ACL の書き換え、実稼働での使用は許可されません。 OSD-08 ログオン/実行条件は開いたままです。
 
+<a id="initial-task-logon-mode-2026-10-23"></a>
+## 初期タスク ログオン モード (2026-10-23)
 
-## C-54 — Concrete sensitive-path secret-format grammars — approved 2026-10-21
+メンテナは、ターゲット アカウントがログオンしている間のみ、最初のスケジュールされた操作を承認しました。 [録音された応答](../archive/decisions/task-logon-mode-policy-proposal.md)を参照してください。 PC ごとに同じアカウントのポリシーは残ります。ログオフした状態での実行は初期範囲外です。 C-24 月次/欠落月起動/時間ごとの PC-A チェック条件は保持されます。これは、正確なスケジュール時刻の選択、タスクの登録、認証情報の保存、またはランタイム展開の承認を行うものではありません。
 
-- **Approval:** maintainer explicitly selected A for P1, P2, P3, P4, P5, and P6.
-- **Normative source:** `docs/archive/decisions/decision-record-c54-sensitive-path-detection.md`, section “C-54 approved secret-format grammars — P1–P6”.
-- **Decision:** approve the URI user-info regex and character restrictions (P1); case-insensitive Bearer scheme with the specified non-empty ASCII token alphabet and optional trailing equals padding (P2); case-sensitive `ghp_` and `github_pat_` prefixes with their distinct ASCII suffix alphabets and minimum length 20 (P3); exactly uppercase `AKIA` plus 16 uppercase ASCII alphanumeric characters, with other AWS access-key prefixes out of scope (P4); the five fixed, case-sensitive PEM private-key markers listed in the decision record (P5); and the exact ASCII boundaries/case rules embedded in those patterns (P6).
-- **Change control:** do not broaden patterns, infer other provider prefixes, add PEM labels, apply Unicode normalization, or substitute generic substring/entropy matching without explicit approval and tests.
-- **Tests/evidence:** `tests/Test-C54PatternContract.ps1` checks synthetic positive, negative, boundary, and case fixtures and runs in Validate CI. This only validates the approved pattern grammar; it does not prove the runtime C-53/C-54 sanitizer, whole-field nulling, or diagnostic non-disclosure. Those remain pending.
-- **P0 boundary:** runtime sanitization is not implemented/verified by this decision. P0-010 and P0-012 remain open.
+<a id="c-24-monthly-datetime-approval-2026-10-23"></a>
+## C-24 毎月の日付/時刻の承認 (2026-10-23)
 
+メンテナ承認日 1 毎月: PC-B 20:00、PC-A 21:00 (日本時間 (アジア/東京/JST))。 [録音された回答](../archive/decisions/task-monthly-schedule-policy-proposal.md)を参照してください。ログオンのみ、PC ごとに同じアカウント、毎月の起動ミスの補償、および PC-A 時間ごとの完了チェックは残ります。正確な PC-A 待機バジェット、トリガー/状態/再試行の実装とロールアウトは依然として 未確定 です。これは、タスクの登録や運用アーカイブではなく、設計/テストの前提条件を承認します。
 
-## OSD-02 — Timestamp, freshness, and clock policy — 2026-10-21
+<a id="pc-a-hourly-completion-confirmation-budget-2026-10-23"></a>
+## PC-A 時間別完了確認予算 (2026-10-23)
 
-- **Approving authority:** project maintainer, explicit approval in conversation on 2026-10-21.
-- **Decision:** require parseable UTC ISO 8601 timestamps with uppercase `Z`; reject malformed, offset-form, timezone-less, and unparseable values.
-- **Ordering:** reject `finished_at_utc < started_at_utc`; never repair timestamp values.
-- **Future tolerance:** 5 minutes from runtime UTC now, configurable; reject values beyond this bound.
-- **Freshness:** 24-hour configurable threshold, applied only to timestamps generated/updated in the current execution (run start/finish and verification-attempt timestamps). Do not invalidate historical manifests solely due to age.
-- **Clock synchronization:** host OS time synchronization is assumed to be configured. Detect unavailable/clearly invalid clock readings where exposed; if current UTC cannot be obtained reliably, fail closed for time-dependent operations. Separate external monitoring/alerting is not required.
-- **Configuration validation:** reject invalid, negative, non-finite, or unparseable tolerance/threshold values; no silent fallback.
-- **Required evidence:** fixed-clock boundary tests, malformed format and ordering tests, invalid configuration tests, clock-unavailable fail-closed tests, and historical-manifest age tests.
-- **Affected requirements:** EOLM-MAN-011, EOLM-MAN-001–010, EOLM-TST-004–006, EOLM-TST-010 and dependent archive freshness gates.
-- **Boundary:** this resolves the numeric timestamp/freshness/clock-sync question only. Crash/concurrency/latest-manifest decisions, OSD-03 aggregation, complete transition enforcement, runtime implementation, executable tests, and operational evidence remain open. No runtime support is claimed.
+メンテナは、最初の適格な待機観察から最大 24 時間、最初のチェックを含む最大 25 回の試行を 1 時間ごとに承認し、その後保留/レビューしました。 [録音された回答](../archive/decisions/pc-a-completion-wait-budget-proposal.md) および [分離された実装](../design/reference/completion-wait-budget.md) を参照してください。期限は、明示的な鮮度、リース、またはアップロードの再試行の承認ではありません。マニフェストの書き換え、アーカイブのバイパス、サイレント予算のリセットは許可されません。このユニットは実装/マージできます。さらなる作業は再開を待っています。
 
-
-## OSD-02 approved crash/concurrency/latest-manifest policy (2026-10-21)
-
-Maintainer approved C1-A/C2-C/C3-B/C4-A. C1-A requires validated same-directory temporary writes, atomic create-if-absent, compare-before-replace, and fail-closed behavior when guarantees are unavailable. C2-C requires a per-scope OS named mutex plus exclusive ownership-token lock record; stale lock recovery is explicit and must verify the owner is gone. C3-B preserves crash-left `running` history and creates a new `run_id` only after recovery checks, with a fresh inventory and reconciliation of uncertain uploads. C4-A selects only a unique maximum validated `started_at_utc` for the exact PC/log-type/period scope; ties, malformed/conflicting candidates, read errors, or incomplete enumeration block operation, and there is no fallback to an older success. Timestamp freshness/future tolerance are not lock or retry timeouts.
-
-Synthetic tests for crash points, concurrent create/update, lock ownership/recovery, interrupted runs, uncertain uploads, and resolver ambiguity are required but **not yet executed/evidenced**. These decisions do not claim runtime implementation or close P0-008/P0-010/P0-012.
-
-
-## Maintainer-approved OSD-03 report contract (2026-10-21)
-
-The maintainer explicitly approved **R1-B, R2-A, R3-B, R4-A, R5-A, R6-A, R7-A**. This settles the report-contract options but does not constitute an executable JSON Schema, runtime implementation, or test evidence.
-
-- **R1-B — summaries only:** period entries contain counts and completion state, not duplicated per-target rows. Validate the eligible inventory and per-file outcomes against immutable run-input evidence and the originating manifest.
-- **R2-A — tuple identity:** report identity is exactly (pc_id, log_type, run_id, report_schema_version). Omit report_id; derive the canonical filename from that tuple. Do not add fields to manifest v1.
-- **R3-B — content-bound references:** manifest_ref and evidence_ref each include canonical relative path, schema version, and lowercase 64-character SHA-256 of exact validated bytes. Validate referenced artifact identity against the report tuple. Reject absolute paths, traversal, identity mismatch, malformed digest, or changed bytes.
-- **R4-A — reuse OSD-02 controls:** use unique same-directory temp files, flush/close, read-back validation, and atomic create-if-absent; reuse the existing per-PC maintenance lock during normal publication. Regeneration/recovery must acquire the same named mutex plus ownership-token lock record. Existing same-identity identical bytes are idempotent; different bytes are a conflict and are never overwritten. Remove a temp file only when ownership is proven; orphan temp files are non-authoritative and must not be removed based on age alone.
-- **R5-A — deterministic regeneration:** regenerate only from the exact validated manifest plus immutable B2 run-input evidence. Never re-scan mutable source directories to reconstruct historical inventory. Validate identity, inventory digest, all counts, and error scope. If inputs are incomplete/unavailable, remain unresolved. Identical output is idempotent; different content for the same identity is a conflict.
-- **R6-A — three-state period completion:** complete only if all eligible targets for the period are verified and no relevant error affects it; incomplete for known failed/unknown targets or known relevant errors; indeterminate if required evidence is missing, malformed, conflicting, or unverifiable. Never map indeterminate to complete. These are report-only values and must not be added to manifest run-status enums.
-- **R7-A — separate local/Drive states:** local validated publication is authoritative. Drive replication is a separate verified step; replication failure does not invalidate/delete the local artifact. Do not claim cross-PC availability until the Drive copy's identity and exact content are verified.
-- Recompute all summary counts from the referenced manifest and B2 evidence. Reject missing/duplicate period rows, target accounting mismatch, inventory digest/count mismatch, report/manifest/evidence identity mismatch, and inconsistent error scope. generated_at_utc uses UTC ISO 8601 uppercase Z and approved future-time validation; report age alone does not invalidate immutable historical evidence.
-- Required synthetic acceptance tests are specified but **not yet executed/evidenced**. Runtime implementation, executable schema, and operational evidence remain pending. No P0 item is closed by this documentation change.
-
-## Local authoritative maintenance root approval (2026-10-23)
-
-The operator approved adding required maintenanceLocal to both PC configurations, with public dummy defaults and actual paths kept only in untracked active configs. It denotes that PC's local authoritative manifests/evidence/reports; it must not equal, contain or be contained by runtime/source/Drive/archive roots. See configuration-local-root.md. This approval does not authorize production filesystem access or resolve all OSD-09 migration decisions.
-
-## Explicit recovery entrypoint direction (2026-10-23)
-
-Maintainer selected a dedicated explicit recovery command, separate from normal synchronization. Default behavior is read-only diagnosis/planning; state changes require a separate explicit operation and all safety gates. See [recorded response](../archive/decisions/recovery-disposition-proposal.md) and [command design](../design/explicit-recovery-command-design.md).
-This approves the entrypoint design direction only, not stale-record disposition, persistent evidence schema, owner-termination proof, formal runtime integration or production use. Existing automatic-recovery refusal and P0 gaps remain.
-
-## Recovery owner-evidence compatibility direction (2026-10-23)
-
-Maintainer approved limiting existing v1 stale records to diagnosis/preservation and designing future explicit recovery only for v2 records that carry evidence from acquisition time. Existing normal v1-owner release is unchanged; no automatic conversion, deletion or production use is authorized. See [recorded response](../archive/decisions/recovery-owner-evidence-v2-proposal.md) and [logical evidence contract](../design/recovery-owner-evidence-v2-contract.md). Machine-readable schema, OS provider, private storage/ACL/retention, disposition and operational acceptance remain incomplete.
-
-## Private recovery evidence preservation direction (2026-10-23)
-
-Maintainer approved designing private preservation inside each PC maintenanceLocal with no automatic deletion initially. Diagnosis alone does not persist evidence. See [recorded answer](../archive/decisions/recovery-private-evidence-policy-proposal.md) and [storage contract](../design/recovery-private-evidence-contract.md). This does not authorize actual persistence, ACL changes, stale-lock disposition or production use. Execution-account policy and executable ACL/publication acceptance remain open.
-
-## Same-account recovery evidence direction (2026-10-23)
-
-Maintainer approved using the same Windows account for manual and future scheduled operation within each PC. PC-A and PC-B need not share an account. See [recorded answer](../archive/decisions/recovery-execution-account-policy-proposal.md) and [narrow ACL profile](../design/reference/private-evidence-acl-profile.md). No task registration, credentials, automatic elevation, ACL rewrite or production use is authorized; OSD-08 logon/execution conditions remain open.
-
-## Initial task logon mode (2026-10-23)
-
-Maintainer approved initial scheduled operation only while the target account is logged on. See [recorded response](../archive/decisions/task-logon-mode-policy-proposal.md). The same-account-per-PC policy remains; logged-off execution is outside the initial scope. C-24 monthly/missed-month-startup/hourly-PC-A-check conditions are retained. This does not select exact schedule times, register tasks, store credentials or authorize runtime deployment.
-
-## C-24 monthly date/time approval (2026-10-23)
-
-Maintainer approved day 1 each month: PC-B 20:00, PC-A 21:00 in Japan time (Asia/Tokyo/JST). See [recorded answer](../archive/decisions/task-monthly-schedule-policy-proposal.md). Logged-on-only, same-account-per-PC, monthly missed-startup compensation and PC-A hourly completion checks remain. Exact PC-A wait budget, trigger/state/retry implementation and rollout are still pending; this approves design/test assumptions, not task registration or production archive.
-
-## PC-A hourly completion-confirmation budget (2026-10-23)
-
-Maintainer approved at most 24 hours from the first qualified wait observation, hourly with at most 25 attempts including the initial check, then hold/review. See [recorded answer](../archive/decisions/pc-a-completion-wait-budget-proposal.md) and [isolated implementation](../design/reference/completion-wait-budget.md). The deadline is not manifest freshness, a lease or upload retry authorization. No manifest rewrite, archive bypass or silent budget reset is allowed. This unit may be implemented/merged; further work waits for resume.
-
-## OSD-04 Dry Run side-effect policy A (2026-10-24)
+<a id="osd-04-dry-run-side-effect-policy-a-2026-10-24"></a>
+## OSD-04 Dry Run 副作用ポリシー A (2026-10-24)
 
 利用者は「Aで進めてよい」と回答。[比較・承認記録](../archive/decisions/dry-run-side-effect-policy-proposal.md) のAを採用し、Bは未採用とする。アプリの意図的なファイル書込み、運用state更新、一時物作成/cleanup、永続診断、credential refresh/store、downloadを行わず、検証済み入力の読取りと秘密除去済み標準ストリーム出力に限る。設定/root不足は作成・修復せず停止する。§4/8/9に対するDry Run例外は [契約§3](../design/powershell-python-contract.md#3-python-が受け付ける操作) を参照する。方針選択を再質問しない。IPC契約全体の承認、OSD-05/live接続、具体設計・実装・受け入れ・本番適用はこの承認に含めない。

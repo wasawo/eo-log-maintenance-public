@@ -15,7 +15,7 @@
 
 以下のACは本計画内の試験シナリオ識別子であり、恒久の要件IDを新設/置換しない。固定日時と合成ログ、隔離領域、模擬Driveでまず検証し、実環境の受け入れとは区別する。日時境界の判定方式・タイムゾーンは既存仕様と照合し、未決ならT0で確定する。
 
-| ID | 操作・条件 | 確認する結果 | 合意 |
+|ID| 操作・条件 | 確認する結果 | 合意 |
 | --- | --- | --- | --- |
 | AC-01 | 2026年10月としてA/Bで端末→クラウドを起動 | 9月以前のBattleLogと2025年以前のErrorReportを転送し、確認できた元を削除。10月BattleLog/2026年ErrorReportは残る | Q1/Q2/Q5/Q6 |
 | AC-02 | 同時点でAのarchiveを起動 | クラウドの2025年以前BattleLog/2024年以前ErrorReportをAへ移し、確認できたクラウド元を削除。2026年1〜9月BattleLog/2025年ErrorReportは残る | Q1/Q2/Q5 |
@@ -27,7 +27,7 @@
 | AC-08 | コピーまたは削除の応答を失わせる | 盲目的に再送せず現状と対応記録を照合。削除結果不明後、有効な元/保存先・内容の対応記録、元の確実な不在、保存先一致がそろえば照合による移動完了。権限不足や根拠不足は結果不明のまま | Q5/Q9/Q11 |
 | AC-09 | 正常な対象0件、不正名、列挙失敗、前回結果不明を別々に入力 | 正常な対象なしと未完了を区別。不正名や取得失敗を黙って除外しない | Q4/Q9、既存FIL仕様 |
 | AC-10 | 一部競合/削除失敗を含めて処理を終了 | 概要とローカル詳細レポートで元/保存先・理由・次の行動を確認できる。完了件数はコピー数でなく元削除済みの元件数 | Q4/Q10 |
-| AC-11 | Bからarchive/クラウド元削除を試みる。期間外/異なる元を削除対象に混ぜる | Bのarchive/クラウド削除を拒否し、自端末の適格な移動元だけを扱う。汎用の無条件削除を提供しない | Q2/Q5、AGENTS |
+| AC-11 | Bからarchive/クラウド元削除を試みる。期間外/異なる元を削除対象に混ぜる | Bのarchive/クラウド削除を拒否し、自端末の適格な移動元だけを扱う。汎用の無条件削除を提供しない |Q2/Q5、エージェント|
 | AC-12 | 強制終了後の残存lock/実行中記録、レポート保存失敗、空き容量不足を入力 | 勝手なlock解除/過去成功化をしない。移動済みと記録失敗を区別する。失敗箇所と元保全を確認する | Q9/Q10、既存復旧/容量仕様 |
 
 完了判定には保存先の最終内容と元の有無、個別結果の一致を確認する。月末/年末・1月・うるう日も固定日時の境界ケースとして期間選択を確認する。一致したhelper戻り値や試験件数だけで移動成功としない。AC-08の記録/照合方法、AC-12の回復連携等はまだ設計が必要であり、表の存在は実証ではない。
@@ -129,14 +129,14 @@ T0の旧方針整合は§4のとおり進めた。次は元/保存先の識別�
 | ファイル選択 | [日付・期間等の共通処理](../../Common/LogFunctions.ps1)、[完全列挙・ハッシュ証拠構築](../../Common/SourceInventoryEvidenceBuilder.py)・[凍結B2との再観測比較](../design/reference/source-inventory-revalidation.md) | 正式runへの接続、列挙後の変更と利用までの整合性 |
 | root検査 | [既存Windowsディレクトリの読取専用metadata検査](../../Common/MachineConfigurationRootInspection.ps1) | 対象FS・ACL・実トークンの認可、安全な生成と継続利用の資格確認 |
 | upload staging容量 | [既承認容量式の純粋PS観測](../design/staging-file-lifecycle.md)：凍結manifest/B2の明示size射影・tests専用PS bridge・祖先chainの128-bit identity前後照合付き未資格Windows空きbytes観測・size配列のBigInteger合計・10%切上げ＋100,000,000 bytes、不明/不足時停止 | 実空き容量の資格、開始時/各file直前の取得と容量変化時のcopy失敗対応。download容量方針には転用しない |
-| 証拠・集約 | [contracts](../../contracts/)、[A2/B2検証](../../Common/RunInputEvidenceIntegrity.py)、[安定読取観測付き参照成果物・全report再導出検証](../../Common/validate_aggregation_artifacts.py)、[pure report builder](../../Common/AggregationReportBuilder.py)、条件付き採用済み状態遷移表と[純粋snapshot/連続履歴検査（2種pending区別）・初期B2 planから全履歴/終端reportへのbinding・source隔離接続](../design/reference/manifest-transition-inspection.md) | 真正なevent/metadata-first履歴、実run writer/遷移強制、決定的再生成・意味論的統合、Drive反映 |
-| upload staging copy | [凍結planと既存stagingの単一/一括照合・Drive観測比較接続](../design/reference/source-inventory-revalidation.md)：size変化時open前停止・全hash後signature/祖先chain確認、完全列挙/計画/完了hash比較、source非読取/全許可false。tests専用source→copy接続もあり | 正式copy/metadata-first writer・割当identity binding・ready状態/Upload adapter・容量資格/使用点・実root/FSと電源断受け入れ |
+| 証拠・集約 | [contracts](../../contracts/)、[A2/B2検証](../../Common/RunInputEvidenceIntegrity.py)、[安定読取観測付き参照成果物・全report再導出検証](../../Common/validate_aggregation_artifacts.py)、[純粋なレポート ビルダー](../../Common/AggregationReportBuilder.py)、条件付き採用済み状態遷移表と[純粋snapshot/連続履歴検査（2種pending区別）・初期B2 planから全履歴/終端reportへのbinding・source隔離接続](../design/reference/manifest-transition-inspection.md) | 真正なevent/metadata-first履歴、実run writer/遷移強制、決定的再生成・意味論的統合、Drive反映 |
+|ステージング コピーをアップロード| [凍結planと既存stagingの単一/一括照合・Drive観測比較接続](../design/reference/source-inventory-revalidation.md)：size変化時open前停止・全hash後signature/祖先chain確認、完全列挙/計画/完了hash比較、source非読取/全許可false。tests専用source→copy接続もあり | 正式copy/metadata-first writer・割当identity binding・ready状態/Upload adapter・容量資格/使用点・実root/FSと電源断受け入れ |
 | 残存staging | [直下entry件数の読取観測](../design/reference/staging-residual-observation.md)：内容非読取/非再帰、変化・不明時保留、初回件数保全 | metadata/旧run検査、正式startup warning・検査不能時run failureとUpload停止、root/owner/FS資格。cleanup/復旧は提供しない |
 | 公開・クラッシュ | [単一ファイル公開](../../Common/AtomicArtifactPublication.py)、[marker-last公開](../../Common/ArtifactSetPublication.py)、復旧分類・ディレクトリ検証・[終端履歴planの使用点再導出→別候補bundle保存/読戻しの隔離接続](../design/reference/manifest-transition-inspection.md) | 元runningの正式更新・永続run状態/実event/providerとの接続。複数ファイルの原子的トランザクションや電源断耐久性の証明はない |
 | 排他・manifest選択 | [所有run lock](../../Common/OwnedRunLock.py)、[最新候補選択](../../Common/LatestManifestSelection.py)、[report binding付き読取adapter](../design/reference/latest-manifest-selection.md) | 旧lockの自動引継ぎはしない。実owner証拠、復旧手順、新runとfresh inventoryの作成、実環境での統合 |
 | 明示回復 | 診断・専用mutex、[private証拠のメモリ上のbinding](../../Common/PrivateRecoveryEvidence.py)、供給ACL/descriptorの検査、v1の5field互換境界 | v2の全fieldと適格machine/boot provider、実効ACLと保存先検証、非公開の実保存。v1は診断・保全限定 |
 | 月次・旧確認予算 | [月次観測](../../Common/MonthlyScheduleObservation.py)、[旧24時間/25回予算・checkpoint/使用点の補助処理](../design/reference/completion-wait-budget.md)、[AC電源観測](../design/reference/power-status-observation.md) | 月次task/未実行補完・実時計/account/session/AC停止の統合は未完。定期実行は後続候補。旧PC-B完了待機予算はQ3後のarchive前提には使わない |
-| Drive | request/response schema、[相関・終了コード・固定retryable表の純粋helper](../../Common/DriveResponseSemantics.ps1)・[PS再試行観測](../design/reference/drive-retry-observation.md)、[初期inventory読取接続・件数要約](../design/reference/initial-inventory-observation.md)・OSD-01一括同一内容比較・旧PC suffix命名観測（Q8の自動改名採用ではない）・PC-A source一括再観測接続・page集約/前後照合・不足hash計画/完了集合検査/download chunk観測・staging隔離接続試験](../design/drive-content-comparison.md)、P1/V1/L1・R1/N1/D1 | C-01の実root/指定先/使用点検査、C-02のschemaと具体result形、公式Python client adapter、Desktop OAuth/drive.fileの実folder資格、PS retryの実counter/待機/送信統合・結果不明upload照合 |
+|ドライブ| request/response schema、[相関・終了コード・固定retryable表の純粋helper](../../Common/DriveResponseSemantics.ps1)・[PS再試行観測](../design/reference/drive-retry-observation.md)、[初期inventory読取接続・件数要約](../design/reference/initial-inventory-observation.md)・OSD-01一括同一内容比較・旧PC suffix命名観測（Q8の自動改名採用ではない）・PC-A source一括再観測接続・page集約/前後照合・不足hash計画/完了集合検査/download chunk観測・staging隔離接続試験](../design/drive-content-comparison.md)、P1/V1/L1・R1/N1/D1 | C-01の実root/指定先/使用点検査、C-02のschemaと具体result形、公式Python client adapter、Desktop OAuth/drive.fileの実folder資格、PS retryの実counter/待機/送信統合・結果不明upload照合 |
 | 配布 | [役割別ビルダー](../../.github/scripts/Build-ReleasePackage.ps1)、example検査、PC-Bのarchive除外、レビュー用非配布マーカー。旧file集合の件数は§10で歴史として保持 | 正式入口、PC別/version別の最終JSON file manifest、tag/VERSION/commitのprovenance、E1承認後Actions配布identity、Drive内容検証、手動導入/専用PS移行/復旧 |
 
 正式Sync/Archive入口・実Drive adapter・元削除経路・正式writer・導入/更新の一連処理は未完。既存helper/schema/隔離接続をruntime完成としない。現要件の順序は§3のT0〜T5で、両経路とも確認済み元の直接削除までが初回完成。旧copy-only/両PC期間待ちの依存順序は引き継がない。
@@ -147,7 +147,7 @@ T0の旧方針整合は§4のとおり進めた。次は元/保存先の識別�
 
 旧棚卸しはファイル名が2026-10-24、本文更新日が2026-10-25、main基準が`fd9cc8a931496d31601f062bf66448ea295eec65`（PR #39）だった。全文はGitの`594a5e1`時点に残る。以下を現在HEADの検証値/runtime受け入れへ読み替えない。
 
-- PR #39 mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40105135888)・[Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40105134099)成功は当該SHAの証拠。旧本文のC-01/B2/G1/retryable実装の「ローカルのみ/PR未実施」も当時の状態で、現在のCI未実施断定に使わない。
+- PR #39 mainの[検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40105135888)・[パッケージの検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40105134099)成功は当該SHAの証拠。旧本文のC-01/B2/G1/retryable実装の「ローカルのみ/PR未実施」も当時の状態で、現在のCI未実施断定に使わない。
 - 旧基準のローカル結果はPython 3.11.9で306件（2skip）、PowerShell 7.6.7の配布回帰成功。現在の試験件数/受け入れ値ではなく、今回再実行していない。
 - レビュー用0.1.0の40-file snapshot、その後の追加による50件の記録は[限定4件の決定記録](../archive/decisions/implementation-grounded-four-decisions-20261024.md)と旧棚卸しの歴史。現在の最終runtime file manifest/配布資格ではなく、今回packageを生成/再計数していない。
 - PC-Bの部分volume/reparse/crash/source/lock証拠は加算して全体受け入れにしない。旧lock証拠のsource SHAは`302682abb7fd3b45b6745247dfa5297542f81c4b`。旧棚卸し時のTier Bはincomplete、Aのvolume証拠未収集、Tier C未実施、電源断/再起動耐久性未証明を保持する。現在の資格判定は[対象FS受け入れ計画](../validation/target-filesystem-acceptance.md)と個別証拠を照合する。

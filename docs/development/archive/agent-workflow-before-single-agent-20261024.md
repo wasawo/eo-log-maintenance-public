@@ -8,10 +8,10 @@
 
 | 担当 | 成果物 | 設定・既定モデル/思考量 |
 | --- | --- | --- |
-| root | 作業指示、判断事項、統合差分、PR/CI状態、handoff | メインモデルは維持。推奨 `gpt-6.1-sol`。プロジェクト既定は [config.toml](../../../.codex/config.toml) の `medium` |
-| analyst | 根拠ファイル/行付き要件、対象範囲、受け入れ条件、矛盾・未決定 | [analyst.toml](agents-20261024/analyst.toml): `gpt-6-luna` / `medium` |
-| implementer | 割当範囲のコード・テスト・関連仕様、自己検証結果、残課題 | [implementer.toml](agents-20261024/implementer.toml): `gpt-6.1-sol` / `low` |
-| reviewer | 重大度・根拠行・再現条件付き指摘、条件別の確認結果、未検証範囲 | [reviewer.toml](agents-20261024/reviewer.toml): `gpt-6.1-sol` / `medium` |
+|ルート| 作業指示、判断事項、統合差分、PR/CI状態、handoff | メインモデルは維持。推奨 `gpt-6.1-sol`。プロジェクト既定は [config.toml](../../../.codex/config.toml) の `medium` |
+|アナリスト| 根拠ファイル/行付き要件、対象範囲、受け入れ条件、矛盾・未決定 | [analyst.toml](agents-20261024/analyst.toml): `gpt-6-luna` / `medium` |
+|実装者| 割当範囲のコード・テスト・関連仕様、自己検証結果、残課題 | [implementer.toml](agents-20261024/implementer.toml): `gpt-6.1-sol` / `low` |
+|レビュー担当者| 重大度・根拠行・再現条件付き指摘、条件別の確認結果、未検証範囲 | [reviewer.toml](agents-20261024/reviewer.toml): `gpt-6.1-sol` / `medium` |
 
 2026-10-24の利用者指示で思考量を低減し、モデルは維持した。`root.toml`は作らない。rootの既定はプロジェクトconfigで設定するが、信頼済みプロジェクトでのみ読み込まれ、明示的な起動/クライアント設定が優先され得る。現在の会話の思考量をこのファイルだけで変更済みとは扱わない。次回読込後の実効値を確認する。
 

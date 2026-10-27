@@ -1,6 +1,7 @@
 # 凍結B2に対するsource再観測
 
-## Source inventory budgets at revalidation entrypoints (2026-10-27)
+<a id="source-inventory-budgets-at-revalidation-entrypoints-2026-10-27"></a>
+## 再検証エントリポイントのソース一覧予算 (2026-10-27)
 
 `revalidate_source_inventory` / `revalidate_initial_manifest_source` / `revalidate_comparison_source` / `revalidate_comparison_sources` / `inspect_initial_inventory`はoptional `maximum_entries` / `maximum_file_bytes` / `maximum_total_hash_bytes`を受け、全再観測のbuilderへそのまま渡す。builderと共通のpure型検査でNoneまたは正のexact intだけを許し、不正値は各入口でB2/plan解析・再構成・source I/O・Drive比較前に固定`source_revalidation_limit_invalid`で拒否する。
 
@@ -8,7 +9,8 @@
 
 予算内は従来のschema/identity/時間/完全coverageと凍結B2全体の照合を維持し、元のexact evidence bytes・選択順・全may_*falseを保つ。予算はB2/planへ保存せず、呼出しごとにcallerが供給する。Noneでは従来動作。正式runtime・root/FS/provider資格、現在性/ABA、実I/O/時間/全memory上限、実Drive・電源断/Tier B/C受け入れは追加しない。
 
-## Caller-selected source inventory budgets (2026-10-27)
+<a id="caller-selected-source-inventory-budgets-2026-10-27"></a>
+## 呼び出し元が選択したソース一覧予算 (2026-10-27)
 
 `build_run_input_evidence`はoptional `maximum_entries` / `maximum_file_bytes` / `maximum_total_hash_bytes`を受ける。Noneまたは正のexact intだけを許し、不正値はroot I/O前に固定`source_inventory_limit_invalid`で拒否する。固定本番値・schema field・配布fileは追加しない。
 
@@ -20,7 +22,8 @@ bytes予算は適格fileの現在stat sizeでhash前に検査する。各hash試
 
 Noneは従来動作。再観測/比較wrapperの明示予算は上記入口から伝播するが、予算の保存・正式runtime接続は提供しない。source/root/FS/providerの真正性、同時snapshot/ABA、実Drive・電源断・Tier B/C受け入れやP0閉鎖は証明しない。
 
-## Caller-selected staging payload read bounds (2026-10-26)
+<a id="caller-selected-staging-payload-read-bounds-2026-10-26"></a>
+## 呼び出し元が選択した ステージング ペイロード読み取り境界 (2026-10-26)
 
 `observe_initial_staging_copy` / `observe_initial_staging_copies` / `inspect_initial_staged_drive_contents`はoptional `maximum_staging_file_bytes` / `maximum_total_staging_bytes`を受ける。Noneまたは正のexact intのみ許し、不正値はplan再構成前に固定`staging_copy_limit_invalid`で拒否する。単一入口とDrive比較入口は同じ上限を一括readerへ渡す。
 
@@ -28,7 +31,8 @@ Noneは従来動作。再観測/比較wrapperの明示予算は上記入口か�
 
 Noneではcaller上限なし、固定本番値やschema制約を選ばない。対象は選択payloadの凍結sizeで、非選択file・plan/B2の解析memory・allocation件数・metadata I/O・遅延/全memoryを制限しない。既存hash readerは増大検出用に初期size+1 byteを読み得るが、その場合は拒否する。download計画予算やupload stagingの空き容量/予約式と独立し、copy/Upload実行やFS/provider資格を付与しない。単一/一括/Drive接続試験で境界、不正値、全payload読取前の超過拒否、bytes保全と予算の伝播を確認する。
 
-## Duplicate names in shared enumeration snapshots (2026-10-26)
+<a id="duplicate-names-in-shared-enumeration-snapshots-2026-10-26"></a>
+## 共有列挙スナップショット内の名前が重複しています (2026-10-26)
 
 共通snapshotはoptional `maximum_entries`を受け、正のexact intをI/O前に検査し、列挙中の超過をmetadata保持前に拒否できる。[残存staging観測のcaller上限](staging-residual-observation.md#caller-selected-entry-limit-2026-10-26)に加え、上記source builderではprivate共有予算を使う。source全体の固定本番件数/容量方針は新設しない。
 
@@ -36,7 +40,8 @@ Noneではcaller上限なし、固定本番値やschema制約を選ばない。�
 
 [source列挙試験](../../../tests/test_source_enumeration_stability.py)は自作tempから得たDirEntryをscandir adapterで重複供給し、共通層の非payload読取・初回/最終inventoryの不完全化とtarget保全を確認する。同helperを使う[残存staging観測](staging-residual-observation.md)もheldへ接続する。これは検出可能な列挙不備の拒否であり、完全列挙の真正性・同時snapshot/ABA・root/FS/provider資格の証明ではない。
 
-## Ancestor binding inside the source hash reader (2026-10-26)
+<a id="ancestor-binding-inside-the-source-hash-reader-2026-10-26"></a>
+## ソース ハッシュ リーダー内の祖先バインディング (2026-10-26)
 
 共通`_hash_stable_file`はfile読取前にparentの絶対pathから全祖先directoryのdevice/inode chainを取得し、読取・reparse再検査・最終path stat後に同じchainを照合する。異なるchainは固定`source_mutation_detected`、chain取得のOSErrorは既存`source_file_unavailable`で拒否する。既存のfile path/handle identity・size/mtime、期待size・初期size+1読取境界・SHA検査は維持する。
 
@@ -44,7 +49,8 @@ Noneではcaller上限なし、固定本番値やschema制約を選ばない。�
 
 これは前後のmetadata観測であり、全操作期間のnamespace固定、途中の置換後復元/ABA排除、同時snapshot、適格root/ACL/FS/ownerやruntime受け入れを証明しない。hardlink自体の新しい許否方針を採用せず、stagingの既存単一link制約も変更しない。実ログ/本番Driveへ接続しない。
 
-## Internal comparison output validation (2026-10-26)
+<a id="internal-comparison-output-validation-2026-10-26"></a>
+## 内部比較出力の検証 (2026-10-26)
 
 file別比較の検査は`_valid_content_comparison`として分離し、batch検査と初期inventoryの件数要約が同じstatus/reason/ID/非認可flag条件を再利用する。要約は保存済み観測を検査するだけで、local/Driveの再観測にはならない。
 
@@ -52,9 +58,10 @@ staging/Drive比較入口と初期inventory入口は、内部`ContentComparisonB
 
 不整合はstaging入口で`staged_drive_comparison_invalid`、初期inventory入口で`initial_inventory_result_invalid`の固定例外とし、部分観測へ取り込まない。初期inventoryでheld結果を無条件に空へ落としたり、不正な内包flags/IDを後続summaryまで持ち越したりしない。正常な候補/held混在・空選択・全体heldは従来どおり。新しい状態/実行権限は採用しない。
 
-[batch試験](../../../tests/test_drive_comparison_batch.py)の共通34不正variantを[staging](../../../tests/test_staged_drive_content_observation.py)・[初期inventory](../../../tests/test_initial_inventory_observation.py)へ注入し、固定拒否とlocal bytes保全を確認する。構造の整合はproviderの真正性/現在性、候補IDの出所、atomic snapshot/ABAやruntime受け入れを証明しない。
+[batch試験](../../../tests/test_drive_comparison_batch.py)の共通34不正variantを[ステージング](../../../tests/test_staged_drive_content_observation.py)・[初期inventory](../../../tests/test_initial_inventory_observation.py)へ注入し、固定拒否とlocal bytes保全を確認する。構造の整合はproviderの真正性/現在性、候補IDの出所、atomic snapshot/ABAやruntime受け入れを証明しない。
 
-## Download-plan output budgets at local entrypoints (2026-10-26)
+<a id="download-plan-output-budgets-at-local-entrypoints-2026-10-26"></a>
+## ローカル エントリポイントでのダウンロード プランの出力予算 (2026-10-26)
 
 `inspect_initial_staged_drive_contents`と`inspect_initial_inventory`はoptional `maximum_downloads` / `maximum_total_download_bytes`を受け、既存の[download plan出力予算](drive-content-comparison.md#caller-selected-download-plan-output-budgets-2026-10-26)をcompleted-set比較へ渡す。両入口とplanは共通のpure型検査を使い、不正値はlocal再読取前に固定`comparison_download_limit_invalid`のSourceRevalidationErrorで停止する。Noneではcaller上限なし、固定本番値を採用しない。
 
@@ -86,7 +93,7 @@ immutable観測へ元manifest/B2 bytes・対象・sequence・size/hashを保持�
 
 空選択でもplan/root前後検査を省略せず、空tupleはno_work/全inventory完了やUpload許可を意味しない。選択外fileは検査せず、全選択fileの最終確認も逐次観測であり、同時snapshot・現在性の保証・ABA防止ではない。[一括合成試験](../../../tests/test_initial_staging_copy_batch.py)で順序/1回再構成/事前拒否/後続不備/跨file変化/増大時open禁止/空選択を確認する。
 
-2026-10-25。[filename/保持範囲](../filename-and-period-selection.md)、[runtime gate](../runtime-entrypoint-validation-gate.md)のsource/inventory整合を支える読取専用helper：[SourceInventoryRevalidation.py](../../../Common/SourceInventoryRevalidation.py)。実uploadやarchiveの認可ではない。
+2026-10-25。[filename/保持範囲](../filename-and-period-selection.md)、[ランタイム ゲート](../runtime-entrypoint-validation-gate.md)のsource/inventory整合を支える読取専用helper：[SourceInventoryRevalidation.py](../../../Common/SourceInventoryRevalidation.py)。実uploadやarchiveの認可ではない。
 
 `revalidate_source_inventory`は明示source root、exact凍結B2 bytes、信頼済みstatic schema、独立PC/log/run/root ID/relative scope、明示reference dateと現在UTC/reliableを要求する。JSON/schema/digest/count/scope・元列挙時刻の順序/未来5分を検査する。元のenumeration/validation coverageが不完全なら再列挙せず拒否し、欠落や不一致を新しいB2で補完しない。completed coverage中の既知validation errorsは消さない。
 

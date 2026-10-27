@@ -72,63 +72,52 @@ PCごとのパスや権限は設定ファイルで与え、PC-Bではアーカ�
 `ArtifactSetDirectoryVerification.py` は、明示された1ディレクトリの実ファイル bytes を読み、SHA-256 と commit marker を照合して artifact-set classifier に渡す読み取り専用補助モジュールです。重複JSONキー、想定外エントリ、symlink、非通常ファイル、marker不正、読取失敗は fail-closed とします。修復・公開・上書き・削除は行いません。検証結果は一点時点の観測であり、ロック、検証後の変更防止、複数ファイル原子性、クラッシュ耐久性、Drive整合性を保証しません。正式エントリーポイント未接続であり、P0は未完了です。
 
 
-`docs/validation/target-filesystem-acceptance.md` defines the evidence boundary for artifact-set publication and recovery: hosted Windows CI, disposable local-volume qualification on PC-A/PC-B, and separately gated synchronized/network target qualification. Current CI results do not prove target filesystem behavior, remote visibility, or power-loss durability. No official entrypoint integration or destructive operation is authorized by these helper modules.
+`docs/validation/target-filesystem-acceptance.md` は、成果物 セットの公開とリカバリの証拠境界を定義します。ホスト型 Windows CI、PC-A/PC-B の使い捨てローカル ボリューム認定、および個別にゲートされた同期/ネットワーク ターゲット認定。現在の CI の結果は、ターゲット ファイル システムの動作、リモート可視性、または停電時の耐久性を証明するものではありません。これらのヘルパー モジュールでは、正式なエントリポイントの統合や破壊的な操作は許可されていません。
 
 
-## Read-only configuration structure loader
+<a id="read-only-configuration-structure-loader"></a>
+## 読み取り専用構成構造ローダー
 
-`Common/MachineConfiguration.ps1` provides
-`ConvertFrom-EoMachineConfigurationJson` and `Read-EoMachineConfiguration`.
-The reader accepts strict UTF-8 (optional BOM), returns a fresh validated object,
-and never creates configuration, root directories, manifests or other artifacts.
+`Common/MachineConfiguration.ps1` は `ConvertFrom-EoMachineConfigurationJson` と `Read-EoMachineConfiguration` を提供する。読み取り処理は厳密な UTF-8（BOMは任意）を受け付け、新しい検証済みオブジェクトを返す。設定、ルートディレクトリ、マニフェスト、その他の成果物は作成しない。
 
-The parser rejects non-object/malformed JSON, duplicate/unknown/missing keys,
-wrong primitive types, role mismatch, non-drive-qualified/ambiguous path syntax,
-and maintenanceLocal equality/ancestor/descendant overlap after normalization.
-PC-B must omit allowArchive; PC-A may explicitly set a boolean true or false.
-A true value is configuration data only, never archive authorization.
+解析器は、オブジェクトでない・不正な JSON、重複・不明・欠落キー、基本型の誤り、役割不一致、ドライブ指定のない・曖昧なパス構文、正規化後のmaintenanceLocalの同一・祖先・子孫の重複を拒否する。PC-B はallowArchiveを省略し、PC-A はbooleanのtrueまたはfalseを明示できる。trueは設定データにすぎず、アーカイブの認可ではない。
 
-Errors are fixed reason codes without rejected values, file contents or private
-paths. The package builder shares this structural parser and additionally
-requires safe template defaults (PC-A allowArchive false).
+エラーは固定理由コードとし、拒否した値、ファイル内容、個人のパスを含めない。パッケージビルダーはこの構造解析器を共用し、加えて安全な公開例の既定値（PC-A のallowArchiveはfalse）を要求する。
 
-This is structural/lexical evidence, not an approved-root filesystem gate.
-It does not inspect actual target volumes, resolve short-name/reparse aliases,
-prove cross-root physical separation, acquire a runtime lock, contact Drive,
-or integrate official entry points. Those checks remain mandatory before effects.
-The create-only bootstrap helper is implemented below; official installation/update integration and migration remain pending.
+構造・字句上の証拠であり、承認ルートのファイルシステム判定ではない。実対象ボリュームの検査、短い名前・再解析別名の解決、ルート間の物理分離の証明、実行ロックの取得、Drive接続、正式入口の統合は行わない。副作用の前には引き続きこれらが必須である。後述の未作成時だけ生成する初期設定ヘルパーは実装済みだが、正式な導入・更新との統合と移行は未完了である。
 
-## Create-only configuration bootstrap helper
+<a id="create-only-configuration-bootstrap-helper"></a>
+## 作成専用構成ブートストラップ ヘルパー
 
-See [configuration specification](../configuration-local-root.md#create-only-configuration-bootstrap-helper) for Initialize-EoMachineConfiguration, safety boundaries and pending deployment integration. Run tests/Test-MachineConfigurationBootstrap.ps1 for synthetic create-once and preservation checks.
+Initialize-EoMachineConfiguration、安全境界、および 未確定 展開の統合については、[構成仕様](../configuration-local-root.md#create-only-configuration-bootstrap-helper) を参照してください。 tests/Test-MachineConfigurationBootstrap.ps1 を実行して、合成チェックと保存チェックを行います。
 
-SourceInventoryEvidenceBuilder checks source pathname and open-handle identity before/after hashing. Observable mismatch or unavailable identity keeps enumeration incomplete. This is not a snapshot or a guard covering later use; see [filesystem evidence](../../validation/target-filesystem-acceptance.md#source-hash-handle-identity-2026-10-23).
+SourceInventoryEvidenceBuilder は、ハッシュの前後にソース パス名とオープン ハンドル ID をチェックします。監視可能な 不一致 または 利用不能 ID は列挙 未完了 を保持します。これはスナップショットや後で使用するための保護ではありません。 [ファイルシステムの証拠](../../validation/target-filesystem-acceptance.md#source-hash-handle-identity-2026-10-23)を参照してください。
 
-Source inventory rejects lstat symlink/reparse root/ancestors, rechecks queued directories, classifies fresh entry attributes and checks file paths before/after hashing. Unknown attributes fail closed. See [source reparse evidence and limits](../../validation/target-filesystem-acceptance.md#source-inventory-reparse-rejection-2026-10-23).
+ソース インベントリは、lstat シンボリックリンク/再解析ルート/祖先を拒否し、キューに入れられたディレクトリを再チェックし、新しいエントリ属性を分類し、ハッシュ前後のファイル パスをチェックします。不明な属性はフェールクローズされます。 [ソース再解析の証拠と制限](../../validation/target-filesystem-acceptance.md#source-inventory-reparse-rejection-2026-10-23)を参照してください。
 
-Lock/recovery evidence parsing rejects duplicate JSON keys and wrong primitive types; malformed lock records are preserved while the mutex is released. See [strict evidence scope](../../validation/lock-recovery-acceptance-gate.md#strict-lock-and-recovery-evidence-2026-10-23). This does not implement stale-lock disposition or operational recovery.
+ロック/リカバリ証拠の解析では、重複した JSON キーと間違ったプリミティブ タイプが拒否されます。不正なロック レコードは、ミューテックスが解放されている間保持されます。 [厳密な証拠の範囲](../../validation/lock-recovery-acceptance-gate.md#strict-lock-and-recovery-evidence-2026-10-23)を参照してください。これは、古いロックの処理や動作の回復を実装しません。
 
-MachineConfigurationRootInspection.ps1 adds opt-in read-only metadata inspection of existing configuration roots. It is not runtime authorization; see [configuration scope](../configuration-local-root.md#read-only-existing-root-metadata-inspection).
+MachineConfigurationRootInspection.ps1 は、既存の構成ルートのオプトイン読み取り専用メタデータ検査を追加します。これは実行時の認証ではありません。 [構成スコープ](../configuration-local-root.md#read-only-existing-root-metadata-inspection)を参照してください。
 
-LatestManifestSelection.py independently parses the defined manifest basename and selects a unique validated latest start time from supplied observations. It never falls back to old success. See [selection scope and gates](latest-manifest-selection.md).
+LatestManifestSelection.py は、定義されたマニフェストのベース名を個別に解析し、指定された観測値から一意の検証済みの最新開始時刻を選択します。古い 成功 に戻ることはありません。 [選択範囲とゲート](latest-manifest-selection.md)を参照してください。
 
-ManifestDirectoryReader.py adds read-only observations of the defined per-PC manifest directory and returns the exact validated byte snapshot plus SHA-256. Unknown/reparse entries, read uncertainty and observed changes block selection. Approved-root authority and runtime integration remain pending; see [selection scope](latest-manifest-selection.md).
+ManifestDirectoryReader.py は、定義された PC ごとのマニフェスト ディレクトリの読み取り専用の観察を追加し、正確に検証されたバイト スナップショットと SHA-256 を返します。未知/再解析エントリ、読み取りの不確実性、観察された変更は選択をブロックします。承認されたルート権限とランタイム統合は 未確定 のままです。 [選択範囲](latest-manifest-selection.md)を参照してください。
 
-Both directory-reader entry points accept caller-selected per-candidate/aggregate byte ceilings. All initial entry sizes, including older/foreign periods, are checked before payload opens; reads stop at initial size plus one byte on growth. Defaults do not impose a new schema ceiling. Report/evidence validator reads and entry/JSON complexity are outside these resource bounds.
+両方のディレクトリ リーダー エントリ ポイントは、呼び出し元が選択した候補ごと/集計バイトの上限を受け入れます。古い/外部の期間を含むすべての初期エントリ サイズは、ペイロードが開く前にチェックされます。読み取りは、初期サイズに 1 バイトを加えたサイズで停止します。デフォルトでは、新しいスキーマの上限は課されません。レポート/証拠バリデータの読み取りとエントリ/JSON の複雑さは、これらのリソースの範囲外です。
 
-RecoveryDiagnostic.py classifies supplied fixed gate observations into a sanitized, immutable, non-authorizing diagnostic result. Even all-satisfied observations produce review_required with may_change_state=false. It performs no I/O and does not establish the truth of its supplied observations.
+RecoveryDiagnostic.py は、提供された固定ゲート観測を、サニタイズされた不変の非承認の診断結果に分類します。すべてが満足された観察でも、review_required と may_change_state=false が生成されます。 I/O は実行されず、提供された観測結果の真実性は確立されません。
 
-RecoveryDiagnosticMutex.py acquires the existing global scope mutex without ownership-record I/O or token generation. It reports abandonment as non-authorizing evidence and releases/closes on completion or failure. It is an isolated diagnosis lease, not normal lock acquisition, approved-root qualification, or an operational recovery entrypoint.
+RecoveryDiagnosticMutex.py は、所有権レコード I/O やトークン生成を行わずに、既存のグローバル スコープのミューテックスを取得します。放棄を不承認の証拠として報告し、完了または 失敗 で解放/終了します。これは分離された診断リースであり、通常のロック取得、承認されたルート資格、または運用回復エントリポイントではありません。
 
-PrivateRecoveryEvidence.py builds/validates private preservation metadata against supplied raw lock bytes, without runtime reads/writes or recovery authority. Only the trusted package schema is read. Opaque invalid lock bytes can be preserved without being accepted as a supported lock. See [private evidence contract](../recovery-private-evidence-contract.md).
+PrivateRecoveryEvidence.py は、実行時の読み取り/書き込みまたは回復権限なしで、提供された生のロック バイトに対してプライベート保存メタデータを構築/検証します。信頼できるパッケージのスキーマのみが読み取られます。不透明な無効なロック バイトは、サポートされているロックとして受け入れられずに保持されることがあります。 [私的証拠契約](../recovery-private-evidence-contract.md)を参照してください。
 
-PrivateEvidenceAclProfile.py classifies a narrow supplied file-ACL shape using fixed trusted principal roles and explicit file read/write bits. It does not query SIDs/ACLs, evaluate complete Windows access, qualify roots or grant persistence. See [scope and unsupported cases](private-evidence-acl-profile.md).
+PrivateEvidenceAclProfile.py は、固定の信頼されたプリンシパル ロールと明示的なファイル読み取り/書き込みビットを使用して、指定された狭いファイル ACL 形状を分類します。 SID/ACL のクエリ、完了 Windows アクセスの評価、ルートの修飾、永続性の付与は行いません。 [の範囲とサポートされていないケース](private-evidence-acl-profile.md)を参照してください。
 
-PrivateFileSecurityDescriptor.ps1 normalizes supplied binary file descriptors for the narrow Python ACL profile. It preserves deny/order/flags/unsigned masks, rejects unsupported features, and performs no filesystem/token query or ACL writes. Its SID-bearing output is private internal data, not a public diagnostic.
+PrivateFileSecurityDescriptor.ps1 は、狭い Python ACL プロファイル用に提供されたバイナリ ファイル記述子を正規化します。拒否/順序/フラグ/未署名マスクを保持し、サポートされていない機能を拒否し、ファイル システム/トークン クエリや ACL 書き込みは実行しません。 SID を含む出力はプライベートな内部データであり、公的診断ではありません。
 
-MonthlyScheduleObservation.py observes the approved monthly boundary from supplied reliable UTC/session/account claims. It uses day 1 PC-B 20:00 / PC-A 21:00 JST; all results keep may_start_run=false. It never queries the host, reads completion records, creates tasks or starts work. See [observation scope](monthly-schedule-observation.md).
+MonthlyScheduleObservation.py は、渡された信頼できる UTC・セッション・アカウントの申告に基づき、承認済みの月次境界を観測する。毎月 1 日の PC-B 20:00 / PC-A 21:00 JST を使い、全結果で may_start_run=falseを維持する。ホスト照会、完了記録の読み取り、タスク作成、処理開始は行わない。[観測範囲](monthly-schedule-observation.md) を参照。
 
-CompletionWaitBudget.py assesses the approved PC-A 24-hour/25-attempt hourly budget and returns immutable updated attempt histories only after revalidation. All advice denies archive/state-change authority. It performs no waits/tasks/Drive/persistence; trusted state binding and durable crash-safe accounting remain pending. See [budget scope](completion-wait-budget.md).
+CompletionWaitBudget.py は、承認された PC-A 24 時間/25 試行時間ごとの予算を評価し、再検証後にのみ不変の更新された試行履歴を返します。すべてのアドバイスはアーカイブ/状態変更権限を否定します。待機/タスク/ドライブ/永続性は実行されません。信頼できる状態バインディングと耐久性のあるクラッシュセーフ アカウンティングは 未確定 のままです。 [予算範囲](completion-wait-budget.md)を参照してください。
 
 比較更新の[実Win32負例probe・資格調査](checkpoint-compare-provider-qualification.md)はtests専用で、実runtime providerとして配布しません。
 
@@ -200,7 +189,8 @@ source builderは[列挙完了前の再確認](source-enumeration-stability.md)�
 
 `StagingResidualObservation.py`は[残存staging直下entry](staging-residual-observation.md)を内容非読取・非再帰で件数観測します。不明/変化は保留して初回件数を保持し、metadata検査やcleanup/Upload/Archiveを許可しません。
 
-## Shared marker-last basename validation (2026-10-27)
+<a id="shared-marker-last-basename-validation-2026-10-27"></a>
+## 共有マーカーの最後のベース名の検証 (2026-10-27)
 
 `ArtifactSetRecovery.is_artifact_basename`は既存marker-last publisherの名前条件を共通化します。空/非文字列、先頭dot、slash/backslash/NUL、末尾ASCII空白/dotを拒否し、Unicode・内部空白/dotを変更せず判定します。trim・casefold・Unicode正規化や自動修正は行いません。これは既存の限定したleaf文法であり、全Windows予約名/禁止文字/長さや実FS資格の検査を追加するものではありません。
 
@@ -208,7 +198,8 @@ publisherは全payload名/marker名を単一file公開前に同じ関数で検�
 
 [公開試験](../../../tests/test_artifact_set_publication.py)・[分類試験](../../../tests/test_artifact_set_recovery.py)・[directory試験](../../../tests/test_artifact_set_directory_verification.py)で不正名の全件事前拒否、非I/O・保全、Unicode/内部空白の公開→marker→検証と文字列の原形保持を確認します。単一file primitiveのtemp名方針や公開/復旧認可を変更せず、同時snapshot/ABA・FS/provider真正性・正式runtime/Drive・電源断/Tier B/C受け入れやP0閉鎖は証明しません。
 
-## Caller-selected marker-last publication byte budgets (2026-10-27)
+<a id="caller-selected-marker-last-publication-byte-budgets-2026-10-27"></a>
+## 呼び出し元が選択したマーカーの最後のパブリケーションのバイト バジェット (2026-10-27)
 
 `publish_artifact_set_marker_last`はoptional `maximum_artifact_bytes` / `maximum_total_bytes`を受け、Noneまたは正のexact intだけを許します。不正値は既存transaction文法検査後、payload Mappingのsnapshot・hash・単一file公開前に`artifact_publish_limit_invalid`で拒否します。固定本番値・新schema/配布契約は追加しません。
 
@@ -218,7 +209,8 @@ publisherは全payload名/marker名を単一file公開前に同じ関数で検�
 
 [公開回帰](../../../tests/test_artifact_set_publication.py)でexact境界の公開/再公開/読戻し、不正値の非snapshot、payload超過の非hash、markerだけの超過・非部分公開、bytes派生型と空payloadを確認します。root/FS/provider資格・所有権/真正性、同時snapshot/ABA・電源断/Tier B/C/runtime受け入れや公開/Archiveの認可は追加しません。
 
-## Bounded stable owner-record observations (2026-10-27)
+<a id="bounded-stable-owner-record-observations-2026-10-27"></a>
+## 有界の安定した所有者レコードの観測 (2026-10-27)
 
 `acquire_owned_lock`はoptional `maximum_record_bytes`を受け、Noneまたは正のexact intだけを許します。不正値はscope検査後・token/path/mutex準備前に`lock_record_limit_invalid`で拒否します。生成recordが超過する場合は所有mutex内で`lock_record_limit_exceeded`としてrecord作成前に拒否し、mutexを解放します。固定本番値・schemaやowner-v2/provider契約を追加しません。
 
@@ -228,7 +220,8 @@ strict field集合、scope/tokenとpid/hostの従来検査は維持し、canonic
 
 [owner lock試験](../../../tests/test_owned_run_lock.py)でexact境界・不正値の早期拒否・作成前超過・解放時超過の非読取/保全、path→handle間増大、不明観測/deep JSONでもmutex解放、JSON表記互換を確認します。
 
-## Owner-record creation failure preservation (2026-10-27)
+<a id="owner-record-creation-failure-preservation-2026-10-27"></a>
+## 所有者レコードの作成 失敗 保存 (2026-10-27)
 
 owner recordの`write`は戻り値がexact intかつ全payload長と一致することを要求し、short/過大/不正値は`lock_record_write_incomplete`で停止します。続くcloseもOSErrorになった場合は元の固定reasonを保持します。write/flush/fsync/closeのOSErrorは従来の`lock_record_create_failed`を維持し、呼出し元へowner tokenを渡しません。
 
@@ -236,7 +229,8 @@ owner recordの`write`は戻り値がexact intかつ全payload長と一致する
 
 [単体回帰](../../../tests/test_owned_run_lock.py)と[隔離保存接続](../../../tests/test_terminal_bundle_integration.py)で、各書込件数・二重close失敗、write/flush/fsync/closeの失敗、初回確認失敗、parse可能な不完全recordの保全・候補非作成と同一mutexの再取得を確認します。これはmutex解放の合成証拠であり、残存recordの復旧/次run認可、root/FS/provider資格、ABA排除・電源断/Tier B/C/runtime受け入れやP0閉鎖を示しません。
 
-## Strict owned-mutex adapter observations (2026-10-27)
+<a id="strict-owned-mutex-adapter-observations-2026-10-27"></a>
+## 厳密な所有ミューテックス アダプターの監視 (2026-10-27)
 
 `acquire_owned_lock`は既存`_NamedMutex`/診断mutexと同じadapter契約を前提とし、`acquire`の戻り値をexact boolとして検査します。数値/文字列/None等を`bool()`で所有確認へ変換しません。不正値と待機例外は固定`named_mutex_wait_failed`で、record payload生成・作成・bodyへ進みません。確定Falseは従来の`lock_timeout`でcloseのみ、確定Trueだけが次の観測へ進みます。
 
@@ -244,13 +238,15 @@ owner recordの`write`は戻り値がexact intかつ全payload長と一致する
 
 取得後の`abandoned`もexact boolを要求し、欠落・取得不能・不正型をFalseへ補完せず`named_mutex_observation_invalid`で停止します。Trueは従来どおり`abandoned_mutex_requires_recovery`で保全停止、Falseだけが既存record作成境界へ進みます。[単体回帰](../../../tests/test_owned_run_lock.py)で不正型/例外/中断とcleanup・非record作成を検査し、実mutexを使う隔離保存/診断接続で既存正常動作を確認します。正式runtime、owner-v2/provider真正性、復旧/次run認可、電源断/Tier B/C受け入れやP0閉鎖は追加しません。
 
-## Mutex cleanup after record-cleanup interruption (2026-10-27)
+<a id="mutex-cleanup-after-record-cleanup-interruption-2026-10-27"></a>
+## レコード クリーンアップ中断後のミューテックス クリーンアップ (2026-10-27)
 
 owned lockのrecord解放時確認とunlinkを外側のfinallyで囲み、その途中のKeyboardInterrupt/SystemExit等でもmutex release・closeを試みます。release自身が失敗/中断してもcloseを試みる既存順序を維持し、中断を正常終了へ変換しません。record cleanupのOSErrorを保全へ落とす既存動作と、通常の所有確認/cleanup条件は変更しません。
 
 [単体回帰](../../../tests/test_owned_run_lock.py)で解放時観測/unlinkの中断、release失敗/中断、unlinkのOSErrorとbody例外の保全を確認します。[隔離保存接続](../../../tests/test_terminal_bundle_integration.py)は両PCの候補公開後にrecord解放確認を中断し、prior・候補・recordを保全したまま別合成record pathで同一mutexを再取得して解放を確認します。これは中断後のmutex解放に関する合成証拠であり、残存recordの採用/復旧・次run認可、敵対的競合/ABA・強制process終了や電源断耐久性、正式runtime/Tier B/C受け入れやP0閉鎖を示しません。
 
-## Local-only recovery schema references (2026-10-27)
+<a id="local-only-recovery-schema-references-2026-10-27"></a>
+## ローカルのみのリカバリ スキーマ参照 (2026-10-27)
 
 `PrivateRecoveryEvidence`のbuild/validateと`CrashRecoveryDecision`のprior manifest検査も、既存manifest selectorのlocal-only参照検査・取得禁止Registryを使用します。schema全treeの`$ref` / `$dynamicRef`は`#`で始まる文字列だけを許し、HTTP/file/相対resource・不正型を、未使用のdefs内でも拒否します。validator自身にもresource retrievalを拒否するRegistryを明示し、事前検査だけに依存しません。
 

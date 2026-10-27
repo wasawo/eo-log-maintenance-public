@@ -1,59 +1,66 @@
-# C-53/C-54 secret-bearing path pattern proposal
+<a id="c-53c-54-secret-bearing-path-pattern-proposal"></a>
+# C-53/C-54 秘密を含むパス パターンの提案
 
 > 履歴/検討資料。承認済みの選択・未決候補・当時の監査根拠を含み、この移動は撤回/失効を意味しない。現在の基準は[正式要件](../../requirements/log-move-requirements.md)と[現行決定台帳](../../decisions/decision-register-c18-c32.md)。当時の対象/証拠を現在のruntime受け入れへ拡張しない。
 
-- Status: **Historical proposal; P1–P6 were explicitly approved on 2026-10-21.** The normative grammars and decision semantics are now recorded in `docs/archive/decisions/decision-record-c54-sensitive-path-detection.md`; this file remains the proposal record and is not the canonical normative source.
-- Baseline: main commit `1bc71ace6871ee4682655ae8463f7986ef1edccf`.
-- Purpose: provide concrete candidate grammars for maintainer review before any normative change or runtime implementation.
-- Safety: all examples are synthetic. Never place real credentials, real user paths, logs, or Drive data in fixtures.
+- ステータス: **歴史的提案。 P1 ～ P6 は 2026-10-21 で明示的に承認されました。** 規範的な文法と決定セマンティクスは `docs/archive/decisions/decision-record-c54-sensitive-path-detection.md` に記録されています。このファイルは提案記録として残り、正規の規範ソースではありません。
+- ベースライン: メイン コミット `1bc71ace6871ee4682655ae8463f7986ef1edccf`。
+- 目的: 規範的な変更や実行時実装の前に、メンテナがレビューするための具体的な文法候補を提供します。
+- 安全性: すべてのサンプルは合成です。実際の認証情報、実際のユーザー パス、ログ、またはドライブ データをフィクスチャに決して配置しないでください。
 
-## Existing approved behavior remains unchanged
+<a id="existing-approved-behavior-remains-unchanged"></a>
+## 既存の承認された動作は変更されません
 
-C-53 syntax validation runs first. C-54 Option A then applies fixed sensitive names/tokens and secret-bearing format checks. If the path is invalid or any sensitive rule matches, the entire optional path is JSON `null`; do not partially redact, echo the rejected value, resolve paths against a filesystem, or inspect symlinks. This proposal does not amend that decision.
+C-53 構文検証が最初に実行されます。 C-54 オプション A は、固定された機密名/トークンと秘密を含む形式チェックを適用します。パスが無効であるか、機密ルールに一致する場合、オプションのパス全体は JSON `null` になります。部分的に編集したり、拒否された値をエコーし​​たり、ファイルシステムに対してパスを解決したり、シンボリックリンクを検査したりしないでください。この提案はその決定を修正するものではありません。
 
-## Candidate matching table — approval required
+<a id="candidate-matching-table--approval-required"></a>
+## 候補マッチングテーブル — 承認が必要です
 
-Regexes below are .NET-compatible illustrative candidates, applied to the complete candidate path string using ordinal/invariant case handling where specified. They are not ready for production until approved, implemented, and tested. ASCII boundaries are used deliberately; Unicode normalization/case folding is out of scope.
+以下の正規表現は、.NET 互換の例示的な候補であり、指定されている場合、序数/不変の大文字小文字の処理を使用して 完了 候補パス文字列に適用されます。承認、実装、テストが完了するまでは、これらは実稼働用の 準備済み ではありません。 ASCII 境界は意図的に使用されています。 Unicode の正規化/大文字と小文字の折りたたみは範囲外です。
 
-| Format | Candidate grammar | Synthetic positive fixture | Near-miss/control | Main trade-off |
+|形式|文法候補|合成ポジティブ固定具|ニアミス/制御|主なトレードオフ|
 |---|---|---|---|---|
-| URI user-info with password | `(?i)\b[A-Za-z][A-Za-z0-9+.-]*://[^:/@\s][^/@\s]*:[^/@\s]+@` | `https://demo-user:demo-pass@example.invalid/a.txt` | `https://example.invalid/a.txt`; `https://demo-user@example.invalid/a.txt` | Requires non-empty username, password, and `@`; excludes whitespace and slash inside user-info. Percent-encoded values are permitted. |
-| Bearer credential | `(?i)(?<![A-Za-z0-9_-])Bearer[ \t]+[A-Za-z0-9._~+/-]+=*(?![A-Za-z0-9._~+/-])` | `Bearer demoToken_123==` | `Bearer`; `Bearer `; `Bearerish demoToken` | Requires a case-insensitive scheme word and non-empty ASCII token. A conservative ASCII grammar may miss non-standard credential encodings. |
-| GitHub classic token-like value | `(?<![A-Za-z0-9_])ghp_[A-Za-z0-9]{20,}(?![A-Za-z0-9])` | `ghp_AbCdEf0123456789GhIjKlMn` | `ghp_`; `xghp_AbCdEf0123456789GhIjKlMn` | Minimum suffix length reduces false positives but can miss shorter or future token formats. Confirm the threshold against supported token types. |
-| GitHub fine-grained token-like value | `(?<![A-Za-z0-9_])github_pat_[A-Za-z0-9_]{20,}(?![A-Za-z0-9_])` | `github_pat_demo0123456789_AbCdEf0123456789` | `github_pat_`; `xgithub_pat_demo0123456789_AbCdEf0123456789` | Allows underscore in the suffix; threshold may need adjustment for current/future formats. |
-| AWS access-key-ID-like value | `(?<![A-Za-z0-9])AKIA[A-Z0-9]{16}(?![A-Za-z0-9])` | `AKIAIOSFODNN7EXAMPLE` | `AKIA123`; `xAKIAIOSFODNN7EXAMPLE` | Exact 16-character suffix is narrow and may not cover other AWS key prefixes. Treat as identifier-like sensitive material, not proof that the paired secret key is present. |
-| PEM private-key header | `-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----` (case-sensitive) | `-----BEGIN PRIVATE KEY-----`; `-----BEGIN OPENSSH PRIVATE KEY-----` | `-----BEGIN CERTIFICATE-----`; `-----BEGIN PUBLIC KEY-----` | Fixed allowlist of common labels is deterministic but does not recognize every vendor-specific key label. Add labels only by explicit review. |
+|URI ユーザー情報とパスワード| `(?i)\b[A-Za-z][A-Za-z0-9+.-]*://[^:/@\s][^/@\s]*:[^/@\s]+@` | `https://demo-user:demo-pass@example.invalid/a.txt` | `https://example.invalid/a.txt`; `https://demo-user@example.invalid/a.txt` |空ではないユーザー名、パスワード、`@` が必要です。ユーザー情報内の空白とスラッシュは除外されます。パーセントでエンコードされた値が許可されます。|
+|ベアラー認証情報| `(?i)(?<![A-Za-z0-9_-])Bearer[ \t]+[A-Za-z0-9._~+/-]+=*(?![A-Za-z0-9._~+/-])` | `Bearer demoToken_123==` | `Bearer`; `Bearer `; `Bearerish demoToken` |大文字と小文字を区別しないスキームワードと空でない ASCII トークンが必要です。保守的な ASCII 文法では、非標準の認証情報エンコーディングが失われる可能性があります。|
+|GitHub 古典的なトークンのような値| `(?<![A-Za-z0-9_])ghp_[A-Za-z0-9]{20,}(?![A-Za-z0-9])` | `ghp_AbCdEf0123456789GhIjKlMn` | `ghp_`; `xghp_AbCdEf0123456789GhIjKlMn` |サフィックスの長さを最小にすると誤検知は減少しますが、より短いトークン形式や将来のトークン形式が見逃される可能性があります。サポートされているトークン タイプに対するしきい値を確認します。|
+|GitHub きめの細かいトークンのような値| `(?<![A-Za-z0-9_])github_pat_[A-Za-z0-9_]{20,}(?![A-Za-z0-9_])` | `github_pat_demo0123456789_AbCdEf0123456789` | `github_pat_`; `xgithub_pat_demo0123456789_AbCdEf0123456789` |接尾辞にアンダースコアを使用できます。現在/将来の形式に合わせてしきい値を調整する必要がある場合があります。|
+|AWS アクセスキー ID のような値| `(?<![A-Za-z0-9])AKIA[A-Z0-9]{16}(?![A-Za-z0-9])` | `AKIAIOSFODNN7EXAMPLE` | `AKIA123`; `xAKIAIOSFODNN7EXAMPLE` |正確な 16 文字のサフィックスは狭いため、他の AWS キー プレフィックスをカバーできない可能性があります。ペアになった秘密鍵が存在することを証明するものではなく、識別子のような機密情報として扱います。|
+|PEM 秘密鍵ヘッダー|`-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----` (大文字と小文字が区別されます)| `-----BEGIN PRIVATE KEY-----`; `-----BEGIN OPENSSH PRIVATE KEY-----` | `-----BEGIN CERTIFICATE-----`; `-----BEGIN PUBLIC KEY-----` |共通ラベルの固定ホワイトリストは決定的ですが、ベンダー固有のキー ラベルをすべて認識するわけではありません。明示的なレビューによってのみラベルを追加してください。|
 
-### URI rule interaction with C-53
+<a id="uri-rule-interaction-with-c-53"></a>
+### URI ルールと C-53 の相互作用
 
-The URI example contains a colon and URI delimiters, which C-53 path syntax may reject before C-54 runs. Therefore, the full-path positive fixture should assert the final safe outcome (path becomes `null`) without falsely claiming the C-54 URI matcher ran. If unit-level coverage of the URI matcher is desired, test the pure matcher separately with synthetic input; do not change the C-53-before-C-54 processing order.
+URI の例にはコロンと URI 区切り文字が含まれており、C-53 パス構文は C-54 が実行される前にこれらを拒否する可能性があります。したがって、フルパスのポジティブ フィクスチャは、C-54 URI マッチャーが実行されたと誤って主張することなく、最終的な安全な結果 (パスは `null` になります) をアサートする必要があります。 URI マッチャーのユニットレベルのカバレッジが必要な場合は、合成入力を使用して純粋なマッチャーを個別にテストします。 C-53-before-C-54 の処理順序を変更しないでください。
 
-## Boundary and application rules proposed for review
+<a id="boundary-and-application-rules-proposed-for-review"></a>
+## 境界および適用ルールが検討のために提案されました
 
-1. Apply format matchers to the complete candidate path string as well as any segments, consistent with the approved C-54 wording; any match nulls the complete path.
-2. Do not trim whitespace or normalize/rewrite input before matching. Syntax validation is responsible for rejecting prohibited controls and invalid path forms.
-3. Use the exact ASCII boundaries in each candidate. Do not replace them with broad substring matching or generic high-entropy heuristics.
-4. Treat PEM marker matching as case-sensitive; URI and Bearer schemes are case-insensitive. Provider-token prefix matching is case-sensitive unless maintainers explicitly approve case-insensitive matching.
-5. Rejected path values and matched substrings must never be included in error text, telemetry, test failure messages, or logs. Tests should assert absence of a distinctive synthetic canary value from all emitted diagnostics.
-6. Keep positive/negative fixture strings synthetic and obviously non-operational. Never copy real tokens or credentials into tests.
+1. 承認された C-54 の文言と一致して、形式マッチャーを 完了 候補パス文字列およびすべてのセグメントに適用します。一致すると、完了 パスが null になります。
+2. 照合前に空白をトリミングしたり、入力を正規化/再書き込みしたりしないでください。構文検証は、禁止されているコントロールと無効なパス形式を拒否する責任があります。
+3. 各候補で正確な ASCII 境界を使用します。これらを部分文字列の広範な一致や一般的な高エントロピーのヒューリスティックに置き換えないでください。
+4. PEM マーカーの一致では大文字と小文字が区別されます。 URI スキームとベアラー スキームでは大文字と小文字が区別されません。プロバイダーとトークンのプレフィックスのマッチングでは、保守者が大文字と小文字を区別しないマッチングを明示的に承認しない限り、大文字と小文字が区別されます。
+5. 拒否されたパス値と一致した部分文字列は、エラー テキスト、テレメトリ、テスト 失敗 メッセージ、またはログに決して含めてはなりません。テストでは、出力されるすべての診断から特有の合成カナリア値が存在しないことを確認する必要があります。
+6. 正/負のフィクスチャ文字列を合成し、明らかに動作しない状態に保ちます。実際のトークンや認証情報をテストにコピーしないでください。
 
-## Questions requiring explicit approval
+<a id="questions-requiring-explicit-approval"></a>
+## 明示的な承認が必要な質問
 
-- **P1 — URI user-info:** approve the scheme/user/password grammar above, or specify different character restrictions.
-- **P2 — Bearer:** approve the ASCII token alphabet and case-insensitive scheme handling.
-- **P3 — GitHub token-like prefixes:** approve suffix alphabets and the proposed minimum length of 20, or choose a documented alternative. The threshold is a heuristic boundary for a known prefix, not a guarantee of complete detection.
-- **P4 — AWS:** approve matching exactly `AKIA` plus 16 uppercase alphanumeric characters, and confirm whether other access-key prefixes are in scope.
-- **P5 — PEM:** approve the fixed marker list (`PRIVATE KEY`, `RSA PRIVATE KEY`, `EC PRIVATE KEY`, `DSA PRIVATE KEY`, `OPENSSH PRIVATE KEY`) or provide an explicit replacement list.
-- **P6 — boundary tests:** approve ASCII boundaries and case-sensitivity as listed, including the stated negative controls.
+- **P1 — URI user-info:** 上記のスキーム/ユーザー/パスワード文法を承認するか、別の文字制限を指定します。
+- **P2 — ベアラー:** は、ASCII トークンのアルファベットと大文字と小文字を区別しないスキームの処理を承認します。
+- **P3 — GitHub トークンのような接頭辞:** は、接尾辞のアルファベットと提案されている 20 の最小長を承認するか、文書化された代替案を選択します。しきい値は既知のプレフィックスのヒューリスティック境界であり、完了 の検出を保証するものではありません。
+- **P4 — AWS:** は、`AKIA` と 16 大文字の英数字の正確な一致を承認し、他のアクセス キー プレフィックスがスコープ内にあるかどうかを確認します。
+- **P5 — PEM:** は、固定マーカー リスト (`PRIVATE KEY`、`RSA PRIVATE KEY`、`EC PRIVATE KEY`、`DSA PRIVATE KEY`、`OPENSSH PRIVATE KEY`) を承認するか、明示的な置換リストを提供します。
+- **P6 — 境界テスト:** は、記載されているネガティブ コントロールを含め、記載されている ASCII 境界と大文字と小文字の区別を承認します。
 
-Decision status: the maintainer explicitly approved option A for each P1–P6 on 2026-10-21. The approved expressions are now normative only as recorded in `docs/archive/decisions/decision-record-c54-sensitive-path-detection.md`. Do not infer broader coverage or additional patterns. Runtime sanitizer implementation and end-to-end tests remain pending.
+決定ステータス: メンテナは、2026-10-21 の各 P1 ～ P6 のオプション A を明示的に承認しました。承認された表現は、`docs/archive/decisions/decision-record-c54-sensitive-path-detection.md` に記録されているとおりにのみ規範的になります。より広範囲の範囲や追加のパターンを推測しないでください。ランタイムサニタイザーの実装とエンドツーエンドのテストは 未確定 のままです。
 
-## Required tests after approval
+<a id="required-tests-after-approval"></a>
+## 承認後に必要なテスト
 
-- Direct unit tests for every pattern with positive, near-miss, prefix-boundary, suffix-boundary, and case-variant fixtures as applicable.
-- Integration tests proving C-53 syntax rejection occurs before C-54 checks and that either failure produces whole-field `null`.
-- A secret-canary assertion proving rejected inputs are absent from all diagnostic output.
-- Repeatability tests independent of OS, locale, current directory, and filesystem state.
-- CI tests and release-package inclusion for the eventual pure sanitization helper.
+- 該当する場合、ポジティブ、ニアミス、プレフィックス境界、サフィックス境界、および大文字と小文字の区別があるフィクスチャを使用したすべてのパターンの直接単体テスト。
+- 統合テストにより、C-54 チェックの前に C-53 構文の拒否が発生し、失敗 のいずれかがフィールド全体 `null` を生成することが証明されました。
+- 拒否された入力がすべての診断出力に存在しないことを証明する Secret-Canary アサーション。
+- OS、ロケール、現在のディレクトリ、ファイルシステムの状態に依存しない再現性テスト。
+- CI は、最終的に純粋なサニタイズ ヘルパーをテストし、リリース パッケージに含めます。
 
-Passing these tests alone does not constitute runtime end-to-end acceptance and does not close any P0 gap.
+これらのテストに合格しただけでは、ランタイムのエンドツーエンドの承認とはならず、P0 ギャップは埋められません。

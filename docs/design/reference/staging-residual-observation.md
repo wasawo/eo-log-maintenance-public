@@ -1,6 +1,7 @@
 # 残存staging直下entryの読取観測
 
-## Caller-selected entry limit (2026-10-26)
+<a id="caller-selected-entry-limit-2026-10-26"></a>
+## 呼び出し元が選択したエントリ制限 (2026-10-26)
 
 `observe_staging_residual_entries`はoptional `maximum_entries`を受け、Noneまたは正のexact intのみ許す。不正値はroot I/O前に`staging_residual_limit_invalid`のheld、enumeration_completed=falseとする。Noneではcaller上限なし、固定本番値・保持/cleanup方針は採用しない。
 

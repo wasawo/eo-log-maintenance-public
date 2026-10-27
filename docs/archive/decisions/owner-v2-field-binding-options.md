@@ -12,24 +12,24 @@
 
 | 論理情報 | field/type候補 | 出所・比較と未確定事項 |
 | --- | --- | --- |
-| version | `schema_version`: integer、supported値は別途承認 | v1と区別。v2の名前から数値を実装で先決めせず、未知版/重複key/未知field拒否を維持 |
-| scope | `scope_id`: string | recordだけでなく独立したtrusted sourceから期待scopeを得て一致を検証。任意path/PIDから導出しない。形式・上限・source providerは未確定 |
-| ownership token | `owner_token`: string | 取得時の新しい秘密値。現行v1のASCII・長さ制限/生成方式をv2へ取り込むかも候補。公開出力・通常例外へ出さず、token一致だけで旧owner終了としない |
-| process | `pid`: positive integer と生成identity（§2） | 同一handleから得たOS生成identityと対にする。PID再利用、不在、query不能は終了証明にならない |
-| machine/boot | `machine_identity` / `boot_identity`: opaque string、またはprovider/version付き構造 | 型・正規化・providerとも未選定。host名・入力値・時刻で代用しない。合成fixture値と実OS証拠を区別し、providerの資格なしに実値をqualifiedな証拠として生成しない |
-| snapshot | 外部 `record_sha256` 等、またはrecord内部digest（§4） | exact bytes、scope/root/file identityの観測と束縛。hashは出所・権限・現在性を証明しない |
+|バージョン| `schema_version`: integer、supported値は別途承認 | v1と区別。v2の名前から数値を実装で先決めせず、未知版/重複key/未知field拒否を維持 |
+|スコープ|`scope_id`: 文字列| recordだけでなく独立したtrusted sourceから期待scopeを得て一致を検証。任意path/PIDから導出しない。形式・上限・source providerは未確定 |
+|所有権トークン|`owner_token`: 文字列| 取得時の新しい秘密値。現行v1のASCII・長さ制限/生成方式をv2へ取り込むかも候補。公開出力・通常例外へ出さず、token一致だけで旧owner終了としない |
+|プロセス| `pid`: positive integer と生成identity（§2） | 同一handleから得たOS生成identityと対にする。PID再利用、不在、query不能は終了証明にならない |
+|マシン/ブート| `machine_identity` / `boot_identity`: opaque string、またはprovider/version付き構造 | 型・正規化・providerとも未選定。host名・入力値・時刻で代用しない。合成fixture値と実OS証拠を区別し、providerの資格なしに実値をqualifiedな証拠として生成しない |
+|スナップショット| 外部 `record_sha256` 等、またはrecord内部digest（§4） | exact bytes、scope/root/file identityの観測と束縛。hashは出所・権限・現在性を証明しない |
 
 JSON全体の候補はUTF-8 strict JSON、重複key/未知field拒否。外部exact-byte digest案なら空白・key順・末尾改行の違いも別bytesとして扱う。writerのkey順/改行を固定するか、token/identityの文字集合と上限、nullと欠落の拒否条件はschema承認時に決める。構文成功から実OS証拠の資格を推定しない。
 
 ## 2. process生成FILETIMEの表現を選ぶ
 
-[GetProcessTimes](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocesstimes)は生成時刻をFILETIMEとして返す。[FILETIME](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime)は1601年起点のUTC・100ns単位の64bit値を二つのDWORDで表す。以下はその値をJSONへ写す設計候補で、APIの別identity保証ではない。
+[GetProcessTimes](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocesstimes)は生成時刻をFILETIMEとして返す。[ファイル時間](https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime)は1601年起点のUTC・100ns単位の64bit値を二つのDWORDで表す。以下はその値をJSONへ写す設計候補で、APIの別identity保証ではない。
 
-| 選択 | field/typeとserialization候補 | 正規化・範囲・比較 | tradeoff |
+| 選択 | field/typeとserialization候補 | 正規化・範囲・比較 |トレードオフ|
 | --- | --- | --- | --- |
-| F1: canonical decimal string | `process_created_filetime`: string、合成例 `"123456789"` | 符号/空白/先頭0なし。unsigned64上限 `18446744073709551615` はAPI表現由来。0や取得不能を有効証拠にしない。検証後の整数値をexact比較 | JSON consumerの浮動小数点化を避けやすいが、文字列の数値範囲検査が必要 |
-| F2: hi/lo pair | `process_created_filetime`: object、`high` / `low`: uint32 | 各0〜4294967295、bool不可。結合した64bit値をexact比較し、両方0等unknownを証拠にしない | API構造に近いが、片側欠落・型違い・結合順を検査する必要 |
-| F3: UTC日時string | `process_created_utc`: string | UTC正規形・100nsを失わない桁数・暦日/範囲・元FILETIMEとの可逆変換を別途確定 | 人が読める反面、日時libraryの範囲・丸め・比較差に注意。通常のmicrosecond精度datetime経由で100ns精度が失われ得る点は表現/実装上の推論 |
+|F1: 正規の 10 進数文字列| `process_created_filetime`: string、合成例 `"123456789"` | 符号/空白/先頭0なし。unsigned64上限 `18446744073709551615` はAPI表現由来。0や取得不能を有効証拠にしない。検証後の整数値をexact比較 | JSON consumerの浮動小数点化を避けやすいが、文字列の数値範囲検査が必要 |
+|F2: ハイ/ロー ペア|`process_created_filetime`: オブジェクト、`high` / `low`: uint32| 各0〜4294967295、bool不可。結合した64bit値をexact比較し、両方0等unknownを証拠にしない | API構造に近いが、片側欠落・型違い・結合順を検査する必要 |
+| F3: UTC日時string |`process_created_utc`: 文字列| UTC正規形・100nsを失わない桁数・暦日/範囲・元FILETIMEとの可逆変換を別途確定 | 人が読める反面、日時libraryの範囲・丸め・比較差に注意。通常のmicrosecond精度datetime経由で100ns精度が失われ得る点は表現/実装上の推論 |
 
 64bit値をJSON numberへ直に置く別案はconsumerが全値をexact保持できるか未確認で、採用時にはPS/Python双方の精度試験が必要。表現が一致しても、machine/bootの資格やrecordとの対応を証明したことにはならない。
 
@@ -37,10 +37,10 @@ JSON全体の候補はUTF-8 strict JSON、重複key/未知field拒否。外部ex
 
 | 一次資料の事実 | provider候補への含意・未確認 |
 | --- | --- |
-| [OpenProcess](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocess)は権限指定でhandleを開く。[process handles](https://learn.microsoft.com/en-us/windows/win32/procthread/process-handles-and-identifiers)はhandleとPIDの寿命を区別する | 同じhandleで生成identityをqueryし、同じobjectのwait結果を観測する候補。native handle数値を永続identityとしてrecordへ保存しない |
-| queryとwaitには対応する権限が必要。[process rights](https://learn.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights) | 必要最小限の権限・handle寿命を資格確認する。permission/query失敗、PID再利用、handleなしはunknown。対象process終了/制御や昇格を追加しない。close失敗も固定理由で拒否 |
+| [OpenProcess](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocess)は権限指定でhandleを開く。[プロセス ハンドル](https://learn.microsoft.com/en-us/windows/win32/procthread/process-handles-and-identifiers)はhandleとPIDの寿命を区別する | 同じhandleで生成identityをqueryし、同じobjectのwait結果を観測する候補。native handle数値を永続identityとしてrecordへ保存しない |
+| queryとwaitには対応する権限が必要。[プロセス権限](https://learn.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights) | 必要最小限の権限・handle寿命を資格確認する。permission/query失敗、PID再利用、handleなしはunknown。対象process終了/制御や昇格を追加しない。close失敗も固定理由で拒否 |
 | [CIM_OperatingSystem](https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/cim-operatingsystem)のLastBootUpTimeは起動日時 | uniqueな永続boot IDとする保証は確認できない。WMI時刻をそのままboot証明にしない |
-| [About time](https://learn.microsoft.com/en-us/windows/win32/sysinfo/about-time)は時刻・経過時間を扱う | uptime/時計だけで永続boot identityを得たとしない。host名も同様に代用不可 |
+| [そろそろ時間です](https://learn.microsoft.com/en-us/windows/win32/sysinfo/about-time)は時刻・経過時間を扱う | uptime/時計だけで永続boot identityを得たとしない。host名も同様に代用不可 |
 
 公式資料の確認日：2026-10-24 JST（analystの一次調査）。same-handleの組合せは設計候補であり、実provider未実装。**machine/bootを結ぶ適格persistent providerは未特定**である。formalなfield/type/source/serialization契約が未確定の間は、未決を実装で埋める規範schema/validatorを保留する。契約確定後の純粋な構造検証と、実OS providerの資格確認は分離する（§5）。実OS接続、qualifiedなmachine/boot・provenance・live観測に基づくv2生成/回復は、独立した資格確認と対象限定検証のゲートを満たすまで停止する。provider未選定のままfieldを仮値で埋めたり、F1等の表現選択だけで実OS証拠をqualifiedにしたりしない。
 
@@ -58,9 +58,9 @@ JSON全体の候補はUTF-8 strict JSON、重複key/未知field拒否。外部ex
 | 判断 | 回答済み/残る選択 | 確定が必要な内容 |
 | --- | --- | --- |
 | process生成表現 | F1を選択済み。F2/F3は未採用 | field名、型、正規化、精度、範囲、0/null/欠落の拒否条件 |
-| scope/token | 個別条件を記入 / 保留 | trusted source、比較、秘密値形式と上限。現行v1値域の継承可否 |
-| machine/boot | provider候補の追加調査 / 保留 | 永続identityの出所・OS/再起動/複製時の意味・資格計画。適格provider未選定は維持 |
-| digest | B1を選択済み。B2は未採用 | digest対象、field名、serialization、格納位置、snapshotとの対応 |
+|スコープ/トークン| 個別条件を記入 / 保留 | trusted source、比較、秘密値形式と上限。現行v1値域の継承可否 |
+|マシン/ブート| provider候補の追加調査 / 保留 | 永続identityの出所・OS/再起動/複製時の意味・資格計画。適格provider未選定は維持 |
+|ダイジェスト| B1を選択済み。B2は未採用 | digest対象、field名、serialization、格納位置、snapshotとの対応 |
 | 全体field集合 | 表の候補を修正して記入 / 保留 | supported version、required/null/unknown、JSON正規化・上限 |
 
 v1保全/v2のみの既承認方針を再選択する欄ではない。F1/B1以外の残る契約は未承認であり、F1/B1の選択だけでは実装開始・実OS接続・回復を認可しない。

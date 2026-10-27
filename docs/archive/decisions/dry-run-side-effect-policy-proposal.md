@@ -34,7 +34,7 @@
 | confirmation budget、scheduler完了・missed-run記録 | 固定禁止 | 読取りのみ。予算消費・reset・完了更新なし | 同左 |
 | config/rootのbootstrap、directory作成、既存ACL/所有者/継承の変更・修復 | 固定禁止 | 実config未作成・信頼できるroot未確認なら作成せず停止 | 同左。診断先の準備やACL修復も別の承認済み導入手順で先に行う |
 | ローカル設定・元ログ・既存証拠の読取りとローカルhash計算 | 共通候補 | 役割・許可root・ACL等の読取り検証に成功した範囲だけ。入力不足・変更検出時は保留 | 同左 |
-| Drive `list_files` / `get_file_metadata` | 独立ゲート | mock/supplied snapshotのみ。OSD-05と認証副作用の受け入れ前はlive接続を許可しない | 同左。B選択だけでlive readを解禁しない |
+|ドライブ `list_files` / `get_file_metadata`| 独立ゲート | mock/supplied snapshotのみ。OSD-05と認証副作用の受け入れ前はlive接続を許可しない | 同左。B選択だけでlive readを解禁しない |
 | 診断専用mutexの取得・解放という一時的kernel効果 | 共通候補 | 検証済み名前・identityに限定し運用writerとの読取り競合を防ぐ設計を別途確認。record書込みなし | 同左。取得失敗・abandoned・所有不明なら停止し、回復しない |
 | credentialのrefresh・token store/cache更新・対話login | 固定禁止 | 書込みを誘発する認証なし。必要なら接続せず停止 | 同左。既存credentialの存在だけでは認可にならない |
 | IPC request/response等の一時ファイル・cleanup | **A採用** | 作成・変更・削除なし。ファイル不要の安全な経路が成立しなければ停止 | 未採用：検証済み`maintenanceLocal`下の専用診断領域に限り当該実行所有の一時物を作成し、その物だけcleanup。詳細は§3 |

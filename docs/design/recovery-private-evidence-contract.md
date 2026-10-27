@@ -1,7 +1,7 @@
 # private回復証拠の保存・検証契約
 
 状態: 非公開保全と当面自動削除なしの方針は承認済み。実保存・ACL設定・dispositionは未実装。
-根拠: [利用者回答](../archive/decisions/recovery-private-evidence-policy-proposal.md)。関連: [明示回復](explicit-recovery-command-design.md)、[owner v2](recovery-owner-evidence-v2-contract.md)。
+根拠: [利用者回答](../archive/decisions/recovery-private-evidence-policy-proposal.md)。関連: [明示回復](explicit-recovery-command-design.md)、[所有者 v2](recovery-owner-evidence-v2-contract.md)。
 
 ## 保存範囲と配置
 

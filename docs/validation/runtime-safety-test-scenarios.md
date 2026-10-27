@@ -25,7 +25,7 @@
 
 ## 3. 同期・コピー検証シナリオ
 
-| ID | 分類 | 初期条件／操作 | 期待結果・合格条件 |
+|ID| 分類 | 初期条件／操作 | 期待結果・合格条件 |
 |---|---|---|---|
 | SYNC-01 | 正常系・ステージング確認 | 元ファイルをステージング先へコピーし、コピー後の SHA-256 を計算する | 元とコピーが一致してステージング確認となる。クラウド現在内容確認・元不変確認・元削除まで済む前に移動完了とはしない |
 | SYNC-02 | 正常系・冪等性 | 同名の保存先が1件で内容が元と一致する | 再コピーを省き保存先を再利用。各元のQ5条件を確認してその元だけを削除し、個別結果を記録 |
@@ -42,7 +42,7 @@
 
 ## 4. 対象記録とファイル単位の完了条件シナリオ
 
-| ID | 分類 | 初期条件／操作 | 期待結果・合格条件 |
+|ID| 分類 | 初期条件／操作 | 期待結果・合格条件 |
 |---|---|---|---|
 | MAN-01 | 正常系 | 現在の対象cloudファイルと必要な対象記録が検証できる | 両PC期間完了の有無と独立に、当該ファイルのarchive処理をQ5条件の下で進める |
 | MAN-02 | PC-B未実行 | PC-B期間manifestが存在しない | それだけでA archiveを止めず、現在の適格cloudファイルを検証して処理する |
@@ -57,7 +57,7 @@
 
 ## 5. アーカイブ安全条件シナリオ
 
-| ID | 分類 | 初期条件／操作 | 期待結果・合格条件 |
+|ID| 分類 | 初期条件／操作 | 期待結果・合格条件 |
 |---|---|---|---|
 | ARC-01 | 正常系・Dry Run | PC-Aで現在cloud対象と必要な設定/記録を検査する | 予定を報告するが配置/削除/意図的ファイル書込みをしない。Bの期間manifest欠落だけで拒否しない |
 | ARC-02 | 正常系・移動完了 | Aがcloud元をarchive先へコピーまたは同内容再利用 | 保存先内容一致と削除直前のcloud元不変を確認し、そのcloud元だけ削除。元削除成功まで確認して移動完了を記録 |
@@ -71,7 +71,7 @@
 
 ## 6. Python アダプター連携シナリオ
 
-| ID | 分類 | 初期条件／操作 | 期待結果・合格条件 |
+|ID| 分類 | 初期条件／操作 | 期待結果・合格条件 |
 |---|---|---|---|
 | IPC-01 | 異常系 | Python の終了コードが0以外 | JSON の内容にかかわらず呼び出しを成功扱いにしない |
 | IPC-02 | 異常系 | stdout が空、JSON 不正、複数 JSON、JSON 以外の文字列を含む | 連携失敗として停止。結果を利用しない |
@@ -82,7 +82,7 @@
 
 ## 6.1 再試行・アップロード結果不明シナリオ（C-29）
 
-| ID | 分類 | 初期条件／操作 | 期待結果・合格条件 |
+|ID| 分類 | 初期条件／操作 | 期待結果・合格条件 |
 |---|---|---|---|
 | RETRY-01 | アダプター再試行制御 | 模擬APIが成功または失敗を返すアダプター呼び出しを行う | 1回のPythonアダプター呼び出しにつきAPI試行は厳密に1回。HTTPクライアント／ライブラリの暗黙の再試行も発生しない |
 | RETRY-02 | オーケストレーター再試行制御 | PowerShellに一時エラー、恒久エラー、検証失敗を順に注入する | PowerShellだけが再試行を制御し、初回込み最大4回・待機1/5/15分を守る。認証、権限、入力不正、検証失敗、競合は原因解消なしに再試行しない |
@@ -114,74 +114,80 @@
 4. 合成試験では2経路/Q5/役割の元削除と、対象外/不明/不一致/元変更時の拒否・保全を確認する。試験合格は実データ削除/本番適用の指示ではない。文書見直し中に削除コード/schemaや実環境操作を追加しない。
 
 
-## OSD-02 crash/concurrency test requirements — pending execution
+<a id="osd-02-crashconcurrency-test-requirements--pending-execution"></a>
+## OSD-02 クラッシュ/同時実行テストの要件 — 未確定 の実行
 
-- Inject crashes before/during temporary write, after flush/validation, before publication, and after publication; prove incomplete temp files are never authoritative and failed publication leaves prior content unchanged.
-- Race concurrent first publishers and concurrent updates; prove create-if-absent and compare-before-replace prevent overwrite.
-- Test named-mutex contention/failure, process termination, lock ownership-token mismatch, and stale-lock recovery. Age/PID alone must not authorize lock removal.
-- Preserve crash-left `running` manifest byte-for-byte; after verified owner recovery, create a new `run_id` with a fresh inventory; reconcile uncertain uploads before retry.
-- Test unique latest timestamp, equal maxima, malformed or identity-mismatched candidates, read/enumeration failure, and latest non-success blocking fallback to older success.
-- Use synthetic fixtures and temporary directories only. Evidence status: **not run / not yet evidenced**; no runtime acceptance is implied.
-
-
-## OSD-03 report-contract acceptance tests — approved design, execution pending
-
-1. Required fields, strict integer schema version, unsupported versions, no implicit migration, and absence of report_id.
-2. Canonical report identity tuple and filename agreement for PC/log type/run/schema version.
-3. Canonical relative manifest_ref and evidence_ref; exact bytes SHA-256; malformed digest, absolute/traversal path, identity mismatch, and stable-path content replacement all fail closed.
-4. R1-B: report period rows contain summaries only; counts recompute from the referenced manifest and B2 evidence; no duplicated per-target inventory is trusted from the report.
-5. Inventory digest/count mismatch; missing, extra, duplicate, or multiply assigned target; missing/duplicate period row; report/manifest/evidence identity mismatch; inconsistent error scope.
-6. R6-A: complete, incomplete, and indeterminate boundaries; indeterminate never becomes complete and these values never enter manifest v1 run-status enums.
-7. R4-A publication crash points, concurrent create, identical idempotent retry, conflicting retry, unsupported atomic primitive, mutex/lock ownership, and temp-file ownership cleanup. Orphan cleanup cannot rely on age alone.
-8. R5-A regeneration only from exact immutable manifest and B2 evidence; refuse if evidence is missing, corrupt, incomplete, or inconsistent; never rescan mutable source.
-9. R7-A local publication succeeds independently of Drive replication; replication failure preserves local report; cross-PC use is blocked until identity and content verification succeeds.
-10. UTC timestamp format/future tolerance, historical age, zero-work versus failed enumeration versus only-invalid filenames, known-period completion with unrelated run-scope errors, and all approved OSD-03 aggregation cases.
-11. Synthetic fixtures and temporary directories only. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion. Evidence status: **not run / not yet evidenced**.
+- インジェクトは一時書き込み前/一時書き込み中、フラッシュ/検証後、公開前、および公開後にクラッシュします。 未完了 一時ファイルが決して信頼できるものではなく、失敗した 公開では以前のコンテンツが変更されないことが証明されます。
+- 同時の最初のパブリッシャーと同時の更新を競合します。 未作成時だけ作成 と 置換前に比較 が上書きを防止することを証明します。
+- 名前付きミューテックス競合/失敗、プロセス終了、ロック所有権トークン 不一致、および古いロックの回復をテストします。経過時間/PID だけでロックの削除を許可してはなりません。
+- クラッシュレフト `running` マニフェストをバイト単位で保存します。 確認済み 所有者の回復後、新しいインベントリで新しい `run_id` を作成します。再試行する前に、不確実なアップロードを調整してください。
+- 固有の最新タイムスタンプ、等しい最大値、不正な形式または ID の不一致の候補、読み取り/列挙 失敗、および古い 成功 へのフォールバックをブロックする最新の非 成功 をテストします。
+- 合成フィクスチャと一時ディレクトリのみを使用してください。証拠ステータス: **未実行 / まだ証拠がありません**;実行時の受け入れは暗黙的には行われません。
 
 
-## OSD-03 executable schema implementation slice — PR #150 (2026-10-21)
+<a id="osd-03-report-contract-acceptance-tests--approved-design-execution-pending"></a>
+## OSD-03 レポート契約受諾テスト — 承認された設計、実行 未確定
 
-- Added `contracts/aggregation-report-v1.schema.json` as a strict Draft 2020-12 structural schema candidate for the approved R1–R7 report shape. It rejects unknown properties, `report_id`, unsupported/non-integer report schema versions, invalid enums/count types, non-UTC-Z timestamps, malformed lowercase SHA-256 values, and non-canonical relative paths.
-- Added schema-definition and synthetic structural-contract tests in `tests/test_contract_schemas.py`. They cover partial-failure and zero-work examples, all three period completion values, strict versioning, unknown fields, reference path/hash validation, timestamp form, enums/counts, and run-scope error shape.
-- These tests are authored but **not yet executed/evidenced** in this PR. CI must pass on the exact latest PR HEAD before merge. No runtime report reader/writer, cross-artifact digest verification, tuple/path binding, count recomputation, deterministic regeneration, atomic publication, lock integration, or Drive replication implementation is included in this slice.
-- The JSON Schema validates structure only. Cross-field and cross-artifact invariants remain mandatory fail-closed runtime checks; schema acceptance alone is not proof of report correctness or authorization for any side effect.
-- No manifest v1 fields, B2 evidence contract, A2 digest contract, or OSD-02 safety boundaries are changed. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion.
+1. 必須フィールド、厳密な整数スキーマのバージョン、サポートされていないバージョン、暗黙的な移行なし、report_id の欠如。
+2. PC/ログ タイプ/実行/スキーマ バージョンの正規レポート ID タプルとファイル名合意。
+3. 正規相対 manifest_ref および evidence_ref。正確なバイト SHA-256;不正な形式のダイジェスト、絶対パス/トラバーサル パス、同一性 不一致、および安定したパスのコンテンツ置換はすべてフェール クローズされます。
+4. R1-B: レポート期間の行には概要のみが含まれます。カウントは参照されたマニフェストと B2 証拠から再計算されます。ターゲットごとの重複したインベントリはレポートから信頼されません。
+5. 一覧ダイジェスト/カウント 不一致;割り当てられたターゲットが欠落している、余分である、重複している、または重複している。期間行が欠落または重複しています。レポート/マニフェスト/証拠の同一性 不一致;一貫性のないエラー範囲。
+6. R6-A: 完了、未完了、および 確定不能 の境界。 確定不能 が 完了 になることはなく、これらの値がマニフェスト v1 の実行ステータス列挙型に入力されることはありません。
+7. R4-A パブリケーションのクラッシュ ポイント、同時作成、同一冪等再試行、競合再試行、サポートされていないアトミック プリミティブ、ミューテックス/ロック所有権、および一時ファイル所有権のクリーンアップ。孤立ファイルの浄化は経過時間だけに頼ることはできません。
+8. R5-A 正確な不変マニフェストと B2 証拠からのみ再生成。証拠が欠落している、破損している、未完了、または矛盾している場合は拒否します。可変ソースを決して再スキャンしないでください。
+9. R7-A ローカル パブリケーションは、ドライブのレプリケーションとは関係なく成功します。レプリケーション 失敗 はローカル レポートを保存します。 ID とコンテンツの検証が成功するまで、PC 間での使用はブロックされます。
+10. UTC タイムスタンプ形式/将来の許容範囲、過去の経過期間、ゼロワーク対 失敗した 列挙と無効なファイル名のみ、無関係な実行スコープ エラーを伴う既知の期間の完了、およびすべての承認された OSD-03 集計ケース。
+11. 合成フィクスチャと一時ディレクトリのみ。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。証拠ステータス: **未実行 / まだ証拠がありません**。
 
 
-## PR #151 status note — OSD-03 internal consistency slice (2026-10-22)
+<a id="osd-03-executable-schema-implementation-slice--pr-150-2026-10-21"></a>
+## OSD-03 実行可能スキーマ実装スライス — PR #150 (2026-10-21)
 
-PR #150 merged the structural aggregation-report v1 JSON Schema and its synthetic schema tests; PR-head and post-merge CI passed. PR #151 adds a report-local PowerShell consistency validator and synthetic tests for period uniqueness, safe reference paths/digest shape, summary count reconciliation, completion consistency, run-scope error count, and zero-work/success consistency. Until PR #151 CI passes on its exact latest HEAD, these tests are authored but not yet verified. This slice does not validate exact referenced manifest/evidence bytes, B2/A2 integrity, full target-set completeness, cross-artifact identity, deterministic regeneration, atomic publication, lock ownership, or Drive replication. P0 acceptance remains open.
+- 承認された R1 ～ R7 レポート形式の厳密なドラフト 2020-12 構造スキーマ候補として `contracts/aggregation-report-v1.schema.json` を追加しました。 不明 プロパティ、`report_id`、サポートされていない/非整数のレポート スキーマ バージョン、無効な列挙型/カウント タイプ、非 UTC-Z タイムスタンプ、不正な形式の小文字 SHA-256 値、および非正規相対パスは拒否されます。
+- `tests/test_contract_schemas.py` にスキーマ定義と合成構造契約テストを追加しました。部分的な 失敗 およびゼロ作業の例、3 つの期間完了値すべて、厳密なバージョン管理、不明 フィールド、参照パス/ハッシュ検証、タイムスタンプ形式、列挙型/カウント、および実行スコープのエラー形状をカバーしています。
+- これらのテストは作成されていますが、この PR では **まだ実行も証拠化もされていません** が証明されています。 CI は、マージ前に正確な最新の PR HEAD を渡す必要があります。このスライスには、ランタイム レポート リーダー/ライター、クロス 成果物 ダイジェスト検証、タプル/パス バインディング、カウント再計算、確定的再生成、アトミック パブリケーション、ロック統合、またはドライブ レプリケーションの実装は含まれません。
+- JSON Schema は構造のみを検証します。クロスフィールドおよびクロス成果物の不変条件は引き続き必須のフェールクローズ実行時チェックです。スキーマの受け入れだけでは、レポートの正確性や副作用の承認の証拠にはなりません。
+- マニフェスト v1 フィールド、B2 証拠コントラクト、A2 ダイジェスト コントラクト、または OSD-02 安全境界は変更されません。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。
 
-## OSD-03 status correction — 2026-10-22
 
-PR #151 is merged at `e93f0ea552496831c69efb1e8dd2818ac86f4e5b`. Validate and Package Validation passed on exact PR HEAD `846cfdbb1ce76f3ec1363460c4f0576b7c10a2b6` (runs `39635268289`, `39635268115`) and on the post-merge commit (runs `39636402422`, `39636402408`). The report-local consistency validator is now implemented and CI-verified within its stated scope. PR #152 adds a narrow exact-byte reference verifier; its tests are not yet CI-verified. Neither PR implements full manifest/B2 schema validation, identity binding, A2 digest recomputation, exhaustive target/count reconciliation, deterministic report regeneration, atomic publication, lock recovery, or Drive replication. P0 acceptance remains open.
+<a id="pr-151-status-note--osd-03-internal-consistency-slice-2026-10-22"></a>
+## PR #151 ステータスメモ — OSD-03 内部整合性スライス (2026-10-22)
 
-## 9. Lock ownership and crash-recovery acceptance IDs (OSD-02; pending execution)
+PR #150 は、構造集約レポート v1 JSON Schema とその合成スキーマ テストをマージしました。 PR ヘッドとマージ後の CI が合格しました。 PR #151 は、レポートローカルの PowerShell 一貫性検証機能と、期間の一意性、安全な参照パス/ダイジェスト形状、要約数の調整、完了の一貫性、実行スコープのエラー数、およびゼロ作業/成功 の一貫性についての合成テストを追加します。 PR #151 CI がその正確な最新の HEAD を渡すまで、これらのテストは作成されますが、まだ 確認済み は作成されていません。このスライスは、正確に参照されるマニフェスト/証拠バイト、B2/A2 整合性、完全なターゲット セットの完全性、クロス成果物 ID、決定論的再生成、アトミック パブリケーション、ロック所有権、またはドライブ レプリケーションを検証しません。 P0 の受付は引き続き受け付けております。
 
-The normative acceptance boundary for the next lock/recovery implementation slice is `docs/validation/lock-recovery-acceptance-gate.md`. The following IDs are traceability anchors; they are test requirements, not evidence that tests have run.
+<a id="osd-03-status-correction--2026-10-22"></a>
+## OSD-03 ステータス修正 — 2026-10-22
 
-| ID | Scenario | Required result |
+PR #151 は `e93f0ea552496831c69efb1e8dd2818ac86f4e5b` にマージされます。検証およびパッケージ検証は、正確な PR HEAD `846cfdbb1ce76f3ec1363460c4f0576b7c10a2b6` (`39635268289`、`39635268115` を実行) およびマージ後のコミット (`39636402422`、`39636402408` を実行) に渡されます。レポートローカル整合性検証機能が実装され、CI ～ 確認済み はその指定された範囲内に収まります。 PR #152 は、狭い正確なバイト参照検証機能を追加します。そのテストはまだ CI-確認済み ではありません。どちらの PR も、完全なマニフェスト/B2 スキーマ検証、ID バインディング、A2 ダイジェスト再計算、徹底的なターゲット/カウント調整、決定論的レポート再生成、アトミック パブリケーション、ロック回復、またはドライブ レプリケーションを実装していません。 P0 の受付は引き続き受け付けております。
+
+<a id="9-lock-ownership-and-crash-recovery-acceptance-ids-osd-02-pending-execution"></a>
+## 9. ロックの所有権とクラッシュ回復受付 ID (OSD-02; 未確定 実行)
+
+次のロック/リカバリ実装スライスの標準的な許容境界は `docs/validation/lock-recovery-acceptance-gate.md` です。次の ID はトレーサビリティ アンカーです。これらはテスト要件であり、テストが実行されたことを示す証拠ではありません。
+
+|ID|シナリオ|必要な結果|
 |---|---|---|
-| LOCK-01 | First acquisition | One owner obtains the named mutex and exclusive token record. |
-| LOCK-02 | Concurrent acquisition | Wait no more than 60 seconds; if still held, exit before any side effect. |
-| LOCK-03 | Ownership token mismatch | Do not update or remove another owner's record. |
-| LOCK-04 | Old timestamp with live owner | Age alone does not permit takeover. |
-| LOCK-05 | PID reuse/dead PID ambiguity | PID alone is not ownership proof. |
-| LOCK-06 | Abandoned mutex and valid record | Run explicit owner/record/prior-state validation before recovery. |
-| LOCK-07 | Abandoned mutex with malformed/mismatched record | Fail closed and preserve lock record and artifacts. |
-| LOCK-08 | Existing lock record | Exclusive create fails without overwrite. |
-| LOCK-09 | Mutex unavailable or OS error | No inventory, manifest, staging, Drive, archive, or delete side effect. |
-| LOCK-10 | Normal release | Remove only matching token record and release mutex safely. |
-| REC-01 | Crash before artifact publication | Temporary artifact is not authoritative. |
-| REC-02 | Crash after running manifest publication | Keep published manifest complete and byte-for-byte unchanged. |
-| REC-03 | Crash during lock-record update | Partial/malformed record is never trusted. |
-| REC-04 | New run after validated recovery | Use new run_id, fresh inventory/states, and preserve old manifest. |
-| REC-05 | Unknown upload reconciles to matching content | Verify current content and avoid duplicate upload. |
-| REC-06 | Drive listing incomplete/ambiguous | Keep outcome unknown; do not retry or clean up. |
-| REC-07 | Equal latest timestamps or identity mismatch | No arbitrary winner and no fallback to older success. |
-| REC-08 | Recovery interrupted again | Fail closed without ownership theft or data loss. |
+| LOCK-01 |最初の取得|1 人の所有者が名前付きミューテックスと排他的トークン レコードを取得します。|
+| LOCK-02 |同時取得|60 秒以内に待機してください。まだ保持されている場合は、副作用が発生する前に終了してください。|
+| LOCK-03 |所有権トークンの不一致|他の所有者の記録を更新または削除しないでください。|
+| LOCK-04 |現在の所有者の古いタイムスタンプ|経過時間だけでは乗っ取りは許されない。|
+| LOCK-05 |PID の再利用/デッド PID のあいまいさ|PID だけでは所有権の証明にはなりません。|
+| LOCK-06 |放棄されたミューテックスと有効なレコード|リカバリの前に、明示的な所有者/レコード/以前の状態の検証を実行します。|
+| LOCK-07 |不正な形式または不一致のレコードを持つ放棄されたミューテックス|フェールクローズし、ロックレコードと成果物を保存します。|
+| LOCK-08 |既存のロック レコード|排他的作成は上書きされずに失敗します。|
+| LOCK-09 |ミューテックスを使用できないか、OS エラーが発生しました|インベントリ、マニフェスト、ステージング、ドライブ、アーカイブ、または削除の副作用はありません。|
+| LOCK-10 |通常リリース|一致するトークン レコードのみを削除し、ミューテックスを安全に解放します。|
+| REC-01 |成果物の公開前にクラッシュする|一時的な成果物には権威がありません。|
+| REC-02 |マニフェストの公開を実行するとクラッシュする|公開されたマニフェストを完全にし、バイト単位で変更しないようにします。|
+| REC-03 |ロックレコードの更新中にクラッシュしました|部分的または不正な記録は決して信頼されません。|
+| REC-04 |検証されたリカバリ後の新しい実行|新しい run_id、新しいインベントリ/状態を使用し、古いマニフェストを保存します。|
+| REC-05 |不明なアップロードは一致するコンテンツと一致します|現在のコンテンツを確認し、重複したアップロードを避けてください。|
+| REC-06 |ドライブのリストが不完全/曖昧です|結果を不明のままにしておきます。再試行またはクリーンアップしないでください。|
+| REC-07 |最新のタイムスタンプが等しい、または ID が一致しない|恣意的な勝者はなく、以前の成功へのフォールバックもありません。|
+| REC-08 |回復が再び中断されました|所有権の盗難やデータの損失を伴わずにフェールクローズされます。|
 
-All cases require synthetic fixtures, injected process/clock state, and explicit assertions about source/archive/Drive preservation. Status: not run; no runtime acceptance is implied.
+すべてのケースで、合成フィクスチャ、挿入されたプロセス/クロック状態、およびソース/アーカイブ/ドライブの保存に関する明示的なアサーションが必要です。ステータス: 実行されていません。実行時の受け入れは暗黙的には行われません。
 
 ## 10. OSD-04 Dry Run提案用受け入れfixture計画（未実装・未実行）
 

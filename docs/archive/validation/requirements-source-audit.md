@@ -1,1087 +1,1165 @@
-# Requirements Source Coverage Audit
+<a id="requirements-source-coverage-audit"></a>
+# 要件ソース カバレッジ監査
 
 > 履歴/検討資料。承認済みの選択・未決候補・当時の監査根拠を含み、この移動は撤回/失効を意味しない。現在の基準は[正式要件](../../requirements/log-move-requirements.md)と[現行決定台帳](../../decisions/decision-register-c18-c32.md)。当時の対象/証拠を現在のruntime受け入れへ拡張しない。
 
 > 2026-10-27追記: 以下の監査結果は記載された当時の対象/基準の証拠として保持する。[現行要件台帳](../../requirements/requirements-traceability.md)はQ1〜Q10と平坦化を反映済みで、全面削除禁止・両PC期間待ち・自動suffixの旧基準を現在へ復活させない。新しい移動契約に対するsource→要件→実装→試験→証拠の再照合は未完で、本履歴だけでは受け入れを満たさない。
 
-- Status: In progress; normative source-clause baseline remains PR #25. Latest merged tracked-tree review baseline: PR #123 merge `6b543930f9a9805f50693bd6333a8278c416fe05` (2026-10-21). PR #117–#123 are documentation/handoff-only and add no runtime implementation or acceptance evidence. Existing clause-to-requirement mappings still require completeness review against every normative bullet/table row, executable test, and objective result. Documentation/schema/package/helper checks are not runtime acceptance. Runtime staging, Drive listing/reconciliation, retry orchestration, locking, manifest, Dry Run, security logging and IPC evidence remains absent.
-- Normative source-clause baseline: `097e962a1636419ceb428182da2a6a91f6380273` (PR #25 merge).
-- Latest tracked-tree/artifact review baseline: PR #123 merge `6b543930f9a9805f50693bd6333a8278c416fe05`. PR #123 is docs-only and adds no runtime implementation or executable runtime evidence. PR #119 corrected stale descriptions of package-builder coverage; no runtime or executable test code changed. `scripts/SyncLogs.ps1` remains a sentinel with no operational sync implementation; `scripts/ArchiveLogs.ps1`, staging metadata schema/reader/writer, operational manifest schema, runtime lock helper, Dry Run orchestrator, Python Drive adapter, and runtime IPC/security-logging harness remain absent. Package-builder, documentation, schema-shape, helper, and bounded static-audit evidence do not establish runtime acceptance. P0-006, P0-010, and P0-012 remain open.
-- Related register: `docs/requirements/requirements-traceability.md` on `main`.
-- Purpose: identify whether each normative source section, implementation artifact, test artifact, and configuration/schema artifact is represented by requirement IDs.
-- Important: this audit is a static document/repository review. It does not prove runtime behavior, execute scripts, or close P0-010.
+- ステータス: 進行中。規範的なソース条項のベースラインは PR #25 のままです。最新のマージされた追跡ツリー レビュー ベースライン: PR #123 マージ `6b543930f9a9805f50693bd6333a8278c416fe05` (2026-10-21)。 PR #117–#123 はドキュメント/ハンドオフのみであり、実行時の実装や受け入れの証拠は追加されません。既存の条項と要件のマッピングでは、依然として、すべての規範的な箇条書き/表の行、実行可能なテスト、および客観的な結果に対する完全性のレビューが必要です。ドキュメント/スキーマ/パッケージ/ヘルパーのチェックは実行時に受け入れられません。ランタイム ステージング、ドライブのリスト/調整、再試行オーケストレーション、ロック、マニフェスト、Dry Run、セキュリティ ログ、および IPC の証拠は存在しないままです。
+- 規範的なソース条項ベースライン: `097e962a1636419ceb428182da2a6a91f6380273` (PR #25 マージ)。
+- 最新の追跡ツリー/成果物 レビュー ベースライン: PR #123 を `6b543930f9a9805f50693bd6333a8278c416fe05` とマージします。 PR #123 はドキュメントのみであり、ランタイム実装や実行可能ランタイムの証拠は追加されません。 PR #119 パッケージ ビルダーの適用範囲に関する古い説明を修正しました。ランタイムまたは実行可能テスト コードは変更されていません。 `scripts/SyncLogs.ps1` は、運用上の同期実装を持たない監視員のままです。 `scripts/ArchiveLogs.ps1`、ステージング メタデータ スキーマ/リーダー/ライター、操作マニフェスト スキーマ、ランタイム ロック ヘルパー、Dry Run オーケストレーター、Python ドライブ アダプター、およびランタイム IPC/セキュリティ ログ ハーネスは存在しません。パッケージビルダー、ドキュメント、スキーマ形状、ヘルパー、および限定された静的監査の証拠は、実行時の受け入れを確立しません。 P0-006、P0-010、および P0-012 は開いたままになります。
+- 関連レジスタ: `main` の `docs/requirements/requirements-traceability.md`。
+- 目的: 各規範的なソース セクション、実装成果物、テスト成果物、および構成/スキーマ成果物が要件 ID で表されているかどうかを識別します。
+- 重要: この監査は静的なドキュメント/リポジトリのレビューです。実行時の動作、スクリプトの実行、または P0-010 の終了を証明するものではありません。
 
-## 1. Coverage classifications
+<a id="1-coverage-classifications"></a>
+## 1. 補償範囲の分類
 
-| Classification | Meaning |
+|分類|意味|
 |---|---|
-| Mapped | Source section has one or more clear requirement IDs in the traceability register. |
-| Partial | Some requirements are mapped, but the section contains additional distinct acceptance, security, or operational requirements needing separate IDs or sharper wording. |
-| Unmapped | No sufficiently specific requirement ID is currently linked to the source content. |
-| Artifact-only | File is a test, implementation, schema, or configuration artifact. Its contract/coverage must be linked even if it is not itself a prose specification. |
-| Not applicable | Informational content without normative requirements; rationale recorded. |
+|マップされました|ソース セクションには、トレーサビリティ レジスタに 1 つ以上の明確な要件 ID があります。|
+|部分的|一部の要件はマッピングされていますが、このセクションには、個別の ID またはより明確な表現を必要とする、追加の個別の受け入れ要件、セキュリティ要件、または運用要件が含まれています。|
+|マップされていません|現在、十分に具体的な要件 ID がソース コンテンツにリンクされていません。|
+|成果物のみ|ファイルは、テスト、実装、スキーマ、または構成成果物です。それ自体が散文仕様でない場合でも、その契約/範囲はリンクされなければなりません。|
+|該当なし|規範要件のない情報コンテンツ。根拠が記録されています。|
 
-## 2. Source-section coverage matrix
+<a id="2-source-section-coverage-matrix"></a>
+## 2. ソースセクションのカバレッジマトリックス
 
-### 2.1 Normative specification documents
+<a id="21-normative-specification-documents"></a>
+### 2.1 規格仕様書
 
-| Source and section | Coverage | Current ID mapping | Audit finding / action |
+|ソースとセクション|適用範囲|現在の ID マッピング|監査結果/アクション|
 |---|---|---|---|
-| `README.md` — Purpose; PC roles and paths | Mapped | EOLM-CFG-001–004, EOLM-CFG-006–007, EOLM-ARC-001, EOLM-ARC-006, EOLM-ENV-005 | PC-A/PC-B role, path validation, entry-point and archive-role requirements have IDs. `Config/PC-A.example.json` and `PC-B.example.json` match the README paths; PC-A `allowArchive: false` is intentionally non-operational and PC-B omits the field. Runtime role enforcement remains unimplemented. |
-| `README.md` — Safety rules | Mapped | EOLM-SAF-001–005, EOLM-SAF-006, EOLM-DRV-004–006, EOLM-ENV-004–005, EOLM-SEC-001, EOLM-OPS-005 | No-delete, fail-closed, cloud confirmation, local execution, repository hygiene, and secret/log redaction clauses have IDs. Runtime verification remains incomplete. |
-| `README.md` — Repository structure and development procedure | Mapped/partial | EOLM-REL-001–003, EOLM-REL-005, EOLM-REL-009, EOLM-TST-001, EOLM-TST-007–008 | PR purpose/scope/test/safety review and CI gates map to existing release/evidence rules; VERSION/CHANGELOG release-update rule is now EOLM-REL-009. Human review procedure itself is not automated. |
-| `README.md` — Initial inventory and restore | Mapped | EOLM-SYN-006–009, EOLM-SAF-002 | Separation from operational manifests, name/size/SHA-256 comparison, Dry Run review, holding ambiguous files, and the non-equivalence of inventory completion to sync/archive success are mapped. Inventory tooling and runtime gates remain unimplemented; no separate report-output requirement is stated in the source. |
-| `README.md` — Release package | Mapped/partial | EOLM-ENV-004, EOLM-REL-001–007, EOLM-REL-009 | Allowlist/exclusions, non-deployable review marker, deployability, one-way distribution, checksum/pointer ordering, manual deployment, and VERSION/CHANGELOG release-update rule are mapped. Folder/access/auth/tag/retention decisions remain deferred under C-27; package runtime entry points are incomplete. |
-| `README.md` — Version/changelog and current constraints | Mapped | EOLM-ENV-001, EOLM-REL-002, EOLM-REL-009, EOLM-TST-007 | Version/changelog release updates map to EOLM-REL-009; current-constraints statements are consistent with the explicit no-runtime-completion evidence rule. Automated consistency validation is not implemented. |
-| `docs/decisions/decision-register-c18-c32.md` — C-18/C-29 retry ownership | Mapped | EOLM-DRV-001–003, EOLM-TST-004 | One adapter attempt, PowerShell-owned bounded retry, and Drive-state reconciliation before retry map to IDs. A deterministic test proving no HTTP-client/library retry remains missing. |
-| Same — C-19/C-22 deletion exclusion and test scope | Mapped | EOLM-CFG-005, EOLM-SAF-001–006, EOLM-TST-004–006, EOLM-TST-009 | The deletion exclusion and listed safety test domains have requirement IDs. Most runtime IPC/config/logging/lock/retry tests remain unimplemented; mapping does not mean coverage passed. |
-| Same — C-20/C-21 entry points, roles, configuration | Mapped | EOLM-ENV-001–003, EOLM-CFG-001–007, EOLM-ARC-001, EOLM-ARC-006, EOLM-TST-006 | Official entry points, runtime version guard/order, role-specific configuration, canonical path validation and PC-B archive exclusion map to IDs. Official entry points and role enforcement are absent; canonical `BattleLog` casing is specified in filename/path rules but still needs runtime assertion. |
-| Same — C-23 OAuth scope | Mapped/blocked | EOLM-DRV-007 | Minimum validated OAuth scope is identified; production validation against actual My Drive folders is an explicit deferred gate, not completed evidence. |
-| Same — C-24 scheduler | Mapped | EOLM-LCK-004, EOLM-OPS-001–003 | Monthly/first-start scheduling, staggered times, hourly bounded PC-B checks, and outcome logging map to IDs. Scheduler times remain deferred and Task Scheduler setup is absent. |
-| Same — C-25 filename patterns | Mapped | EOLM-FIL-001–005, EOLM-FIL-009 | Anchored patterns, strict invariant-culture date parsing, invalid-name behavior, run status and filename-date period selection map to IDs. Helper tests exist; some edge assertions and runtime enumeration remain open. |
-| Same — C-26 manifest schema | Mapped/blocked | EOLM-MAN-001–012, EOLM-ARC-002, EOLM-ARC-005 | Manifest location/identity/run correlation/status/transitions/atomic write/latest-state gate/schema validation/cloud re-verification/freshness are individually represented. EOLM-MAN-011 policy shape is approved; numeric freshness/future-time tolerances, exact applicability, and clock-sync/monitoring expectations remain unresolved; manifest runtime remains unimplemented. |
-| Same — C-27 distribution decisions | Mapped/blocked | EOLM-REL-004–009 | One-way distribution, checksum/pointer ordering, manual deployment, rollback preservation, and VERSION/CHANGELOG release-update rule have IDs. Folder/access model, GitHub Actions auth, tag/version/approval lifecycle and old-package retention remain explicitly deferred decisions; do not infer values or mark distribution implemented. |
-| Same — C-28 archive gate | Mapped | EOLM-MAN-007, EOLM-MAN-010–011, EOLM-ARC-001–005, EOLM-SAF-003, EOLM-TST-010 | Explicit PC-A permission, valid/current peer manifests, latest-manifest semantics, cloud re-verification, copy/hash/no-delete, and fail-closed handling map to IDs. Scenario mapping is in §3.1/§3.10; runtime tests are not implemented and freshness remains blocked. |
-| Same — C-30 implementation phases | Mapped/partial | EOLM-SAF-001–006, EOLM-REL-002–003, EOLM-TST-007–010 | Phase separation, no-delete invariant, review-only package constraints and evidence rules map to IDs. Phase 0–8 acceptance matrix is in §4.2; runtime implementation and objective acceptance evidence remain incomplete. |
-| Same — C-31 retention and naming | Mapped | EOLM-FIL-001–009, EOLM-TST-003 | Sync/archive cutoffs and filename-date basis map to IDs. PR #31 adds case-sensitive extension and invariant-culture helper assertions (Validate #39376077352 and Package Validation #39376077340 succeeded). PR #34 adds explicit February 28/29, April 30 and June 30 helper cutoff assertions with inclusive/exclusive checks; filename/LastWriteTime disagreement and mixed-directory runtime selection remain open. |
-| Same — C-32 initial inventory | Mapped | EOLM-SYN-006–009 | Inventory separation, comparison keys, Dry Run review, holding ambiguous items, and prohibition on treating inventory completion as operational success map to IDs. Inventory tool/reporting behavior has no runtime implementation; no report format requirement is stated by C-32 itself. |
-| `docs/design/filename-and-period-selection.md` §1–2 | Mapped, clause-reconciled | EOLM-FIL-001–005, EOLM-TST-003 | Clause review: §2 BattleLog pattern → FIL-001; ErrorReport pattern → FIL-002; strict `yyyyMMdd`/InvariantCulture date parse → FIL-003; invalid/unclassifiable filename with no `LastWriteTime` fallback → FIL-004; invalid relevant file prevents full-success status → FIL-005. `Test-LogFunctions.ps1` asserts both patterns, malformed/impossible dates, leap day, `.TXT` rejection for both types, and `th-TH` culture independence (Validate #44). The helper has no filesystem timestamp input, so fallback prevention is structural at helper level, not an orchestration test. Mixed valid/invalid directory handling and run-status proof remain unimplemented. |
-| Same §3–4 | Mapped, clause-reconciled | EOLM-FIL-006–009, EOLM-ARC-001–005 | §3 sync cutoffs and backlog rule map to FIL-006–008; §4 archive cutoffs and PC-A-only copy/verify/record/no-delete behavior map to FIL-007–008 and ARC-001–005. `Test-LogFunctions.ps1` verifies October 2026 cutoffs, inclusive last-eligible/exclusive next-date cases, January rollover, historical backlog eligibility, and February 28/29 plus April/June month-end cutoffs (Validate #44). These are helper-level assertions only: they do not enumerate mixed directories or prove every eligible backlog period is processed; archive operation/gating is not implemented. |
-| Same §5 | Mapped | EOLM-FIL-007–008, EOLM-TST-003 | Boundary examples map to test IDs. |
-| Same §6–7 | Partial, clause-reconciled | EOLM-FIL-004–005, EOLM-SAF-002–005, EOLM-TST-003 | §6 maps invalid-name/no-fallback to FIL-004, collision/no-overwrite to SAF-005, and no source mutation during selection/Dry Run to SAF-002/006. §7 maps unclassifiable or invalid-date validation errors and the prohibition on full-success status to FIL-004/005; valid independent files may continue, but must not erase the error. OSD-03 remains blocked for exhaustive mixed file/run/period aggregation; no runtime enumeration, run manifest, or mixed-valid/invalid completion test exists. |
-| `docs/design/staging-file-lifecycle.md` §2 | Mapped/partial | EOLM-ENV-001–003, EOLM-DRV-001–002, EOLM-CFG-002–003 | The example names `SyncLogs.ps1` and is explicitly illustrative: the tracked file is only a sentinel, and no batch launcher or operational sync logic exists. Runtime version enforcement before file processing remains unimplemented. |
-| Same §3–4 | Mapped | EOLM-STG-001–008 | Staging location, create-new, metadata-first, target freeze and source re-hash are represented. |
-| Same §5 | Mapped | EOLM-STG-009–010 | Confirm exact reserve formula uses remaining target bytes per specification and test decimal 100,000,000-byte reserve. |
-| Same §6–7 | Mapped/partial | EOLM-REQ-001, EOLM-STG-003, EOLM-STG-006, EOLM-STG-011–012, EOLM-DRV-001–006, EOLM-DRV-010, EOLM-MAN-004–008, EOLM-MAN-012 | OSD-02 tracks the incomplete normative state-transition table; OSD-03 tracks mixed verified/failed/unknown run-status aggregation. IDs exist, but both specification decisions remain blocked; do not infer transitions or aggregation. |
-| Same §8–10 | Mapped/blocked | EOLM-MAN-001–012, EOLM-LCK-001–004, EOLM-OPS-003 | OSD-02 covers schema/state-transition completeness; OSD-03 covers status aggregation. EOLM-MAN-011 numeric freshness/future-time tolerance and applicability remain blocked; do not implement freshness-dependent archive gating before approval. |
-| Same §9, §11–12 | Mapped/partial | EOLM-STG-007–008, EOLM-SAF-001–006, EOLM-TST-005–007 | OSD-04 tracks the unresolved Dry Run side-effect boundary. Residual-artifact behavior is specified, but runtime cleanup and before/after no-mutation tests are absent. |
-| `docs/design/powershell-python-contract.md` §1–2 | Mapped | EOLM-DRV-001–008, EOLM-DRV-014, EOLM-CFG-001, EOLM-SAF-001–006, EOLM-SEC-001, EOLM-MAN-012 | Sole PowerShell orchestration, allowlisted Python adapter, fail-closed responses, version rejection, retry ownership, cloud-state verification, credential source and secret redaction have IDs. Runtime implementation and contract tests remain absent. |
-| Same §3–4 | Mapped | EOLM-DRV-009–011, EOLM-DRV-014–016, EOLM-CFG-006–007, EOLM-SAF-002 | Four-operation allowlist, pagination, ambiguity handling, request validation, absolute/allowed-root paths, per-run IPC-file security/lifecycle and Dry Run non-write behavior have IDs. No runtime adapter exists to prove them. |
-| Same §5–6 | Mapped | EOLM-DRV-012–013, EOLM-SEC-001, EOLM-TST-004 | Single UTF-8 JSON response, stdout/stderr separation, success/error invariants, exit-code consistency, fixed error codes, malformed/multiple JSON rejection and redaction have IDs. Schema tests cover shape only; IPC behavior tests remain absent. |
-| Same §7–8 | Mapped | EOLM-DRV-001–003, EOLM-DRV-013–015, EOLM-STG-005–006, EOLM-STG-011, EOLM-TST-004 | Retry ownership/classification, no retry for non-retryable errors, Drive reconciliation before retry, fresh staging on download retry, request/response correlation, bounded process timeout and per-invocation cleanup have IDs. Runtime integration tests remain absent. |
-| Same §9 | Mapped | EOLM-SEC-001, EOLM-OPS-003, EOLM-OPS-005, EOLM-DRV-015, EOLM-MAN-012 | Structured log fields, credential/API-payload redaction, restricted temporary IPC files and validation of manifest/cloud metadata have IDs. Runtime implementation and security tests remain absent. |
-| Same §10 | Mapped/blocked | EOLM-TST-004, EOLM-TST-007, EOLM-TST-011 | The contract itself marks operator approval and integration tests unchecked; EOLM-TST-011 records both as acceptance gates. Phase 1 documentation/schema completion is not runtime readiness. |
-| `docs/validation/runtime-safety-test-scenarios.md` §1–2 | Mapped/partial | EOLM-TST-004–006, EOLM-SAF-003–005 | The specification already requires synthetic fixtures, temporary directories, mocked API responses, fixed/injected time, and no real logs/production paths/real Drive data. Remaining gap: automated guards or runtime evidence proving tests cannot touch real paths are not implemented; test documentation alone is not proof. |
-| Same §3 SYNC-01–12 | Partial | EOLM-SYN-001–005, EOLM-DRV-003–006, EOLM-STG-005–011 | Row-level crosswalk is now recorded in §3.1. SYNC-12 maps to backlog/idempotency/recovery requirements, but the executable recovery test and runtime implementation remain incomplete. |
-| Same §4 MAN-01–10 | Partial | EOLM-MAN-001–010, EOLM-ARC-002, EOLM-ARC-005 | Row-level crosswalk is now recorded in §3.1. MAN-04 is explicitly blocked pending EOLM-MAN-011's numeric freshness/future-time tolerance and applicability decisions; executable tests remain unimplemented. |
-| Same §5 ARC-01–09 | Partial | EOLM-ARC-001–006, EOLM-SAF-001–005 | Row-level crosswalk is now recorded in §3.1. ARC-08 recovery and ARC-09 deletion absence map to separate requirements; executable tests remain unimplemented. |
-| Same §6 IPC-01–06 | Partial | EOLM-DRV-001–003, EOLM-TST-004–006 | Row-level crosswalk is now recorded in §3.1. Each IPC failure mode still requires a deterministic automated test and objective evidence; runtime tests are unimplemented. |
-| Same §7–8 | Partial | EOLM-TST-005–008 | Test pass criteria require source/cloud preservation, actual hash comparison, accurate manifests, sanitized logs, and no Dry Run mutations; related IDs are listed in §3.1. Executable tests and objective evidence remain unimplemented. |
-| `docs/development/implementation-workflow.md` §1–2.6 | Mapped/partial | EOLM-CFG-001–007, EOLM-ENV-005, EOLM-FIL-003–010, EOLM-SYN-001–009, EOLM-DRV-004–006, EOLM-DRV-009–011, EOLM-SAF-001–006, EOLM-MAN-001–012, EOLM-ARC-001–006, EOLM-OPS-001–006, EOLM-REL-001–009 | OSD-01 tracks trusted-manifest criteria for unmarked objects. Filename-date-only eligibility is resolved under C-25; remaining filename/metadata disagreement is a test gap. Runtime evidence remains absent. |
-| Same §3–4 Phase 0–1 | Mapped/partial | EOLM-ENV-001–005, EOLM-CFG-001–007, EOLM-FIL-001–010, EOLM-MAN-001–012, EOLM-DRV-007, EOLM-TST-001–004 | Phase acceptance crosswalk is in §4.2. Phase 0 has unresolved trusted-manifest/OAuth/freshness decisions; Phase 1 has helpers and schema checks but no runtime config/manifest/logger implementation. |
-| Same Phase 2–4 | Mapped/not implemented | EOLM-SYN-001–009, EOLM-DRV-001–016, EOLM-MAN-001–012, EOLM-STG-001–012, EOLM-LCK-001–003, EOLM-ARC-001–006, EOLM-SAF-001–006, EOLM-TST-003–006, EOLM-TST-009–010 | Phase acceptance crosswalk is in §4.2. Operational sync/archive/staging/IPC implementations and recovery/idempotency tests are absent; MAN-011 freshness and mixed-state aggregation remain blocked. |
-| Same Phase 5–8 | Mapped/partial | EOLM-REL-001–015, EOLM-OPS-001–006, EOLM-LCK-001–004, EOLM-SAF-001–006, EOLM-TST-001–011 | Phase acceptance crosswalk is in §4.2. Package builder and CI exist but use a legacy deployability sentinel; cloud release, controlled rollout, scheduling and runtime acceptance are not implemented/approved. |
-| Same §5–6 | Mapped/partial | EOLM-SAF-001–006, EOLM-REL-001–015, EOLM-TST-001–011, EOLM-OPS-001–006 | Deliverables and non-negotiable gates are summarized in §4.2. Evidence is still absent for runtime behavior, and no destructive capability may be added in P0–P2. |
-| `docs/release/distribution-design.md` §1–2 architecture | Mapped/partial | EOLM-REL-004, EOLM-REL-008, EOLM-REL-010, EOLM-REL-014 | One-way separation, canonical source, reviewed-release gating and source provenance are mapped. Protected workflow permissions and release provenance are not implemented/approved. |
-| Same §3–5 package format, allowlist, exclusions | Mapped/partial | EOLM-REL-001–003, EOLM-REL-011, EOLM-REL-013, EOLM-TST-006 | Explicit allowlist, immutable version directory, required/optional paths and exclusions have IDs. Final per-PC allowlists and tests for every forbidden category remain incomplete; package builder still uses a legacy runtime sentinel. |
-| Same §6 configuration handling | Mapped/partial | EOLM-CFG-001–007, EOLM-REL-005, EOLM-REL-007, EOLM-SEC-001 | Active-config preservation, role validation, reviewed migration and credential exclusion have IDs. Runtime installer/migration and tests proving active config remains unchanged are absent. |
-| Same §7–8 release gates and Drive upload safety | Mapped/partial | EOLM-DRV-004, EOLM-DRV-007, EOLM-REL-002–004, EOLM-REL-006, EOLM-REL-010, EOLM-REL-012, EOLM-REL-014, EOLM-TST-001–002, EOLM-TST-005–007 | Checksum/publish-last behavior, protected release event, tag/VERSION consistency and provenance have IDs. Cloud auth, upload reconciliation, prior-pointer preservation and gate-to-CI evidence remain unimplemented/unapproved. |
-| Same §9 rollback policy | Mapped/partial | EOLM-REL-005, EOLM-REL-007, EOLM-REL-011, EOLM-REL-015 | Manual apply, prior-package/config preservation, immutable versioning and retention gates have IDs. PC-side deployment/rollback is not implemented; retention duration remains blocked. |
-| Same §10–11 implementation sequence/open items | Mapped/blocked | EOLM-REL-004–015, EOLM-OPS-001–004 | Release sequence and explicit release blockers are ID-mapped. Drive folder/access/auth, tag/approval procedure and retention remain blocked; workflow automation and objective release evidence are absent. |
+|`README.md` — 目的; PC の役割とパス|マップされました| EOLM-CFG-001–004, EOLM-CFG-006–007, EOLM-ARC-001, EOLM-ARC-006, EOLM-ENV-005 |PC-A/PC-B ロール、パス検証、エントリポイント、およびアーカイブロール要件には ID があります。 `Config/PC-A.example.json` と `PC-B.example.json` は README パスと一致します。 PC-A `allowArchive: false` は意図的に非動作状態であり、PC-B はフィールドを省略しています。ランタイムロールの強制は未実装のままです。|
+|`README.md` — 安全規則|マップされました| EOLM-SAF-001–005, EOLM-SAF-006, EOLM-DRV-004–006, EOLM-ENV-004–005, EOLM-SEC-001, EOLM-OPS-005 |削除なし、フェールクローズ、クラウド確認、ローカル実行、リポジトリの健全性、およびシークレット/ログ編集句には ID があります。実行時検証は不完全なままです。|
+|`README.md` — リポジトリの構造と開発手順|マッピング済み/部分的| EOLM-REL-001–003, EOLM-REL-005, EOLM-REL-009, EOLM-TST-001, EOLM-TST-007–008 |PR の目的/範囲/テスト/安全性レビューと CI ゲートは、既存のリリース/証拠ルールにマップされます。 VERSION/CHANGELOG リリース更新ルールは EOLM-REL-009 になりました。人間によるレビュー手順自体は自動化されていません。|
+|`README.md` — 初期インベントリと復元|マップされました| EOLM-SYN-006–009, EOLM-SAF-002 |運用マニフェストからの分離、名前/サイズ/SHA-256 の比較、Dry Run のレビュー、あいまいなファイルの保持、およびインベントリの完了と同期/アーカイブの成功の不等価性がマッピングされます。インベントリツールとランタイムゲートは未実装のままです。ソースには個別のレポート出力要件は記載されていません。|
+|`README.md` — リリースパッケージ|マッピング済み/部分的| EOLM-ENV-004, EOLM-REL-001–007, EOLM-REL-009 |ホワイトリスト/除外、展開不可能なレビュー マーカー、展開可能性、一方向配布、チェックサム/ポインタの順序付け、手動展開、VERSION/CHANGELOG リリース/アップデート ルールがマッピングされます。フォルダー/アクセス/認証/タグ/保持の決定は、C-27 に基づいて延期されたままになります。パッケージのランタイム エントリ ポイントが不完全です。|
+|`README.md` — バージョン/変更履歴と現在の制約|マップされました| EOLM-ENV-001, EOLM-REL-002, EOLM-REL-009, EOLM-TST-007 |バージョン/変更ログのリリース更新は EOLM-REL-009 にマップされます。 current-constraints ステートメントは、明示的な実行時非完了証拠ルールと一致しています。自動整合性検証は実装されていません。|
+|`docs/decisions/decision-register-c18-c32.md` — C-18/C-29 所有権を再試行します|マップされました| EOLM-DRV-001–003, EOLM-TST-004 |1 つのアダプターの試行、PowerShell が所有する制限付き再試行、および ID への再試行前のドライブ状態の調整。 HTTP クライアント/ライブラリの再試行がないことを証明する決定論的テストが欠落したままです。|
+|同じ — C-19/C-22 削除除外とテスト範囲|マップされました| EOLM-CFG-005, EOLM-SAF-001–006, EOLM-TST-004–006, EOLM-TST-009 |削除除外ドメインとリストされた安全性テスト ドメインには要件 ID があります。ランタイム IPC/config/logging/lock/retry テストのほとんどは未実装のままです。マッピングはカバレッジが通過したことを意味するものではありません。|
+|同じ — C-20/C-21 エントリ ポイント、役割、構成|マップされました| EOLM-ENV-001–003, EOLM-CFG-001–007, EOLM-ARC-001, EOLM-ARC-006, EOLM-TST-006 |公式エントリ ポイント、ランタイム バージョン ガード/順序、ロール固有の構成、正規パス検証、および ID への PC-B アーカイブ除外マップ。公式のエントリ ポイントとロールの強制は存在しません。正規の `BattleLog` 大文字と小文字はファイル名/パスのルールで指定されていますが、それでも実行時のアサーションが必要です。|
+|同じ — C-23 OAuth スコープ|マッピング/ブロックされました| EOLM-DRV-007 |最小の検証済み OAuth スコープが特定されています。実際のマイ ドライブ フォルダーに対する本番環境の検証は、明示的な遅延ゲートであり、完全な証拠ではありません。|
+|同じ — C-24 スケジューラ|マップされました| EOLM-LCK-004, EOLM-OPS-001–003 |月次/初回開始スケジュール、時間差、時間ごとの制限付き PC-B チェック、および結果ログは ID にマップされます。スケジューラの時間は延期されたままで、タスク スケジューラのセットアップは存在しません。|
+|同じ — C-25 ファイル名パターン|マップされました| EOLM-FIL-001–005, EOLM-FIL-009 |アンカー パターン、厳密なインバリアント カルチャ日付解析、無効な名前の動作、実行ステータス、およびファイル名と日付の期間選択は ID にマップされます。ヘルパー テストが存在します。一部のエッジ アサーションとランタイム列挙は開いたままになります。|
+|同じ — C-26 マニフェスト スキーマ|マッピング/ブロックされました| EOLM-MAN-001–012, EOLM-ARC-002, EOLM-ARC-005 |マニフェストの場所/同一性/実行相関/ステータス/遷移/アトミック書き込み/最新状態ゲート/スキーマ検証/クラウド再検証/鮮度が個別に表されます。 EOLM-MAN-011 ポリシー形状が承認されました。数値の鮮度/将来の許容範囲、正確な適用性、およびクロック同期/監視の期待は未解決のままです。マニフェスト ランタイムは未実装のままです。|
+|同じ — C-27 配布決定|マッピング/ブロックされました| EOLM-REL-004–009 |一方向配布、チェックサム/ポインタの順序付け、手動展開、ロールバック保存、および VERSION/CHANGELOG リリース/更新ルールには ID があります。フォルダー/アクセス モデル、GitHub Actions 認証、タグ/バージョン/承認ライフサイクル、および古いパッケージの保持は、明示的に決定が延期されたままです。値を推測したり、配布を実装済みとしてマークしたりしないでください。|
+|同じ — C-28 アーカイブ ゲート|マップされました| EOLM-MAN-007, EOLM-MAN-010–011, EOLM-ARC-001–005, EOLM-SAF-003, EOLM-TST-010 |明示的な PC-A 権限、有効/現在のピア マニフェスト、最新のマニフェスト セマンティクス、クラウド再検証、コピー/ハッシュ/削除なし、およびフェールクローズ処理が ID にマップされます。シナリオ マッピングは §3.1/§3.10 にあります。実行時テストは実装されておらず、鮮度はブロックされたままです。|
+|同じ — C-30 実装フェーズ|マッピング済み/部分的| EOLM-SAF-001–006, EOLM-REL-002–003, EOLM-TST-007–010 |相分離、非削除不変式、レビュー専用パッケージ制約、および証拠ルールが ID にマップされます。フェーズ 0–8 の受け入れ行列は §4.2 にあります。実行時の実装と客観的な受け入れの証拠は不完全なままです。|
+|同じ — C-31 保持と命名|マップされました| EOLM-FIL-001–009, EOLM-TST-003 |同期/アーカイブのカットオフとファイル名と日付のベースは ID にマップされます。 PR #31 は、大文字と小文字を区別する拡張機能とインバリアント カルチャ ヘルパー アサーションを追加します (検証 #39376077352 とパッケージ検証 #39376077340 は成功しました)。 PR #34 は、包括的/排他的チェックを備えた明示的な 2 月 28/29、4 月 30、および 6 月 30 ヘルパー カットオフ アサーションを追加します。ファイル名と LastWriteTime の不一致と混合ディレクトリのランタイムの選択は未解決のままです。|
+|同じ — C-32 初期一覧|マップされました| EOLM-SYN-006–009 |一覧の分離、比較キー、Dry Run のレビュー、あいまいなアイテムの保持、一覧の完了を運用の成功として扱うことの禁止は、ID にマップされます。インベントリ ツール/レポート動作にはランタイム実装がありません。 C-32 自体には、レポート形式の要件は記載されていません。|
+| `docs/design/filename-and-period-selection.md` §1–2 |マップされ、句が調整されました| EOLM-FIL-001–005, EOLM-TST-003 |条項のレビュー: §2 BattleLog パターン → FIL-001; ErrorReport パターン → FIL-002; strict `yyyyMMdd`/InvariantCulture 日付解析 → FIL-003; `LastWriteTime` フォールバックのない無効/分類不可能なファイル名 → FIL-004;無効な関連ファイルにより完全成功ステータスが妨げられます → FIL-005。 `Test-LogFunctions.ps1` は、両方のパターン、不正な/不可能な日付、閏日、両方のタイプの `.TXT` の拒否、および `th-TH` 文化の独立性 (検証 #44) をアサートします。ヘルパーにはファイルシステムのタイムスタンプ入力がないため、フォールバック防止はオーケストレーション テストではなく、ヘルパー レベルでの構造的なものになります。有効/無効混合ディレクトリ処理と実行ステータス証明は未実装のままです。|
+|同じ §3–4|マップされ、句が調整されました| EOLM-FIL-006–009, EOLM-ARC-001–005 |§3 の同期境界と未処理分の規則は FIL-006〜008 に、§4 のアーカイブ境界と PC-A だけのコピー・検証・記録・削除禁止の動作は FIL-007〜008 および ARC-001〜005 に対応する。`Test-LogFunctions.ps1` は 2026 年10月の境界、最終対象日を含み翌日を除くケース、1月の年越し、古い未処理分の対象判定、2月 28/29 日と4月・6月の月末境界を検証する（Validate #44）。これはヘルパーの検証のみであり、混在ディレクトリの列挙や、対象となる過去の全期間の処理を証明しない。アーカイブの実行と実行条件の判定は未実装である。|
+|同じ §5|マップされました| EOLM-FIL-007–008, EOLM-TST-003 |境界例はテスト ID にマップされます。|
+|同じ §6–7|部分的、条項調整済み| EOLM-FIL-004–005, EOLM-SAF-002–005, EOLM-TST-003 |§6 は、無効な名前・代用禁止を FIL-004、競合・上書き禁止を SAF-005、選択処理・Dry Run 中の元の変更禁止を SAF-002/006 に対応付ける。§7 は、分類不能・無効な日付の検証エラーと完全成功の禁止を FIL-004/005 に対応付ける。独立した有効なファイルは処理を続けてよいが、その成功でエラーを消してはならない。ファイル・実行・期間の混在状態を網羅する集計について OSD-03 は未解決であり、実行時の列挙、実行マニフェスト、有効・無効混在時の完了試験は存在しない。|
+| `docs/design/staging-file-lifecycle.md` §2 |マッピング済み/部分的| EOLM-ENV-001–003, EOLM-DRV-001–002, EOLM-CFG-002–003 |この例では `SyncLogs.ps1` という名前が付けられており、明示的に説明しています。追跡されるファイルは単なる番兵であり、バッチ ランチャーや操作上の同期ロジックは存在しません。ファイル処理前のランタイム バージョンの適用は未実装のままです。|
+|同じ §3–4|マップされました| EOLM-STG-001–008 |ステージング場所、新規作成、メタデータ優先、ターゲットのフリーズ、ソースの再ハッシュが表されます。|
+|同じ §5|マップされました| EOLM-STG-009–010 |正確な予約式が仕様ごとに残りのターゲット バイトを使用していることを確認し、10 進数の 100、000、000 バイトの予約をテストします。|
+|同じ §6–7|マッピング済み/部分的| EOLM-REQ-001, EOLM-STG-003, EOLM-STG-006, EOLM-STG-011–012, EOLM-DRV-001–006, EOLM-DRV-010, EOLM-MAN-004–008, EOLM-MAN-012 |OSD-02 は、未完了 標準状態遷移テーブルを追跡します。 OSD-03 は、確認済み/失敗した/不明 の混合実行ステータス集計を追跡します。 ID は存在しますが、両方の仕様決定はブロックされたままです。遷移や集約を推測しません。|
+|同じ §8–10|マッピング/ブロックされました| EOLM-MAN-001–012, EOLM-LCK-001–004, EOLM-OPS-003 |OSD-02 はスキーマ/状態遷移の完全性をカバーします。 OSD-03 はステータスの集計について説明します。 EOLM-MAN-011 数値の鮮度/将来の許容範囲と適用性はブロックされたままです。承認前に鮮度に依存したアーカイブ ゲーティングを実装しないでください。|
+|同じ §9、§11–12|マッピング済み/部分的| EOLM-STG-007–008, EOLM-SAF-001–006, EOLM-TST-005–007 |OSD-04 は、未解決の Dry Run 副作用境界を追跡します。残留成果物の動作は指定されていますが、実行時のクリーンアップと前後の非突然変異テストはありません。|
+| `docs/design/powershell-python-contract.md` §1–2 |マップされました| EOLM-DRV-001–008, EOLM-DRV-014, EOLM-CFG-001, EOLM-SAF-001–006, EOLM-SEC-001, EOLM-MAN-012 |唯一の PowerShell オーケストレーション、ホワイトリストに登録された Python アダプター、フェールクローズ応答、バージョン拒否、所有権の再試行、クラウド状態の検証、認証情報ソース、およびシークレットの編集には ID があります。実行時の実装と契約テストは行われないままです。|
+|同じ §3–4|マップされました| EOLM-DRV-009–011, EOLM-DRV-014–016, EOLM-CFG-006–007, EOLM-SAF-002 |4 つの操作の許可リスト、ページネーション、あいまいさの処理、リクエストの検証、絶対/許可されたルート パス、実行ごとの IPC ファイルのセキュリティ/ライフサイクル、および Dry Run の非書き込み動作には ID があります。それらを証明するランタイム アダプターは存在しません。|
+|同じ §5–6|マップされました| EOLM-DRV-012–013, EOLM-SEC-001, EOLM-TST-004 |単一の UTF-8 JSON 応答、stdout/stderr の分離、成功/エラーの不変条件、終了コードの一貫性、修正されたエラー コード、不正な形式/複数の JSON の拒否および編集には ID があります。スキーマ テストは形状のみを対象とします。 IPC 動作テストは依然として行われていません。|
+|同じ §7–8|マップされました| EOLM-DRV-001–003, EOLM-DRV-013–015, EOLM-STG-005–006, EOLM-STG-011, EOLM-TST-004 |所有権/分類の再試行、再試行不可能なエラーに対する再試行なし、再試行前のドライブ調整、ダウンロード再試行時の新規ステージング、リクエスト/レスポンス相関、制限されたプロセス タイムアウト、および呼び出しごとのクリーンアップには ID があります。ランタイム統合テストは存在しないままです。|
+|同じ §9|マップされました| EOLM-SEC-001, EOLM-OPS-003, EOLM-OPS-005, EOLM-DRV-015, EOLM-MAN-012 |構造化されたログ フィールド、認証情報/API-ペイロードの編集、制限された一時 IPC ファイル、およびマニフェスト/クラウド メタデータの検証には ID があります。実行時の実装とセキュリティ テストは行われていないままです。|
+|同じ §10|マッピング/ブロックされました| EOLM-TST-004, EOLM-TST-007, EOLM-TST-011 |契約自体は、オペレーターの承認と統合テストを未チェックとしてマークしています。 EOLM-TST-011 は両方を受け入れゲートとして記録します。フェーズ 1 ドキュメント/スキーマの完成は、実行時の準備ができていません。|
+| `docs/validation/runtime-safety-test-scenarios.md` §1–2 |マッピング済み/部分的| EOLM-TST-004–006, EOLM-SAF-003–005 |仕様ではすでに、合成フィクスチャ、一時ディレクトリ、モックされた API 応答、固定/挿入時間、および実際のログ/運用パス/実際のドライブ データは必要ありません。残りのギャップ: テストが実際のパスに触れることができないことを証明する自動化されたガードまたは実行時の証拠が実装されていない。テスト文書だけでは証拠になりません。|
+|同じ §3 SYNC-01–12|部分的| EOLM-SYN-001–005, EOLM-DRV-003–006, EOLM-STG-005–011 |列レベルの対応表が §3.1 に記録されるようになりました。 SYNC-12 はバックログ/冪等性/リカバリ要件にマップされますが、実行可能リカバリ テストとランタイム実装は不完全なままです。|
+|同じ §4 MAN-01–10|部分的| EOLM-MAN-001–010, EOLM-ARC-002, EOLM-ARC-005 |列レベルの対応表が §3.1 に記録されるようになりました。 MAN-04 は、EOLM-MAN-011 の数値の鮮度/将来の許容範囲と適用性の決定が保留されるまで、明示的にブロックされます。実行可能なテストは未実装のままです。|
+|同じ §5 ARC-01–09|部分的| EOLM-ARC-001–006, EOLM-SAF-001–005 |列レベルの対応表が §3.1 に記録されるようになりました。 ARC-08 の回復と ARC-09 の削除の不在は、別個の要件にマップされます。実行可能なテストは未実装のままです。|
+|同じ §6 IPC-01–06|部分的| EOLM-DRV-001–003, EOLM-TST-004–006 |列レベルの対応表が §3.1 に記録されるようになりました。各 IPC 障害モードでは、決定論的な自動テストと客観的な証拠が依然として必要です。実行時テストは実装されていません。|
+|同じ §7–8|部分的| EOLM-TST-005–008 |テストの合格基準には、ソース/クラウドの保存、実際のハッシュ比較、正確なマニフェスト、サニタイズされたログ、および Dry Run の突然変異がないことが必要です。関連する ID は §3.1 にリストされています。実行可能なテストと客観的な証拠は未実装のままです。|
+| `docs/development/implementation-workflow.md` §1–2.6 |マッピング済み/部分的| EOLM-CFG-001–007, EOLM-ENV-005, EOLM-FIL-003–010, EOLM-SYN-001–009, EOLM-DRV-004–006, EOLM-DRV-009–011, EOLM-SAF-001–006, EOLM-MAN-001–012, EOLM-ARC-001–006, EOLM-OPS-001–006, EOLM-REL-001–009 |OSD-01 は、マークされていないオブジェクトの信頼できるマニフェスト基準を追跡します。ファイル名日付のみの適格性は C-25 で解決されます。残りのファイル名/メタデータの不一致はテストのギャップです。実行時の証拠は存在しないままです。|
+|同じ §3–4 フェーズ 0–1|マッピング済み/部分的| EOLM-ENV-001–005, EOLM-CFG-001–007, EOLM-FIL-001–010, EOLM-MAN-001–012, EOLM-DRV-007, EOLM-TST-001–004 |位相受け入れ対応表は §4.2 にあります。フェーズ 0 には、未解決の信頼できるマニフェスト/OAuth/鮮度に関する決定があります。フェーズ 1 にはヘルパーとスキーマ チェックがありますが、ランタイム設定/マニフェスト/ロガーの実装はありません。|
+|同相 2–4|マッピング済み/未実装| EOLM-SYN-001–009, EOLM-DRV-001–016, EOLM-MAN-001–012, EOLM-STG-001–012, EOLM-LCK-001–003, EOLM-ARC-001–006, EOLM-SAF-001–006, EOLM-TST-003–006, EOLM-TST-009–010 |位相受け入れ対応表は §4.2 にあります。運用上の同期/アーカイブ/ステージング/IPC 実装およびリカバリ/冪等性テストはありません。 MAN-011 鮮度および混合状態の集約はブロックされたままです。|
+|同相 5–8|マッピング済み/部分的| EOLM-REL-001–015, EOLM-OPS-001–006, EOLM-LCK-001–004, EOLM-SAF-001–006, EOLM-TST-001–011 |位相受け入れ対応表は §4.2 にあります。パッケージ ビルダーと CI は存在しますが、従来のデプロイアビリティ センチネルを使用します。クラウド リリース、制御されたロールアウト、スケジューリング、およびランタイムの受け入れは実装/承認されていません。|
+|同じ §5–6|マッピング済み/部分的| EOLM-SAF-001–006, EOLM-REL-001–015, EOLM-TST-001–011, EOLM-OPS-001–006 |成果物と交渉不可能な条件は、§4.2 にまとめられています。実行時の動作に関する証拠はまだ存在せず、P0 ～ P2 には破壊的な機能が追加される可能性はありません。|
+|`docs/release/distribution-design.md` §1–2 アーキテクチャ|マッピング済み/部分的| EOLM-REL-004, EOLM-REL-008, EOLM-REL-010, EOLM-REL-014 |一方向の分離、正規のソース、レビューされたリリース ゲーティング、およびソースの来歴がマッピングされます。保護されたワークフロー権限とリリースの出所が実装/承認されていません。|
+|同じ §3–5 パッケージ形式、許可リスト、除外|マッピング済み/部分的| EOLM-REL-001–003, EOLM-REL-011, EOLM-REL-013, EOLM-TST-006 |明示的な許可リスト、不変バージョンのディレクトリ、必須/オプションのパス、および除外には ID があります。 PC ごとの最終的な許可リストとすべての禁止カテゴリのテストは不完全なままです。パッケージ ビルダーは引き続き従来のランタイム センチネルを使用します。|
+|同じ§6 構成の処理|マッピング済み/部分的| EOLM-CFG-001–007, EOLM-REL-005, EOLM-REL-007, EOLM-SEC-001 |アクティブ構成の保存、ロールの検証、レビューされた移行、および認証情報の除外には ID があります。実行時のインストーラー/移行、およびアクティブな構成が変更されていないことを証明するテストはありません。|
+|同じ §7–8 リリース ゲートとドライブ アップロードの安全性|マッピング済み/部分的| EOLM-DRV-004, EOLM-DRV-007, EOLM-REL-002–004, EOLM-REL-006, EOLM-REL-010, EOLM-REL-012, EOLM-REL-014, EOLM-TST-001–002, EOLM-TST-005–007 |チェックサム・最後に公開する動作、保護されたリリースイベント、tag/VERSIONの整合、出所にはIDがある。クラウド認証、アップロード結果の照合、前ポインターの保全、実行条件から CI までの証拠は未実装・未承認である。|
+|同じ §9 ロールバック ポリシー|マッピング済み/部分的| EOLM-REL-005, EOLM-REL-007, EOLM-REL-011, EOLM-REL-015 |手動適用、以前のパッケージ/構成の保存、不変のバージョン管理、保持ゲートには ID があります。 PC 側の展開/ロールバックは実装されていません。保持期間はブロックされたままになります。|
+|同じ §10–11 実装順序/未解決項目|マッピング/ブロックされました| EOLM-REL-004–015, EOLM-OPS-001–004 |リリース シーケンスと明示的なリリース ブロッカーは ID マップされます。ドライブのフォルダー/アクセス/認証、タグ/承認手順、および保持はブロックされたままになります。ワークフローの自動化と客観的なリリースの証拠がありません。|
 
-### 2.3 High-risk configuration, archive, and deletion-safety disposition
+<a id="23-high-risk-configuration-archive-and-deletion-safety-disposition"></a>
+### 2.3 高リスクの構成、アーカイブ、削除の安全性
 
-| Requirement group | Evidence actually present | Missing executable evidence / blocker | Current disposition |
+|要件グループ|証拠は実際に存在します|実行可能な証拠/ブロッカーが欠落しています|現在の配置|
 |---|---|---|---|
-| EOLM-CFG-004–007 | Package-builder tests validate example role/property/path semantics, PC-A safe `allowArchive: false`, PC-B omission of `allowArchive`, rejection of `allowDelete`, and exclusion of active PC-specific config from release source. | No active-config runtime loader, role-bound archive authorization, approved-root containment check, or runtime PC-A positive authorization path. Example templates are non-operational. | Partial package/template evidence; runtime not implemented. |
-| EOLM-ARC-001–006 | Package-builder fixtures check PC-A official entry-point requirements and PC-B exclusion of `ArchiveLogs.ps1`. | `scripts/ArchiveLogs.ps1` is absent; `scripts/SyncLogs.ps1` is a sentinel. No manifest reader/writer, cloud re-verification, archive copy/hash flow, fail-closed runtime gate, or runtime PC-B command-surface test exists. OSD-09 remains unresolved. | Package gate partial; runtime archive requirements not started/blocked. |
-| EOLM-SAF-001, 005–006 | Drive request schema has no delete operation; example-config tests reject `allowDelete`; a static audit reviews a bounded set of tracked paths. | No current whole-tree forbidden-capability test, generated-package negative-capability scan, or runtime before/after source/Drive mutation test exists. | Partial static/package evidence only; P0-012 remains open. |
-| EOLM-SAF-002–004 | Normative policy prohibits Dry Run side effects and requires separate approval for future deletion. | No Dry Run orchestrator or side-effect-invariance test exists. Documentation/schema/package CI does not prove runtime no-side-effects. | Not implemented; keep policy and evidence separate. |
+| EOLM-CFG-004–007 |パッケージ ビルダー テストでは、ロール/プロパティ/パスのセマンティクスの例、PC-A の安全な `allowArchive: false`、PC-B の `allowArchive` の省略、`allowDelete` の拒否、およびリリース ソースからのアクティブな PC 固有の構成の除外を検証します。|active-config ランタイム ローダー、ロールにバインドされたアーカイブ認証、承認されたルートの包含チェック、またはランタイム PC-A ポジティブ認証パスはありません。サンプル テンプレートは動作しません。|部分的なパッケージ/テンプレートの証拠。ランタイムは実装されていません。|
+| EOLM-ARC-001–006 |パッケージ ビルダーのフィクスチャは、PC-A 公式エントリポイント要件と PC-B の `ArchiveLogs.ps1` の除外をチェックします。|`scripts/ArchiveLogs.ps1` がありません。 `scripts/SyncLogs.ps1` は見張りです。マニフェスト リーダー/ライター、クラウド再検証、アーカイブ コピー/ハッシュ フロー、フェールクローズされたランタイム ゲート、またはランタイム PC-B コマンド サーフェス テストは存在しません。 OSD-09 は未解決のままです。|パッケージゲート部分。ランタイム アーカイブ要件が開始されていないかブロックされています。|
+| EOLM-SAF-001, 005–006 |ドライブ リクエスト スキーマには削除操作がありません。 example-config テストは `allowDelete` を拒否します。静的監査は、追跡されたパスの制限されたセットをレビューします。|現在、ツリー全体の禁止機能テスト、生成されたパッケージのネガティブ機能スキャン、またはソース/ドライブ変更テストの前後のランタイムは存在しません。|部分的な静的/パッケージ証拠のみ。 P0-012 は開いたままです。|
+| EOLM-SAF-002–004 |規範的なポリシーでは Dry Run の副作用が禁止されており、将来の削除には別途承認が必要です。|Dry Run オーケストレーターまたは副作用不変性テストは存在しません。ドキュメント/スキーマ/パッケージ CI は、実行時に副作用がないことを証明していません。|未実装。ポリシーと証拠を分離してください。|
 
-This is a static traceability disposition, not a new policy decision or runtime test result. Package-builder `Remove-Item` calls apply to temporary build artifacts and do not demonstrate application-level log deletion; absence of deletion commands in a bounded scan is not proof of whole-system negative capability. No archive/delete behavior is authorized.
+これは静的なトレーサビリティに関する処理であり、新しいポリシーの決定や実行時テストの結果ではありません。パッケージ ビルダー `Remove-Item` 呼び出しは一時的なビルド 成果物に適用され、アプリケーション レベルのログの削除を示しません。制限付きスキャンで削除コマンドが存在しないことは、システム全体のネガティブ キャパシティの証拠ではありません。アーカイブ/削除の動作は許可されません。
 
-## 2.2 Implementation, schema, test, and CI artifacts
+<a id="22-implementation-schema-test-and-ci-artifacts"></a>
+## 2.2 実装、スキーマ、テスト、および CI 成果物
 
-| Artifact | Coverage | Current ID mapping | Audit finding / action |
+|成果物|適用範囲|現在の ID マッピング|監査結果/アクション|
 |---|---|---|---|
-| `Common/LogFunctions.ps1` | Artifact-only / partial | EOLM-FIL-001–009, EOLM-ENV-001 | Filename/cutoff helpers and the exact PowerShell 7.6.7 guard exist. PR #11 adds version-guard test cases; map each helper and guard to requirement/test IDs. `SyncLogs.ps1` is only a sentinel and `ArchiveLogs.ps1` is absent, so startup-guard enforcement across operational entry points remains unproven. |
-| `Config/PC-A.example.json` | Artifact-only / partial | EOLM-CFG-001–005, EOLM-ARC-001 | Example currently has `allowArchive: false`, so it is intentionally non-operational for archiving. Validate parses JSON syntax; Package Validation's builder tests check example-template role/capability semantics. Neither validates an active PC-A config at runtime or authorizes archiving. Keep the example safe and require a separately reviewed activation step. |
-| `Config/PC-B.example.json` | Artifact-only / partial | EOLM-CFG-001–005, EOLM-ARC-006 | `allowArchive` is omitted as required in this example. Package Validation's builder tests check that PC-B's example omits the field; this is template/package evidence, not runtime validation of an active PC-B config. |
-| `contracts/drive-request.schema.json` | Artifact-only / partial | EOLM-DRV-001, EOLM-DRV-004, EOLM-CFG-005, EOLM-TST-004/006 | Four operations and no delete operation are represented. Contract text says operation-specific strict fields; verify path format/allowed-root is runtime validation, not currently encoded in schema. |
-| `contracts/drive-response.schema.json` | Artifact-only / partial | EOLM-DRV-001, EOLM-DRV-006, EOLM-TST-004 | Schema checks envelope shape and error codes. Cross-field matching to request_id/operation and exit code requires runtime contract tests, not schema alone. |
-| `tests/test_contract_schemas.py` | Artifact-only / partial | EOLM-TST-004, EOLM-TST-006 | Schema tests exist. They do not prove OAuth, cloud verification, PowerShell/Python IPC, retry behavior, or runtime deletion absence by themselves. |
-| `tests/Test-LogFunctions.ps1` | Artifact-only / partial | EOLM-FIL-001–010, EOLM-ENV-001, EOLM-TST-003 | Validate invokes this test file; PR #13 added leap-day, invalid-month/name-shape, year-rollover, and leap-year cutoff cases. PR #31 adds `.TXT` rejection and invariant-culture tests; PR #34 adds helper-level February 28/29 and April/June 30-day boundaries. These helper tests do not cover filename-date/metadata disagreement, mixed-directory enumeration, or runtime run-status. |
-| `tests/Test-ReleasePackage.ps1` | Artifact-only / partial | EOLM-REL-001–003, EOLM-TST-006, EOLM-ENV-001 | Package tests run in Package Validation and source the shared 7.6.7 guard. The official-entrypoint mismatch and PC-specific package allowlists remain open. |
-| `tests/README.md` | Mapped/partial | EOLM-TST-004–007 | It explicitly states runtime safety tests are not implemented. Cross-link every named test to a requirement ID and scenario ID. |
-| `.github/workflows/validate.yml` | Artifact-only / partial | EOLM-TST-001–004, EOLM-ENV-001, EOLM-CFG-001/004/005 | Installs/verifies PowerShell 7.6.7, runs schema/config checks, invokes `tests/Test-LogFunctions.ps1`, and runs PSScriptAnalyzer; Validate succeeded on PR #55 HEAD (https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327426). The config step parses example JSON only; it does not test PC-role/path/capability semantics. This proves CI/helper-test execution only; official runtime entry points, their startup guard coverage, and sync/Drive/manifest/archive integration tests remain absent. |
-| `.github/workflows/package-validation.yml` | Artifact-only / partial | EOLM-TST-001, EOLM-REL-001–003, EOLM-ENV-001 | Installs/verifies PowerShell 7.6.7 and runs package-builder tests; Package Validation succeeded on PR #55 HEAD (https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327464). Later PRs #74/#76/#78 added the SyncLogs sentinel, role-specific required entry-point checks, and example-config semantics. The package remains non-deployable without operational runtime logic; CI does not prove production runtime behavior. |
-| `.github/scripts/Build-ReleasePackage.ps1` | Artifact-only / partial | EOLM-REL-001–003, EOLM-CFG-003–005 | Current builder requires `-TargetRole`; PC-A requires SyncLogs and ArchiveLogs paths, while PC-B requires SyncLogs and excludes ArchiveLogs. Example-config semantics are checked during package building. `SyncLogs.ps1` remains a sentinel with no operational sync logic and `ArchiveLogs.ps1` is absent, so this is package validation rather than runtime readiness. |
-| `scripts/README.md` | Artifact-only / partial | EOLM-CFG-002–003 | Directory describes intended scripts; `SyncLogs.ps1` exists as a sentinel only, while operational sync logic, `ArchiveLogs.ps1`, and batch launchers remain absent. Track these as implementation gaps. |
-| `Common/README.md` | Artifact-only / partial | EOLM-FIL-001–009 | Document function contracts and corresponding test names; documentation is not execution evidence. |
-| `.gitignore`, `CHANGELOG.md`, `VERSION`, PR template | Artifact-only | EOLM-ENV-004, EOLM-REL-001–005, EOLM-TST-008 | Check ignored secrets/runtime state, version bump/changelog policy, PR requirement-ID field and evidence expectations. |
+| `Common/LogFunctions.ps1` |成果物のみ / 部分実装| EOLM-FIL-001–009, EOLM-ENV-001 |ファイル名/カットオフ ヘルパーと正確な PowerShell 7.6.7 ガードが存在します。 PR #11 はバージョン ガード テスト ケースを追加します。各ヘルパーとガードを要件/テスト ID にマッピングします。 `SyncLogs.ps1` は監視のみであり、`ArchiveLogs.ps1` は存在しないため、運用エントリ ポイント全体でのスタートアップ ガードの強制はまだ証明されていません。|
+| `Config/PC-A.example.json` |成果物のみ / 部分実装| EOLM-CFG-001–005, EOLM-ARC-001 |サンプルには現在 `allowArchive: false` があるため、アーカイブのために意図的に動作不能になっています。 JSON 構文の解析を検証します。 Package Validation のビルダー テストでは、サンプル テンプレートのロール/機能のセマンティクスをチェックします。どちらも実行時にアクティブな PC-A 構成を検証したり、アーカイブを承認したりしません。サンプルを安全に保管し、別途レビューされたアクティベーション手順を必要とします。|
+| `Config/PC-B.example.json` |成果物のみ / 部分実装| EOLM-CFG-001–005, EOLM-ARC-006 |`allowArchive` は、この例では必要に応じて省略されています。 Package Validation のビルダー テストでは、PC-B の例でフィールドが省略されていることを確認します。これはテンプレート/パッケージの証拠であり、アクティブな PC-B 構成の実行時検証ではありません。|
+| `contracts/drive-request.schema.json` |成果物のみ / 部分実装| EOLM-DRV-001, EOLM-DRV-004, EOLM-CFG-005, EOLM-TST-004/006 |4 つの操作が示されていますが、削除操作はありません。契約テキストには、操作固有の厳密なフィールドが記載されています。 パス形式を検証/allowed-root は実行時検証であり、現在スキーマでエンコードされていません。|
+| `contracts/drive-response.schema.json` |成果物のみ / 部分実装| EOLM-DRV-001, EOLM-DRV-006, EOLM-TST-004 |スキーマはエンベロープの形状とエラー コードをチェックします。 request_id/operation および終了コードへのクロスフィールド マッチングには、スキーマだけではなく、ランタイム コントラクト テストが必要です。|
+| `tests/test_contract_schemas.py` |成果物のみ / 部分実装| EOLM-TST-004, EOLM-TST-006 |スキーマテストが存在します。これらは、OAuth、クラウド検証、PowerShell/Python IPC、再試行動作、またはランタイム削除の不在を単独で証明するものではありません。|
+| `tests/Test-LogFunctions.ps1` |成果物のみ / 部分実装| EOLM-FIL-001–010, EOLM-ENV-001, EOLM-TST-003 |Validate はこのテスト ファイルを呼び出します。 PR #13 は、閏日、無効な月/名前の形状、年ロールオーバー、閏年のカットオフのケースを追加しました。 PR #31 は、`.TXT` 拒否テストとインバリアント カルチャ テストを追加します。 PR #34 は、ヘルパーレベルの 2 月 28/29 と 4 月/6 月 30 日の境界を追加します。これらのヘルパー テストでは、ファイル名と日付/メタデータの不一致、混合ディレクトリの列挙、またはランタイムの実行ステータスはカバーされません。|
+| `tests/Test-ReleasePackage.ps1` |成果物のみ / 部分実装| EOLM-REL-001–003, EOLM-TST-006, EOLM-ENV-001 |パッケージ テストはパッケージ検証で実行され、共有 7.6.7 ガードを取得します。公式エントリポイントの不一致と PC 固有のパッケージ許可リストは未解決のままです。|
+| `tests/README.md` |マッピング済み/部分的| EOLM-TST-004–007 |実行時の安全性テストは実装されていないと明示的に述べています。すべての名前付きテストを要件 ID およびシナリオ ID にクロスリンクします。|
+| `.github/workflows/validate.yml` |成果物のみ / 部分実装| EOLM-TST-001–004, EOLM-ENV-001, EOLM-CFG-001/004/005 |PowerShell 7.6.7 をインストール/検証し、スキーマ/構成チェックを実行し、`tests/Test-LogFunctions.ps1` を呼び出し、PSScriptAnalyzer を実行します。 PR #55 HEAD (https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327426) の検証は成功しました。構成ステップでは、例 JSON のみが解析されます。 PC の役割/パス/機能のセマンティクスはテストされません。これは CI/helper-test の実行のみを証明します。公式のランタイム エントリ ポイント、スタートアップ ガード カバレッジ、同期/ドライブ/マニフェスト/アーカイブの統合テストは依然として存在しません。|
+| `.github/workflows/package-validation.yml` |成果物のみ / 部分実装| EOLM-TST-001, EOLM-REL-001–003, EOLM-ENV-001 |PowerShell 7.6.7 をインストール/検証し、パッケージ ビルダー テストを実行します。 PR #55 HEAD (https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327464) でパッケージの検証が成功しました。後の PR #74/#76/#78 では、SyncLogs センチネル、ロール固有の必須エントリ ポイント チェック、およびサンプル構成セマンティクスが追加されました。パッケージは、運用ランタイム ロジックがなければ展開できないままです。 CI は、運用環境のランタイム動作を証明するものではありません。|
+| `.github/scripts/Build-ReleasePackage.ps1` |成果物のみ / 部分実装| EOLM-REL-001–003, EOLM-CFG-003–005 |現在のビルダーには `-TargetRole` が必要です。 PC-A には SyncLogs および ArchiveLogs パスが必要ですが、PC-B には SyncLogs が必要で、ArchiveLogs は除外されます。 Example-config のセマンティクスは、パッケージの構築中にチェックされます。 `SyncLogs.ps1` は動作同期ロジックを持たないセンチネルのままであり、`ArchiveLogs.ps1` は存在しないため、これはランタイムの準備ではなくパッケージの検証です。|
+| `scripts/README.md` |成果物のみ / 部分実装| EOLM-CFG-002–003 |ディレクトリには、対象となるスクリプトが記述されています。 `SyncLogs.ps1` はセンチネルとしてのみ存在し、運用同期ロジック、`ArchiveLogs.ps1`、およびバッチ ランチャーは存在しません。これらを実装のギャップとして追跡します。|
+| `Common/README.md` |成果物のみ / 部分実装| EOLM-FIL-001–009 |関数コントラクトと対応するテスト名を文書化します。文書は実行の証拠ではありません。|
+|`.gitignore`、`CHANGELOG.md`、`VERSION`、PR テンプレート|成果物のみ| EOLM-ENV-004, EOLM-REL-001–005, EOLM-TST-008 |無視されたシークレット/ランタイム状態、バージョン バンプ/変更ログ ポリシー、PR 要件 ID フィールド、および期待される証拠を確認します。|
 
-## 3. Cross-cutting requirements needing explicit IDs or stronger criteria
+<a id="3-cross-cutting-requirements-needing-explicit-ids-or-stronger-criteria"></a>
+## 3. 明示的な ID またはより強力な基準が必要な横断的な要件
 
-The following are not safely considered fully represented by the current initial register. Add new IDs or explicitly state that an existing ID covers the full clause and cite the acceptance criterion.
+以下は、現在の初期レジスタによって完全に表現されているとは安全にみなされていません。新しい ID を追加するか、既存の ID が条項全体をカバーしていることを明示的に示し、受け入れ基準を引用します。
 
-1. **Configuration/path safety:** validate absolute paths, approved roots, role-specific path constraints, path traversal, and separation of source/staging/archive/Drive paths before operations.
-2. **Python IPC:** request file ACL and cleanup, UTF-8 handling, stdout-only-single-JSON, stderr diagnostics, exit-code/JSON consistency, request ID and operation matching, timeout behavior.
-3. **Security logging:** UTC timestamp, run ID, request ID, operation, elapsed time, exit/error code; redact access/refresh tokens, client secrets, auth headers, raw API bodies and sensitive paths.
-4. **Drive matching:** pagination, unique identity, parent/name/size checks, duplicate candidates, stable Drive file ID and unknown upload outcome reconciliation.
-5. **Retry classification:** no retry for auth, permission, invalid request, verification failure, ambiguity/conflict; download retries use a fresh/empty staging target; implicit HTTP-library retries disabled.
-6. **Manifest details:** schema version, timestamps/time zone, allowed transitions, per-file states, Drive identity, freshness threshold, corrupt/missing/stale manifest behavior, latest-run precedence and crash recovery. Numeric freshness/future-time tolerances and exact applicability are unspecified and remain blockers; policy shape is approved.
-7. **Staging state machine:** explicit allowed transitions, no upload before `ready`, state/metadata consistency, source mutation protection, orphan retention and cleanup failure handling.
-8. **Dry Run:** must not mutate Drive, local source, staging final state, archive target, manifests beyond any explicitly approved audit output; define which logs/report outputs are allowed.
-9. **Archive verification:** exact file-set completeness, same-name/same-hash idempotency, different-hash collision, archive manifest update failure, re-verification immediately before archiving.
-10. **Release distribution:** checksum/signature and artifact identity, one-way upload, no change to `latest.json` on any failure, package retention, access/auth model, rollback and manual approval.
-11. **Operational schedule:** missed monthly run, staggered schedules, bounded PC-A checks, lock contention, abandoned lock behavior, manual/scheduled parity.
-12. **Evidence quality:** each verified requirement must link to a test case, actual result/CI run, and change/PR. Documentation presence alone is not runtime evidence.
+1. **構成/パスの安全性:** 操作の前に、絶対パス、承認されたルート、ロール固有のパス制約、パス トラバーサル、およびソース/ステージング/アーカイブ/ドライブ パスの分離を検証します。
+2. **Python IPC:** リクエスト ファイル ACL とクリーンアップ、UTF-8 処理、stdout-only-single-JSON、stderr 診断、終了コード/JSON の整合性、リクエスト ID と操作の一致、タイムアウト動作。
+3. **セキュリティ ログ:** UTC タイムスタンプ、実行 ID、要求 ID、操作、経過時間、終了/エラー コード。アクセス/リフレッシュ トークン、クライアント シークレット、認証ヘッダー、生の API 本文、および機密パスを編集します。
+4. **ドライブの照合:** ページネーション、一意の ID、親/名前/サイズのチェック、重複候補、安定したドライブ ファイル ID、および 不明 アップロード結果の調整。
+5. **再試行分類:** 認証、許可、無効な要求、検証については再試行なし 失敗、あいまいさ/競合。ダウンロードの再試行では、新しい/空の ステージング ターゲットを使用します。暗黙的な HTTP ライブラリの再試行が無効になります。
+6. **マニフェストの詳細:** スキーマ バージョン、タイムスタンプ/タイム ゾーン、許可された遷移、ファイルごとの状態、ドライブ ID、鮮度のしきい値、破損/欠落/古いマニフェストの動作、最新実行の優先順位、およびクラッシュ リカバリ。数値的な鮮度/将来の許容範囲と正確な適用可能性は特定されておらず、依然として障害となっています。ポリシーの形状が承認されました。
+7. **ステージング ステート マシン:** 明示的に許可された遷移、`ready` の前にアップロードなし、状態/メタデータの一貫性、ソースの変更保護、孤立した保持およびクリーンアップ 失敗 処理。
+8. **Dry Run:** は、明示的に承認された監査出力を超えて、ドライブ、ローカル ソース、ステージング 最終状態、アーカイブ ターゲット、マニフェストを変更してはなりません。どのログ/レポート出力を許可するかを定義します。
+9. **アーカイブ検証:** 正確なファイルセットの完全性、同名/同ハッシュの冪等性、異なるハッシュの衝突、アーカイブマニフェストの更新 失敗、アーカイブ直前の再検証。
+10. **リリース配布:** チェックサム/署名および成果物 ID、一方向アップロード、失敗 上の `latest.json` への変更なし、パッケージ保持、アクセス/認証モデル、ロールバックおよび手動承認。
+11. **運用スケジュール:** 月次実行の欠落、時差スケジュール、制限付き PC-A チェック、ロック競合、放棄されたロック動作、手動/スケジュールされたパリティ。
+12. **証拠の品質:** 各verified要件は、テストケース、実際の結果/CI実行、および変更/PRにリンクする必要があります。ドキュメントの存在だけでは実行時の証拠にはなりません。
 
-## 3.1 Scenario-to-requirement crosswalk
+<a id="31-scenario-to-requirement-crosswalk"></a>
+## 3.1 シナリオから要件への対応表
 
-This is a requirement mapping, not execution evidence. The repository inventory above contains no runtime implementation for sync, manifest orchestration, archive, or the Python adapter; therefore each scenario below is explicitly not implemented as an executable runtime test. The existing schema/unit tests do not change that status.
+これは要件のマッピングであり、実行の証拠ではありません。上記のリポジトリ インベントリには、同期、マニフェスト オーケストレーション、アーカイブ、または Python アダプターのランタイム実装は含まれていません。したがって、以下の各シナリオは、実行可能なランタイム テストとして明示的に実装されていません。既存のスキーマ/単体テストではそのステータスは変わりません。
 
-| Scenario | Requirement IDs | Executable test disposition |
+|シナリオ|要件 ID|実行可能テストの配置|
 |---|---|---|
-| SYNC-01 | EOLM-STG-001, EOLM-STG-003, EOLM-STG-005, EOLM-STG-006, EOLM-DRV-005 | Not implemented |
-| SYNC-02 | EOLM-SYN-002, EOLM-SYN-005 | Not implemented |
-| SYNC-03 | EOLM-SYN-001, EOLM-STG-005, EOLM-SAF-005 | Not implemented |
-| SYNC-04 | EOLM-STG-005, EOLM-STG-006, EOLM-DRV-006 | Not implemented |
-| SYNC-05 | EOLM-DRV-005, EOLM-DRV-006, EOLM-SAF-005 | Not implemented |
-| SYNC-06 | EOLM-SYN-003, EOLM-SYN-004, EOLM-SYN-005 | Not implemented |
-| SYNC-07 | EOLM-SYN-003, EOLM-SYN-005 | Not implemented |
-| SYNC-08 | EOLM-DRV-004, EOLM-DRV-006, EOLM-SAF-005 | Not implemented |
-| SYNC-09 | EOLM-DRV-010, EOLM-DRV-006 | Not implemented |
-| SYNC-10 | EOLM-DRV-005, EOLM-DRV-010, EOLM-DRV-013 | Not implemented |
-| SYNC-11 | EOLM-DRV-001, EOLM-DRV-002, EOLM-DRV-003, EOLM-TST-004 | Not implemented |
-| SYNC-12 | EOLM-FIL-006, EOLM-SYN-002, EOLM-SYN-005, EOLM-MAN-006, EOLM-TST-005 | Not implemented |
-| MAN-01 | EOLM-MAN-002, EOLM-MAN-003, EOLM-MAN-004, EOLM-MAN-007, EOLM-MAN-010, EOLM-ARC-002 | Not implemented; MAN-04 freshness gate is blocked on EOLM-MAN-011 numeric tolerance/applicability decisions |
-| MAN-02 | EOLM-ARC-002, EOLM-ARC-005 | Not implemented |
-| MAN-03 | EOLM-MAN-007, EOLM-ARC-002, EOLM-ARC-005 | Not implemented |
-| MAN-04 | EOLM-MAN-011, EOLM-ARC-005 | Blocked: numeric freshness/future-time tolerance and applicability remain unresolved; test not implemented |
-| MAN-05 | EOLM-MAN-002, EOLM-MAN-009, EOLM-ARC-005 | Not implemented |
-| MAN-06 | EOLM-MAN-002, EOLM-MAN-009, EOLM-ARC-005 | Not implemented |
-| MAN-07 | EOLM-MAN-002, EOLM-MAN-009, EOLM-MAN-012, EOLM-DRV-013 | Not implemented |
-| MAN-08 | EOLM-FIL-010, EOLM-MAN-004 | Not implemented |
-| MAN-09 | EOLM-MAN-004, EOLM-MAN-005, EOLM-MAN-007, EOLM-ARC-005 | Not implemented |
-| MAN-10 | EOLM-MAN-003, EOLM-MAN-004, EOLM-MAN-007, EOLM-ARC-002 | Not implemented |
-| ARC-01 | EOLM-SAF-002, EOLM-SAF-006, EOLM-TST-009 | Not implemented |
-| ARC-02 | EOLM-ARC-003, EOLM-ARC-004, EOLM-ARC-005, EOLM-DRV-005 | Not implemented |
-| ARC-03 | EOLM-ARC-003, EOLM-ARC-004, EOLM-SAF-005 | Not implemented |
-| ARC-04 | EOLM-CFG-004, EOLM-ARC-001, EOLM-ARC-006, EOLM-SAF-001 | Not implemented |
-| ARC-05 | EOLM-CFG-001, EOLM-CFG-006, EOLM-CFG-007, EOLM-ARC-001 | Not implemented |
-| ARC-06 | EOLM-DRV-003, EOLM-DRV-006, EOLM-ARC-003, EOLM-SAF-003 | Not implemented |
-| ARC-07 | EOLM-SAF-001, EOLM-TST-006, EOLM-REL-001, EOLM-REL-003 | Not implemented |
-| ARC-08 | EOLM-ARC-004, EOLM-ARC-005, EOLM-MAN-006, EOLM-MAN-008, EOLM-DRV-006 | Not implemented |
-| ARC-09 | EOLM-CFG-005, EOLM-SAF-001, EOLM-SAF-002, EOLM-TST-006 | Not implemented |
-| IPC-01 | EOLM-DRV-013, EOLM-TST-004 | Not implemented |
-| IPC-02 | EOLM-DRV-012, EOLM-DRV-013, EOLM-TST-004 | Not implemented |
-| IPC-03 | EOLM-DRV-013, EOLM-TST-004 | Not implemented |
-| IPC-04 | EOLM-DRV-013, EOLM-TST-004 | Not implemented |
-| IPC-05 | EOLM-DRV-013, EOLM-OPS-003, EOLM-TST-004 | Not implemented |
-| IPC-06 | EOLM-SEC-001, EOLM-OPS-005, EOLM-TST-005 | Not implemented |
+| SYNC-01 | EOLM-STG-001, EOLM-STG-003, EOLM-STG-005, EOLM-STG-006, EOLM-DRV-005 |未実装|
+| SYNC-02 | EOLM-SYN-002, EOLM-SYN-005 |未実装|
+| SYNC-03 | EOLM-SYN-001, EOLM-STG-005, EOLM-SAF-005 |未実装|
+| SYNC-04 | EOLM-STG-005, EOLM-STG-006, EOLM-DRV-006 |未実装|
+| SYNC-05 | EOLM-DRV-005, EOLM-DRV-006, EOLM-SAF-005 |未実装|
+| SYNC-06 | EOLM-SYN-003, EOLM-SYN-004, EOLM-SYN-005 |未実装|
+| SYNC-07 | EOLM-SYN-003, EOLM-SYN-005 |未実装|
+| SYNC-08 | EOLM-DRV-004, EOLM-DRV-006, EOLM-SAF-005 |未実装|
+| SYNC-09 | EOLM-DRV-010, EOLM-DRV-006 |未実装|
+| SYNC-10 | EOLM-DRV-005, EOLM-DRV-010, EOLM-DRV-013 |未実装|
+| SYNC-11 | EOLM-DRV-001, EOLM-DRV-002, EOLM-DRV-003, EOLM-TST-004 |未実装|
+| SYNC-12 | EOLM-FIL-006, EOLM-SYN-002, EOLM-SYN-005, EOLM-MAN-006, EOLM-TST-005 |未実装|
+| MAN-01 | EOLM-MAN-002, EOLM-MAN-003, EOLM-MAN-004, EOLM-MAN-007, EOLM-MAN-010, EOLM-ARC-002 |未実装。 MAN-04 鮮度ゲートは EOLM-MAN-011 数値許容差/適用性の決定でブロックされています|
+| MAN-02 | EOLM-ARC-002, EOLM-ARC-005 |未実装|
+| MAN-03 | EOLM-MAN-007, EOLM-ARC-002, EOLM-ARC-005 |未実装|
+| MAN-04 | EOLM-MAN-011, EOLM-ARC-005 |ブロック済み: 数値の鮮度/将来の許容範囲と適用性は未解決のままです。テストは実施されていない|
+| MAN-05 | EOLM-MAN-002, EOLM-MAN-009, EOLM-ARC-005 |未実装|
+| MAN-06 | EOLM-MAN-002, EOLM-MAN-009, EOLM-ARC-005 |未実装|
+| MAN-07 | EOLM-MAN-002, EOLM-MAN-009, EOLM-MAN-012, EOLM-DRV-013 |未実装|
+| MAN-08 | EOLM-FIL-010, EOLM-MAN-004 |未実装|
+| MAN-09 | EOLM-MAN-004, EOLM-MAN-005, EOLM-MAN-007, EOLM-ARC-005 |未実装|
+| MAN-10 | EOLM-MAN-003, EOLM-MAN-004, EOLM-MAN-007, EOLM-ARC-002 |未実装|
+| ARC-01 | EOLM-SAF-002, EOLM-SAF-006, EOLM-TST-009 |未実装|
+| ARC-02 | EOLM-ARC-003, EOLM-ARC-004, EOLM-ARC-005, EOLM-DRV-005 |未実装|
+| ARC-03 | EOLM-ARC-003, EOLM-ARC-004, EOLM-SAF-005 |未実装|
+| ARC-04 | EOLM-CFG-004, EOLM-ARC-001, EOLM-ARC-006, EOLM-SAF-001 |未実装|
+| ARC-05 | EOLM-CFG-001, EOLM-CFG-006, EOLM-CFG-007, EOLM-ARC-001 |未実装|
+| ARC-06 | EOLM-DRV-003, EOLM-DRV-006, EOLM-ARC-003, EOLM-SAF-003 |未実装|
+| ARC-07 | EOLM-SAF-001, EOLM-TST-006, EOLM-REL-001, EOLM-REL-003 |未実装|
+| ARC-08 | EOLM-ARC-004, EOLM-ARC-005, EOLM-MAN-006, EOLM-MAN-008, EOLM-DRV-006 |未実装|
+| ARC-09 | EOLM-CFG-005, EOLM-SAF-001, EOLM-SAF-002, EOLM-TST-006 |未実装|
+| IPC-01 | EOLM-DRV-013, EOLM-TST-004 |未実装|
+| IPC-02 | EOLM-DRV-012, EOLM-DRV-013, EOLM-TST-004 |未実装|
+| IPC-03 | EOLM-DRV-013, EOLM-TST-004 |未実装|
+| IPC-04 | EOLM-DRV-013, EOLM-TST-004 |未実装|
+| IPC-05 | EOLM-DRV-013, EOLM-OPS-003, EOLM-TST-004 |未実装|
+| IPC-06 | EOLM-SEC-001, EOLM-OPS-005, EOLM-TST-005 |未実装|
 
-### 3.1.1 Manifest / IPC evidence disposition (reviewed 2026-10-21)
+<a id="311-manifest--ipc-evidence-disposition-reviewed-2026-10-21"></a>
+### 3.1.1 マニフェスト/IPC 証拠処分 (2026-10-21 をレビュー)
 
-The scenario rows in §3.1 map requirement IDs; the following is the evidence disposition after reviewing the normative decisions, `docs/design/manifest-schema-v1-proposal.md`, `docs/design/manifest-state-transition-v1-proposal.md`, `docs/design/powershell-python-contract.md`, `docs/archive/validation/ipc-contract-evidence-audit.md`, and the tracked test inventory. None of these dispositions means runtime acceptance.
+§3.1 のシナリオ行は要件 ID をマップします。以下は、規範的決定、`docs/design/manifest-schema-v1-proposal.md`、`docs/design/manifest-state-transition-v1-proposal.md`、`docs/design/powershell-python-contract.md`、`docs/archive/validation/ipc-contract-evidence-audit.md`、および追跡されたテスト目録を検討した後の証拠の処分です。これらの処理はいずれも実行時の受け入れを意味しません。
 
-| Scenario group | Approved policy/specification state | Tracked implementation / executable test state | Objective evidence and blocker |
+|シナリオグループ|承認されたポリシー/仕様の状態|追跡された実装/実行可能テストの状態|客観的な証拠と阻害要因|
 |---|---|---|---|
-| MAN-01–03 | Manifest v1 field specification is approved; archive requires independently re-verified current Drive state and both-PC/period/log-type identity checks. | No operational manifest schema/reader/writer or archive gate; no executable scenario tests. | No runtime result. Keep blocked from runtime acceptance; prior verification cannot permanently authorize archive. |
-| MAN-04 | Timestamp shape/order policy and configuration-driven tolerance/freshness policy shape are approved. | No manifest runtime validator or fixed-clock tests. | **Blocked** on numeric freshness/future-time tolerances, exact applicability contexts, and clock synchronization/monitoring expectations under EOLM-MAN-011. Do not infer thresholds. |
-| MAN-05–06 | Manifest identity must match filename/JSON identity; ambiguous latest selection must fail closed. | No latest-manifest selector, concurrency guard, or executable identity/tie tests. | Policy shape exists; exact identity/filename conventions, locking/atomicity, and stale-run recovery remain unresolved. |
-| MAN-07 | Manifest v1 field constraints and selected status/time/verification combinations are approved; unknown versions and inconsistent fields must reject. | No operational manifest schema or reader; no schema/transition tests for the manifest proposal. | Existing `tests/test_contract_schemas.py` covers the Drive IPC schemas, not maintenance manifests. No manifest validation evidence. |
-| MAN-08 | Valid zero-work requires successful enumeration and validation and uses `success` with `outcome: no_work`; no extra enum values are approved. | No run aggregation or manifest writer; no zero-work runtime fixture. | OSD-03 policy is approved, but runtime aggregation and evidence are absent. |
-| MAN-09–10 | A missing, running, failed, partial, stale, or ambiguous manifest cannot certify completion; crash-left `running` is not silently rewritten to a terminal state. | No runtime latest-manifest/archive eligibility gate, locking, or crash/recovery tests. | Crash/concurrency policy shape exists, but concrete atomic-write/locking and recovery rules/tests remain incomplete. |
-| IPC-01 | Non-zero child-process exit must fail regardless of JSON content. | No PowerShell orchestrator/Python adapter process harness. | Schema tests do not exercise exit codes; no objective process evidence. |
-| IPC-02 | Exactly one UTF-8 JSON response on stdout; diagnostics on stderr. | No process-boundary harness. | Empty/malformed/multiple/mixed stdout and invalid UTF-8 cases are not executed. |
-| IPC-03 | Response `request_id` and `operation` must correlate to the request. | Schemas constrain individual field shape only; no cross-message correlation test. | No objective process evidence. |
-| IPC-04 | Exit code and response `success` must be consistent; contradiction fails closed. | Schema tests validate response-internal shape, not exit-code/JSON combinations. | No objective process evidence. |
-| IPC-05 | Timeout is failure/unknown; never infer success or proceed to mutation. | No runtime process supervisor or timeout injection. | No timeout/fail-closed evidence. |
-| IPC-06 | Secret material must not leak through stdout, stderr, or operational logs. | No process/log redaction harness using synthetic secrets. | Contract text alone is not redaction evidence. |
+| MAN-01–03 |マニフェスト v1 フィールド仕様が承認されています。アーカイブでは、現在のドライブの状態を個別に再検証し、PC/期間/ログタイプの両方の ID チェックを行う必要があります。|操作可能なマニフェスト スキーマ/リーダー/ライターまたはアーカイブ ゲートはありません。実行可能なシナリオ テストはありません。|実行時の結果はありません。実行時の受け入れをブロックしたままにします。事前の検証ではアーカイブを永続的に承認することはできません。|
+| MAN-04 |タイムスタンプ形状/順序ポリシーおよび構成主導の許容範囲/鮮度ポリシー形状が承認されています。|マニフェスト ランタイム バリデータや固定クロック テストはありません。|**Blocked** は、EOLM-MAN-011 に基づく数値の鮮度/将来の許容範囲、正確な適用性コンテキスト、およびクロック同期/監視の期待に関するものです。しきい値を推測しないでください。|
+| MAN-05–06 |マニフェスト ID はファイル名/JSON ID と一致する必要があります。曖昧な最新の選択はフェールクローズする必要があります。|最新マニフェスト セレクター、同時実行ガード、実行可能な ID/結合テストはありません。|ポリシーの形状は存在します。正確な ID/ファイル名の規則、ロック/アトミック性、および古い実行の回復は未解決のままです。|
+| MAN-07 |マニフェスト v1 フィールド制約と選択されたステータス/時間/検証の組み合わせが承認されます。不明なバージョンと一貫性のないフィールドは拒否する必要があります。|操作可能なマニフェスト スキーマやリーダーはありません。マニフェスト提案のスキーマ/遷移テストはありません。|既存の `tests/test_contract_schemas.py` はドライブ IPC スキーマをカバーしており、メンテナンス マニフェストはカバーしていません。明示的な検証証拠はありません。|
+| MAN-08 |有効なゼロワークには、列挙と検証が成功する必要があり、`success` と `outcome: no_work` を使用します。追加の列挙値は承認されません。|実行集計やマニフェスト ライターはありません。ゼロワークランタイムフィクスチャはありません。|OSD-03 ポリシーは承認されていますが、実行時の集計と証拠がありません。|
+| MAN-09–10 |マニフェストが欠落している、実行中、失敗している、部分的、古い、またはあいまいな場合、完了を証明することはできません。 crash-left `running` はサイレントに終了状態に書き換えられることはありません。|ランタイムの最新マニフェスト/アーカイブ適格性ゲート、ロック、クラッシュ/リカバリ テストはありません。|クラッシュ/同時実行ポリシーの形式は存在しますが、具体的なアトミック書き込み/ロックおよびリカバリ ルール/テストは不完全なままです。|
+| IPC-01 |ゼロ以外の子プロセスの終了は、JSON の内容に関係なく失敗する必要があります。|PowerShell オーケストレーター/Python アダプター プロセス ハーネスがありません。|スキーマ テストでは終了コードは実行されません。客観的なプロセスの証拠がない。|
+| IPC-02 |標準出力上の UTF-8 JSON 応答は 1 つだけです。標準エラー出力での診断。|プロセス境界ハーネスはありません。|空/不正な形式/複数/混合の標準出力および無効な UTF-8 の場合は実行されません。|
+| IPC-03 |応答 `request_id` および `operation` はリクエストに関連付けられている必要があります。|スキーマは個々のフィールドの形状のみを制約します。メッセージ間相関テストはありません。|客観的なプロセス証拠がない。|
+| IPC-04 |終了コードと応答 `success` は一貫している必要があります。矛盾は閉じられない。|スキーマ テストは、終了コードと JSON の組み合わせではなく、応答の内部形状を検証します。|客観的なプロセス証拠がない。|
+| IPC-05 |タイムアウトは 失敗/不明 です。 成功 を推測したり、突然変異を進めたりしないでください。|ランタイムプロセススーパーバイザーやタイムアウト挿入はありません。|タイムアウト/フェールクローズの証拠はありません。|
+| IPC-06 |機密情報は、stdout、stderr、または操作ログを通じて漏洩してはなりません。|合成シークレットを使用したプロセス/ログ編集ハーネスはありません。|契約文だけでは編集の証拠にはなりません。|
 
-**Cross-cutting evidence boundary:** the request/response JSON schemas and `tests/test_contract_schemas.py` provide artifact-level structural validation only. Validate and Package Validation CI do not establish manifest lifecycle behavior, process-boundary IPC, retry ownership, secret redaction, archive eligibility, or deletion safety. All MAN-01–10 and IPC-01–06 runtime scenarios remain not implemented/not run; EOLM-MAN-011 remains blocked on the numeric/applicability decisions above. The separate derived aggregation report is required by the approved OSD-03 representation decision, but its schema, frozen-inventory canonicalization, atomic publication/recovery, freshness/consistency validation, implementation, and executable tests remain pending; PR #116 is a proposal only.
+**共通の証拠の境界:** 要求・応答の JSON スキーマと `tests/test_contract_schemas.py` は、成果物単位の構造検証のみを提供する。ValidateとPackage Validationの CI は、マニフェストのライフサイクル、プロセス境界のIPC、再試行の担当、秘密情報の除去、アーカイブ対象条件、削除の安全性を証明しない。MAN-01〜10 と IPC-01〜06 の全実行時シナリオは未実装・未実行であり、EOLM-MAN-011 は上記の数値・適用範囲の判断待ちである。承認済みの OSD-03 の表現方針により、別の派生集計レポートが必要となる。ただし、スキーマ、確定一覧の正規化、アトミック公開・復旧、鮮度・整合検証、実装、実行可能な試験は未完である。PR #116 は提案のみ。
 
-## 3.2 Decision-clause crosswalk (C-18–C-32)
+<a id="32-decision-clause-crosswalk-c-18c-32"></a>
+## 3.2 決定条項の対応表 (C-18–C-32)
 
-The following maps each individual decision-register clause to requirement IDs. Mapping is not evidence of implementation or verification.
+以下は、個々の意思決定登録句を要件 ID にマップします。マッピングは実装または検証の証拠ではありません。
 
-| Source clause | Requirement IDs | Disposition |
+|ソース句|要件 ID|処分|
 |---|---|---|
-| C-18/C-29 — Python one-attempt rule, PowerShell retry ownership, unknown-upload reconciliation | EOLM-DRV-001–003, EOLM-DRV-006, EOLM-DRV-010, EOLM-TST-004 | Mapped; runtime implementation and executable retry tests absent |
-| C-19/C-22 — test scope and deletion-capability exclusion | EOLM-SYN-001, EOLM-DRV-004–008, EOLM-MAN-001–012, EOLM-ARC-001–006, EOLM-CFG-001–007, EOLM-DRV-011–013, EOLM-SEC-001, EOLM-OPS-003/005, EOLM-LCK-001–004, EOLM-SAF-001–006, EOLM-TST-004–006 | Partial; full source/package scan and runtime tests remain open |
-| C-20/C-21 — official entry points, role config, fail-closed validation, canonical casing | EOLM-CFG-001–007, EOLM-ENV-001–003, EOLM-REL-003, EOLM-ARC-001/006 | Partial; `scripts/SyncLogs.ps1` exists as a sentinel only; `scripts/ArchiveLogs.ps1` and the runtime config loader are absent. `validate.yml` parses example JSON syntax but does not enforce active-config role/path/capability semantics; Package Validation checks example-template semantics only. |
-| C-23 — minimum OAuth scope and real-folder capability validation | EOLM-DRV-007, EOLM-REL-010, EOLM-SEC-001, EOLM-TST-004–005 | Blocked; OSD-05 records that identity/scope is not selected or validated against intended My Drive folders. Schemas and mocked checks cannot prove least-privilege access; see focused C-23 evidence reconciliation below. |
-| C-24 — monthly/catch-up schedule, staggered times, bounded PC-A checks | EOLM-OPS-001/002/004/006, EOLM-LCK-001–004, EOLM-TST-005/007/008 | Blocked; OSD-08 records that schedule and stale-lock/lease policy are deferred. No scheduler, lock implementation, or executable overlap/missed-run/recovery tests are present; see focused C-24 evidence reconciliation below. |
-| C-25 — anchored filename patterns, strict date parsing, no timestamp fallback, failure status | EOLM-FIL-001–005, EOLM-FIL-009/010, EOLM-MAN-004 | Mapped; CI execution and edge coverage remain open |
-| C-26 — manifest schema, status transitions, timestamps, per-file results, crash/concurrency behavior | EOLM-MAN-001–009, EOLM-MAN-011/012, EOLM-FIL-010, EOLM-ARC-002/005, EOLM-LCK-001–004 | Blocked/partial; schema baseline and freshness policy unresolved |
-| C-27 — distribution access/authentication, versioning/approval, retention, one-way separation | EOLM-REL-001–008, EOLM-OPS-003, EOLM-TST-006–008 | Blocked; design decisions and pipeline remain incomplete |
-| C-28 — PC-A archive gate, PC-B prohibition, both-PC manifest/cloud verification, copy-only archive | EOLM-CFG-004/007, EOLM-MAN-007/010–012, EOLM-ARC-001–006, EOLM-DRV-005–008, EOLM-SAF-001–003 | Partial; example files are not enforcement. No runtime gate, manifest freshness verification, cloud-content verification, or copy-only archive runtime path is evidenced; see the focused evidence reconciliation below. |
-| C-30 — phase gates, sync/archive boundaries, later recovery/distribution/Dry Run/scheduling | EOLM-ENV-001–005, EOLM-SYN-001–008, EOLM-DRV-001–013, EOLM-MAN-001–012, EOLM-STG-001–012, EOLM-ARC-001–006, EOLM-SAF-001–006, EOLM-REL-001–008, EOLM-OPS-001–006, EOLM-TST-001–010 | Partial; phase acceptance and runtime evidence incomplete |
-| C-31 — retention cutoffs by log type and filename-date selection | EOLM-FIL-001–009, EOLM-SYN-002, EOLM-TST-003 | Mapped; PR #13 adds rollover/leap-year cases and PR #31 adds case-sensitive extension and invariant-culture assertions (Validate #39376077352 and Package Validation #39376077340 succeeded). Broader 30/31-day month-end, metadata disagreement and runtime enumeration remain open |
-| C-32 — separate inventory records, name/size/hash comparison, reviewed restore, hold conflicts | EOLM-SYN-004, EOLM-SYN-006–008, EOLM-SAF-006, EOLM-TST-009 | Partial; inventory tooling and isolated tests absent |
+|C-18/C-29 — Python 1 回試行ルール、PowerShell 再試行所有権、不明 アップロード調整| EOLM-DRV-001–003, EOLM-DRV-006, EOLM-DRV-010, EOLM-TST-004 |マッピング済み。ランタイム実装と実行可能再試行テストが存在しない|
+|C-19/C-22 — テスト範囲と削除機能の除外| EOLM-SYN-001, EOLM-DRV-004–008, EOLM-MAN-001–012, EOLM-ARC-001–006, EOLM-CFG-001–007, EOLM-DRV-011–013, EOLM-SEC-001, EOLM-OPS-003/005, EOLM-LCK-001–004, EOLM-SAF-001–006, EOLM-TST-004–006 |部分的;完全なソース/パッケージ スキャンとランタイム テストはオープンのままです|
+|C-20/C-21 — 公式エントリ ポイント、ロール構成、フェールクローズ検証、標準的なケーシング| EOLM-CFG-001–007, EOLM-ENV-001–003, EOLM-REL-003, EOLM-ARC-001/006 |部分的; `scripts/SyncLogs.ps1` は見張りとしてのみ存在します。 `scripts/ArchiveLogs.ps1` とランタイム構成ローダーがありません。 `validate.yml` は、JSON 構文の例を解析しますが、active-config のロール/パス/機能セマンティクスを強制しません。パッケージ検証では、サンプル テンプレートのセマンティクスのみがチェックされます。|
+|C-23 — 最小 OAuth スコープとリアルフォルダー機能の検証| EOLM-DRV-007, EOLM-REL-010, EOLM-SEC-001, EOLM-TST-004–005 |ブロックされました。 OSD-05 は、ID/スコープが選択されていない、または意図したマイ ドライブ フォルダーに対して検証されていないことを記録します。スキーマとモックチェックでは、最小特権アクセスを証明することはできません。以下の重点的なC-23証拠の調整を参照してください。|
+|C-24 — 月次/近日スケジュール、時間差、制限付き PC-A チェック| EOLM-OPS-001/002/004/006, EOLM-LCK-001–004, EOLM-TST-005/007/008 |ブロックされました。 OSD-08 は、スケジュールと古いロック/リース ポリシーが延期されることを記録します。スケジューラ、ロックの実装、または実行可能なオーバーラップ/ミスラン/リカバリ テストは存在しません。以下の重点的なC-24証拠の調整を参照してください。|
+|C-25 — アンカーされたファイル名パターン、厳密な日付解析、タイムスタンプ フォールバックなし、失敗 ステータス| EOLM-FIL-001–005, EOLM-FIL-009/010, EOLM-MAN-004 |マッピング済み。 CI の実行とエッジ カバレッジは開いたままになります|
+|C-26 — マニフェスト スキーマ、ステータス遷移、タイムスタンプ、ファイルごとの結果、クラッシュ/同時実行動作| EOLM-MAN-001–009, EOLM-MAN-011/012, EOLM-FIL-010, EOLM-ARC-002/005, EOLM-LCK-001–004 |ブロック/部分的。スキーマベースラインと鮮度ポリシーが未解決|
+|C-27 — 配布アクセス/認証、バージョン管理/承認、保持、一方向分離| EOLM-REL-001–008, EOLM-OPS-003, EOLM-TST-006–008 |ブロックされました。設計上の決定とパイプラインは未完成のまま|
+|C-28 — PC-A アーカイブ ゲート、PC-B 禁止、両方の PC マニフェスト/クラウド検証、コピー専用アーカイブ| EOLM-CFG-004/007, EOLM-MAN-007/010–012, EOLM-ARC-001–006, EOLM-DRV-005–008, EOLM-SAF-001–003 |部分的;サンプル ファイルは強制ではありません。ランタイム ゲート、マニフェストの鮮度検証、クラウド コンテンツの検証、コピー専用アーカイブのランタイム パスは証明されていません。以下の焦点を絞った証拠の調整を参照してください。|
+|C-30 — フェーズ ゲート、同期/アーカイブ境界、後のリカバリ/配布/Dry Run/スケジューリング| EOLM-ENV-001–005, EOLM-SYN-001–008, EOLM-DRV-001–013, EOLM-MAN-001–012, EOLM-STG-001–012, EOLM-ARC-001–006, EOLM-SAF-001–006, EOLM-REL-001–008, EOLM-OPS-001–006, EOLM-TST-001–010 |部分的;フェーズの受け入れと実行時の証拠が不完全|
+|C-31 — ログの種類とファイル名と日付の選択による保持カットオフ| EOLM-FIL-001–009, EOLM-SYN-002, EOLM-TST-003 |マッピング済み。 PR #13 はロールオーバー/うるう年のケースを追加し、PR #31 は大文字と小文字を区別する拡張機能とインバリアント カルチャ アサーションを追加します (検証 #39376077352 とパッケージ検証 #39376077340 は成功しました)。より広範な 30/31-日の月末、メタデータの不一致とランタイム列挙は未解決のまま|
+|C-32 — 個別のインベントリ レコード、名前/サイズ/ハッシュの比較、レビューされた復元、保留の競合| EOLM-SYN-004, EOLM-SYN-006–008, EOLM-SAF-006, EOLM-TST-009 |部分的;インベントリツールと個別のテストが存在しない|
 
-### 3.3 Remaining normative-clause audit
+<a id="33-remaining-normative-clause-audit"></a>
+### 3.3 残りの規範条項監査
 
-The decision-register and specification clause crosswalks in §§3.2–3.8 are candidate-ID mappings only; they do not close P0-010. Clause-level crosswalks now exist for `docs/design/filename-and-period-selection.md`, `docs/design/staging-file-lifecycle.md`, `docs/design/powershell-python-contract.md`, `docs/development/implementation-workflow.md`, and `docs/release/distribution-design.md`, but still require a completeness pass against every normative bullet/table row and a check for contradictions or omitted clauses. Cross-cutting README/decision-register statements and all artifacts must also be reconciled. Self-derived requirements must remain identifiable as derived, and every requirement must eventually link to an implementation artifact, executable test, and objective result/CI evidence.
+§§3.2–3.8 の決定登録と仕様句のクロスウォークは、候補 ID マッピングのみです。 P0-010 を閉じません。 `docs/design/filename-and-period-selection.md`、`docs/design/staging-file-lifecycle.md`、`docs/design/powershell-python-contract.md`、`docs/development/implementation-workflow.md`、および `docs/release/distribution-design.md` に対して条項レベルのクロスウォークが存在しますが、依然として、すべての規範的な箇条書き/表の行に対する完全性パスと、矛盾または省略された条項のチェックが必要です。横断的な README/意思決定登録ステートメントとすべての成果物も調整する必要があります。自己派生要件は派生要件として識別可能な状態を維持する必要があり、すべての要件は最終的に実装成果物、実行可能なテスト、および客観的な結果/CI 証拠にリンクする必要があります。
 
-## 3.4 Filename-and-period specification clause crosswalk
+<a id="34-filename-and-period-specification-clause-crosswalk"></a>
+## 3.4 ファイル名と期間の指定句のクロスウォーク
 
-Source: `docs/design/filename-and-period-selection.md`. Each normative rule is mapped separately below. A requirement ID mapping records intended coverage only; the disposition indicates whether implementation and objective verification exist.
+出典: `docs/design/filename-and-period-selection.md`。各規範ルールは以下で個別にマッピングされます。要件 ID マッピングには、意図された範囲のみが記録されます。処分は、実装と客観的な検証が存在するかどうかを示します。
 
-| Source locator / clause | Requirement IDs | Disposition |
+|ソースロケーター/句|要件 ID|処分|
 |---|---|---|
-| §2 — patterns anchored to the complete filename | EOLM-FIL-001, EOLM-FIL-002 | Helper and assertion coverage are recorded in §3.11; Validate runs `tests/Test-LogFunctions.ps1`. Runtime enumeration remains unimplemented. |
-| §2 — BattleLog pattern and date capture | EOLM-FIL-001, EOLM-FIL-003 | `tests/Test-LogFunctions.ps1` asserts the pattern/date behavior and is run by Validate (see §3.11); runtime enumeration remains unimplemented. |
-| §2 — ErrorReport pattern and date capture | EOLM-FIL-002, EOLM-FIL-003 | `tests/Test-LogFunctions.ps1` asserts the pattern/date behavior and is run by Validate (see §3.11); runtime enumeration remains unimplemented. |
-| §2 — documented `.txt` extension is case-sensitive | EOLM-FIL-001, EOLM-FIL-002, EOLM-TST-003 | Implemented with PowerShell case-sensitive regex matching (`-cnotmatch`); PR #31 adds uppercase `.TXT` rejection tests for both log types and invariant-culture parsing assertion. Validate executes these helper assertions (see §3.11); runtime enumeration remains unimplemented. |
-| §2 — parse as a real calendar date with exact `yyyyMMdd` and invariant culture | EOLM-FIL-003, EOLM-TST-003 | Invalid calendar date, leap-day, invalid-month, and invariant-culture cases are asserted in `tests/Test-LogFunctions.ps1` and run by Validate (see §3.11). Runtime orchestration remains unimplemented. |
-| §2 — pattern mismatch or invalid date is a per-file validation error | EOLM-FIL-004, EOLM-FIL-005, EOLM-TST-003 | Partial; run-level handling is not implemented |
-| §2 — no LastWriteTime fallback | EOLM-FIL-004, EOLM-FIL-009 | Helper has no filesystem timestamp input, so fallback is structurally absent at helper level; a runtime fixture with conflicting filename date and `LastWriteTime` remains unimplemented because no enumeration entry point exists. |
-| §2 — unexpected files are not silently treated as eligible logs | EOLM-FIL-005, EOLM-OPS-003 | Partial; reporting/orchestration absent |
-| §2 — relevant validation error prevents period being marked fully successful | EOLM-FIL-005, EOLM-MAN-004, EOLM-OPS-003 | Partial; manifest/run-status implementation and tests absent |
-| §3 — sync eligibility uses filename date, not filesystem timestamps | EOLM-FIL-009 | Mapped; test evidence still required |
-| §3 — BattleLog cutoff is the final calendar day of the previous month | EOLM-FIL-007, EOLM-TST-003 | Boundary and January rollover assertions run in CI. PR #34 adds helper assertions for February 28/29 and April/June 30-day cutoffs; mixed-directory enumeration and runtime status remain unimplemented (see §3.11). |
-| §3 — ErrorReport cutoff is December 31 of the previous calendar year | EOLM-FIL-008, EOLM-TST-003 | January year-boundary tests run in CI after PR #13; broader runtime/run-status tests remain open. |
-| §3 — process every eligible backlog period | EOLM-FIL-006, EOLM-SYN-002, EOLM-TST-003 | Not implemented; multi-period selection test absent |
-| §4 — archive is PC-A-only and governed by archive gates | EOLM-CFG-003, EOLM-CFG-004, EOLM-ARC-001, EOLM-ARC-006 | Partial; runtime role/config gates absent |
-| §4 — BattleLog archive cutoff is December 31 of the previous year | EOLM-FIL-007, EOLM-TST-003 | January archive cutoff assertion runs in CI after PR #13; runtime archive enumeration remains unimplemented. |
-| §4 — ErrorReport archive cutoff is December 31 of the year two years before current year | EOLM-FIL-008, EOLM-TST-003 | January archive cutoff assertion runs in CI after PR #13; runtime archive enumeration remains unimplemented. |
-| §4 — process every eligible archive backlog period | EOLM-FIL-006, EOLM-ARC-002, EOLM-TST-003 | Not implemented; archive enumeration absent |
-| §4 — archive copies, verifies, records, and never deletes source | EOLM-ARC-003, EOLM-ARC-004, EOLM-ARC-005, EOLM-SAF-001, EOLM-SAF-005 | Not implemented; archive runtime and destructive-capability absence tests absent |
-| §5 — October 2026 example dates: BattleLog sync 2026-09-30, archive 2025-12-31 | EOLM-FIL-007, EOLM-TST-003 | October 2026 cutoff examples are asserted by fixed-reference helper tests and run by Validate (see §3.11); this does not prove runtime enumeration of eligible files. |
-| §5 — October 2026 example dates: ErrorReport sync 2025-12-31, archive 2024-12-31 | EOLM-FIL-008, EOLM-TST-003 | October 2026 cutoff examples are asserted by fixed-reference helper tests and run by Validate (see §3.11); this does not prove runtime enumeration of eligible files. |
-| §5 — boundaries must be calculated at runtime, not hardcoded to examples | EOLM-FIL-007, EOLM-FIL-008, EOLM-TST-003 | Add deterministic clock injection or equivalent tests for different execution dates |
-| §6 — invalid/unexpected filenames remain visible as errors in run results | EOLM-FIL-005, EOLM-OPS-003 | Not implemented; run reporting absent |
-| §6 — matching filename alone does not authorize overwriting different content | EOLM-SYN-003, EOLM-SYN-005, EOLM-DRV-010 | Not implemented; collision resolver absent |
-| §6 — period completion/archive eligibility require manifest, content, and cloud verification | EOLM-MAN-004, EOLM-MAN-007, EOLM-ARC-002, EOLM-ARC-005, EOLM-SAF-003 | Blocked/partial; manifest freshness policy remains unresolved and runtime verification absent |
-| §6 — Dry Run and filename selection do not modify, move, or delete source files | EOLM-SAF-001, EOLM-SAF-002, EOLM-SAF-006 | Not implemented; no runtime Dry Run orchestration/tests |
-| §7 — unclassifiable filename has no trustworthy period and blocks full-success status | EOLM-FIL-005, EOLM-MAN-004, EOLM-OPS-003 | Not implemented; run-level completion logic absent |
-| §7 — syntactically present but invalid calendar date is an error, not silently skipped | EOLM-FIL-003, EOLM-FIL-005, EOLM-TST-003 | Invalid calendar-date and invalid-leap-day helper cases exist and run in Validate (see §3.11); mixed valid/invalid batch handling and run-status aggregation remain unimplemented. |
-| §7 — safe independent valid files may proceed, but do not cancel validation error | EOLM-FIL-005, EOLM-SAF-003, EOLM-TST-003 | Not implemented; mixed valid/invalid batch test absent |
-| §7 — unresolved relevant validation error prevents full-success record for affected scope | EOLM-FIL-005, EOLM-MAN-004, EOLM-OPS-003 | Not implemented; run status aggregation absent |
-| §7 — unassignable invalid filename prevents overall run being certified fully successful | EOLM-FIL-005, EOLM-OPS-003 | Not implemented; end-to-end status test absent |
-| §7 — incomplete, failed, stale, or ambiguous manifest blocks archive; PC-A fails closed | EOLM-MAN-004, EOLM-MAN-011, EOLM-ARC-005, EOLM-SAF-003 | Blocked; numeric freshness/future-time tolerances and applicability remain unresolved |
-| §7 — exact manifest statuses/transitions must be finalized before manifest implementation | EOLM-MAN-001–009, EOLM-MAN-011–012 | Blocked; schema/status baseline not approved |
+|§2 — 完了 ファイル名に固定されたパターン| EOLM-FIL-001, EOLM-FIL-002 |ヘルパーとアサーションのカバレッジは §3.11 に記録されます。 `tests/Test-LogFunctions.ps1` の実行を検証します。ランタイム列挙は未実装のままです。|
+|§2 — BattleLog パターンと日付のキャプチャ| EOLM-FIL-001, EOLM-FIL-003 |`tests/Test-LogFunctions.ps1` はパターン/日付の動作をアサートし、Validate によって実行されます (§3.11 を参照)。ランタイム列挙は未実装のままです。|
+|§2 — ErrorReport パターンと日付のキャプチャ| EOLM-FIL-002, EOLM-FIL-003 |`tests/Test-LogFunctions.ps1` はパターン/日付の動作をアサートし、Validate によって実行されます (§3.11 を参照)。ランタイム列挙は未実装のままです。|
+|§2 — 文書化された `.txt` 拡張子では大文字と小文字が区別されます| EOLM-FIL-001, EOLM-FIL-002, EOLM-TST-003 |PowerShell 大文字と小文字を区別する正規表現マッチング (`-cnotmatch`) を使用して実装されています。 PR #31 は、ログ タイプとインバリアント カルチャ解析アサーションの両方に対する大文字の `.TXT` 拒否テストを追加します。 Validate は、これらのヘルパー アサーションを実行します (§3.11 を参照)。ランタイム列挙は未実装のままです。|
+|§2 — 正確な `yyyyMMdd` と不変カルチャを使用して実際のカレンダー日付として解析します| EOLM-FIL-003, EOLM-TST-003 |無効なカレンダー日付、うるう日、無効な月、およびインバリアント カルチャのケースは、`tests/Test-LogFunctions.ps1` でアサートされ、Validate によって実行されます (§3.11 を参照)。ランタイムオーケストレーションは未実装のままです。|
+|§2 — パターン 不一致 または無効な日付はファイルごとの検証エラーです| EOLM-FIL-004, EOLM-FIL-005, EOLM-TST-003 |部分的;実行レベルの処理は実装されていません|
+|§2 — LastWriteTime フォールバックなし| EOLM-FIL-004, EOLM-FIL-009 |ヘルパーにはファイルシステムのタイムスタンプ入力がないため、ヘルパー レベルではフォールバックが構造的に存在しません。列挙エントリ ポイントが存在しないため、競合するファイル名の日付と `LastWriteTime` を持つランタイム フィクスチャは実装されないままになります。|
+|§2 — 予期しないファイルは対象となるログとして自動的に処理されません| EOLM-FIL-005, EOLM-OPS-003 |部分的;レポート/オーケストレーションが不在|
+|§2 — 関連する検証エラーにより、期間が完全に成功としてマークされることが妨げられています| EOLM-FIL-005, EOLM-MAN-004, EOLM-OPS-003 |部分的;マニフェスト/実行ステータスの実装とテストが存在しない|
+|§3 — 同期対象条件にはファイルシステムのタイムスタンプではなくファイル名の日付が使用されます| EOLM-FIL-009 |マッピング済み。検査証拠は依然として必要|
+|§3 — BattleLog 締め日は前月の最終暦日です| EOLM-FIL-007, EOLM-TST-003 |境界および 1 月のロールオーバー アサーションは CI で実行されます。 PR #34 は、2 月 28/29 と 4 月/6 月の 30 日のカットオフに対するヘルパー アサーションを追加します。混合ディレクトリの列挙と実行時ステータスは未実装のままです (§3.11 を参照)。|
+|§3 — ErrorReport の対象は前年12月 31 日以前| EOLM-FIL-008, EOLM-TST-003 |1 月の年度境界テストは PR #13 の後、CI で実行されます。より広範なランタイム/ランステータス テストは引き続きオープンされています。|
+|§3 — 対象となるすべてのバックログ期間を処理します| EOLM-FIL-006, EOLM-SYN-002, EOLM-TST-003 |未実装。複数期間選択テストなし|
+|§4 — アーカイブは PC-A のみであり、アーカイブ ゲートによって管理されます| EOLM-CFG-003, EOLM-CFG-004, EOLM-ARC-001, EOLM-ARC-006 |部分的;ランタイムロール/構成ゲートが存在しない|
+|§4 — BattleLog のアーカイブ対象は前年12月 31 日以前| EOLM-FIL-007, EOLM-TST-003 |1 月のアーカイブ カットオフ アサーションは、PR #13 の後の CI で実行されます。ランタイム アーカイブの列挙は未実装のままです。|
+|§4 — ErrorReport のアーカイブ対象は前々年12月 31 日以前| EOLM-FIL-008, EOLM-TST-003 |1 月のアーカイブ カットオフ アサーションは、PR #13 の後の CI で実行されます。ランタイム アーカイブの列挙は未実装のままです。|
+|§4 — 対象となるすべてのアーカイブ バックログ期間を処理します| EOLM-FIL-006, EOLM-ARC-002, EOLM-TST-003 |未実装。アーカイブ列挙がありません|
+|§4 — コピー、検証、記録をアーカイブし、ソースを削除しない| EOLM-ARC-003, EOLM-ARC-004, EOLM-ARC-005, EOLM-SAF-001, EOLM-SAF-005 |未実装。アーカイブ ランタイムおよび破壊機能不在テストが存在しない|
+|§5 — 10 月 2026 日付の例: BattleLog 同期 2026-09-30、アーカイブ 2025-12-31| EOLM-FIL-007, EOLM-TST-003 |10 月 2026 カットオフ サンプルは、固定参照ヘルパー テストによってアサートされ、Validate によって実行されます (§3.11 を参照)。これは、対象となるファイルの実行時の列挙を証明するものではありません。|
+|§5 — 10 月 2026 日付の例: ErrorReport 同期 2025-12-31、アーカイブ 2024-12-31| EOLM-FIL-008, EOLM-TST-003 |10 月 2026 カットオフ サンプルは、固定参照ヘルパー テストによってアサートされ、Validate によって実行されます (§3.11 を参照)。これは、対象となるファイルの実行時の列挙を証明するものではありません。|
+|§5 — 境界は例にハードコーディングするのではなく、実行時に計算する必要があります| EOLM-FIL-007, EOLM-FIL-008, EOLM-TST-003 |さまざまな実行日に決定論的なクロック インジェクションまたは同等のテストを追加する|
+|§6 — 無効または予期しないファイル名が実行結果にエラーとして表示されたままになる| EOLM-FIL-005, EOLM-OPS-003 |未実装。レポートを実行しない|
+|§6 — ファイル名が一致するだけでは、異なるコンテンツの上書きは許可されません| EOLM-SYN-003, EOLM-SYN-005, EOLM-DRV-010 |未実装。衝突リゾルバーが存在しない|
+|§6 — 期間完了/アーカイブの対象条件にはマニフェスト、コンテンツ、クラウドの検証が必要です| EOLM-MAN-004, EOLM-MAN-007, EOLM-ARC-002, EOLM-ARC-005, EOLM-SAF-003 |ブロック/部分的。マニフェストの鮮度ポリシーが未解決のままであり、実行時検証が存在しない|
+|§6 — Dry Run およびファイル名の選択では、ソース ファイルは変更、移動、または削除されません。| EOLM-SAF-001, EOLM-SAF-002, EOLM-SAF-006 |未実装。ランタイム Dry Run オーケストレーション/テストなし|
+|§7 — 分類できないファイル名には信頼できる期間がなく、完全な 成功 ステータスをブロックします| EOLM-FIL-005, EOLM-MAN-004, EOLM-OPS-003 |未実装。実行レベルの完了ロジックが存在しない|
+|§7 — 構文的に存在するが無効なカレンダー日付はエラーであり、暗黙的にスキップされるわけではありません| EOLM-FIL-003, EOLM-FIL-005, EOLM-TST-003 |無効な暦日および無効な閏日ヘルパー ケースが存在し、検証で実行されます (§3.11 を参照)。有効/無効の混合バッチ処理と実行ステータスの集計は未実装のままです。|
+|§7 — 安全で独立した有効なファイルは続行できますが、検証エラーはキャンセルされません| EOLM-FIL-005, EOLM-SAF-003, EOLM-TST-003 |未実装。有効/無効混合バッチテストなし|
+|§7 — 未解決の関連検証エラーにより、影響を受けるスコープの完全な 成功 レコードが妨げられます| EOLM-FIL-005, EOLM-MAN-004, EOLM-OPS-003 |未実装。実行ステータスの集計がありません|
+|§7 — 割り当てできない無効なファイル名により、実行全体が完全に成功したと認定されません| EOLM-FIL-005, EOLM-OPS-003 |未実装。エンドツーエンドのステータステストが存在しない|
+|§7 — 未完了、失敗した、古い、または 曖昧 マニフェスト ブロック アーカイブ。 PC-A が失敗して閉じられました| EOLM-MAN-004, EOLM-MAN-011, EOLM-ARC-005, EOLM-SAF-003 |ブロックされました。数値の鮮度/将来の許容範囲と適用性は未解決のまま|
+|§7 — マニフェストの実装前に正確なマニフェストのステータス/遷移を確定する必要がある| EOLM-MAN-001–009, EOLM-MAN-011–012 |ブロックされました。スキーマ/ステータスのベースラインが承認されていません|
 
-### 3.5 Next specification clause crosswalks
+<a id="35-next-specification-clause-crosswalks"></a>
+### 3.5 次の仕様句の対応表
 
-The filename-and-period specification has a clause-level candidate-ID mapping. Follow-on crosswalks for staging, PowerShell/Python contract, implementation workflow, and distribution design are now recorded in §§3.5–3.8. Next, verify those candidate mappings against each source clause and reconcile their IDs/statuses with `docs/requirements/requirements-traceability.md`; the existence of these tables does not establish complete coverage or runtime evidence.
+ファイル名と期間の指定には、句レベルの候補 ID マッピングがあります。 ステージング、PowerShell/Python 契約、実装ワークフロー、および配布設計の後続のクロスウォークは、§§3.5–3.8 に記録されるようになりました。次に、これらの候補マッピングを各ソース句と照合して検証し、その ID/ステータスを `docs/requirements/requirements-traceability.md` と照合します。これらのテーブルの存在は、完了 の適用範囲や実行時の証拠を確立するものではありません。
 
-### 3.5 `docs/design/staging-file-lifecycle.md` clause-level crosswalk
+<a id="35-docsdesignstaging-file-lifecyclemd-clause-level-crosswalk"></a>
+### 3.5 `docs/design/staging-file-lifecycle.md` 句レベルの対応表
 
-| Source clause | Candidate requirement IDs | Coverage | Audit note / remaining action |
+|ソース句|候補要件 ID|適用範囲|監査メモ/残りのアクション|
 |---|---|---|
-| §1 Purpose, scope, PC-A/PC-B and log-type applicability | EOLM-STG-001, EOLM-STG-006, EOLM-SAF-001, EOLM-SAF-005 | Mapped | Shared lifecycle and no-source-deletion boundary are represented; this mapping is not implementation evidence. |
-| §1 Interrupted-run recovery deferred; source and Drive files preserved | EOLM-STG-007, EOLM-STG-008, EOLM-SAF-001, EOLM-SAF-005 | Mapped | Verify later changes do not introduce automatic residual recovery or deletion. |
-| §2 Required PowerShell 7.6.7; reject unsupported runtime before processing | EOLM-ENV-001, EOLM-ENV-003, EOLM-TST-001 | Mapped | Runtime guard and CI enforcement remain incomplete. |
-| §2 Batch entry points use pwsh.exe; PowerShell 5.1 excluded | EOLM-ENV-002, EOLM-ENV-003 | Mapped | Audit all supported entry points and release package; the example below is separately flagged. |
-| §2 Python one API attempt; PowerShell owns retry/recovery | EOLM-DRV-001, EOLM-DRV-002, EOLM-TST-004 | Mapped | Must test actual call count and orchestration; contract/schema tests alone are insufficient. |
-| §2 Example sync invocation uses the planned SyncLogs.ps1 name | EOLM-CFG-002, EOLM-ENV-002, EOLM-ENV-003 | Mapped/partial | Example is explicitly illustrative; `scripts/SyncLogs.ps1` exists only as a sentinel, with no operational sync logic or batch launcher. Do not interpret this example as proof of a deployable entry point. |
-| §3 Staging is PC-local and outside Drive synchronization | EOLM-STG-001, EOLM-CFG-006 | Mapped | Runtime path validation must reject paths under configured Drive roots. |
-| §3 Staging name, unique run ID, sequence and preserved original filename | EOLM-STG-002, EOLM-STG-003 | Mapped | Requirement IDs cover naming/metadata; uniqueness and path edge cases still need tests. |
-| §3 Never overwrite; atomic create-new; collision advances sequence; exhausted allocation fails file | EOLM-STG-002, EOLM-STG-010, EOLM-REQ-001 | Mapped | Include race/collision and sequence-exhaustion tests; a pre-check alone is insufficient. |
-| §3 Metadata required fields and metadata-first write/validate/replace | EOLM-STG-003, EOLM-MAN-008, EOLM-MAN-012 | Mapped/partial | Required metadata fields and atomic update behavior have IDs; staging-metadata field types/schema version/status enum are not fully specified and must be resolved before implementation. |
-| §4 Freeze target inventory after lock and residual inspection | EOLM-STG-004, EOLM-LCK-001, EOLM-STG-007 | Mapped | Test ordering: lock → residual inspection → inventory freeze. |
-| §4 Frozen inventory fields; later files deferred; missing/changed source fails | EOLM-STG-004, EOLM-STG-005 | Mapped | Verify disappearance and size/hash mutation; late arrivals must not become current-run failures. |
-| §5 Capacity check at run start and immediately before each copy | EOLM-STG-009 | Mapped | Tests need to prove both check points execute. |
-| §5 Exact reserve formula and decimal 100,000,000-byte fixed reserve | EOLM-STG-009 | Mapped | Add formula boundary tests, including integer rounding for the 10% component. |
-| §5 Capacity loss during copy; cleanup only current operation's incomplete copy; failed cleanup warns | EOLM-STG-010, EOLM-SAF-005 | Mapped | Fault-injection tests required; no cleanup of pre-existing staging artifacts is permitted. |
-| §6 Allowed states: staging, ready, pending, uploaded, verified, failed, unknown | EOLM-REQ-001, EOLM-STG-003, EOLM-MAN-012 | Mapped/blocked | The state set is mapped, but the specification does not enumerate all legal transition edges; define and validate every legal/illegal edge before implementation without inferring missing transitions. |
-| §6 Metadata-first order; verify size/hash before ready; upload only ready staging copy | EOLM-STG-003, EOLM-STG-005, EOLM-STG-006, EOLM-REQ-001 | Mapped | Tests must assert upload payload path is staging and source is not reread as upload input. |
-| §6 Manifest updated during upload and after cloud verification | EOLM-MAN-004, EOLM-MAN-005, EOLM-MAN-008, EOLM-STG-011, EOLM-REQ-001 | Mapped/partial | IDs exist for status, atomic update, and cleanup gates; exact manifest/file-state ordering and crash consistency still need deterministic specification and tests. |
-| §6 Cleanup only after upload success, content verification, and manifest update | EOLM-STG-011, EOLM-DRV-008, EOLM-SAF-003, EOLM-SAF-005 | Mapped | Gate is explicit; runtime cleanup gate remains unimplemented. |
-| §6 Staging creation/verification failure: no upload; remove only operation-created incomplete file | EOLM-STG-010, EOLM-SAF-005 | Mapped | Add failure-path tests, including cleanup failure and preservation of unrelated files. |
-| §7 Cloud verification: trustworthy SHA-256 or download/hash; metadata alone insufficient | EOLM-DRV-004, EOLM-DRV-005 | Mapped | Actual Drive adapter/auth verification remains blocked; local Drive-for-desktop presence must not count as cloud proof. |
-| §7 Unknown upload result is neither success nor automatically failure after retry exhaustion | EOLM-DRV-003, EOLM-DRV-006, EOLM-STG-011 | Mapped | Test timeout both before and after server-side upload, with deterministic reconciliation outcomes. |
-| §7 Reconcile before retry: matching object, confirmed absence, mismatch/inaccessible/uncertain | EOLM-DRV-003, EOLM-DRV-006, EOLM-DRV-010 | Mapped | Exercise zero/one/multiple candidates and inaccessible/partial listing; ambiguity must remain unknown. |
-| §7 At most four attempts and waits of 1/5/15 minutes; Python no retries | EOLM-DRV-001, EOLM-DRV-002, EOLM-TST-004 | Mapped | Test attempt limit and injected wait policy; unit tests need not sleep for real multi-minute intervals. |
-| §7 Unknown, unverified cloud, or manifest update failure retains staging and metadata | EOLM-STG-011, EOLM-DRV-008, EOLM-SAF-003, EOLM-SAF-005 | Mapped | Negative-path cleanup tests are required. |
-| §7 Staging delete failure after otherwise successful flow warns without changing upload result | EOLM-STG-012 | Mapped | Assert upload remains successful while residual artifact is retained and warning emitted. |
-| §8 Unique manifest/run ID, running before processing, final update on same run | EOLM-MAN-003, EOLM-MAN-004, EOLM-MAN-005 | Mapped | Schema and runtime implementation are blocked; test crash between running and final update. |
-| §8 Run status enum and zero-work success/no_work | EOLM-MAN-004 | Mapped | Add enum/no-work tests and reject unsupported status values. |
-| §8 Unknown file affects run outcome; unknown is never counted successful | EOLM-MAN-004, EOLM-DRV-006, EOLM-STG-011 | Mapped/blocked | The no-success-for-unknown rule is mapped; the exact aggregation for mixed verified/failed/unknown file combinations is not fully specified and must be formalized before coding. |
-| §8 New run gets fresh states; latest manifest wins; no fallback from latest failure/running; reverify Drive before archive | EOLM-MAN-003, EOLM-MAN-006, EOLM-MAN-007, EOLM-MAN-010 | Mapped | Include old-success/new-failure, latest-running, and changed-cloud-object fixtures. |
-| §8 Manifest location, filename identity and indefinite retention | EOLM-MAN-001, EOLM-MAN-002, EOLM-MAN-009, EOLM-MAN-012, EOLM-SAF-001 | Mapped/blocked | Location/name/identity, schema rejection and no-retention-deletion have IDs; exact staging-metadata schema details remain open. |
-| §8 Local manifest atomic update; crash-left running remains running | EOLM-MAN-005, EOLM-MAN-006, EOLM-MAN-008 | Mapped | Fault-inject temporary write, JSON validation, replace, and crash; do not rewrite running to failure automatically. |
-| §9 Startup residual inspection occurs under lock and before uploads | EOLM-STG-007, EOLM-STG-008, EOLM-LCK-001 | Mapped | Test ordering and verify no upload starts before inspection completes. |
-| §9 Any residual warns and is retained; no automatic recovery or age-based cleanup | EOLM-STG-007, EOLM-SAF-001 | Mapped | Cover orphan file/metadata, malformed JSON, inconsistent state, and interrupted-run leftovers. |
-| §9 Malformed metadata logging; parse run ID only if safe | EOLM-STG-007, EOLM-SEC-001, EOLM-OPS-003, EOLM-OPS-005 | Mapped/partial | Requirement IDs cover warning/status and sanitized structured logging; tests must prove malformed metadata cannot inject untrusted content into logs. Logging implementation is absent. |
-| §9 Residual inspection failure blocks uploads and sets failure; ordinary residual warning alone does not change status | EOLM-STG-008, EOLM-MAN-004, EOLM-OPS-003 | Mapped | Test enumeration/access failures separately from successfully inspected residuals. |
-| §10 One global lock per PC; PC-A/PC-B independent; bounded 60-second wait; no steal/kill | EOLM-LCK-001, EOLM-LCK-002, EOLM-LCK-003 | Mapped | Lock helper and concurrency tests remain unimplemented. |
-| §10 Abandoned mutex is logged and prior state verified | EOLM-LCK-003, EOLM-MAN-006 | Mapped | Test abandoned mutex without automatic manifest repair or residual deletion. |
-| §11 Explicit non-goals: no source/Drive deletion, overwrite, automatic recovery, age cleanup, metadata-only verification, direct source upload, Python retries | EOLM-SAF-001, EOLM-SAF-004, EOLM-TST-006, EOLM-STG-002, EOLM-STG-006, EOLM-STG-007, EOLM-DRV-001, EOLM-DRV-004 | Mapped | Verify across scripts, configuration, contracts, dependencies, and release package; this audit does not prove forbidden capabilities absent. |
-| §12 Acceptance perspectives for runtime, staging, cloud, manifests, residuals and locks | EOLM-TST-001–006, EOLM-TST-009–010, EOLM-REQ-001 | Mapped/partial | Acceptance perspectives map to stable IDs; link each bullet to an executable test or explicit not-implemented disposition. Scenario mapping does not prove tests exist. |
+|§1 目的、範囲、PC-A/PC-B、およびログタイプの適用可能性| EOLM-STG-001, EOLM-STG-006, EOLM-SAF-001, EOLM-SAF-005 |マップされました|共有ライフサイクルとソース削除禁止境界が表されます。このマッピングは実装の証拠ではありません。|
+|§1 中断実行の回復は延期されました。ソースファイルとドライブファイルが保存される| EOLM-STG-007, EOLM-STG-008, EOLM-SAF-001, EOLM-SAF-005 |マップされました|その後の変更によって自動残差回復または削除が導入されないことを確認します。|
+|§2 必須 PowerShell 7.6.7;サポートされていないランタイムを処理前に拒否する| EOLM-ENV-001, EOLM-ENV-003, EOLM-TST-001 |マップされました|ランタイム ガードと CI の強制は不完全なままです。|
+|§2 バッチ エントリ ポイントは pwsh.exe を使用します。 PowerShell 5.1 を除く| EOLM-ENV-002, EOLM-ENV-003 |マップされました|サポートされているすべてのエントリ ポイントとリリース パッケージを監査します。以下の例では、個別にフラグが立てられています。|
+|§2 Python API 試行 1 回。 PowerShell は再試行/リカバリを所有します| EOLM-DRV-001, EOLM-DRV-002, EOLM-TST-004 |マップされました|実際の呼び出し数とオーケストレーションをテストする必要があります。コントラクト/スキーマのテストだけでは不十分です。|
+|§2 同期呼び出しの例では、計画された SyncLogs.ps1 名が使用されます| EOLM-CFG-002, EOLM-ENV-002, EOLM-ENV-003 |マッピング済み/部分的|例は明示的に説明するためのものです。 `scripts/SyncLogs.ps1` は監視としてのみ存在し、動作可能な同期ロジックやバッチ ランチャーはありません。この例を、デプロイ可能なエントリ ポイントの証明として解釈しないでください。|
+|§3 ステージングは PC ローカルおよび外部ドライブ同期です| EOLM-STG-001, EOLM-CFG-006 |マップされました|実行時パス検証では、構成されたドライブ ルートの下にあるパスを拒否する必要があります。|
+|§3 ステージング名、一意の実行 ID、シーケンス、および保存された元のファイル名| EOLM-STG-002, EOLM-STG-003 |マップされました|要件 ID は命名/メタデータをカバーします。一意性とパスのエッジケースにはまだテストが必要です。|
+|§3 決して上書きしないでください。アトミック新規作成;衝突進行シーケンス。使い果たされた割り当て失敗ファイル| EOLM-STG-002, EOLM-STG-010, EOLM-REQ-001 |マップされました|競合/衝突テストとシーケンス消耗テストを含みます。事前チェックだけでは不十分です。|
+|§3 メタデータの必須フィールドとメタデータ優先の書き込み/検証/置換| EOLM-STG-003, EOLM-MAN-008, EOLM-MAN-012 |マッピング済み/部分的|必須のメタデータ フィールドとアトミックな更新動作には ID があります。ステージング メタデータ フィールドのタイプ/スキーマ バージョン/ステータス列挙型は完全には指定されていないため、実装前に解決する必要があります。|
+|§4 ロックおよび残留検査後に対象一覧を凍結| EOLM-STG-004, EOLM-LCK-001, EOLM-STG-007 |マップされました|テスト発注: ロック→残存検査→一覧凍結。|
+|§4 凍結された一覧フィールド。後のファイルは延期されます。ソースが見つからない/変更されている場合は失敗します| EOLM-STG-004, EOLM-STG-005 |マップされました|消失とサイズ/ハッシュの変異を確認します。遅れて到着した場合でも、現在の実行の失敗にならないようにしてください。|
+|§5 実行開始時および各コピーの直前の容量チェック| EOLM-STG-009 |マップされました|テストでは、両方のチェック ポイントが実行されることを証明する必要があります。|
+|§5 正確な予約式と 10 進数の 100、000、000 バイトの固定予約| EOLM-STG-009 |マップされました|10% コンポーネントの整数丸めを含む、数式境界テストを追加します。|
+|§5 コピー中の容量の損失。現在の操作の 未完了 コピーのみをクリーンアップします。 失敗した クリーンアップの警告| EOLM-STG-010, EOLM-SAF-005 |マップされました|フォールト挿入テストが必要です。既存のステージング 成果物のクリーンアップは許可されません。|
+|§6 許可される状態: ステージング、準備済み、未確定、アップロード済み、確認済み、失敗した、不明| EOLM-REQ-001, EOLM-STG-003, EOLM-MAN-012 |マッピング/ブロックされました|状態セットはマップされていますが、仕様ではすべての正当な遷移エッジが列挙されているわけではありません。実装前に、欠落している遷移を推測することなく、すべての合法/違法エッジを定義および検証します。|
+|§6 メタデータ優先。 準備済み の前のサイズ/ハッシュを確認します。アップロードのみ 準備済み ステージング コピー| EOLM-STG-003, EOLM-STG-005, EOLM-STG-006, EOLM-REQ-001 |マップされました|テストでは、アップロード ペイロード パスが ステージング であることをアサートする必要があり、ソースはアップロード入力として再読み取りされません。|
+|§6 アップロード中およびクラウド検証後にマニフェストが更新されました| EOLM-MAN-004, EOLM-MAN-005, EOLM-MAN-008, EOLM-STG-011, EOLM-REQ-001 |マッピング済み/部分的|ID はステータス、アトミック更新、クリーンアップ ゲートに存在します。正確なマニフェスト/ファイル状態の順序付けとクラッシュの一貫性には、依然として決定的な仕様とテストが必要です。|
+|§6 成功 のアップロード、コンテンツの検証、マニフェストの更新後にのみクリーンアップ| EOLM-STG-011, EOLM-DRV-008, EOLM-SAF-003, EOLM-SAF-005 |マップされました|ゲートは明示的です。ランタイムクリーンアップゲートは未実装のままです。|
+|§6 ステージングの作成/検証 失敗: アップロードなし。オペレーションで作成された 未完了 ファイルのみを削除します| EOLM-STG-010, EOLM-SAF-005 |マップされました|クリーンアップの失敗や無関係なファイルの保存など、失敗パスのテストを追加します。|
+|§7 クラウド検証: 信頼できる SHA-256 またはダウンロード/ハッシュ。メタデータだけでは不十分| EOLM-DRV-004, EOLM-DRV-005 |マップされました|実際のドライブ アダプタ/認証検証はブロックされたままです。ローカルのデスクトップ用ドライブの存在は、クラウドプルーフとしてカウントされてはなりません。|
+|§7 不明なアップロード結果は 成功 ではなく、再試行が尽きた後に自動的に 失敗 になることもありません| EOLM-DRV-003, EOLM-DRV-006, EOLM-STG-011 |マップされました|サーバー側アップロードの前後の両方でタイムアウトをテストし、調整結果を決定します。|
+|§7 再試行前に調整: オブジェクトの一致、不在の確認、不一致/アクセス不能/不確実| EOLM-DRV-003, EOLM-DRV-006, EOLM-DRV-010 |マップされました|ゼロ/1 つ/複数の候補とアクセスできない/部分的なリストを実行します。曖昧さは未知のままでなければなりません。|
+|§7 最大 4 回の試行と 1/5/15 分の待機。 Python 再試行なし| EOLM-DRV-001, EOLM-DRV-002, EOLM-TST-004 |マップされました|テスト試行制限と挿入された待機ポリシー。単体テストでは、実際の数分間スリープする必要はありません。|
+|§7 不明、未検証のクラウド、またはマニフェストの更新 失敗 は ステージング とメタデータを保持します| EOLM-STG-011, EOLM-DRV-008, EOLM-SAF-003, EOLM-SAF-005 |マップされました|ネガティブパスのクリーンアップテストが必要です。|
+|§7 アップロード結果を変更せずにフローが正常に終了した後のステージング削除 失敗| EOLM-STG-012 |マップされました|アサートアップロードは成功したままですが、残りの成果物は保持され、警告が表示されます。|
+|§8 処理前の固有のマニフェスト/実行 ID、実行中、同じ実行での最終更新| EOLM-MAN-003, EOLM-MAN-004, EOLM-MAN-005 |マップされました|スキーマとランタイム実装はブロックされます。テストの実行と最終更新の間でクラッシュが発生しました。|
+|§8 実行ステータス列挙型およびゼロワーク 成功/no_work| EOLM-MAN-004 |マップされました|enum/no-work テストを追加し、サポートされていないステータス値を拒否します。|
+|§8 不明なファイルは実行結果に影響します。 不明 は成功とはみなされません| EOLM-MAN-004, EOLM-DRV-006, EOLM-STG-011 |マッピング/ブロックされました|no-成功-for-不明 ルールがマップされています。 確認済み/失敗した/不明 が混在したファイルの組み合わせの正確な集計は完全には指定されていないため、コーディングする前に形式化する必要があります。|
+|§8 新しい実行では新しい状態が得られます。最新のマニフェストが優先されます。最新の 失敗/実行中 からのフォールバックはありません。アーカイブ前にドライブを再検証する| EOLM-MAN-003, EOLM-MAN-006, EOLM-MAN-007, EOLM-MAN-010 |マップされました|古い成功/新しい失敗、最新の実行中、および変更されたクラウド オブジェクトのフィクスチャを含めます。|
+|§8 マニフェストの場所、ファイル名の ID、および無期限の保持| EOLM-MAN-001, EOLM-MAN-002, EOLM-MAN-009, EOLM-MAN-012, EOLM-SAF-001 |マッピング/ブロックされました|場所/名前/同一性、スキーマ拒否、および非保持削除には ID があります。正確なステージング メタデータ スキーマの詳細は未公開のままです。|
+|§8 ローカル マニフェストのアトミック更新。クラッシュ左 実行中 は 実行中 のまま| EOLM-MAN-005, EOLM-MAN-006, EOLM-MAN-008 |マップされました|フォールト挿入の一時書き込み、JSON 検証、置換、およびクラッシュ。実行中を失敗に自動的に書き換えないでください。|
+|§9 ロック下およびアップロード前に起動残留検査が発生します| EOLM-STG-007, EOLM-STG-008, EOLM-LCK-001 |マップされました|注文をテストし、検査が完了する前にアップロードが開始されないことを確認します。|
+|§9 残留物は警告され、保持されます。自動回復や経過時間に基づくクリーンアップはありません| EOLM-STG-007, EOLM-SAF-001 |マップされました|孤立したファイル/メタデータ、不正な形式の JSON、一貫性のない状態、および中断された実行の残り物をカバーします。|
+|§9 不正な形式のメタデータ ログ。安全な場合にのみ実行 ID を解析する| EOLM-STG-007, EOLM-SEC-001, EOLM-OPS-003, EOLM-OPS-005 |マッピング済み/部分的|要件 ID は、警告/ステータスとサニタイズされた構造化ログをカバーします。テストでは、不正なメタデータが信頼できないコンテンツをログに挿入できないことを証明する必要があります。ロギングの実装がありません。|
+|§9 残留検査 失敗 はアップロードをブロックし、失敗 を設定します。通常の残留警告だけではステータスは変わりません| EOLM-STG-008, EOLM-MAN-004, EOLM-OPS-003 |マップされました|列挙/アクセスの失敗を、正常に検査された残差とは別にテストします。|
+|§10 PC ごとに 1 つのグローバル ロック。 PC-A/PC-B は独立しています。制限付き 60 秒の待機。盗む/殺すことはありません| EOLM-LCK-001, EOLM-LCK-002, EOLM-LCK-003 |マップされました|ロック ヘルパーと同時実行テストは未実装のままです。|
+|§10 放棄されたミューテックスがログに記録され、以前の状態が 確認済み| EOLM-LCK-003, EOLM-MAN-006 |マップされました|マニフェストの自動修復や残留削除を行わずに、放棄されたミューテックスをテストします。|
+|§11 明示的な非目標: ソースなし/ドライブの削除、上書き、自動回復、古いクリーンアップ、メタデータのみの検証、ソースの直接アップロード、Python の再試行| EOLM-SAF-001, EOLM-SAF-004, EOLM-TST-006, EOLM-STG-002, EOLM-STG-006, EOLM-STG-007, EOLM-DRV-001, EOLM-DRV-004 |マップされました|スクリプト、構成、契約、依存関係、リリース パッケージ全体を検証します。この監査は、禁止された機能が存在しないことを証明するものではありません。|
+|§12 ランタイム、ステージング、クラウド、マニフェスト、残差、およびロックの受け入れの観点| EOLM-TST-001–006, EOLM-TST-009–010, EOLM-REQ-001 |マッピング済み/部分的|受け入れのパースペクティブは安定した ID にマップされます。各箇条書きを実行可能なテストまたは明示的な未実装の処理にリンクします。シナリオ マッピングはテストの存在を証明するものではありません。|
 
-#### §3.5 findings and follow-up
+<a id="35-findings-and-follow-up"></a>
+#### §3.5 所見とフォローアップ
 
-- This crosswalk links each normative clause/group in the current staging lifecycle specification to candidate register IDs; it is a document audit, not evidence of implementation or runtime safety.
-- Highest-priority traceability gaps: the complete staging-state transition table, exact run-status aggregation for mixed `verified`/`failed`/`unknown` outcomes, metadata schema/version requirements, and crash-consistent ordering between file state and manifest updates.
-- `EOLM-MAN-011` policy shape is approved; numeric freshness/future-time tolerances, exact applicability, and clock-sync/monitoring expectations remain unresolved. Archive freshness gates must not be implemented by inference.
-- Runtime entry points and end-to-end safety tests remain incomplete. P0-010 remains open; no requirement is marked verified by this crosswalk.
+- このクロスウォークは、現在の ステージング ライフサイクル仕様の各規範条項/グループを候補レジスタ ID にリンクします。これは文書監査であり、実装や実行時の安全性の証拠ではありません。
+- 最も優先度の高いトレーサビリティ ギャップ: 完了 ステージング 状態遷移テーブル、混合 `verified`/`failed`/`unknown` 結果の正確な実行ステータス集計、メタデータ スキーマ/バージョン要件、ファイル状態とマニフェスト更新の間のクラッシュ一貫性のある順序付け。
+- `EOLM-MAN-011` ポリシー シェイプが承認されました。数値の鮮度/将来の許容範囲、正確な適用性、およびクロック同期/監視の期待は未解決のままです。アーカイブ鮮度ゲートは推論によって実装してはなりません。
+- ランタイム エントリ ポイントとエンドツーエンドの安全性テストは 未完了 のままです。 P0-010 は開いたままです。この対応表には 確認済み とマークされた要件はありません。
 
-### 3.6 `docs/design/powershell-python-contract.md` clause-level crosswalk
+<a id="36-docsdesignpowershell-python-contractmd-clause-level-crosswalk"></a>
+### 3.6 `docs/design/powershell-python-contract.md` 句レベルの対応表
 
-| Source clause | Candidate requirement IDs | Coverage | Audit note / remaining action |
+|ソース句|候補要件 ID|適用範囲|監査メモ/残りのアクション|
 |---|---|---|
-| §1 Single orchestration authority; Python is a limited adapter; adapter success is not deletion authorization | EOLM-DRV-001, EOLM-DRV-014, EOLM-SAF-001, EOLM-SAF-004, EOLM-SAF-005 | Mapped | Responsibilities and deletion prohibition are represented; source/package-wide absence still requires static and runtime evidence. |
-| §1 Fail closed on invalid, missing, contradictory, stale, timed-out, or unverifiable results | EOLM-DRV-006, EOLM-DRV-008, EOLM-DRV-013, EOLM-SAF-003, EOLM-MAN-011, EOLM-MAN-012 | Mapped/blocked | Failure classes have IDs; numeric freshness/future-time tolerances and applicability remain blocked by EOLM-MAN-011, and runtime validation is absent. |
-| §1 One API attempt in Python; PowerShell owns retry policy; reconcile unknown upload outcome | EOLM-DRV-001, EOLM-DRV-002, EOLM-DRV-003, EOLM-TST-004 | Mapped | Actual HTTP-client implicit retries must be disabled and tested, not just documented. |
-| §1 Reject unknown schema versions, operations, fields and error codes | EOLM-DRV-011, EOLM-DRV-012, EOLM-DRV-013, EOLM-MAN-012 | Partial | Contract states strict rejection; runtime validators and complete schema/test coverage remain incomplete. |
-| §1 Do not emit credentials, tokens, auth headers, or sensitive response bodies | EOLM-SEC-001, EOLM-OPS-005 | Mapped | Secret-redaction tests across stdout, stderr, and operational logs remain unimplemented. |
-| §2 PowerShell config/role/path/period/hash/manifest/safety ownership | EOLM-CFG-006, EOLM-CFG-007, EOLM-FIL-001, EOLM-FIL-009, EOLM-MAN-001, EOLM-MAN-009, EOLM-DRV-005 | Partial | The responsibility split is specified; runtime config loader and orchestration are not present. |
-| §2 PowerShell owns child-process timeout, stdout/stderr, exit code and request correlation | EOLM-DRV-012, EOLM-DRV-013, EOLM-DRV-014, EOLM-TST-004 | Mapped | Integration tests must validate output count/encoding, timeout, exit code and request/operation correlation. |
-| §2 Dry Run, approval, locks, structured logs and scheduler owned by PowerShell | EOLM-DRV-014, EOLM-DRV-016, EOLM-SAF-002, EOLM-SAF-006, EOLM-LCK-001, EOLM-OPS-003, EOLM-OPS-004, EOLM-OPS-006, EOLM-TST-011 | Mapped/partial | Ownership is mapped. Dry Run report/manifest side effects and scheduler times remain unresolved; runtime behavior and operator approval remain absent. |
-| §2 No source/Drive deletion in initial implementation; retry maximum four with 1/5/15-minute waits | EOLM-SAF-001, EOLM-SAF-004, EOLM-DRV-002, EOLM-TST-006 | Mapped | The contract is explicit; source/config/package deletion-absence evidence and retry tests remain outstanding. |
-| §2 Python must not judge overall completion, authorize archive/deletion, overwrite/rename conflicts, or trust Drive for desktop | EOLM-DRV-004, EOLM-DRV-008, EOLM-ARC-001, EOLM-SAF-001, EOLM-SAF-003 | Mapped | Need tests that prove local Drive presence and adapter success alone cannot satisfy archive/cloud gates. |
-| §2 Phase 1 is documentation/schema only; no runtime operations or delete operation | EOLM-TST-007, EOLM-TST-011, EOLM-SAF-001, EOLM-REL-002 | Mapped/blocked | Acceptance checkboxes describe document readiness; operator review and later integration tests remain open, and do not prove runtime implementation or package deployability. |
-| §3 Allowed operations are exactly list_files, get_file_metadata, upload_file, download_file | EOLM-DRV-001, EOLM-DRV-011, EOLM-CFG-007 | Mapped | Schema and runtime dispatch must reject extra operation names and case variants. |
-| §3 list_files must explicitly paginate; partial listing cannot be treated as complete | EOLM-DRV-009, EOLM-DRV-010 | Mapped | Add multi-page, interrupted-page, and duplicate/ambiguous candidate tests. |
-| §3 upload_file checks local SHA-256 before upload; no overwrite; ambiguous candidates fail | EOLM-DRV-005, EOLM-DRV-006, EOLM-DRV-010, EOLM-STG-005, EOLM-STG-006 | Mapped | Test mutation between planning and upload and content-different same-name objects. |
-| §3 download_file writes only to staging; PowerShell verifies and performs final placement | EOLM-DRV-005, EOLM-STG-006, EOLM-SAF-002, EOLM-SAF-005 | Mapped | Assert adapter cannot choose final archive path and cannot place unverified content in final destination. |
-| §3 dry_run=true makes no Drive changes and writes no downloaded content | EOLM-DRV-016, EOLM-SAF-002, EOLM-SAF-006 | Mapped/partial | Drive mutation and downloaded-content writes are prohibited; permitted report/manifest effects remain unspecified and need a decision. |
-| §3 Cloud SHA-256 if trustworthy, otherwise download/hash; metadata alone is not content verification | EOLM-DRV-004, EOLM-DRV-005, EOLM-DRV-006 | Mapped | Cloud checksum availability/trust and fallback behavior require adapter integration tests. |
-| §3 Include stable Drive identity and available metadata; never select ambiguous candidate implicitly | EOLM-DRV-010, EOLM-DRV-009 | Mapped | Test zero, one, and multiple matches plus incomplete list pagination. |
-| §4 Request transport: restricted UTF-8 JSON request file preferred; credentials excluded | EOLM-DRV-011, EOLM-DRV-015, EOLM-SEC-001, EOLM-OPS-005 | Mapped | Verify temporary directory ACLs, per-invocation file cleanup, and secret-free request payload. |
-| §4 Envelope fields: schema_version 1.0, UUID request_id, allowlisted operation, explicit dry_run, operation-specific parameters | EOLM-DRV-011, EOLM-DRV-013, EOLM-TST-004 | Mapped | Schema tests need valid and invalid fixtures for each field and operation. |
-| §4 Reject unknown/missing/empty fields; absolute Windows paths and approved-root checks | EOLM-DRV-011, EOLM-CFG-006, EOLM-CFG-007 | Mapped | Path traversal, UNC/drive-root policy, reparse-point and role-specific root behavior need explicit tests where in scope. |
-| §5 Exactly one UTF-8 JSON response on stdout; diagnostics only on stderr | EOLM-DRV-012, EOLM-DRV-013, EOLM-TST-004 | Mapped | Test empty/multiple/malformed JSON, invalid UTF-8, banner contamination and stderr separation. |
-| §5 Success/failure response shape and safe error message | EOLM-DRV-012, EOLM-DRV-013, EOLM-SEC-001 | Mapped | Schema must enforce success/result/error mutual consistency and redact sensitive API payloads. |
-| §5 cloud_content_verified must remain false for metadata-only retrieval | EOLM-DRV-004, EOLM-DRV-005, EOLM-DRV-013 | Mapped | Runtime must not trust a caller-provided boolean without proof of the specified content verification path. |
-| §6 Fixed exit-code/error-code table and retry classification | EOLM-DRV-001, EOLM-DRV-002, EOLM-DRV-013, EOLM-TST-004 | Mapped | Validate every code/message/retryable combination and ensure unknown error codes fail closed. |
-| §6 Parent timeout, adapter timeout, malformed output and timeout-after-upload handling | EOLM-DRV-003, EOLM-DRV-006, EOLM-DRV-012, EOLM-DRV-013 | Mapped | Simulate response loss before and after cloud-side upload; reconcile before retry. |
-| §6 Exit code and JSON must agree; reject missing/multiple JSON, invalid UTF-8, identity mismatch and unknown schema/error | EOLM-DRV-012, EOLM-DRV-013, EOLM-TST-004 | Mapped | Create a complete negative matrix including exit 0 + failure JSON and nonzero + success JSON. |
-| §7 Maximum four attempts, waits 1/5/15 minutes, no jitter; retryable transient errors only | EOLM-DRV-001, EOLM-DRV-002, EOLM-TST-004 | Mapped | Inject wait/clock behavior in tests; verify total attempt count includes the first attempt. |
-| §7 Reconcile unknown upload state before retry; ambiguity stops; no overwrite; retry exhaustion is not success | EOLM-DRV-003, EOLM-DRV-006, EOLM-DRV-010, EOLM-SAF-003 | Mapped | Test confirmed presence/absence, mismatch, inaccessible state, partial listing and multiple candidates. |
-| §7 Download retry uses new/empty staging file and verifies before final placement; disable HTTP implicit retry | EOLM-DRV-001, EOLM-DRV-005, EOLM-STG-006, EOLM-STG-010 | Mapped | Test no stale partial bytes are accepted and no library-level hidden retries occur. |
-| §8 Nine-step PowerShell invocation and validation pipeline | EOLM-DRV-011, EOLM-DRV-012, EOLM-DRV-013, EOLM-DRV-014, EOLM-DRV-015, EOLM-CFG-006, EOLM-CFG-007 | Mapped | Turn each step into a testable orchestration checkpoint; no runtime entry point currently demonstrates the whole sequence. |
-| §8 Adapter success cannot bypass manifests, cross-PC completion, role, checksum, archive or operator approval gates | EOLM-MAN-007, EOLM-MAN-010, EOLM-ARC-001, EOLM-ARC-002, EOLM-ARC-005, EOLM-SAF-003 | Mapped | Test successful adapter response with each independent gate missing or invalid. |
-| §9 UTC structured logs with run/request IDs, operation, duration, exit/fixed error and sanitized summary | EOLM-OPS-003, EOLM-OPS-005, EOLM-SEC-001 | Mapped | Logging implementation and schema assertions remain incomplete. |
-| §9 No tokens, secrets, auth headers, credential paths or raw API error bodies in logs | EOLM-SEC-001, EOLM-OPS-005 | Mapped | Use seeded secret strings and assert absent from stdout, stderr, files and failure summaries. |
-| §9 Restrict temporary files; delete only files created by this invocation; validate untrusted manifest/cloud data | EOLM-DRV-015, EOLM-SEC-001, EOLM-STG-010, EOLM-MAN-009, EOLM-MAN-012 | Mapped/blocked | Temporary-file ownership and permissions need tests; manifest freshness policy remains blocked by EOLM-MAN-011. |
-| §9 Minimum OAuth scope and actual folder capability validation before implementation | EOLM-DRV-007, EOLM-SEC-001 | Mapped | OAuth scope is intentionally deferred; do not claim validated until actual My Drive capability checks are recorded. |
-| §10 Phase 1 document/schema acceptance checkboxes | EOLM-TST-007, EOLM-TST-008 | Partial | Checklist completion means contract artifacts were drafted, not that runtime integration or safety tests pass. |
-| §10 Operator contract review/approval and subsequent schema/runtime tests are unchecked | EOLM-TST-004, EOLM-TST-005, EOLM-TST-007, EOLM-TST-011 | Mapped/blocked | Keep acceptance open until review evidence and executable tests are linked; EOLM-TST-011 is an acceptance gate, not proof of approval. |
+|§1 単一のオーケストレーション権限。 Python は限定されたアダプターです。アダプタ 成功 は削除権限がありません| EOLM-DRV-001, EOLM-DRV-014, EOLM-SAF-001, EOLM-SAF-004, EOLM-SAF-005 |マップされました|責任と削除の禁止を表明します。ソース/パッケージ全体に存在しない場合でも、静的および実行時の証拠が必要です。|
+|§1 結果が無効、欠落、矛盾、古い、タイムアウト、または検証不能な場合はフェールクローズします| EOLM-DRV-006, EOLM-DRV-008, EOLM-DRV-013, EOLM-SAF-003, EOLM-MAN-011, EOLM-MAN-012 |マッピング/ブロックされました|障害クラスには ID があります。数値の鮮度/将来の許容範囲と適用性は EOLM-MAN-011 によってブロックされたままであり、実行時検証は存在しません。|
+|§1 Python で API を 1 回試行。 PowerShell は再試行ポリシーを所有します。 不明 アップロード結果を調整する| EOLM-DRV-001, EOLM-DRV-002, EOLM-DRV-003, EOLM-TST-004 |マップされました|実際の HTTP クライアントの暗黙的な再試行は、文書化するだけでなく、無効にしてテストする必要があります。|
+|§1 不明 スキーマのバージョン、操作、フィールド、およびエラー コードを拒否します| EOLM-DRV-011, EOLM-DRV-012, EOLM-DRV-013, EOLM-MAN-012 |部分的|契約には厳格な拒否が記載されています。ランタイムバリデーターと完全なスキーマ/テストカバレッジは不完全なままです。|
+|§1 認証情報、トークン、認証ヘッダー、または機密の応答本文を発行しないでください。| EOLM-SEC-001, EOLM-OPS-005 |マップされました|stdout、stderr、および操作ログにわたるシークレット編集テストは未実装のままです。|
+|§2 PowerShell config/role/path/period/hash/manifest/safety 所有権| EOLM-CFG-006, EOLM-CFG-007, EOLM-FIL-001, EOLM-FIL-009, EOLM-MAN-001, EOLM-MAN-009, EOLM-DRV-005 |部分的|責任分割が指定されています。ランタイム構成ローダーとオーケストレーションは存在しません。|
+|§2 PowerShell は、子プロセスのタイムアウト、stdout/stderr、終了コード、および要求相関を所有します。| EOLM-DRV-012, EOLM-DRV-013, EOLM-DRV-014, EOLM-TST-004 |マップされました|統合テストでは、出力数/エンコーディング、タイムアウト、終了コード、リクエスト/操作の相関関係を検証する必要があります。|
+|§2 Dry Run、承認、ロック、構造化ログ、PowerShell が所有するスケジューラ| EOLM-DRV-014, EOLM-DRV-016, EOLM-SAF-002, EOLM-SAF-006, EOLM-LCK-001, EOLM-OPS-003, EOLM-OPS-004, EOLM-OPS-006, EOLM-TST-011 |マッピング済み/部分的|所有権がマッピングされます。 Dry Run レポート/マニフェストの副作用とスケジューラ時間は未解決のままです。実行時の動作とオペレーターの承認は存在しないままです。|
+|§2 初期実装ではソース/ドライブの削除はありません。最大 4 回の再試行 (1/5/15 分の待機時間)| EOLM-SAF-001, EOLM-SAF-004, EOLM-DRV-002, EOLM-TST-006 |マップされました|契約は明示的です。 source/config/package の削除欠如の証拠と再試行テストは未処理のままです。|
+|§2 Python は、全体的な完了の判断、アーカイブ/削除の承認、上書き/名前変更の競合、またはデスクトップ版ドライブの信頼を許可してはなりません| EOLM-DRV-004, EOLM-DRV-008, EOLM-ARC-001, EOLM-SAF-001, EOLM-SAF-003 |マップされました|ローカル ドライブの存在とアダプターの成功だけを証明するテストが必要では、アーカイブ/クラウド ゲートを満たすことはできません。|
+|§2 フェーズ 1 はドキュメント/スキーマのみです。実行時操作または削除操作はありません| EOLM-TST-007, EOLM-TST-011, EOLM-SAF-001, EOLM-REL-002 |マッピング/ブロックされました|承認チェックボックスは文書の準備状況を示します。オペレーターによるレビューとその後の統合テストは未解決のままであり、実行時の実装やパッケージの展開可能性は証明されません。|
+|§3 許可される操作は正確に list_files、get_file_metadata、upload_file、download_file です。| EOLM-DRV-001, EOLM-DRV-011, EOLM-CFG-007 |マップされました|スキーマとランタイムディスパッチは、余分なオペレーション名とケースバリアントを拒否する必要があります。|
+|§3 list_files は明示的にページネーションする必要があります。部分的なリストは 完了 として扱うことはできません| EOLM-DRV-009, EOLM-DRV-010 |マップされました|複数ページ、中断されたページ、重複/曖昧な候補テストを追加します。|
+|§3 upload_file はアップロード前にローカルの SHA-256 をチェックします。上書きはできません。 曖昧 対象候補は不合格| EOLM-DRV-005, EOLM-DRV-006, EOLM-DRV-010, EOLM-STG-005, EOLM-STG-006 |マップされました|計画とアップロード、およびコンテンツが異なる同名オブジェクト間の変更をテストします。|
+|§3 download_file は ステージング にのみ書き込みます。 PowerShell は最終的な配置を検証して実行します| EOLM-DRV-005, EOLM-STG-006, EOLM-SAF-002, EOLM-SAF-005 |マップされました|Assert アダプタは最終的なアーカイブ パスを選択できず、未検証のコンテンツを最終的な宛先に配置することもできません。|
+|§3 dry_run=true はドライブに変更を加えず、ダウンロードされたコンテンツも書き込みません| EOLM-DRV-016, EOLM-SAF-002, EOLM-SAF-006 |マッピング済み/部分的|ドライブの変更とダウンロードされたコンテンツの書き込みは禁止されています。許可されたレポート/マニフェスト効果は未指定のままであり、決定が必要です。|
+|§3 信頼できる場合はクラウド SHA-256、そうでない場合はダウンロード/ハッシュ。メタデータだけではコンテンツ検証ではありません| EOLM-DRV-004, EOLM-DRV-005, EOLM-DRV-006 |マップされました|クラウド チェックサムの可用性/信頼性とフォールバック動作には、アダプター統合テストが必要です。|
+|§3 安定したドライブ ID と利用可能なメタデータを含めます。 曖昧 候補を暗黙的に選択しないでください| EOLM-DRV-010, EOLM-DRV-009 |マップされました|0、1、および複数の一致と 未完了 リストのページネーションをテストします。|
+|§4 リクエストトランスポート: 制限付き UTF-8 JSON リクエストファイルが優先されます。認証情報は除外されます| EOLM-DRV-011, EOLM-DRV-015, EOLM-SEC-001, EOLM-OPS-005 |マップされました|一時ディレクトリの ACL、呼び出しごとのファイルのクリーンアップ、およびシークレットなしのリクエスト ペイロードを確認します。|
+|§4 エンベロープ フィールド: schema_version 1.0、UUID request_id、ホワイトリストに登録された操作、明示的な dry_run、操作固有のパラメーター| EOLM-DRV-011, EOLM-DRV-013, EOLM-TST-004 |マップされました|スキーマ テストには、フィールドおよび操作ごとに有効なフィクスチャと無効なフィクスチャが必要です。|
+|§4 不明/欠落/空のフィールドを拒否します。絶対 Windows パスと承認されたルートのチェック| EOLM-DRV-011, EOLM-CFG-006, EOLM-CFG-007 |マップされました|パス トラバーサル、UNC/ドライブ ルート ポリシー、再解析ポイント、およびロール固有のルート動作は、範囲内の明示的なテストが必要です。|
+|§5 標準出力上の UTF-8 JSON 応答が 1 つだけ。標準エラー出力のみで診断| EOLM-DRV-012, EOLM-DRV-013, EOLM-TST-004 |マップされました|空/複数/不正な JSON、無効な UTF-8、バナーの汚染、および標準エラー出力の分離をテストします。|
+|§5 成功/失敗 応答形状と安全なエラー メッセージ| EOLM-DRV-012, EOLM-DRV-013, EOLM-SEC-001 |マップされました|スキーマは成功/結果/エラーの相互一貫性を強制し、機密性の高い API ペイロードを編集する必要があります。|
+|§5 メタデータのみの取得の場合、cloud_content_verified は false のままでなければなりません| EOLM-DRV-004, EOLM-DRV-005, EOLM-DRV-013 |マップされました|ランタイムは、指定されたコンテンツ検証パスの証明がない限り、呼び出し元が提供するブール値を信頼してはなりません。|
+|§6 終了コード/エラーコードテーブルと再試行分類を修正しました。| EOLM-DRV-001, EOLM-DRV-002, EOLM-DRV-013, EOLM-TST-004 |マップされました|すべてのコード/メッセージ/再試行可能な組み合わせを検証し、不明 エラー コードがフェールクローズされることを確認します。|
+|§6 親タイムアウト、アダプタ タイムアウト、不正な出力、およびアップロード後のタイムアウト処理| EOLM-DRV-003, EOLM-DRV-006, EOLM-DRV-012, EOLM-DRV-013 |マップされました|クラウド側アップロードの前後で応答損失をシミュレートします。再試行する前に調整してください。|
+|§6 終了コードと JSON は一致する必要があります。欠落/複数の JSON、無効な UTF-8、同一性 不一致 および 不明 スキーマ/エラーを拒否| EOLM-DRV-012, EOLM-DRV-013, EOLM-TST-004 |マップされました|終了 0 + 失敗 JSON およびゼロ以外 + 成功 JSON を含む完全な負の行列を作成します。|
+|§7 最大 4 回の試行、1/5/15 分間待機、ジッターなし。再試行可能な一時的なエラーのみ| EOLM-DRV-001, EOLM-DRV-002, EOLM-TST-004 |マップされました|テストに待機/クロック動作を挿入します。合計試行回数に最初の試行が含まれていることを確認します。|
+|§7 再試行する前に 不明 アップロード状態を調整します。曖昧さはなくなります。上書きはできません。再試行の枯渇はsuccessではありません| EOLM-DRV-003, EOLM-DRV-006, EOLM-DRV-010, EOLM-SAF-003 |マップされました|テストにより、有無、不一致、アクセス不可状態、部分リスト、複数候補を確認しました。|
+|§7 ダウンロードの再試行では、新しい/空の ステージング ファイルが使用され、最終配置の前に検証されます。 HTTP 暗黙的再試行を無効にする| EOLM-DRV-001, EOLM-DRV-005, EOLM-STG-006, EOLM-STG-010 |マップされました|古い部分バイトは受け入れられず、ライブラリレベルの非表示の再試行は発生しないことをテストします。|
+|§8 9 ステップの PowerShell 呼び出しおよび検証パイプライン| EOLM-DRV-011, EOLM-DRV-012, EOLM-DRV-013, EOLM-DRV-014, EOLM-DRV-015, EOLM-CFG-006, EOLM-CFG-007 |マップされました|各ステップをテスト可能なオーケストレーション チェックポイントに変えます。現在、シーケンス全体を示すランタイム エントリ ポイントはありません。|
+|§8 アダプター 成功 は、マニフェスト、クロス PC 完了、ロール、チェックサム、アーカイブ、またはオペレーター承認ゲートをバイパスできません| EOLM-MAN-007, EOLM-MAN-010, EOLM-ARC-001, EOLM-ARC-002, EOLM-ARC-005, EOLM-SAF-003 |マップされました|各独立したゲートが欠落しているか無効である場合に、成功したアダプターの応答をテストします。|
+|§9 UTC 実行/リクエスト ID、操作、期間、終了/修正されたエラー、およびサニタイズされた概要を含む構造化ログ| EOLM-OPS-003, EOLM-OPS-005, EOLM-SEC-001 |マップされました|ロギングの実装とスキーマ アサーションは不完全なままです。|
+|§9 ログにトークン、シークレット、認証ヘッダー、認証情報パス、または生の API エラー本体がありません| EOLM-SEC-001, EOLM-OPS-005 |マップされました|シードされたシークレット文字列を使用し、stdout、stderr、ファイル、および 失敗 サマリーに存在しないことをアサートします。|
+|§9 一時ファイルを制限します。この呼び出しによって作成されたファイルのみを削除します。信頼できないマニフェスト/クラウド データを検証する| EOLM-DRV-015, EOLM-SEC-001, EOLM-STG-010, EOLM-MAN-009, EOLM-MAN-012 |マッピング/ブロックされました|一時ファイルの所有権とアクセス許可にはテストが必要です。マニフェスト鮮度ポリシーは EOLM-MAN-011 によってブロックされたままです。|
+|§9 実装前の最小 OAuth スコープと実際のフォルダー機能の検証| EOLM-DRV-007, EOLM-SEC-001 |マップされました|OAuth スコープは意図的に延期されています。実際の My Drive 機能チェックが記録されるまでは、検証済みであると主張しないでください。|
+|§10 フェーズ 1 ドキュメント/スキーマ承認チェックボックス| EOLM-TST-007, EOLM-TST-008 |部分的|チェックリストの完了は、ランタイム統合や安全性テストに合格したことを意味するのではなく、契約成果物が草案されたことを意味します。|
+|§10 オペレーター契約のレビュー/承認とその後のスキーマ/ランタイム テストはチェックされていません| EOLM-TST-004, EOLM-TST-005, EOLM-TST-007, EOLM-TST-011 |マッピング/ブロックされました|証拠のレビューと実行可能なテストがリンクされるまで、受け入れをオープンにしておきます。 EOLM-TST-011 は承認ゲートであり、承認の証拠ではありません。|
 
-#### §3.6 findings and follow-up
+<a id="36-findings-and-follow-up"></a>
+#### §3.6 所見とフォローアップ
 
-- The contract is a Phase 1 proposal marked review-pending; this crosswalk does not imply operator approval or runtime conformance.
-- Highest-priority verification work: full IPC negative matrix, retry/unknown-upload reconciliation, root-constrained path validation, secret-redaction tests, and proof that the adapter performs no implicit retries.
-- `EOLM-SAF-006` remains partial because the exact Dry Run reporting/manifest side effects are not fully specified. `EOLM-MAN-011` policy shape is approved, but numeric freshness/future-time tolerances, exact applicability, and clock-sync/monitoring expectations remain unresolved.
-- OAuth scope/capability validation (`EOLM-DRV-007`) remains deferred. No runtime implementation or safety requirement is marked verified by this document crosswalk; P0-010 remains open.
+- 契約はフェーズ 1 提案であり、レビュー-未確定 とマークされています。この対応表は、オペレータの承認や実行時の適合を意味するものではありません。
+- 最も優先度の高い検証作業: 完全な IPC ネガティブ マトリックス、再試行/不明 アップロード調整、ルート制約付きパス検証、秘密編集テスト、アダプターが暗黙的な再試行を実行しないことの証明。
+- `EOLM-SAF-006` は、正確な Dry Run レポート/マニフェストの副作用が完全に指定されていないため、部分的なままです。 `EOLM-MAN-011` ポリシーの形状は承認されていますが、数値の鮮度/将来の許容範囲、正確な適用性、およびクロック同期/監視の期待は未解決のままです。
+- OAuth スコープ/機能の検証 (`EOLM-DRV-007`) は延期されたままです。このドキュメントのクロスウォークでは、ランタイム実装または安全要件は 確認済み とマークされていません。 P0-010 は開いたままです。
 
-### 3.7 `docs/development/implementation-workflow.md` clause-level crosswalk
+<a id="37-docsdevelopmentimplementation-workflowmd-clause-level-crosswalk"></a>
+### 3.7 `docs/development/implementation-workflow.md` 句レベルの対応表
 
-| Source clause | Candidate requirement IDs | Coverage | Audit note / remaining action |
+|ソース句|候補要件 ID|適用範囲|監査メモ/残りのアクション|
 |---|---|---|---|
-| §1 Purpose; inventory/restoration is separate from operational sync/archive | EOLM-SYN-006, EOLM-SYN-007, EOLM-SYN-008, EOLM-SYN-009, EOLM-ARC-001, EOLM-TST-007 | Mapped | Inventory and archive-eligibility separation has IDs; inventory artifacts and runtime proof remain absent. |
-| §2.1 PC-A sync/manifest and copy-verify-record archive role | EOLM-CFG-003, EOLM-CFG-004, EOLM-ARC-001–002, EOLM-MAN-001, EOLM-MAN-007, EOLM-ARC-003–005 | Mapped/partial | PC-A role maps to IDs; implementation and manifest schema/runtime tests remain incomplete. |
-| §2.1 PC-B sync/manifest only; no archive/delete entry point or capability | EOLM-CFG-003, EOLM-CFG-004, EOLM-CFG-005, EOLM-SAF-001, EOLM-TST-006 | Mapped | Prove absence across source, config, package and callable paths; documentation alone is insufficient. |
-| §2.1 Shared log/manifests location; GitHub canonical source; separate one-way distribution | EOLM-MAN-001, EOLM-REL-004, EOLM-REL-008, EOLM-ENV-005 | Mapped/partial | IDs exist; the shared `_maintenance` root contains per-PC manifest subdirectories, and distribution is a separate one-way workflow. Runtime evidence is absent. |
-| §2.2 PC-specific source/runtime/archive and shared Drive paths | EOLM-CFG-001, EOLM-CFG-006, EOLM-CFG-007, EOLM-ENV-005 | Mapped/partial | Path/role validation requirements exist and example configs were compared; runtime root validation and path-overlap tests remain absent. |
-| §2.3 Period eligibility from filename date only; LastWriteTime and verified metadata are not alternate date sources | EOLM-FIL-003, EOLM-FIL-004, EOLM-FIL-009 | Mapped | PR #24 corrected the former “filename or verified metadata” wording so metadata cannot override filename-derived eligibility; test a filename/metadata disagreement fixture. |
-| §2.3 Sync BattleLog through previous month and ErrorReport through previous year, including older backlog | EOLM-FIL-006, EOLM-FIL-007, EOLM-FIL-008 | Mapped | Test multiple old periods, not only the immediately previous month/year. |
-| §2.3 Archive BattleLog previous year and older; ErrorReport through two years before current year and older | EOLM-FIL-007, EOLM-FIL-008 | Mapped | Test year rollover and all eligible backlog periods. |
-| §2.3 Current periods stay on source; failed old periods retry; no-work skip differs from verification failure | EOLM-FIL-006, EOLM-FIL-010, EOLM-MAN-004, EOLM-DRV-003, EOLM-OPS-003 | Mapped/blocked | IDs cover backlog retry and no-work status; mixed verified/failed/unknown aggregation remains underspecified and must be resolved before implementation. |
-| §2.4 Shared folder layout; SHA-256 duplicate and _PCA/_PCB collision naming | EOLM-CFG-006, EOLM-SYN-002, EOLM-SYN-003, EOLM-SYN-005, EOLM-DRV-010 | Mapped | Duplicate/collision/overwrite rules have IDs; suffix placement and destination-layout tests remain unimplemented. |
-| §2.4 Unmarked-file source attribution only with trusted manifest; unknown origin held | EOLM-SYN-004, EOLM-SYN-008, EOLM-DRV-010, EOLM-SAF-003, EOLM-MAN-002, EOLM-MAN-007, EOLM-MAN-010–011 | Mapped/blocked | The requirement is mapped; exact “trusted manifest” criteria and freshness rules need an explicit decision. Do not attribute unknown-origin files by inference. |
-| §2.4 Never overwrite conflicting suffixed target; preserve originals; record source/final name, PC, size, hash, period, result | EOLM-SYN-005, EOLM-SAF-003, EOLM-SAF-005, EOLM-MAN-002, EOLM-MAN-006, EOLM-MAN-009, EOLM-MAN-012 | Mapped/partial | Collision and manifest identity/schema IDs exist; confirm final required per-file fields and test conflicting base/suffixed targets. |
-| §2.5 Never delete local sources; Drive desktop presence is not cloud-upload proof | EOLM-SYN-001, EOLM-DRV-004, EOLM-DRV-006, EOLM-SAF-001, EOLM-SAF-005 | Mapped | Static source/package scans and fault-injection tests are still required. |
-| §2.5 Cloud API listing/metadata/checksum, fallback download-and-hash, fail closed on uncertainty | EOLM-DRV-004–006, EOLM-DRV-009–010 | Mapped/partial | Requirements cover cloud proof, pagination and stable identity; adapter and end-to-end validation are absent. |
-| §2.5 OAuth scope and actual My Drive folder capability before production validation | EOLM-DRV-007, EOLM-SEC-001 | Mapped | Intentionally deferred; production readiness remains blocked pending evidence. |
-| §2.5 Archive only after both PC manifests and current cloud confirmation; never delete Drive copy | EOLM-ARC-001–005, EOLM-MAN-007, EOLM-MAN-010–011, EOLM-SAF-001 | Mapped/blocked | Cross-PC gate maps; numeric freshness/future-time tolerances and applicability remain blocked by EOLM-MAN-011. |
-| §2.6 Manual and scheduled runs share logic; process all eligible backlog; PC-B has no archive path | EOLM-FIL-006, EOLM-CFG-003, EOLM-OPS-004, EOLM-OPS-006 | Mapped | Test invocation parity and prove PC-B archive capability is absent. |
-| §2.6 Local runtime root, reviewed GitHub release and manual deployment | EOLM-ENV-005, EOLM-REL-001, EOLM-REL-003, EOLM-REL-005 | Mapped | Package allowlist, legacy-entry-point rejection and config-preserving install checks remain incomplete. |
-| §3 PC-A/PC-B runtime layouts | EOLM-CFG-002–003, EOLM-CFG-006, EOLM-REL-001 | Mapped/partial | `scripts/SyncLogs.ps1` is present only as a sentinel; `scripts/ArchiveLogs.ps1` and batch launchers are absent from the tracked tree. The package remains non-deployable because operational runtime logic is missing. |
-| Phase 0 filename/date pattern confirmation; OAuth deferral; manifest schema and origin proof; checksum fallback | EOLM-FIL-001–003, EOLM-TST-003, EOLM-DRV-005, EOLM-DRV-007, EOLM-MAN-002, EOLM-MAN-009, EOLM-MAN-012, EOLM-SYN-004 | Mapped/blocked | IDs cover the prerequisites; manifest baseline, trusted-origin criteria and actual API capability remain unresolved gates. |
-| Phase 1 config/role/path validation before processing; common functions and exit criteria | EOLM-CFG-001, EOLM-CFG-004, EOLM-CFG-006–007, EOLM-ENV-003, EOLM-FIL-001–EOLM-FIL-010, EOLM-MAN-001–EOLM-MAN-012, EOLM-OPS-003, EOLM-OPS-005, EOLM-TST-003, EOLM-TST-005 | Mapped/partial | Requirement IDs cover the planned gates; runtime loader, manifest validation and tests remain absent/incomplete. ID ranges are shorthand, not evidence of completion. |
-| Phase 1 safe path construction, overlap prevention and Dry Run boundary | EOLM-CFG-006–007, EOLM-DRV-011, EOLM-DRV-016, EOLM-SAF-001–002, EOLM-SAF-006, EOLM-TST-005 | Mapped/partial | Path and Dry Run requirements are mapped; traversal/reparse-point/root/overlap tests and the final permitted Dry Run reporting boundary remain open. |
-| Phase 2 enumerate, collision-resolve, stage/copy, verify, finalize without overwrite | EOLM-FIL-006, EOLM-SYN-002–003, EOLM-SYN-005, EOLM-REQ-001, EOLM-STG-005–006 | Mapped/partial | IDs cover selection/collision/staging gates; runtime entry point and interruption/finalization tests are absent. |
-| Phase 2 cloud-confirm upload, retain source, publish per-file and period completion; no-work skip | EOLM-DRV-004–006, EOLM-MAN-004, EOLM-MAN-006–007, EOLM-SYN-001, EOLM-FIL-010, EOLM-OPS-003 | Mapped/blocked | IDs cover cloud verification, manifest status and source preservation; mixed verified/failed/unknown aggregation must be specified before implementation. |
-| Phase 3 all eligible archive backlog; validate both PC manifests; hash-copy and record outcome, never delete | EOLM-FIL-006–008, EOLM-ARC-001–005, EOLM-MAN-007, EOLM-MAN-010–011, EOLM-SAF-005 | Mapped/blocked | Archive gate and preservation map; freshness policy blocks implementation, and all-files-accounted-for/archive-manifest tests remain unimplemented. |
-| Phase 4 catch-up, partial reruns, collisions, unknown-origin files, interruption, API failures and date boundaries | EOLM-SYN-002–009, EOLM-DRV-003, EOLM-DRV-006, EOLM-MAN-012, EOLM-TST-003, EOLM-TST-005, EOLM-TST-009 | Mapped/partial | IDs cover planned scenarios; named executable tests and runtime implementation remain absent. Keep each planned scenario labelled not implemented. |
-| Phase 5 package allowlist/exclusions, official entry points, PowerShell checks and CI tests | EOLM-ENV-004, EOLM-CFG-002–003, EOLM-REL-001–003, EOLM-REL-009, EOLM-TST-001–002, EOLM-TST-005–006 | Mapped/partial | Release requirements map; runtime files are missing and package must remain non-deployable until official entry points and tests exist. |
-| Phase 6 versioned distribution, SHA-256/cloud verification, latest.json safety and manual deployment | EOLM-REL-004–009 | Mapped/blocked | Requirements map; distribution authentication/folder/access/tag/approval/retention decisions remain deferred, and failure-injection evidence is absent. |
-| Phase 7 both-PC Dry Run, shared manifest validation, PC-A-only archive gate and no-deletion proof | EOLM-DRV-016, EOLM-SAF-001–002, EOLM-SAF-006, EOLM-ARC-001–002, EOLM-MAN-001, EOLM-MAN-012, EOLM-TST-005–006 | Mapped/blocked | Dry Run mutation boundary and freshness remain partly unresolved; operator sign-off cannot replace state snapshots and automated tests. |
-| Phase 8 schedules, staggered execution, lock/lease, failure visibility and manual recovery | EOLM-OPS-001–006, EOLM-LCK-001–004 | Mapped/blocked | Scheduling and lock requirements map; exact schedule times remain deferred and no task/runtime entry points exist. |
-| §5 Required deliverables across docs, runtime, schema, tests, CI, API and operating/recovery instructions | EOLM-CFG-002–003, EOLM-MAN-001, EOLM-MAN-012, EOLM-TST-005, EOLM-REL-001, EOLM-REL-005, EOLM-REL-007, EOLM-TST-011 | Mapped/partial | Deliverable IDs map, but checklist entries must be reconciled against actual Git tree; missing artifacts remain unimplemented. |
-| §6 Non-negotiable fail-closed, no-overwrite, data-preservation, no-deletion and manual/scheduled parity gates | EOLM-DRV-006, EOLM-DRV-008, EOLM-SYN-005, EOLM-SAF-001, EOLM-SAF-003, EOLM-SAF-004, EOLM-SAF-005, EOLM-OPS-006 | Mapped | Test each safety gate independently; this crosswalk does not verify runtime behavior. |
+|§1 目的;インベントリ/復元は運用上の同期/アーカイブとは別のものです| EOLM-SYN-006, EOLM-SYN-007, EOLM-SYN-008, EOLM-SYN-009, EOLM-ARC-001, EOLM-TST-007 |マップされました|インベントリとアーカイブ適格性の分離には ID があります。インベントリ成果物とランタイムプルーフは存在しないままです。|
+|§2.1 PC-A 同期/マニフェストおよびコピー検証レコードのアーカイブ ロール| EOLM-CFG-003, EOLM-CFG-004, EOLM-ARC-001–002, EOLM-MAN-001, EOLM-MAN-007, EOLM-ARC-003–005 |マッピング済み/部分的|PC-A ロールは ID にマップされます。実装およびマニフェスト スキーマ/ランタイム テストは 未完了 のままです。|
+|§2.1 PC-B 同期/マニフェストのみ。アーカイブ/削除のエントリ ポイントまたは機能はありません| EOLM-CFG-003, EOLM-CFG-004, EOLM-CFG-005, EOLM-SAF-001, EOLM-TST-006 |マップされました|ソース、構成、パッケージ、および呼び出し可能なパス全体に存在しないことを証明します。文書だけでは不十分です。|
+|§2.1 共有ログ/マニフェストの場所。 GitHub 正規のソース。個別の一方向配信| EOLM-MAN-001, EOLM-REL-004, EOLM-REL-008, EOLM-ENV-005 |マッピング済み/部分的|ID は存在します。共有 `_maintenance` ルートには PC ごとのマニフェスト サブディレクトリが含まれており、配布は別個の一方向のワークフローです。実行時の証拠がありません。|
+|§2.2 PC 固有のソース/ランタイム/アーカイブおよび共有ドライブ パス| EOLM-CFG-001, EOLM-CFG-006, EOLM-CFG-007, EOLM-ENV-005 |マッピング済み/部分的|パス/ロールの検証要件が存在し、構成例が比較されました。実行時のルート検証とパス重複テストは行われないままです。|
+|§2.3 ファイル名の日付のみからの期間対象条件。 LastWriteTime および 確認済み メタデータは代替日付ソースではありません| EOLM-FIL-003, EOLM-FIL-004, EOLM-FIL-009 |マップされました|PR #24 は、以前の「ファイル名または検証されたメタデータ」という表現を修正し、メタデータがファイル名に由来する適格性をオーバーライドできないようにしました。ファイル名/メタデータの不一致フィクスチャをテストします。|
+|§2.3 BattleLog を前月まで、ErrorReport を前年まで同期します (古いバックログも含む)| EOLM-FIL-006, EOLM-FIL-007, EOLM-FIL-008 |マップされました|直前の月/年だけでなく、複数の古い期間をテストします。|
+|§2.3 前年以前の BattleLog をアーカイブします。 ErrorReport ～今年の 2 年前以降| EOLM-FIL-007, EOLM-FIL-008 |マップされました|年のロールオーバーと対象となるすべてのバックログ期間をテストします。|
+|§2.3 現在の期間はソースのままです。 失敗した 古い期間の再試行。作業なしスキップは検証とは異なります 失敗| EOLM-FIL-006, EOLM-FIL-010, EOLM-MAN-004, EOLM-DRV-003, EOLM-OPS-003 |マッピング/ブロックされました|ID はバックログの再試行と非作業ステータスをカバーします。検証済み/失敗/不明の混合集計は仕様が不十分なままであるため、実装前に解決する必要があります。|
+|§2.4 共有フォルダーのレイアウト。 SHA-256 重複および _PCA/_PCB 衝突の命名| EOLM-CFG-006, EOLM-SYN-002, EOLM-SYN-003, EOLM-SYN-005, EOLM-DRV-010 |マップされました|重複/衝突/上書きルールには ID があります。サフィックスの配置と宛先レイアウトのテストは未実装のままです。|
+|§2.4 マークされていないファイルのソース帰属は信頼できるマニフェストのみ。 不明 原点保持| EOLM-SYN-004, EOLM-SYN-008, EOLM-DRV-010, EOLM-SAF-003, EOLM-MAN-002, EOLM-MAN-007, EOLM-MAN-010–011 |マッピング/ブロックされました|要件はマップされています。正確な「信頼できるマニフェスト」基準と鮮度ルールには、明示的な決定が必要です。推測によって 不明 起源のファイルを属性付けしないでください。|
+|§2.4 競合するサフィックス付きターゲットを上書きしないでください。原本を保存する。レコードソース/最終名、PC、サイズ、ハッシュ、期間、結果| EOLM-SYN-005, EOLM-SAF-003, EOLM-SAF-005, EOLM-MAN-002, EOLM-MAN-006, EOLM-MAN-009, EOLM-MAN-012 |マッピング済み/部分的|衝突およびマニフェスト ID/スキーマ ID が存在します。最終的に必要なファイルごとのフィールドを確認し、競合するベース/サフィックス ターゲットをテストします。|
+|§2.5 ローカル ソースは決して削除しないでください。 Drive デスクトップの存在はクラウドアップロードの証拠ではありません| EOLM-SYN-001, EOLM-DRV-004, EOLM-DRV-006, EOLM-SAF-001, EOLM-SAF-005 |マップされました|静的なソース/パッケージのスキャンとフォールト挿入テストは引き続き必要です。|
+|§2.5 クラウド API リスト/メタデータ/チェックサム、フォールバック ダウンロードとハッシュ、不確実性によるフェール クローズ| EOLM-DRV-004–006, EOLM-DRV-009–010 |マッピング済み/部分的|要件には、クラウドプルーフ、ページネーション、安定した ID が含まれます。アダプターとエンドツーエンドの検証はありません。|
+|§2.5 OAuth 運用検証前のスコープと実際のマイ ドライブ フォルダーの機能| EOLM-DRV-007, EOLM-SEC-001 |マップされました|意図的に延期。証拠が保留されるまで、生産準備はブロックされたままです。|
+|§2.5 PC マニフェストと現在のクラウド確認の両方の後にのみアーカイブします。ドライブのコピーは決して削除しないでください| EOLM-ARC-001–005, EOLM-MAN-007, EOLM-MAN-010–011, EOLM-SAF-001 |マッピング/ブロックされました|クロス PC ゲート マップ。数値の鮮度/将来の許容範囲と適用性は、EOLM-MAN-011 によってブロックされたままです。|
+|§2.6 手動実行とスケジュールされた実行はロジックを共有します。対象となるすべてのバックログを処理します。 PC-B にはアーカイブ パスがありません| EOLM-FIL-006, EOLM-CFG-003, EOLM-OPS-004, EOLM-OPS-006 |マップされました|呼び出しパリティをテストし、PC-B アーカイブ機能が存在しないことを証明します。|
+|§2.6 ローカル ランタイム ルート、レビューされた GitHub リリースと手動デプロイメント| EOLM-ENV-005, EOLM-REL-001, EOLM-REL-003, EOLM-REL-005 |マップされました|パッケージのホワイトリスト、レガシー エントリ ポイントの拒否、構成保持のインストール チェックは不完全なままです。|
+|§3 PC-A/PC-B ランタイム レイアウト| EOLM-CFG-002–003, EOLM-CFG-006, EOLM-REL-001 |マッピング済み/部分的|`scripts/SyncLogs.ps1` は見張りとしてのみ存在します。 `scripts/ArchiveLogs.ps1` とバッチ ランチャーは追跡されるツリーに存在しません。運用ランタイム ロジックが欠落しているため、パッケージはデプロイできないままになります。|
+|フェーズ 0 ファイル名/日付パターンの確認。 OAuth 延期。マニフェストスキーマと起源の証明。チェックサムフォールバック| EOLM-FIL-001–003, EOLM-TST-003, EOLM-DRV-005, EOLM-DRV-007, EOLM-MAN-002, EOLM-MAN-009, EOLM-MAN-012, EOLM-SYN-004 |マッピング/ブロックされました|ID は前提条件を満たしています。マニフェスト ベースライン、信頼できるオリジン基準、および実際の API 機能は未解決のゲートのままです。|
+|処理前のフェーズ 1 構成/ロール/パスの検証。共通関数と終了基準| EOLM-CFG-001, EOLM-CFG-004, EOLM-CFG-006–007, EOLM-ENV-003, EOLM-FIL-001–EOLM-FIL-010, EOLM-MAN-001–EOLM-MAN-012, EOLM-OPS-003, EOLM-OPS-005, EOLM-TST-003, EOLM-TST-005 |マッピング済み/部分的|要件 ID は計画されたゲートをカバーします。ランタイムローダー、マニフェスト検証、テストは存在しないか不完全なままです。 ID 範囲は省略形であり、完了の証拠ではありません。|
+|フェーズ 1 安全なパスの構築、重複防止および Dry Run 境界| EOLM-CFG-006–007, EOLM-DRV-011, EOLM-DRV-016, EOLM-SAF-001–002, EOLM-SAF-006, EOLM-TST-005 |マッピング済み/部分的|パスと Dry Run 要件がマップされます。トラバーサル/再解析ポイント/ルート/オーバーラップ テストと、最終的に許可された Dry Run レポート境界は開いたままになります。|
+|フェーズ 2 列挙、衝突解決、ステージ/コピー、検証、上書きなしのファイナライズ| EOLM-FIL-006, EOLM-SYN-002–003, EOLM-SYN-005, EOLM-REQ-001, EOLM-STG-005–006 |マッピング済み/部分的|ID は選択/衝突/ステージング ゲートをカバーします。ランタイム エントリ ポイントと中断/終了テストはありません。|
+|フェーズ 2 クラウド確認アップロード、ソース保持、ファイルごとの公開、および期間の完了。仕事をサボる| EOLM-DRV-004–006, EOLM-MAN-004, EOLM-MAN-006–007, EOLM-SYN-001, EOLM-FIL-010, EOLM-OPS-003 |マッピング/ブロックされました|ID はクラウドの検証、マニフェストのステータス、ソースの保存をカバーします。検証済み/失敗/不明の混合集約は、実装前に指定する必要があります。|
+|フェーズ 3 の対象となるすべてのアーカイブ バックログ。両方の PC マニフェストを検証します。ハッシュコピーして結果を記録し、決して削除しないでください| EOLM-FIL-006–008, EOLM-ARC-001–005, EOLM-MAN-007, EOLM-MAN-010–011, EOLM-SAF-005 |マッピング/ブロックされました|アーカイブゲートと保存マップ。鮮度ポリシーは実装をブロックし、全ファイルの説明/アーカイブマニフェストのテストは実装されないままになります。|
+|フェーズ 4 のキャッチアップ、部分的な再実行、衝突、生成元不明のファイル、中断、API の障害、日付境界| EOLM-SYN-002–009, EOLM-DRV-003, EOLM-DRV-006, EOLM-MAN-012, EOLM-TST-003, EOLM-TST-005, EOLM-TST-009 |マッピング済み/部分的|ID は計画されたシナリオをカバーします。名前付きの実行可能テストとランタイム実装は存在しないままです。計画された各シナリオには「未実装」というラベルを付けておきます。|
+|フェーズ 5 パッケージの許可リスト/除外、公式エントリ ポイント、PowerShell チェック、および CI テスト| EOLM-ENV-004, EOLM-CFG-002–003, EOLM-REL-001–003, EOLM-REL-009, EOLM-TST-001–002, EOLM-TST-005–006 |マッピング済み/部分的|リリース要件マップ。ランタイム ファイルが欠落しているため、パッケージは正式なエントリ ポイントとテストが存在するまでデプロイできないままにする必要があります。|
+|フェーズ 6 バージョン付き配布、SHA-256/クラウド検証、latest.json 安全性および手動展開| EOLM-REL-004–009 |マッピング/ブロックされました|要件マップ。配布の認証/フォルダー/アクセス/タグ/承認/保持の決定は延期されたままであり、障害挿入の証拠は存在しません。|
+|フェーズ 7 両方の PC Dry Run、共有マニフェスト検証、PC-A のみのアーカイブ ゲートおよび非削除証明| EOLM-DRV-016, EOLM-SAF-001–002, EOLM-SAF-006, EOLM-ARC-001–002, EOLM-MAN-001, EOLM-MAN-012, EOLM-TST-005–006 |マッピング/ブロックされました|Dry Run 変異の境界と鮮度は部分的に未解決のままです。オペレーターのサインオフは、状態のスナップショットや自動テストに代わることはできません。|
+|フェーズ 8 スケジュール、時間差実行、ロック/リース、障害の可視性、および手動リカバリ| EOLM-OPS-001–006, EOLM-LCK-001–004 |マッピング/ブロックされました|スケジュールとロック要件のマップ。正確なスケジュール時間は延期されたままであり、タスク/ランタイム エントリ ポイントは存在しません。|
+|§5 ドキュメント、ランタイム、スキーマ、テスト、CI、API、および操作/回復手順にわたる必要な成果物| EOLM-CFG-002–003, EOLM-MAN-001, EOLM-MAN-012, EOLM-TST-005, EOLM-REL-001, EOLM-REL-005, EOLM-REL-007, EOLM-TST-011 |マッピング済み/部分的|成果物 ID はマップされますが、チェックリストのエントリは実際の Git ツリーと照合する必要があります。不足している成果物は未実装のままです。|
+|§6 交渉不可能なフェールクローズ、上書き禁止、データ保存、削除禁止、および手動/スケジュールされたパリティ ゲート| EOLM-DRV-006, EOLM-DRV-008, EOLM-SYN-005, EOLM-SAF-001, EOLM-SAF-003, EOLM-SAF-004, EOLM-SAF-005, EOLM-OPS-006 |マップされました|各安全ゲートを個別にテストします。この対応表では、実行時の動作は検証されません。|
 
 
-#### §3.7 findings and follow-up
+<a id="37-findings-and-follow-up"></a>
+#### §3.7 所見とフォローアップ
 
-- This crosswalk maps the workflow's principal normative clauses, phase exit criteria, deliverables, and safety gates to candidate register IDs. It is a static document audit, not implementation or runtime-safety evidence.
-- Remaining specification gaps include the exact definition of a trusted manifest for source attribution, the mixed file-state-to-run-status aggregation matrix, and consistency checks among README, workflow, distribution design, and package allowlist. Period eligibility is now stated as filename-date-only to align with C-25; verified metadata must not override it.
-- `EOLM-MAN-011` policy shape is approved; numeric freshness/future-time tolerances, exact applicability, and clock-sync/monitoring expectations remain unresolved. `EOLM-SAF-006` remains partial because Dry Run reporting/manifest side effects are not fully specified. OAuth scope/capability (`EOLM-DRV-007`) remains deferred.
-- ID ranges in rows are shorthand and do not imply implementation or verification. Runtime entry points and end-to-end tests remain incomplete. P0-010 remains open.
+- このクロスウォークは、ワークフローの主要な規範条項、フェーズ終了基準、成果物、およびセーフティ ゲートを候補登録 ID にマップします。これは静的な文書監査であり、実装や実行時の安全性の証拠ではありません。
+- 残りの仕様ギャップには、ソース帰属のための信頼できるマニフェストの正確な定義、ファイル状態と実行状態の混合集計マトリックス、README、ワークフロー、配布設計、およびパッケージ許可リスト間の一貫性チェックが含まれます。期間の対象条件は、C-25 に合わせて、ファイル名-日付-のみとして記述されるようになりました。 確認済み メタデータはそれをオーバーライドしてはなりません。
+- `EOLM-MAN-011` ポリシー シェイプが承認されました。数値の鮮度/将来の許容範囲、正確な適用性、およびクロック同期/監視の期待は未解決のままです。 Dry Run のレポート/マニフェストの副作用が完全に指定されていないため、`EOLM-SAF-006` は部分的なままです。 OAuth スコープ/機能 (`EOLM-DRV-007`) は延期されたままです。
+- 行内の ID 範囲は省略形であり、実装や検証を意味するものではありません。ランタイム エントリ ポイントとエンドツーエンド テストは 未完了 のままです。 P0-010 は開いたままです。
 
-### 3.8 `docs/release/distribution-design.md` clause-level crosswalk
+<a id="38-docsreleasedistribution-designmd-clause-level-crosswalk"></a>
+### 3.8 `docs/release/distribution-design.md` 句レベルの対応表
 
-| Source clause | Candidate requirement IDs | Coverage | Audit note / remaining action |
+|ソース句|候補要件 ID|適用範囲|監査メモ/残りのアクション|
 |---|---|---|---|
-| §1 Purpose; GitHub is canonical source, Drive is one-way distribution destination; distribution isolated from sync/archive/deletion | EOLM-REL-004, EOLM-REL-008, EOLM-SAF-001 | Mapped | Test failure isolation: distribution failures must not mutate source logs, sync/archive manifests, or deletion behavior. |
-| §1 Automation/authentication not yet configured | EOLM-REL-004, EOLM-REL-008 | Mapped | Current state is design-only; do not mark distribution implemented or production-ready. |
-| §2 Reviewed merge, CI package build, reviewed version tag, version folder upload, verify before latest.json, manual apply | EOLM-REL-001, EOLM-REL-004–007, EOLM-REL-010–012 | Mapped/blocked | Release lifecycle clauses map; protected release workflow, tag/version policy and end-to-end upload are not implemented or approved. |
-| §2 Normal push/PR validation must not upload; release event/explicit approval required | EOLM-REL-010, EOLM-SEC-001 | Mapped/blocked | Explicit gate ID added; workflow-level negative tests must prove PR jobs cannot access Drive credentials or upload. |
-| §3 Versioned immutable release layout; latest.json points only to verified release | EOLM-REL-004, EOLM-REL-006, EOLM-REL-011 | Mapped/blocked | Immutable-version and publish-last rules map; test existing-version collision and preserve the previous pointer on every failure path. |
-| §3 PACKAGE-STATUS.txt allowed only for review artifact; production package must omit it | EOLM-REL-002, EOLM-REL-003 | Mapped | Package tests should assert marker required for non-deployable artifact and forbidden for production release. |
-| §3 Retain prior releases; cleanup policy deferred; ZIP checksum verified before extraction | EOLM-REL-005, EOLM-REL-007, EOLM-REL-015 | Mapped/blocked | Rollback preservation and retention gate map; retention duration remains unresolved and automated cleanup must remain disabled. |
-| §3 SHA-256 proves integrity against checksum but not source trust | EOLM-REL-006, EOLM-REL-007, EOLM-REL-014 | Mapped | Checksum proves artifact integrity only; source/tag provenance remains a separate review gate. EOLM-REL-014 records that distinction; provenance approval is not implemented. |
-| §4 Explicit package allowlist for README, CHANGELOG, VERSION, scripts, Common and example configs | EOLM-REL-001–003, EOLM-REL-009, EOLM-REL-012–013 | Mapped/partial | Allowlist and version/update rules map; required/optional file behavior and relative-path tests need complete coverage against the final approved allowlist. |
-| §4 Runtime release requires SyncLogs.ps1 and PC-A-only ArchiveLogs.ps1; legacy ArchiveAndUploadLogs.ps1 is not official; PC-B excludes ArchiveLogs.ps1 | EOLM-CFG-002, EOLM-CFG-003, EOLM-REL-003 | Mapped | Need PC-A/PC-B package fixture tests and a legacy-only package regression test. |
-| §4 Package must be built from allowlist, not whole-repo ZIP with later exclusions; new dependency requires reviewed allowlist update | EOLM-REL-001, EOLM-REL-013, EOLM-TST-006 | Mapped | Deny-by-default allowlist maps; test unapproved candidate files and do not rely on `.gitignore` alone. |
-| §5 Exclude docs, CI, tests, git metadata, active configs, unallowlisted config JSON, manifests, logs, temporary files, credentials, env files and all non-allowlisted files | EOLM-ENV-004, EOLM-REL-001, EOLM-TST-006 | Mapped | Seed every forbidden category in package fixtures and prove no path or secret is included. |
-| §5 Explicit allowlist is primary control; exclusions are defense in depth | EOLM-REL-001, EOLM-TST-006 | Mapped | Add tests that intentionally introduce a forbidden file and verify package build fails or excludes it deterministically. |
-| §6 Example configs are templates, never contain credentials or overwrite active config; migrations need backup/diff/review | EOLM-CFG-004–005, EOLM-SEC-001, EOLM-REL-005, EOLM-REL-007 | Mapped | Template/active-config separation maps; test active config hash is unchanged unless a separately approved migration occurs. |
-| §6 PC-A allowArchive explicit true only after gates; PC-B omits flag; no allowDelete or deletion code/settings | EOLM-CFG-004, EOLM-CFG-005, EOLM-SAF-001, EOLM-TST-006 | Mapped | Need negative config/source/package tests; document statements are not proof of capability absence. |
-| §7 Release gates: repository validation, required files, config parse, PowerShell parse/static analysis, tests, allowlist, exclusions/secrets, version consistency, ZIP and SHA-256 | EOLM-ENV-004, EOLM-REL-001–003, EOLM-REL-006, EOLM-REL-009, EOLM-REL-012–014, EOLM-TST-001–002, EOLM-TST-005–007 | Mapped/partial | Release-gate IDs now include required files, version/tag consistency, and provenance. Link every gate to CI; missing runtime/tests must fail deployability rather than imply coverage. |
-| §7 CI success alone does not authorize deployment or deletion | EOLM-REL-002, EOLM-TST-007, EOLM-SAF-001 | Mapped | Preserve distinction between documentation/schema CI and end-to-end runtime readiness. |
-| §8 GitHub Actions secrets/short-lived identity; minimum Drive permission; no PR secret exposure/log leakage | EOLM-DRV-007, EOLM-REL-010, EOLM-SEC-001 | Mapped/blocked | Release workflow gate and secret policy map; auth mechanism and actual Drive folder access remain unselected/unvalidated. |
-| §8 Upload versioned ZIP/checksum and verify before latest.json; failure preserves previous pointer; Drive desktop presence is not cloud proof | EOLM-DRV-004, EOLM-REL-006, EOLM-REL-008, EOLM-REL-010, EOLM-REL-014 | Mapped/blocked | Cloud verification, publish-last, separation from log maintenance, protected release workflow and provenance map to IDs. Mock timeout/partial upload/hash mismatch/API failure and pointer-write failure tests remain absent. |
-| §8 Authentication method and actual My Drive ownership/sharing/quota constraints must be tested | EOLM-DRV-007, EOLM-REL-010 | Mapped/blocked | Explicit external prerequisite; do not assume service-account access or mark production distribution ready. |
-| §9 Manual PC-side retrieval, checksum verification, staging extraction, diff, config preservation and approval | EOLM-REL-005, EOLM-REL-007 | Mapped | Need procedure plus tests/checklist for wrong hash, unexpected paths, active-config preservation and approval gate. |
-| §9 Keep prior runtime recoverable until post-update verification; PC-B no archive/delete; PC-A archive is copy/verify/record only | EOLM-REL-007, EOLM-CFG-003, EOLM-SAF-001, EOLM-SAF-004 | Mapped | Rollback and operational-data isolation need evidence; deletion remains excluded. |
-| §10 Implementation sequence: review design, builder/tests, release workflow, Drive auth/upload, latest pointer, PC retrieval/manual apply | EOLM-REL-001, EOLM-REL-004–007, EOLM-REL-010–015 | Mapped/blocked | Sequence is a plan, not evidence; each gate remains blocked until its policy/approval and test evidence exist. |
-| §11 Fixed decisions: canonical GitHub source, one-way immutable releases, manual apply, allowlist/deny-by-default, active config/data excluded, no log deletion | EOLM-REL-001, EOLM-REL-004–005, EOLM-REL-008, EOLM-REL-011, EOLM-REL-014–015, EOLM-SAF-001, EOLM-SAF-004 | Mapped/partial | Immutable versions, source provenance and rollback retention are now ID-mapped. Package builder/workflow permissions and manual deployment procedure still need implementation and evidence. |
-| §11 Open items: Drive folder/access, authentication, runtime/test readiness, tag/version/approval procedure, old-release retention | EOLM-DRV-007, EOLM-REL-010–015 | Mapped/blocked | Deferred decisions are explicitly represented; release automation must not go live while they remain unresolved. |
+|§1 目的; GitHub は正規のソース、Drive は一方向の配布先です。同期/アーカイブ/削除から分離された配布| EOLM-REL-004, EOLM-REL-008, EOLM-SAF-001 |マップされました|失敗 の分離をテストします。配布の失敗により、ソース ログ、同期/アーカイブ マニフェスト、または削除動作が変化してはいけません。|
+|§1 自動化/認証がまだ構成されていません| EOLM-REL-004, EOLM-REL-008 |マップされました|現在の状態は設計のみです。配布が実装済みまたは運用準備完了であることをマークしないでください。|
+|§2 マージの確認、CI パッケージのビルド、バージョン タグの確認、バージョン フォルダーのアップロード、latest.json の前に確認、手動適用| EOLM-REL-001, EOLM-REL-004–007, EOLM-REL-010–012 |マッピング/ブロックされました|リリースライフサイクル条項マップ。保護されたリリースのワークフロー、タグ/バージョン ポリシー、エンドツーエンドのアップロードは実装または承認されていません。|
+|§2 通常のプッシュ/PR 検証はアップロードしてはなりません。リリースイベント/明示的な承認が必要| EOLM-REL-010, EOLM-SEC-001 |マッピング/ブロックされました|明示的なゲート ID が追加されました。ワークフロー レベルのネガティブ テストでは、PR ジョブがドライブの認証情報にアクセスできない、またはアップロードできないことを証明する必要があります。|
+|§3 バージョン管理された不変のリリース レイアウト。 latest.json は 確認済み リリースのみを指します| EOLM-REL-004, EOLM-REL-006, EOLM-REL-011 |マッピング/ブロックされました|不変バージョンと最後に公開するルールのマップ。既存バージョンの衝突をテストし、すべての障害パスで以前のポインタを保存します。|
+|§3 PACKAGE-STATUS.txt はレビュー 成果物にのみ許可されます。本番パッケージでは省略する必要があります| EOLM-REL-002, EOLM-REL-003 |マップされました|パッケージ テストでは、デプロイ不可能な成果物に必要で、実稼働リリースでは禁止されているマーカーをアサートする必要があります。|
+|§3 以前のリリースを保持します。クリーンアップ ポリシーは延期されます。抽出前の ZIP チェックサム 確認済み| EOLM-REL-005, EOLM-REL-007, EOLM-REL-015 |マッピング/ブロックされました|ロールバックの保存と保持のゲート マップ。保存期間は未解決のままであり、自動クリーンアップは無効のままにする必要があります。|
+|§3 SHA-256 はチェックサムに対して整合性を証明しますが、ソースの信頼性は証明しません| EOLM-REL-006, EOLM-REL-007, EOLM-REL-014 |マップされました|チェックサムは成果物の完全性のみを証明します。ソース/タグの出所は別個のレビューゲートのままです。 EOLM-REL-014 はその区別を記録します。出所の承認は実施されていない。|
+|§4 README、CHANGELOG、VERSION、スクリプト、共通およびサンプル構成の明示的なパッケージ許可リスト| EOLM-REL-001–003, EOLM-REL-009, EOLM-REL-012–013 |マッピング済み/部分的|ホワイトリストとバージョン/更新ルールのマップ。必須/オプションのファイル動作と相対パスのテストでは、最終的に承認されたホワイトリストに対して完全にカバーする必要があります。|
+|§4 ランタイム リリースには SyncLogs.ps1 および PC-A のみの ArchiveLogs.ps1 が必要です。レガシー ArchiveAndUploadLogs.ps1 は公式ではありません。 PC-B には ArchiveLogs.ps1 は含まれません| EOLM-CFG-002, EOLM-CFG-003, EOLM-REL-003 |マップされました|PC-A/PC-B パッケージ フィクスチャ テストとレガシーのみのパッケージ回帰テストが必要です。|
+|§4 パッケージは、後の除外を含むリポジトリ全体の ZIP ではなく、ホワイトリストから構築する必要があります。新しい依存関係にはレビューされた許可リストの更新が必要です| EOLM-REL-001, EOLM-REL-013, EOLM-TST-006 |マップされました|デフォルトで拒否されるホワイトリスト マップ。未承認の候補ファイルをテストし、`.gitignore` のみに依存しないでください。|
+|§5 ドキュメント、CI、テスト、git メタデータ、アクティブな構成、許可リストに登録されていない構成 JSON、マニフェスト、ログ、一時ファイル、認証情報、env ファイル、および許可リストに登録されていないすべてのファイルを除外します。| EOLM-ENV-004, EOLM-REL-001, EOLM-TST-006 |マップされました|パッケージ フィクスチャ内のすべての禁止カテゴリをシードし、パスやシークレットが含まれていないことを証明します。|
+|§5 明示的な許可リストが主な制御です。除外は多層防御です| EOLM-REL-001, EOLM-TST-006 |マップされました|禁止されたファイルを意図的に導入するテストを追加し、パッケージのビルドが失敗するか、決定的に除外されることを確認します。|
+|§6 構成例はテンプレートであり、認証情報を含めたり、アクティブな構成を上書きしたりすることはありません。移行にはバックアップ/差分/レビューが必要です| EOLM-CFG-004–005, EOLM-SEC-001, EOLM-REL-005, EOLM-REL-007 |マップされました|テンプレート/アクティブ構成の分離マップ。テストアクティブ構成ハッシュは、別途承認された移行が発生しない限り変更されません。|
+|§6 PC-A ゲートの後のみ明示的な true のアーカイブを許可します。 PC-B はフラグを省略します。許可なし削除または削除コード/設定| EOLM-CFG-004, EOLM-CFG-005, EOLM-SAF-001, EOLM-TST-006 |マップされました|ネガティブな構成/ソース/パッケージのテストが必要です。文書の記載は能力の欠如を証明するものではありません。|
+|§7 リリース ゲート: リポジトリの検証、必要なファイル、構成解析、PowerShell 解析/静的分析、テスト、ホワイトリスト、除外/シークレット、バージョンの一貫性、ZIP および SHA-256| EOLM-ENV-004, EOLM-REL-001–003, EOLM-REL-006, EOLM-REL-009, EOLM-REL-012–014, EOLM-TST-001–002, EOLM-TST-005–007 |マッピング済み/部分的|リリースゲート ID には、必要なファイル、バージョン/タグの一貫性、出所が含まれるようになりました。すべてのゲートを CI にリンクします。ランタイム/テストが欠落している場合は、カバレッジを意味するのではなく、展開に失敗する必要があります。|
+|§7 CI 成功 だけでは展開または削除は許可されません| EOLM-REL-002, EOLM-TST-007, EOLM-SAF-001 |マップされました|ドキュメント/スキーマ CI とエンドツーエンドのランタイム準備状況の区別を維持します。|
+|§8 GitHub Actions 秘密/短期間の同一性。最低限のドライブ権限。 PR 機密漏洩/ログ漏洩なし| EOLM-DRV-007, EOLM-REL-010, EOLM-SEC-001 |マッピング/ブロックされました|ワークフロー ゲートとシークレット ポリシー マップをリリースします。認証メカニズムと実際のドライブ フォルダー アクセスは選択されず、検証されないままになります。|
+|§8 バージョン付き ZIP/チェックサムをアップロードし、latest.json の前に検証します。 失敗 は前のポインタを保存します。 Drive デスクトップの存在はクラウドプルーフではない| EOLM-DRV-004, EOLM-REL-006, EOLM-REL-008, EOLM-REL-010, EOLM-REL-014 |マッピング/ブロックされました|クラウド検証、最後に公開、ログ保守からの分離、保護されたリリースのワークフロー、ID への出所マップ。モックタイムアウト/部分アップロード/ハッシュ不一致/API 失敗およびポインタ書き込み失敗テストは引き続き行われません。|
+|§8 認証方法と実際のマイドライブの所有権/共有/割り当て制限をテストする必要があります| EOLM-DRV-007, EOLM-REL-010 |マッピング/ブロックされました|明示的な外部前提条件。サービス アカウントへのアクセスを想定したり、運用環境の配布が準備完了であるとマークしたりしないでください。|
+|§9 手動 PC 側取得、チェックサム検証、ステージング 抽出、差分、構成の保存と承認| EOLM-REL-005, EOLM-REL-007 |マップされました|間違ったハッシュ、予期しないパス、アクティブ構成の保存、および承認ゲートについては、手順に加えて tests/checklist が必要です。|
+|§9 更新後の検証まで、以前のランタイムを回復可能な状態に保ちます。 PC-B アーカイブ/削除はありません。 PC-A アーカイブはコピー/検証/記録のみです| EOLM-REL-007, EOLM-CFG-003, EOLM-SAF-001, EOLM-SAF-004 |マップされました|ロールバックと運用データの分離には証拠が必要です。削除は除外されたままになります。|
+|§10 実装シーケンス: 設計のレビュー、ビルダー/テスト、リリース ワークフロー、ドライブの認証/アップロード、最新のポインター、PC の取得/手動適用| EOLM-REL-001, EOLM-REL-004–007, EOLM-REL-010–015 |マッピング/ブロックされました|順序は計画であり、証拠ではありません。各ゲートは、ポリシー/承認およびテストの証拠が存在するまでブロックされたままになります。|
+|§11 修正された決定: 正規の GitHub ソース、一方向の不変リリース、手動適用、許可リスト/デフォルトによる拒否、アクティブな構成/データの除外、ログ削除なし| EOLM-REL-001, EOLM-REL-004–005, EOLM-REL-008, EOLM-REL-011, EOLM-REL-014–015, EOLM-SAF-001, EOLM-SAF-004 |マッピング済み/部分的|不変バージョン、ソースの出自、ロールバック保持が ID マップされるようになりました。パッケージビルダー/ワークフローの権限と手動の展開手順には、実装と証拠がまだ必要です。|
+|§11 未解決の項目: ドライブ フォルダー/アクセス、認証、ランタイム/テストの準備状況、タグ/バージョン/承認手順、古いリリースの保持| EOLM-DRV-007, EOLM-REL-010–015 |マッピング/ブロックされました|延期された決定は明示的に表現されます。リリース自動化は、未解決のまま稼働させてはなりません。|
 
-#### §3.8 findings and follow-up
+<a id="38-findings-and-follow-up"></a>
+#### §3.8 所見とフォローアップ
 
-- This is a static mapping of the distribution design's requirements to the existing register. It does not demonstrate that the package builder, GitHub Actions release workflow, Drive upload, pointer update, or PC-side deployment is implemented.
-- PR #25 added EOLM-REL-010–015. This follow-up aligns the top-level source matrix with the existing §3.8 clause crosswalk. Remaining gaps are not missing IDs for the clauses above; they are implementation/test evidence, per-PC allowlist approval, protected release workflow, actual Drive access/authentication, release tag/approval policy, prior-pointer preservation under all failure modes, retention decision, and per-gate CI evidence. Decisions remain blocked and IDs do not imply implementation.
-- `EOLM-REL-006` covers publish-last/checksum behavior, while `EOLM-REL-008` keeps distribution isolated from log maintenance. These are mapped requirements, not verified runtime behavior.
-- Runtime scripts and meaningful behavioral tests remain incomplete. No deployment is authorized by a passing documentation/package-schema check; P0-010 remains open.
+- これは、既存のレジスタに対する分散設計の要件の静的なマッピングです。パッケージ ビルダー、GitHub Actions リリース ワークフロー、ドライブのアップロード、ポインターの更新、または PC 側の展開が実装されていることを示すものではありません。
+- PR #25 が EOLM-REL-010–015 を追加しました。このフォローアップでは、トップレベルのソース行列を既存の §3.8 節のクロスウォークと調整します。残りのギャップは、上記の句の ID が欠落しているわけではありません。これらは、実装/テストの証拠、PC ごとの許可リストの承認、保護されたリリースのワークフロー、実際のドライブのアクセス/認証、リリース タグ/承認ポリシー、すべての 失敗 モードでの以前のポインターの保存、保持の決定、およびゲートごとの CI の証拠です。決定はブロックされたままであり、ID は実装を意味しません。
+- `EOLM-REL-006` はパブリッシュラスト/チェックサムの動作をカバーし、`EOLM-REL-008` は配布をログのメンテナンスから分離します。これらはマップされた要件であり、確認済み 実行時の動作ではありません。
+- ランタイム スクリプトと意味のある動作テストは 未完了 のままです。ドキュメント/パッケージ スキーマ チェックに合格することによってデプロイメントが承認されることはありません。 P0-010 は開いたままです。
 
-### 3.9 Artifact-to-requirement and test-evidence crosswalk
+<a id="39-artifact-to-requirement-and-test-evidence-crosswalk"></a>
+### 3.9 成果物から要件およびテスト証拠への対応表
 
-This section distinguishes artifact existence, test intent, test execution, and runtime evidence. Statuses below are based on the tracked branch tree and workflow definitions; they do not assert that CI ran successfully in this audit.
+このセクションでは、成果物の存在、テストの意図、テストの実行、および実行時の証拠を区別します。以下のステータスは、追跡されたブランチ ツリーとワークフロー定義に基づいています。この監査で CI が正常に実行されたとは断言しません。
 
-| Artifact / interface | Candidate requirement IDs | Observed coverage | Evidence status | Gap / next action |
+|成果物 / インターフェース|候補要件 ID|観測されたカバレッジ|証拠ステータス|ギャップ / 次のアクション|
 |---|---|---|---|---|
-| `contracts/drive-request.schema.json` | EOLM-DRV-001, EOLM-DRV-002, EOLM-DRV-011, EOLM-SAF-001 | Schema defines version 1.0, four operations, explicit `dry_run`, required operation parameters, and rejects extra fields/deletion operations. | Partial | Does not enforce caller-approved filesystem roots, actual Dry Run side-effect boundaries, or runtime path canonicalization; schema acceptance is not adapter execution. |
-| `contracts/drive-response.schema.json` | EOLM-DRV-002, EOLM-DRV-013, EOLM-TST-004 | Defines success/failure shape, error codes, UUID and result/error consistency. | Partial | Result is generic object; schema alone cannot correlate response request_id/operation to a specific request or prove exit-code consistency. |
-| `tests/test_contract_schemas.py` | EOLM-TST-004, EOLM-DRV-011, EOLM-DRV-012, EOLM-DRV-013 | Tests schema validity, four supported requests, required fields, UUID, deletion/unknown operations, selected extra fields, SHA-256 syntax and response consistency. | Partial | PR #49's `docs/archive/validation/ipc-contract-evidence-audit.md` distinguishes these schema assertions from process-boundary behavior. Empty/multiple stdout JSON, invalid UTF-8, stderr leakage, timeout, process exit-code mismatch, request correlation and secret redaction remain without executable IPC tests. |
-| `requirements-test.txt` | EOLM-TST-004, EOLM-ENV-003 | Pins the allowed jsonschema major version range for contract tests. | Mapped | Dependency installation is covered by CI, but dependency locking/reproducibility and offline install are not asserted. |
-| `Common/LogFunctions.ps1` | EOLM-FIL-001, EOLM-FIL-002, EOLM-FIL-003, EOLM-FIL-006, EOLM-FIL-007, EOLM-FIL-008, EOLM-FIL-009 | Implements filename date parsing and sync/archive cutoff/eligibility helpers. | Partial | Does not enumerate/process files, persist manifests, sync, archive, or enforce runtime safety gates. |
-| `tests/Test-LogFunctions.ps1` | EOLM-TST-003, EOLM-FIL-001–010 | Exercises valid/invalid filenames, invalid calendar dates, and sync/archive cutoff boundaries at a fixed reference date; Validate invokes it. | Partial | PR #31 adds case-sensitive extension and invariant-culture assertions; PR #34 adds 30/31-day month-end helper assertions. Validate and Package Validation both succeeded on PR #47 HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39394374900 and https://github.com/wasawo/eo-log-maintenance/actions/runs/39394374905. Filename-date vs LastWriteTime disagreement, mixed-directory enumeration and runtime run-status remain open. |
-| `docs/validation/filename-period-test-plan.md` | EOLM-FIL-001–EOLM-FIL-009, EOLM-FIL-010, EOLM-SYN-001, EOLM-SAF-005, EOLM-TST-003 | Helper/cutoff cases plus PR #38 design-only SEL-RT-01–10 matrix for backlog enumeration, filename-date vs LastWriteTime, mixed log types, invalid names, run status and no-mutation; see `docs/archive/validation/sel-rt-fixture-traceability.md` for the per-scenario evidence crosswalk. | Mapped/partial | Executable helper cases are limited to filename/date parsing and cutoff selection. SEL-RT-01–10 remain planned runtime tests, not executed tests: the tracked tree has no official target-enumeration entrypoint. Do not count a scenario's requirement mapping or fixture description as a pass. OSD-03 still blocks exact status aggregation. |
-| `docs/validation/runtime-safety-test-scenarios.md` | EOLM-TST-005, EOLM-TST-009, EOLM-TST-010, EOLM-SAF-001–EOLM-SAF-006 | Defines SYNC, MAN, ARC and IPC scenarios, including fail-closed behavior and data-preservation assertions. | Partial | Scenarios are design expectations; no corresponding full runtime harness or implemented sync/archive/IPC entry points are present. |
-| `tests/README.md` and scenario crosswalk | EOLM-TST-005, EOLM-TST-009, EOLM-TST-010 | Describes test scope and evidence expectations. | Partial | Must link each scenario ID to a named executable test or explicit not-implemented status; documentation mapping alone does not close P0-010. |
-| `.github/workflows/validate.yml` | EOLM-TST-001, EOLM-TST-002, EOLM-TST-004, EOLM-ENV-001, EOLM-ENV-003 | Installs/verifies PowerShell 7.6.7, runs schema tests, parses example JSON configs, executes `tests/Test-LogFunctions.ps1`, and analyzes tracked PowerShell files on PR/push/manual dispatch. | Partial | Validate succeeded on PR #52 HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39396308946. CI version pinning and helper-test invocation are present; runtime startup guard coverage for official entry points and end-to-end integration tests remain unverified because the official entry points are absent. |
-| `.github/workflows/package-validation.yml` | EOLM-REL-001, EOLM-REL-002, EOLM-REL-003, EOLM-TST-006 | Runs package-builder tests; manual dispatch builds and uploads a review-only artifact. | Partial | Package Validation succeeded on PR #47 HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39394374905. This validates local package construction, not cloud release publication, `latest.json` preservation under failures, or manual PC deployment. |
-| `.github/scripts/Build-ReleasePackage.ps1` | EOLM-REL-001, EOLM-REL-002, EOLM-REL-003, EOLM-REL-006, EOLM-ENV-004 | Uses an allowlist, rejects active PC configs and reparse points under package directories, validates examples, hashes ZIP and marks review-only package when runtime entry point is absent. | Partial | It writes/replaces local ZIP/checksum/latest metadata and does not implement cloud publication or preserve a prior pointer under a publish failure; current official runtime entry points are absent. |
-| `tests/Test-ReleasePackage.ps1` | EOLM-REL-001, EOLM-REL-002, EOLM-REL-003, EOLM-TST-006 | Tests allowlisted entries, excluded files, checksum, active-config guard, review-only marker, explicit target role, PC-A requirement for both official entry points, PC-B exclusion of `ArchiveLogs.ps1`, and rejection of a legacy-only entry-point fixture. | Partial | These are package-builder tests, not runtime acceptance. They do not prove a functioning sync/archive entry point, final OSD-09 allowlists/deployment policy, release authorization/provenance, or full deletion-capability absence across all runtime boundaries. |
-| `Config/PC-A.example.json` and `Config/PC-B.example.json` | EOLM-CFG-001, EOLM-CFG-003, EOLM-CFG-004, EOLM-CFG-005, EOLM-CFG-006, EOLM-CFG-007 | Provide role-specific example configurations and are syntax-checked in CI. | Partial | JSON syntax validation does not validate schema, approved roots, role/capability constraints, path overlap, or no-processing-on-invalid-config behavior. |
-| Tracked runtime entry points and Python adapter | EOLM-CFG-002, EOLM-CFG-003, EOLM-DRV-001–EOLM-DRV-013, EOLM-ARC-001–EOLM-ARC-006, EOLM-SAF-001–EOLM-SAF-006 | Repository tree has no official sync/archive entry point or Python Drive adapter implementation; `scripts/` contains only README at this baseline. | Unimplemented / blocker | Schema and helper tests cannot establish runtime behavior. P0-003/P0-004/P0-005/P0-006 and P0-010 remain open; do not build or apply a deployable package. |
-| `docs/design/powershell-python-contract.md` vs JSON schemas and tests | EOLM-DRV-001, EOLM-DRV-002, EOLM-DRV-011, EOLM-DRV-012, EOLM-DRV-013, EOLM-TST-004 | Contract text, request/response schemas and tests share operation names and basic envelope fields. | Partial | IPC-01–06 are cross-referenced in [IPC contract-to-test evidence audit](ipc-contract-evidence-audit.md). Schema tests do not prove process exit-code consistency, raw stdout handling, request correlation, timeout behavior, or secret redaction; all runtime IPC scenarios remain not implemented/not run. |
-| CI evidence vs requirement status | EOLM-TST-007, EOLM-TST-008, EOLM-REL-002 | Current workflows can establish schema validity, selected helper behavior only if executed, and package-builder fixture behavior. | Mapped | Never mark runtime/cloud requirements verified from these checks; attach exact CI run and test evidence to each requirement row. |
+| `contracts/drive-request.schema.json` | EOLM-DRV-001, EOLM-DRV-002, EOLM-DRV-011, EOLM-SAF-001 |スキーマはバージョン 1.0、4 つの操作、明示的な `dry_run`、必須の操作パラメーターを定義し、余分なフィールド/削除操作を拒否します。|部分的|呼び出し元が承認したファイルシステムのルート、実際の Dry Run 副作用境界、またはランタイム パスの正規化を強制しません。スキーマの受け入れはアダプターの実行ではありません。|
+| `contracts/drive-response.schema.json` | EOLM-DRV-002, EOLM-DRV-013, EOLM-TST-004 |成功/失敗の形状、エラー コード、UUID、結果/エラーの一貫性を定義します。|部分的|結果は汎用オブジェクトです。スキーマだけでは、応答 request_id/operation を特定の要求に関連付けたり、終了コードの一貫性を証明したりすることはできません。|
+| `tests/test_contract_schemas.py` | EOLM-TST-004, EOLM-DRV-011, EOLM-DRV-012, EOLM-DRV-013 |スキーマの有効性、サポートされている 4 つのリクエスト、必須フィールド、UUID、削除/不明 操作、選択された追加フィールド、SHA-256 構文、および応答の一貫性をテストします。|部分的|PR #49 の `docs/archive/validation/ipc-contract-evidence-audit.md` は、これらのスキーマ アサーションをプロセス境界の動作から区別します。空/複数の stdout JSON、無効な UTF-8、stderr リーク、タイムアウト、プロセス終了コードの不一致、リクエスト相関およびシークレット編集は、実行可能な IPC テストなしで残ります。|
+| `requirements-test.txt` | EOLM-TST-004, EOLM-ENV-003 |コントラクト テスト用に許可される jsonschema メジャー バージョン範囲を固定します。|マップされました|依存関係のインストールは CI でカバーされていますが、依存関係のロック/再現性とオフライン インストールは保証されていません。|
+| `Common/LogFunctions.ps1` | EOLM-FIL-001, EOLM-FIL-002, EOLM-FIL-003, EOLM-FIL-006, EOLM-FIL-007, EOLM-FIL-008, EOLM-FIL-009 |ファイル名の日付解析と同期/アーカイブの終了/対象条件ヘルパーを実装します。|部分的|ファイルの列挙/処理、マニフェストの永続化、同期、アーカイブ、またはランタイム セーフティ ゲートの強制は行いません。|
+| `tests/Test-LogFunctions.ps1` | EOLM-TST-003, EOLM-FIL-001–010 |有効/無効なファイル名、無効なカレンダー日付、および固定された基準日での同期/アーカイブの終了境界を実行します。検証するとそれが呼び出されます。|部分的|PR #31 は、大文字と小文字を区別する拡張機能とインバリアント カルチャ アサーションを追加します。 PR #34 は、30/31-day 月末ヘルパー アサーションを追加します。 PR #47 HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39394374900 と https://github.com/wasawo/eo-log-maintenance/actions/runs/39394374905. ファイル名の日付と LastWriteTime の不一致、混合ディレクトリの列挙とランタイムの実行ステータスはオープンのままです。|
+| `docs/validation/filename-period-test-plan.md` | EOLM-FIL-001–EOLM-FIL-009, EOLM-FIL-010, EOLM-SYN-001, EOLM-SAF-005, EOLM-TST-003 |ヘルパー/カットオフ ケースに加えて、バックログ列挙、ファイル名日付と LastWriteTime、混合ログ タイプ、無効な名前、実行ステータス、および変更なしの PR #38 デザイン専用 SEL-RT-01–10 マトリックス。シナリオごとの証拠の対応表については、`docs/archive/validation/sel-rt-fixture-traceability.md` を参照してください。|マッピング済み/部分的|実行可能なヘルパー ケースは、ファイル名/日付の解析とカットオフの選択に限定されます。 SEL-RT-01–10 は計画されたランタイム テストのままであり、実行されたテストではありません。追跡されるツリーには正式なターゲット列挙エントリポイントがありません。シナリオの要件マッピングまたはフィクスチャの説明をパスとしてカウントしないでください。 OSD-03 は依然として正確なステータスの集計をブロックします。|
+| `docs/validation/runtime-safety-test-scenarios.md` | EOLM-TST-005, EOLM-TST-009, EOLM-TST-010, EOLM-SAF-001–EOLM-SAF-006 |フェールクローズ動作やデータ保持アサーションを含む、SYNC、MAN、ARC、および IPC のシナリオを定義します。|部分的|シナリオは設計上の期待値です。対応する完全なランタイム ハーネスや実装された同期/アーカイブ/IPC エントリ ポイントは存在しません。|
+|`tests/README.md` とシナリオの対応表| EOLM-TST-005, EOLM-TST-009, EOLM-TST-010 |テストの範囲と証拠の期待について説明します。|部分的|各シナリオ ID を、名前付きの実行可能テストまたは明示的な未実装ステータスにリンクする必要があります。ドキュメントのマッピングだけでは P0-010 を閉じることはできません。|
+| `.github/workflows/validate.yml` | EOLM-TST-001, EOLM-TST-002, EOLM-TST-004, EOLM-ENV-001, EOLM-ENV-003 |PowerShell 7.6.7 をインストール/検証し、スキーマ テストを実行し、サンプル JSON 構成を解析し、`tests/Test-LogFunctions.ps1` を実行し、PR/プッシュ/手動ディスパッチで追跡された PowerShell ファイルを分析します。|部分的|PR #52 で検証が成功しました。 HEAD: https://github.com/wasawo/eo-log-maintenance/actions/runs/39396308946. CI バージョンの固定とヘルパー テストの呼び出しが存在します。公式エントリ ポイントが存在しないため、公式エントリ ポイントおよびエンドツーエンド統合テストのランタイム スタートアップ ガード カバレッジは未検証のままです。|
+| `.github/workflows/package-validation.yml` | EOLM-REL-001, EOLM-REL-002, EOLM-REL-003, EOLM-TST-006 |パッケージビルダーテストを実行します。手動ディスパッチでは、レビュー専用の成果物がビルドおよびアップロードされます。|部分的|PR #47 HEAD でパッケージの検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39394374905. これは、クラウド リリースの公開、障害時の `latest.json` の保存、または手動の PC 展開ではなく、ローカル パッケージの構築を検証します。|
+| `.github/scripts/Build-ReleasePackage.ps1` | EOLM-REL-001, EOLM-REL-002, EOLM-REL-003, EOLM-REL-006, EOLM-ENV-004 |ホワイトリストを使用し、アクティブな PC 構成を拒否し、パッケージ ディレクトリの下のポイントを再解析し、例を検証し、ZIP をハッシュし、ランタイム エントリ ポイントがない場合はレビュー専用パッケージにマークを付けます。|部分的|ローカルの ZIP/チェックサム/最新のメタデータの書き込み/置換を行い、クラウド パブリケーションを実装したり、パブリッシュの失敗時に以前のポインタを保存したりしません。現在の公式ランタイム エントリ ポイントは存在しません。|
+| `tests/Test-ReleasePackage.ps1` | EOLM-REL-001, EOLM-REL-002, EOLM-REL-003, EOLM-TST-006 |ホワイトリストに登録されたエントリ、除外されたファイル、チェックサム、アクティブ構成ガード、レビュー専用マーカー、明示的なターゲット ロール、両方の公式エントリ ポイントの PC-A 要件、`ArchiveLogs.ps1` の PC-B 除外、レガシー専用エントリ ポイント フィクスチャの拒否をテストします。|部分的|これらはパッケージ ビルダーのテストであり、ランタイムの受け入れではありません。これらは、同期/アーカイブ エントリ ポイントが機能していること、最終的な OSD-09 ホワイトリスト/展開ポリシー、リリース承認/出所、またはすべてのランタイム境界にわたる完全な削除機能の不在を証明するものではありません。|
+|`Config/PC-A.example.json` および `Config/PC-B.example.json`| EOLM-CFG-001, EOLM-CFG-003, EOLM-CFG-004, EOLM-CFG-005, EOLM-CFG-006, EOLM-CFG-007 |ロール固有の設定例を提供し、CI で構文チェックされます。|部分的|JSON 構文検証では、スキーマ、承認されたルート、役割/機能の制約、パスの重複、または無効な構成での処理なしの動作は検証されません。|
+|追跡されたランタイム エントリ ポイントと Python アダプター| EOLM-CFG-002, EOLM-CFG-003, EOLM-DRV-001–EOLM-DRV-013, EOLM-ARC-001–EOLM-ARC-006, EOLM-SAF-001–EOLM-SAF-006 |リポジトリ ツリーには、公式の同期/アーカイブ エントリ ポイントや Python ドライブ アダプタの実装がありません。 `scripts/` には、このベースラインでは README のみが含まれています。|未実装 / ブロッカー|スキーマおよびヘルパー テストでは、実行時の動作を確立できません。 P0-003/P0-004/P0-005/P0-006 および P0-010 は開いたままになります。展開可能なパッケージをビルドまたは適用しないでください。|
+|`docs/design/powershell-python-contract.md` と JSON のスキーマとテスト| EOLM-DRV-001, EOLM-DRV-002, EOLM-DRV-011, EOLM-DRV-012, EOLM-DRV-013, EOLM-TST-004 |コントラクト テキスト、リクエスト/レスポンス スキーマ、およびテストは、操作名と基本的なエンベロープ フィールドを共有します。|部分的|IPC-01–06 は [IPC 契約からテストまでの証拠監査](ipc-contract-evidence-audit.md) で相互参照されています。スキーマ テストでは、プロセスの終了コードの一貫性、生の標準出力処理、リクエストの相関関係、タイムアウトの動作、またはシークレットの編集は証明されません。すべてのランタイム IPC シナリオは実装されず、実行されないままになります。|
+|CI 証拠と要件のステータス| EOLM-TST-007, EOLM-TST-008, EOLM-REL-002 |現在のワークフローは、スキーマの有効性、実行された場合にのみ選択されたヘルパーの動作、およびパッケージ ビルダー フィクスチャの動作を確立できます。|マップされました|これらのチェックで検証されたランタイム/クラウド要件にマークを付けないでください。正確な CI 実行およびテストの証拠を各要件行に添付します。|
 
-#### §3.9 findings and follow-up
+<a id="39-findings-and-follow-up"></a>
+#### §3.9 所見とフォローアップ
 
-- The request/response schemas declare JSON Schema Draft 2020-12. The schema test uses `Draft202012Validator` and a format checker; this is appropriate for the declared dialect, but validates structure only, not PowerShell/Python runtime behavior. The JSON Schema project identifies 2020-12 as the current published specification. <https://json-schema.org/specification>
-- The request schema rejects unknown operations and extra fields, but path-root policy and operation side effects require caller/runtime validation. The response schema cannot by itself compare a response against its originating request or verify the child process exit code.
-- The workflow inventory and current `validate.yml` show that Validate installs/verifies PowerShell 7.6.7, executes contract-schema tests, parses example configs with `ConvertFrom-Json`, runs `tests/Test-LogFunctions.ps1`, and runs PSScriptAnalyzer. JSON parsing is not semantic role/path validation. Current evidence: Validate succeeded on PR #52 HEAD (https://github.com/wasawo/eo-log-maintenance/actions/runs/39396308946). This still does not prove absent official entry points or runtime sync/Drive/manifest/archive behavior.
-- `Test-ReleasePackage.ps1` validates a fixture whose runtime script is the legacy `ArchiveAndUploadLogs.ps1`. This is not sufficient to prove the official PC-A/PC-B entry-point policy or absence of deletion capabilities.
-- The tracked tree has no official sync/archive runtime entry points or Python Drive adapter. Contract schemas, test plans, helper functions, and package-builder tests do not close runtime requirements. Keep affected requirements partial/not_started and keep P0-010 open.
-- Next implementation-audit step: add a scenario-to-executable-test matrix, then close the CI evidence gaps (PowerShell version guard, helper test execution, IPC negative matrix, package role/deletion scans). Do not add runtime implementation or alter deletion policy as part of this documentation-only audit.
+- リクエスト/レスポンス スキーマは JSON Schema ドラフト 2020-12 を宣言します。スキーマ テストでは `Draft202012Validator` とフォーマット チェッカーを使用します。これは宣言された方言には適切ですが、構造のみを検証し、PowerShell/Python の実行時の動作は検証しません。 JSON Schema プロジェクトは、2020-12 を現在公開されている仕様として識別します。 <https://json-schema.org/specification>
+- リクエスト スキーマは 不明 操作と追加のフィールドを拒否しますが、パス ルート ポリシーと操作の副作用には呼び出し元/ランタイムの検証が必要です。応答スキーマだけでは、応答を元の要求と比較したり、子プロセスの終了コードを検証したりすることはできません。
+- ワークフロー インベントリと現在の `validate.yml` は、Validate が PowerShell 7.6.7 をインストール/検証し、コントラクト スキーマ テストを実行し、`ConvertFrom-Json` でサンプル構成を解析し、`tests/Test-LogFunctions.ps1` を実行し、PSScriptAnalyzer を実行することを示しています。 JSON 解析は、セマンティックなロール/パスの検証ではありません。現在の証拠: PR #52 HEAD (https://github.com/wasawo/eo-log-maintenance/actions/runs/39396308946) で検証が成功しました。これはまだ、公式のエントリ ポイントや実行時の同期/ドライブ/マニフェスト/アーカイブ動作が存在しないことを証明するものではありません。
+- `Test-ReleasePackage.ps1` は、ランタイム スクリプトがレガシー `ArchiveAndUploadLogs.ps1` であるフィクスチャを検証します。これは、公式の PC-A/PC-B エントリポイント ポリシーや削除機能の欠如を証明するには十分ではありません。
+- 追跡されるツリーには、公式の同期/アーカイブ ランタイム エントリ ポイントまたは Python ドライブ アダプターがありません。コントラクト スキーマ、テスト計画、ヘルパー関数、およびパッケージ ビルダー テストは、実行時要件を解決しません。影響を受ける要件を部分的に/not_started のままにし、P0-010 を開いたままにします。
+- 次の実装監査ステップ: シナリオと実行可能テストのマトリックスを追加し、CI 証拠のギャップ (PowerShell バージョン ガード、ヘルパー テストの実行、IPC ネガティブ マトリックス、パッケージの役割/削除スキャン) を埋めます。このドキュメントのみの監査の一環として、ランタイム実装を追加したり、削除ポリシーを変更したりしないでください。
 
-### 3.10 Scenario-to-executable-test matrix
+<a id="310-scenario-to-executable-test-matrix"></a>
+### 3.10 シナリオと実行可能テストのマトリックス
 
-This matrix treats a test as executable only when a tracked test implementation is present. “No” in the Executable test exists column means the scenario is not currently invoked by a workflow; it does not imply a failed test run. Runtime scenarios below are defined in `docs/validation/runtime-safety-test-scenarios.md`; the runtime harness and sync/archive/IPC entry points are not yet implemented.
+このマトリックスは、追跡されたテスト実装が存在する場合にのみテストを実行可能として扱います。 [実行可能テストが存在します] 列の「いいえ」は、シナリオが現在ワークフローによって呼び出されないことを意味します。 失敗した テストの実行を意味するものではありません。以下の実行時シナリオは `docs/validation/runtime-safety-test-scenarios.md` で定義されています。ランタイム ハーネスと同期/アーカイブ/IPC エントリ ポイントはまだ実装されていません。
 
-#### Sync scenarios
+<a id="sync-scenarios"></a>
+#### 同期シナリオ
 
-| Scenario | Requirement IDs | Executable test exists | Current disposition | Next action |
+|シナリオ|要件 ID|実行可能なテストが存在します|現在の配置|次のアクション|
 | :--- | :--- | :--- | :--- | :--- |
-| SYNC-01 | EOLM-STG-001, EOLM-STG-003, EOLM-STG-005, EOLM-STG-006, EOLM-DRV-005, EOLM-FIL-001, EOLM-SYN-001, EOLM-SAF-005, EOLM-TST-005 | No | Not implemented | Copy + post-copy SHA-256 assertion |
-| SYNC-02 | EOLM-SYN-002, EOLM-SYN-005, EOLM-TST-005 | No | Not implemented | Idempotent same-content handling |
-| SYNC-03 | EOLM-SYN-001, EOLM-STG-005, EOLM-SAF-005, EOLM-TST-005 | No | Not implemented | Missing source fail-closed test |
-| SYNC-04 | EOLM-STG-005, EOLM-STG-006, EOLM-DRV-006, EOLM-SAF-005, EOLM-TST-005 | No | Not implemented | Missing/truncated destination test |
-| SYNC-05 | EOLM-DRV-005, EOLM-DRV-006, EOLM-SAF-005, EOLM-TST-005 | No | Not implemented | Hash mismatch preservation test |
-| SYNC-06 | EOLM-SYN-003, EOLM-SYN-004, EOLM-SYN-005, EOLM-DRV-010, EOLM-TST-005 | No | Not implemented | Collision must not overwrite |
-| SYNC-07 | EOLM-SYN-003, EOLM-SYN-005, EOLM-DRV-010, EOLM-TST-005 | No | Not implemented | All candidate names collide |
-| SYNC-08 | EOLM-DRV-004, EOLM-DRV-006, EOLM-SAF-005, EOLM-TST-005 | No | Not implemented | Drive API cloud-side verification mock |
-| SYNC-09 | EOLM-DRV-010, EOLM-DRV-006, EOLM-TST-005 | No | Not implemented | Multiple candidates fail closed |
-| SYNC-10 | EOLM-DRV-005, EOLM-DRV-010, EOLM-DRV-013, EOLM-TST-005 | No | Not implemented | Missing metadata/download/hash failure matrix |
-| SYNC-11 | EOLM-DRV-001, EOLM-DRV-002, EOLM-DRV-003, EOLM-TST-004, EOLM-TST-005 | No | Not implemented | Retryability, max attempts, no nested HTTP retries |
-| SYNC-12 | EOLM-FIL-006, EOLM-SYN-002, EOLM-SYN-005, EOLM-MAN-006, EOLM-SYN-007, EOLM-TST-005 | No | Not implemented | Recover failed run without duplicate/overwrite |
+| SYNC-01 | EOLM-STG-001, EOLM-STG-003, EOLM-STG-005, EOLM-STG-006, EOLM-DRV-005, EOLM-FIL-001, EOLM-SYN-001, EOLM-SAF-005, EOLM-TST-005 |いいえ|未実装|コピー + コピー後の SHA-256 アサーション|
+| SYNC-02 | EOLM-SYN-002, EOLM-SYN-005, EOLM-TST-005 |いいえ|未実装|冪等の同一内容の処理|
+| SYNC-03 | EOLM-SYN-001, EOLM-STG-005, EOLM-SAF-005, EOLM-TST-005 |いいえ|未実装|ソースのフェールクローズ テストが欠落しています|
+| SYNC-04 | EOLM-STG-005, EOLM-STG-006, EOLM-DRV-006, EOLM-SAF-005, EOLM-TST-005 |いいえ|未実装|宛先テストが欠落または切り詰められています|
+| SYNC-05 | EOLM-DRV-005, EOLM-DRV-006, EOLM-SAF-005, EOLM-TST-005 |いいえ|未実装|ハッシュ不一致保存テスト|
+| SYNC-06 | EOLM-SYN-003, EOLM-SYN-004, EOLM-SYN-005, EOLM-DRV-010, EOLM-TST-005 |いいえ|未実装|衝突によって上書きされてはなりません|
+| SYNC-07 | EOLM-SYN-003, EOLM-SYN-005, EOLM-DRV-010, EOLM-TST-005 |いいえ|未実装|すべての対象候補名が衝突|
+| SYNC-08 | EOLM-DRV-004, EOLM-DRV-006, EOLM-SAF-005, EOLM-TST-005 |いいえ|未実装|ドライブ API クラウド側検証モック|
+| SYNC-09 | EOLM-DRV-010, EOLM-DRV-006, EOLM-TST-005 |いいえ|未実装|複数の対象候補が不合格となりました|
+| SYNC-10 | EOLM-DRV-005, EOLM-DRV-010, EOLM-DRV-013, EOLM-TST-005 |いいえ|未実装|メタデータ/ダウンロード/ハッシュ失敗マトリックスの欠落|
+| SYNC-11 | EOLM-DRV-001, EOLM-DRV-002, EOLM-DRV-003, EOLM-TST-004, EOLM-TST-005 |いいえ|未実装|再試行可能性、最大試行回数、ネストされた HTTP 再試行なし|
+| SYNC-12 | EOLM-FIL-006, EOLM-SYN-002, EOLM-SYN-005, EOLM-MAN-006, EOLM-SYN-007, EOLM-TST-005 |いいえ|未実装|失敗した実行を重複/上書きせずに回復します|
 
-#### Manifest scenarios
+<a id="manifest-scenarios"></a>
+#### マニフェストシナリオ
 
-| Scenario | Requirement IDs | Executable test exists | Current disposition | Next action |
+|シナリオ|要件 ID|実行可能なテストが存在します|現在の配置|次のアクション|
 | :--- | :--- | :--- | :--- | :--- |
-| MAN-01 | EOLM-MAN-002, EOLM-MAN-003, EOLM-MAN-004, EOLM-MAN-007, EOLM-MAN-010, EOLM-ARC-002, EOLM-TST-005 | No | Not implemented | Both-PC success manifest gate |
-| MAN-02 | EOLM-ARC-002, EOLM-ARC-005, EOLM-TST-005 | No | Not implemented | Missing peer manifest blocks archive |
-| MAN-03 | EOLM-MAN-007, EOLM-ARC-002, EOLM-ARC-005, EOLM-TST-005 | No | Not implemented | Failed/partial manifest blocks archive |
-| MAN-04 | EOLM-MAN-011, EOLM-ARC-005, EOLM-TST-005 | No | Blocked: numeric freshness/future-time tolerances and applicability unresolved | Blocked until numeric tolerance/applicability decisions; then stale/future/clock-skew manifest tests |
-| MAN-05 | EOLM-MAN-002, EOLM-MAN-009, EOLM-ARC-005, EOLM-TST-005 | No | Not implemented | Period mismatch blocks archive |
-| MAN-06 | EOLM-MAN-002, EOLM-MAN-009, EOLM-ARC-005, EOLM-TST-005 | No | Not implemented | Log type mismatch blocks archive |
-| MAN-07 | EOLM-MAN-002, EOLM-MAN-009, EOLM-MAN-012, EOLM-DRV-013, EOLM-TST-005 | No | Partial schema-only coverage | Malformed JSON/version/identity/state mismatch runtime tests; schema-only coverage is insufficient |
-| MAN-08 | EOLM-FIL-010, EOLM-MAN-004, EOLM-TST-005 | No | Not implemented | Explicit zero-item success distinct from unrun |
-| MAN-09 | EOLM-MAN-004, EOLM-MAN-005, EOLM-MAN-007, EOLM-ARC-005, EOLM-TST-005 | No | Not implemented | Missing/stale run manifest blocks archive |
-| MAN-10 | EOLM-MAN-003, EOLM-MAN-004, EOLM-MAN-007, EOLM-ARC-002, EOLM-TST-005 | No | Not implemented | Both-PC state combination matrix |
+| MAN-01 | EOLM-MAN-002, EOLM-MAN-003, EOLM-MAN-004, EOLM-MAN-007, EOLM-MAN-010, EOLM-ARC-002, EOLM-TST-005 |いいえ|未実装|両方の PC の成功マニフェスト ゲート|
+| MAN-02 | EOLM-ARC-002, EOLM-ARC-005, EOLM-TST-005 |いいえ|未実装|ピア マニフェスト ブロックのアーカイブが欠落しています|
+| MAN-03 | EOLM-MAN-007, EOLM-ARC-002, EOLM-ARC-005, EOLM-TST-005 |いいえ|未実装|失敗した/部分的なマニフェスト ブロックのアーカイブ|
+| MAN-04 | EOLM-MAN-011, EOLM-ARC-005, EOLM-TST-005 |いいえ|ブロックされました: 数値の鮮度/将来の許容範囲と適用性が未解決です|数値的な許容差/適用性が決定されるまでブロックされます。次に、古い/将来の/クロックスキューのマニフェスト テスト|
+| MAN-05 | EOLM-MAN-002, EOLM-MAN-009, EOLM-ARC-005, EOLM-TST-005 |いいえ|未実装|期間の不一致ブロックのアーカイブ|
+| MAN-06 | EOLM-MAN-002, EOLM-MAN-009, EOLM-ARC-005, EOLM-TST-005 |いいえ|未実装|ログタイプの不一致ブロックのアーカイブ|
+| MAN-07 | EOLM-MAN-002, EOLM-MAN-009, EOLM-MAN-012, EOLM-DRV-013, EOLM-TST-005 |いいえ|部分的なスキーマのみをカバー|不正な形式の JSON/version/identity/state の不一致ランタイム テスト。スキーマのみをカバーするのは不十分です|
+| MAN-08 | EOLM-FIL-010, EOLM-MAN-004, EOLM-TST-005 |いいえ|未実装|未実行とは異なる明示的なゼロ項目成功|
+| MAN-09 | EOLM-MAN-004, EOLM-MAN-005, EOLM-MAN-007, EOLM-ARC-005, EOLM-TST-005 |いいえ|未実装|実行マニフェスト ブロックのアーカイブが見つからない/古い|
+| MAN-10 | EOLM-MAN-003, EOLM-MAN-004, EOLM-MAN-007, EOLM-ARC-002, EOLM-TST-005 |いいえ|未実装|両方の PC 状態の組み合わせ行列|
 
-#### Archive scenarios
+<a id="archive-scenarios"></a>
+#### アーカイブシナリオ
 
-| Scenario | Requirement IDs | Executable test exists | Current disposition | Next action |
+|シナリオ|要件 ID|実行可能なテストが存在します|現在の配置|次のアクション|
 | :--- | :--- | :--- | :--- | :--- |
-| ARC-01 | EOLM-SAF-002, EOLM-SAF-006, EOLM-TST-009, EOLM-TST-005 | No | Not implemented | Snapshot state before/after Dry Run |
-| ARC-02 | EOLM-MAN-007, EOLM-MAN-010, EOLM-ARC-001, EOLM-ARC-003, EOLM-ARC-004, EOLM-ARC-005, EOLM-DRV-005, EOLM-TST-005 | No | Not implemented | Archive copy/hash/manifest ordering |
-| ARC-03 | EOLM-ARC-003, EOLM-ARC-004, EOLM-SAF-005, EOLM-TST-005 | No | Not implemented | Partial/corrupt archive preserves Drive source |
-| ARC-04 | EOLM-CFG-004, EOLM-ARC-001, EOLM-ARC-006, EOLM-SAF-001, EOLM-REL-003, EOLM-TST-005 | No | Partial package-fixture evidence only | PC-B role guard and package entrypoint assertion |
-| ARC-05 | EOLM-CFG-001, EOLM-CFG-006, EOLM-CFG-007, EOLM-ARC-001, EOLM-ARC-005, EOLM-TST-005 | No | Not implemented | Invalid/missing config rejects before I/O |
-| ARC-06 | EOLM-DRV-003, EOLM-DRV-006, EOLM-ARC-003, EOLM-ARC-006, EOLM-SAF-003, EOLM-TST-005 | No | Not implemented | Timeout/unknown state preserves Drive source |
-| ARC-07 | EOLM-SAF-001, EOLM-SAF-004, EOLM-TST-006, EOLM-REL-001, EOLM-REL-003, EOLM-TST-005 | No | Partial static/package evidence | Repo-wide forbidden-operation scan and mutation fixture |
-| ARC-08 | EOLM-ARC-003, EOLM-ARC-004, EOLM-ARC-005, EOLM-ARC-006, EOLM-MAN-006, EOLM-MAN-008, EOLM-DRV-006, EOLM-REQ-001, EOLM-TST-005 | No | Not implemented | Interrupted copy/manifest recovery state matrix |
-| ARC-09 | EOLM-CFG-005, EOLM-SAF-001, EOLM-SAF-002, EOLM-TST-006, EOLM-TST-005 | No | Partial schema/package evidence | Scan configs, schema, source and artifact for deletion capability |
+| ARC-01 | EOLM-SAF-002, EOLM-SAF-006, EOLM-TST-009, EOLM-TST-005 |いいえ|未実装|Dry Run の前後のスナップショットの状態|
+| ARC-02 | EOLM-MAN-007, EOLM-MAN-010, EOLM-ARC-001, EOLM-ARC-003, EOLM-ARC-004, EOLM-ARC-005, EOLM-DRV-005, EOLM-TST-005 |いいえ|未実装|アーカイブのコピー/ハッシュ/マニフェストの順序付け|
+| ARC-03 | EOLM-ARC-003, EOLM-ARC-004, EOLM-SAF-005, EOLM-TST-005 |いいえ|未実装|部分的/破損したアーカイブによりドライブ ソースが保存されます|
+| ARC-04 | EOLM-CFG-004, EOLM-ARC-001, EOLM-ARC-006, EOLM-SAF-001, EOLM-REL-003, EOLM-TST-005 |いいえ|部分的なパッケージフィクスチャの証拠のみ|PC-B ロール ガードとパッケージ エントリポイント アサーション|
+| ARC-05 | EOLM-CFG-001, EOLM-CFG-006, EOLM-CFG-007, EOLM-ARC-001, EOLM-ARC-005, EOLM-TST-005 |いいえ|未実装|無効/欠落している構成が I/O 前に拒否される|
+| ARC-06 | EOLM-DRV-003, EOLM-DRV-006, EOLM-ARC-003, EOLM-ARC-006, EOLM-SAF-003, EOLM-TST-005 |いいえ|未実装|タイムアウト/不明 状態はドライブ ソースを保持します|
+| ARC-07 | EOLM-SAF-001, EOLM-SAF-004, EOLM-TST-006, EOLM-REL-001, EOLM-REL-003, EOLM-TST-005 |いいえ|部分的な静的/パッケージの証拠|リポジトリ全体の禁止操作スキャンおよびミューテーション フィクスチャ|
+| ARC-08 | EOLM-ARC-003, EOLM-ARC-004, EOLM-ARC-005, EOLM-ARC-006, EOLM-MAN-006, EOLM-MAN-008, EOLM-DRV-006, EOLM-REQ-001, EOLM-TST-005 |いいえ|未実装|中断されたコピー/マニフェスト回復状態マトリックス|
+| ARC-09 | EOLM-CFG-005, EOLM-SAF-001, EOLM-SAF-002, EOLM-TST-006, EOLM-TST-005 |いいえ|部分的なスキーマ/パッケージの証拠|削除機能について構成、スキーマ、ソース、および成果物をスキャンします|
 
-#### PowerShell/Python IPC scenarios
+<a id="powershellpython-ipc-scenarios"></a>
+#### PowerShell/Python IPC シナリオ
 
-| Scenario | Requirement IDs | Executable test exists | Current disposition | Next action |
+|シナリオ|要件 ID|実行可能なテストが存在します|現在の配置|次のアクション|
 | :--- | :--- | :--- | :--- | :--- |
-| IPC-01 | EOLM-DRV-013, EOLM-DRV-012, EOLM-TST-004 | No | Not implemented | Nonzero process exit fails regardless of JSON |
-| IPC-02 | EOLM-DRV-012, EOLM-DRV-013, EOLM-TST-004 | No | Not implemented | Empty/invalid/multiple JSON and stdout noise matrix |
-| IPC-03 | EOLM-DRV-001, EOLM-DRV-002, EOLM-DRV-003, EOLM-DRV-013, EOLM-TST-004 | No | Partial schema-only coverage | Request ID and operation correlation against originating request |
-| IPC-04 | EOLM-DRV-013, EOLM-TST-004 | No | Partial schema-only coverage | Process exit code vs response success matrix |
-| IPC-05 | EOLM-DRV-012, EOLM-DRV-013, EOLM-OPS-003, EOLM-TST-004 | No | Not implemented | Timeout, process termination and no side effects |
-| IPC-06 | EOLM-SEC-001, EOLM-OPS-005, EOLM-TST-005 | No | Not implemented | Secret-bearing exceptions redacted from stdout/stderr/logs |
+| IPC-01 | EOLM-DRV-013, EOLM-DRV-012, EOLM-TST-004 |いいえ|未実装|JSON に関係なく、ゼロ以外のプロセスの終了は失敗します|
+| IPC-02 | EOLM-DRV-012, EOLM-DRV-013, EOLM-TST-004 |いいえ|未実装|空/無効/複数の JSON および標準出力ノイズ行列|
+| IPC-03 | EOLM-DRV-001, EOLM-DRV-002, EOLM-DRV-003, EOLM-DRV-013, EOLM-TST-004 |いいえ|部分的なスキーマのみをカバー|リクエスト ID と元のリクエストに対する操作の相関|
+| IPC-04 | EOLM-DRV-013, EOLM-TST-004 |いいえ|部分的なスキーマのみをカバー|プロセスの終了コードと応答の成功マトリックス|
+| IPC-05 | EOLM-DRV-012, EOLM-DRV-013, EOLM-OPS-003, EOLM-TST-004 |いいえ|未実装|タイムアウト、プロセス終了、副作用なし|
+| IPC-06 | EOLM-SEC-001, EOLM-OPS-005, EOLM-TST-005 |いいえ|未実装|秘密を含む例外が stdout/stderr/logs から編集されました|
 
-#### Filename and period test-plan reconciliation
+<a id="filename-and-period-test-plan-reconciliation"></a>
+#### ファイル名と期間のテスト計画の調整
 
-| Test-plan case group | Requirement IDs | Covered by tracked test | Current disposition | Gap / next action |
+|テスト計画ケース グループ|要件 ID|追跡テストでカバーされています|現在の配置|ギャップ / 次のアクション|
 | :--- | :--- | :--- | :--- | :--- |
-| Valid BattleLog / ErrorReport | EOLM-FIL-001, EOLM-FIL-002, EOLM-TST-003 | Yes | Partial | Happy-path parsing exists |
-| Invalid calendar date / invalid leap day | EOLM-FIL-003, EOLM-TST-003 | Yes | Partial | 2026-02-30 and 2025-02-29 tested |
-| Invalid month | EOLM-FIL-003, EOLM-TST-003 | Yes | Partial | `20261301` rejection is present in `tests/Test-LogFunctions.ps1` and is run by Validate; add other relevant malformed-date cases only where distinct acceptance behavior is required. |
-| Missing underscore | EOLM-FIL-003, EOLM-TST-003 | Yes | Partial | Missing-underscore rejection is present and executed by Validate; run-level handling remains unimplemented. |
-| Wrong extension / extension case | EOLM-FIL-001–003, EOLM-TST-003 | Yes | Partial | `.log` and uppercase `.TXT` rejection assertions now exist; run-level validation/error aggregation remains unimplemented. |
-| Empty BattleLog suffix | EOLM-FIL-003, EOLM-TST-003 | Yes | Partial | Empty suffix rejection is present and executed by Validate; run-level handling remains unimplemented. |
-| ErrorReport with suffix / unexpected name | EOLM-FIL-003, EOLM-TST-003 | Yes | Partial | Unexpected name and ErrorReport suffix tested |
-| Sync/archive cutoff boundary dates | EOLM-FIL-006, EOLM-FIL-007, EOLM-FIL-008, EOLM-TST-003 | Yes | Partial | Representative cutoff boundaries covered |
-| January rollover, mixed files, multiple historical years | EOLM-FIL-006, EOLM-FIL-007, EOLM-FIL-008, EOLM-TST-003 | Partial | January/year-rollover helper assertions exist and run in CI; mixed-directory enumeration across log types and multiple historical periods is not covered because no runtime target-enumeration implementation exists. |
+|有効な BattleLog / ErrorReport| EOLM-FIL-001, EOLM-FIL-002, EOLM-TST-003 |はい|部分的|ハッピーパス解析が存在します|
+|無効な暦日/無効な閏日です| EOLM-FIL-003, EOLM-TST-003 |はい|部分的|2026-02-30 および 2025-02-29 がテストされました|
+|月が無効です| EOLM-FIL-003, EOLM-TST-003 |はい|部分的|`20261301` 拒否が `tests/Test-LogFunctions.ps1` に存在し、検証によって実行されます。明確な受け入れ動作が必要な場合にのみ、その他の関連する不正な日付のケースを追加してください。|
+|アンダースコアがありません| EOLM-FIL-003, EOLM-TST-003 |はい|部分的|アンダースコアの欠落による拒否が存在し、Validate によって実行されます。実行レベルの処理は未実装のままです。|
+|間違った拡張子/拡張子ケース| EOLM-FIL-001–003, EOLM-TST-003 |はい|部分的|`.log` および大文字の `.TXT` 拒否アサーションが存在します。実行レベルの検証/エラー集計は未実装のままです。|
+|空の BattleLog サフィックス| EOLM-FIL-003, EOLM-TST-003 |はい|部分的|空のサフィックスの拒否が存在し、Validate によって実行されます。実行レベルの処理は未実装のままです。|
+|ErrorReport 接尾辞 / 予期しない名前が付いています| EOLM-FIL-003, EOLM-TST-003 |はい|部分的|予期しない名前と ErrorReport サフィックスがテストされました|
+|同期/アーカイブの終了境界日| EOLM-FIL-006, EOLM-FIL-007, EOLM-FIL-008, EOLM-TST-003 |はい|部分的|代表的なカットオフ境界をカバー|
+|1 月のロールオーバー、混合ファイル、複数の歴史年| EOLM-FIL-006, EOLM-FIL-007, EOLM-FIL-008, EOLM-TST-003 |部分的|1 月/年のロールオーバー ヘルパー アサーションが存在し、CI で実行されます。実行時のターゲット列挙実装が存在しないため、ログ タイプおよび複数の履歴期間にわたる混合ディレクトリ列挙はカバーされていません。|
 
-#### Matrix summary and acceptance rule
+<a id="matrix-summary-and-acceptance-rule"></a>
+#### マトリックスの概要と受け入れ規則
 
-- Runtime scenario IDs inventoried: **37** (SYNC 12, MAN 10, ARC 9, IPC 6).
-- Of these, **0** have a complete executable runtime test in the current repository. Some related schema/package tests provide partial static evidence only; none proves real Drive synchronization or runtime archive safety.
-- Filename/period plan groups inventoried: **9**. Validate run #80 executes `tests/Test-LogFunctions.ps1`; valid/invalid-name and representative cutoff helper cases pass. PR #31 adds case-sensitivity and culture-independence assertions; filename-vs-filesystem-time disagreement, broader month-end boundaries, mixed-directory enumeration, and runtime run-status behavior remain open.
-- Add an executable test name and CI invocation for each scenario before changing its disposition to covered. For scenarios blocked by undefined policy, record the decision ID and do not manufacture an expected result.
-- This matrix is a coverage inventory, not test execution evidence. Do not mark a requirement verified based on this table.
+- インベントリされたランタイム シナリオ ID: **37** (SYNC 12、MAN 10、ARC 9、IPC 6)。
+- このうち、現在のリポジトリで完全な実行可能ランタイム試験があるものは **0**。関連する一部のスキーマ・パッケージ試験は部分的な静的証拠のみであり、実際のDrive同期や実行時のアーカイブ安全性を証明しない。
+- インベントリされたファイル名/期間計画グループ: **9**。実行 #80 が `tests/Test-LogFunctions.ps1` を実行することを検証します。有効/無効な名前と代表的なカットオフ ヘルパー ケースは合格します。 PR #31 大文字と小文字の区別と文化に依存しないアサーションを追加します。ファイル名とファイルシステムの時間の不一致、より広い月末の境界、混合ディレクトリの列挙、およびランタイムの実行ステータスの動作は未解決のままです。
+- 処理をカバー対象に変更する前に、各シナリオの実行可能テスト名と CI 呼び出しを追加します。未定義のポリシーによってブロックされたシナリオの場合は、決定 ID を記録し、予期した結果を作成しないでください。
+- このマトリックスはカバレッジ インベントリであり、テスト実行の証拠ではありません。この表に基づいて要件 確認済み をマークしないでください。
 
-GitHub's official Actions documentation demonstrates invoking PowerShell test scripts directly from a workflow and using the process exit status to report failures. The current Validate workflow explicitly invokes `tests/Test-LogFunctions.ps1` and propagates a nonzero exit status; keep this behavior and add missing helper cases as separate, requirement-linked changes. <https://docs.github.com/en/actions/tutorials/build-and-test-code/powershell>
+GitHub の公式アクション ドキュメントでは、ワークフローから直接 PowerShell テスト スクリプトを呼び出し、プロセスの終了ステータスを使用して失敗を報告する方法を示しています。現在の検証ワークフローは明示的に `tests/Test-LogFunctions.ps1` を呼び出し、ゼロ以外の終了ステータスを伝播します。この動作を維持し、不足しているヘルパー ケースを別の要件にリンクされた変更として追加します。 <https://docs.github.com/en/actions/tutorials/build-and-test-code/powershell>
 
-### 3.11 Filename-helper assertion-to-requirement crosswalk
+<a id="311-filename-helper-assertion-to-requirement-crosswalk"></a>
+### 3.11 ファイル名ヘルパー アサーションから要件へのクロスウォーク
 
-This crosswalk distinguishes assertions that exist in `tests/Test-LogFunctions.ps1` and are invoked by Validate from runtime behaviors that are not yet implemented or tested. Line numbers refer to the audited file, unchanged since baseline commit `2120922472b1dde9fecebbb202d851ab80b624fc`; re-check them whenever that file changes.
+このクロスウォークは、`tests/Test-LogFunctions.ps1` に存在し、Validate によって呼び出されるアサーションと、まだ実装またはテストされていないランタイム動作を区別します。行番号は監査対象ファイルを指し、ベースラインコミット `2120922472b1dde9fecebbb202d851ab80b624fc` 以降変更されていません。ファイルが変更されるたびに再確認してください。
 
-| Test assertion / source location | Requirement IDs | Coverage disposition | Remaining gap |
+|テスト アサーション / ソースの場所|要件 ID|カバレッジの処理|残りのギャップ|
 |---|---|---|---|
-| Exact PowerShell version accepts 7.6.7 and rejects 7.0.0, 7.6.6, 7.6.8, null and malformed version (test lines 46–72) | EOLM-ENV-001, EOLM-TST-001 | Helper/CI covered | Does not prove every operational runtime entry point calls the guard; `SyncLogs.ps1` is only a sentinel, and the archive entry point is absent. |
-| Valid BattleLog and ErrorReport date extraction (lines 78–84) | EOLM-FIL-001, EOLM-FIL-002, EOLM-FIL-003, EOLM-TST-003 | Helper covered | PR #31 adds invariant-culture variation assertion; filesystem enumeration and filename-date versus LastWriteTime behavior remain runtime gaps. |
-| Unexpected BattleLog filename and ErrorReport suffix rejection (lines 86–91) | EOLM-FIL-001, EOLM-FIL-002, EOLM-FIL-004 | Negative helper cases covered | Does not exercise filesystem enumeration or prove a plausible `LastWriteTime` is never used as fallback at runtime. |
-| Impossible date, invalid leap day, valid leap day, invalid month (lines 94–107) | EOLM-FIL-003, EOLM-TST-003 | Calendar helper cases covered | Broader 30/31-day month-end cases remain open. |
-| Missing underscore, wrong `.log`/`.TXT` extension, empty BattleLog suffix (updated test block near lines 110–132) | EOLM-FIL-001, EOLM-FIL-002, EOLM-TST-003 | Filename-shape helper cases covered | Uppercase `.TXT` rejection is now explicit for BattleLog and ErrorReport; exact line numbers should be rechecked after future test edits. |
-| October 2026 sync/archive cutoff and last-eligible/next-ineligible dates (lines 123–183) | EOLM-FIL-007, EOLM-FIL-008, EOLM-TST-003 | Helper boundary cases covered | Does not prove enumeration of all eligible backlog files in a mixed directory. |
-| January year rollover and older historical BattleLog eligibility (lines 190–214) | EOLM-FIL-006, EOLM-FIL-007, EOLM-FIL-008, EOLM-TST-003 | Helper rollover/backlog assertions covered | Mixed periods/log types and actual run selection remain untested. |
-| Leap-year February cutoff assertions (lines 220 onward) | EOLM-FIL-007, EOLM-FIL-008, EOLM-TST-003 | Helper calendar boundary covered | This is not a substitute for all month-end boundaries or runtime run-status tests. |
-| SEL-RT-01–10 planned fixture matrix | EOLM-FIL-004–009, EOLM-FIL-010, EOLM-SYN-001, EOLM-SAF-005, EOLM-TST-003 | Design documented in `docs/validation/filename-period-test-plan.md`; not implemented or executed because no runtime enumeration entrypoint exists. OSD-03 status aggregation remains blocked. |
+|正確な PowerShell バージョンは 7.6.7 を受け入れ、7.0.0、7.6.6、7.6.8、null および不正な形式のバージョン (テスト行 46–72) を拒否します。| EOLM-ENV-001, EOLM-TST-001 |ヘルパー/CI がカバーされています|すべての運用ランタイム エントリ ポイントがガードを呼び出すことを証明するものではありません。 `SyncLogs.ps1` は単なる番兵であり、アーカイブ エントリ ポイントはありません。|
+|有効な BattleLog および ErrorReport の日付抽出 (78 ～ 84 行)| EOLM-FIL-001, EOLM-FIL-002, EOLM-FIL-003, EOLM-TST-003 |ヘルパーがカバーされました|PR #31 インバリアント カルチャ バリエーション アサーションを追加します。ファイルシステムの列挙とファイル名の日付と LastWriteTime の動作には、実行時のギャップが残ります。|
+|予期しない BattleLog ファイル名と ErrorReport サフィックスが拒否されました (86 ～ 91 行)| EOLM-FIL-001, EOLM-FIL-002, EOLM-FIL-004 |ネガティブヘルパーケースをカバー|ファイルシステムの列挙を実行しません。また、実行時にフォールバックとして `LastWriteTime` が使用されないことを証明しません。|
+|不可能な日付、無効な閏日、有効な閏日、無効な月 (94–107 行)| EOLM-FIL-003, EOLM-TST-003 |カレンダー ヘルパーのケースをカバーしました|より広範な30/31日の月末のケースは引き続き受付中です。|
+|アンダースコアがありません、間違った `.log`/`.TXT` 拡張子、空の BattleLog 接尾辞 (110–132 行付近のテスト ブロックを更新)| EOLM-FIL-001, EOLM-FIL-002, EOLM-TST-003 |ファイル名形状のヘルパーのケースをカバー|大文字の `.TXT` の拒否が BattleLog と ErrorReport に対して明示的になりました。今後のテスト編集後に正確な行番号を再確認する必要があります。|
+|10 月 2026 同期/アーカイブの終了日と最後に適格/次に対象外となる日付 (123–183 行)| EOLM-FIL-007, EOLM-FIL-008, EOLM-TST-003 |ヘルパー境界のケースをカバー|混合ディレクトリ内の対象となるすべてのバックログ ファイルの列挙を証明するものではありません。|
+|1 月の年度ロールオーバーと古い過去の BattleLog 対象条件 (190–214 行)| EOLM-FIL-006, EOLM-FIL-007, EOLM-FIL-008, EOLM-TST-003 |ヘルパー ロールオーバー/バックログ アサーションがカバーされています|期間/ログ タイプの混合および実際の実行の選択はテストされていないままです。|
+|うるう年の 2 月のカットオフ アサーション (220 行以降)| EOLM-FIL-007, EOLM-FIL-008, EOLM-TST-003 |ヘルパー カレンダーの境界がカバーされました|これは、すべての月末境界またはランタイム実行ステータス テストの代わりとなるものではありません。|
+|SEL-RT-01–10 計画されたフィクスチャ マトリックス| EOLM-FIL-004–009, EOLM-FIL-010, EOLM-SYN-001, EOLM-SAF-005, EOLM-TST-003 |設計は`docs/validation/filename-period-test-plan.md`に文書化されています。ランタイム列挙エントリポイントが存在しないため、実装または実行されません。 OSD-03 ステータスの集計はブロックされたままです。|
 
-**Evidence boundary:** Validate run #80 proves the current helper test file was executed successfully in CI; it does not prove the unimplemented runtime scenarios above. These rows are source-to-test mapping evidence, not closure of P0-008 or P0-010.
+**証拠の境界:** 実行の検証 #80 は、現在のヘルパー テスト ファイルが CI で正常に実行されたことを証明します。上記の未実装のランタイム シナリオを証明するものではありません。これらの行はソースからテストへのマッピングの証拠であり、P0-008 または P0-010 のクロージャではありません。
 
-## 4. Repository inventory baseline
+<a id="4-repository-inventory-baseline"></a>
+## 4. リポジトリ インベントリ ベースライン
 
-### 4.0 Historical tracked-tree inventory (PR #49 snapshot; superseded)
+<a id="40-historical-tracked-tree-inventory-pr-49-snapshot-superseded"></a>
+### 4.0 履歴追跡ツリー インベントリ (PR #49 スナップショット; 置き換えられました)
 
-The inventory immediately below is preserved as a historical snapshot from the PR #49-era audit. Its file/directory count and the statements that no official entry-point file existed are not current-tree claims and must not be used as the latest repository inventory.
+すぐ下のインベントリは、PR #49 時代の監査からの履歴スナップショットとして保存されています。ファイル/ディレクトリの数と、公式のエントリポイント ファイルが存在しないという記述は、現在のツリーの主張ではないため、最新のリポジトリ インベントリとして使用してはなりません。
 
-At that snapshot, the relevant tracked runtime inventory was:
+そのスナップショットでは、関連する追跡されたランタイム インベントリは次のとおりでした。
 
-- PowerShell implementation: `Common/LogFunctions.ps1` only.
-- Python runtime implementation: none.
-- Official sync/archive entry points: none.
-- Batch entry points: none.
-- Test files: `tests/Test-LogFunctions.ps1`, `tests/Test-ReleasePackage.ps1`, `tests/test_contract_schemas.py`.
-- Contract schemas: two JSON Schema files.
-- CI workflows: `validate.yml`, `package-validation.yml`.
+- PowerShell 実装: `Common/LogFunctions.ps1` のみ。
+- Python ランタイム実装: なし。
+- 公式同期/アーカイブ エントリ ポイント: なし。
+- バッチ エントリ ポイント: なし。
+- テスト ファイル: `tests/Test-LogFunctions.ps1`、`tests/Test-ReleasePackage.ps1`、`tests/test_contract_schemas.py`。
+- コントラクト スキーマ: 2 つの JSON Schema ファイル。
+- CI ワークフロー: `validate.yml`、`package-validation.yml`。
 
-This inventory is based on the Git tree at that historical point, not the user's local machines. It cannot establish that no untracked/local scripts exist outside the repository.
+このインベントリは、ユーザーのローカル マシンではなく、その歴史的時点の Git ツリーに基づいています。リポジトリの外部に追跡されていないローカル スクリプトが存在しないことを確認することはできません。
 
-### 4.1 Register consistency check (PR branch)
+<a id="41-register-consistency-check-pr-branch"></a>
+### 4.1 レジスタ整合性チェック (PR ブランチ)
 
-The traceability register and this audit were cross-checked on the PR branch after the source-locator cleanup:
+トレーサビリティ レジスタとこの監査は、ソース ロケーターのクリーンアップ後に PR ブランチでクロスチェックされました。
 
-- The register contains 109 requirement rows and 109 unique IDs; no duplicate requirement IDs were found.
-- Every requirement ID explicitly referenced in this audit exists in the register; no undefined EOLM ID references were found.
-- The register's 13 source-locator placeholders were replaced with concrete source headings or decision identifiers. Two remaining phrases, “full audit pending,” are status notes for EOLM-ENV-004 and EOLM-CFG-005, not source-locator placeholders; both remain open pending repository/package deletion and secret-exclusion verification.
-- ID ranges in artifact crosswalks (for example, `EOLM-FIL-001–009`) are shorthand ranges, not evidence that each individual requirement has passed verification.
-- This consistency check validates identifier integrity and source locator hygiene only. It does not establish complete normative-clause coverage, scenario-to-test traceability, runtime implementation, or acceptance evidence. P0-010 therefore remains open.
+- レジスタには 109 要件行と 109 の一意の ID が含まれています。重複する要件 ID は見つかりませんでした。
+- この監査で明示的に参照されたすべての要件 ID はレジスタ内に存在します。未定義の EOLM ID 参照は見つかりませんでした。
+- レジスタの 13 ソース ロケーター プレースホルダーは、具体的なソース見出しまたは決定識別子に置き換えられました。残りの 2 つのフレーズ「完全監査 未確定」は、EOLM-ENV-004 と EOLM-CFG-005 のステータス メモであり、ソース ロケーターのプレースホルダーではありません。 未確定 リポジトリ/パッケージの削除とシークレット除外の検証は両方とも開いたままになります。
+- ID 範囲 (`EOLM-FIL-001–009` など) は短縮範囲であり、個々の要件が検証に合格したことを示すものではありません。
+- この整合性チェックでは、識別子の整合性とソース ロケーターの健全性のみが検証されます。 完了 の規範条項の適用範囲、シナリオからテストまでのトレーサビリティ、実行時の実装、または受け入れの証拠は確立されません。したがって、P0-010 は開いたままになります。
 
-### Historical artifact reconciliation snapshot (PR #49; superseded by focused audits through PR #103)
+<a id="historical-artifact-reconciliation-snapshot-pr-49-superseded-by-focused-audits-through-pr-103"></a>
+### 履歴成果物調整スナップショット (PR #49; PR #103 による集中監査に置き換えられます)
 
-Normative source-clause baseline remains `097e962a1636419ceb428182da2a6a91f6380273` (PR #25). The table below records the PR #49-era artifact review and is retained for historical context only; its old implementation/disposition statements are not a current-tree status register. Current tracked-tree baseline for this audit is PR #103 merge `e93d46b552ff1cc79caff4fb5b7eba2156554544`. The latest status must be read with the focused evidence sections later in this file and `docs/archive/validation/p0-source-test-inventory.md`.
+規範的なソース条項のベースラインは `097e962a1636419ceb428182da2a6a91f6380273` のままです (PR #25)。以下の表は PR #49 時代の成果物のレビューを記録しており、歴史的文脈のためにのみ保持されています。その古い実装/処理ステートメントは、現在のツリー ステータス レジスタではありません。この監査の現在の追跡ツリー ベースラインは PR #103 マージ `e93d46b552ff1cc79caff4fb5b7eba2156554544` です。最新のステータスは、このファイルと `docs/archive/validation/p0-source-test-inventory.md` の後半にある重点的な証拠セクションを参照してください。
 
-Current status at the PR #106 baseline: `scripts/SyncLogs.ps1` exists as an official runtime sentinel, but its operational sync logic is not implemented. `scripts/ArchiveLogs.ps1`, the Python Drive adapter, operational manifest schema/reader/writer, orchestration, runtime IPC, and runtime acceptance tests remain absent. The package builder has role-aware PC-A/PC-B entry-point and example-config checks (PRs #76/#78); these are packaging checks, not active-config runtime authorization or operational runtime evidence. Helper-level filename/date/cutoff tests include the later PR #31/#34 assertions and run in Validate, but filesystem enumeration, mixed-input run-status aggregation, and full runtime acceptance remain open.
+PR #106 ベースラインでの現在のステータス: `scripts/SyncLogs.ps1` は公式のランタイム センチネルとして存在しますが、その動作同期ロジックは実装されていません。 `scripts/ArchiveLogs.ps1`、Python ドライブ アダプター、運用マニフェスト スキーマ/リーダー/ライター、オーケストレーション、ランタイム IPC、およびランタイム受け入れテストは依然として存在しません。パッケージ ビルダーには、ロールを認識した PC-A/PC-B エントリポイントおよびサンプル構成チェック (PR #76/#78) があります。これらはパッケージ化チェックであり、active-config ランタイム認証や動作ランタイム証拠ではありません。ヘルパー レベルのファイル名/日付/カットオフ テストには、後の PR #31/#34 アサーションが含まれており、Validate で実行されますが、ファイル システムの列挙、混合入力の実行ステータスの集計、および完全なランタイムの受け入れは未処理のままです。
 
-CI links in the historical table prove only that the named workflow ran successfully on its historical commit; they do not prove current runtime integration or production readiness.
+CI リンクは、指定されたワークフローが履歴コミットで正常に実行されたことのみを証明します。これらは、現在のランタイム統合や運用準備が整っていることを証明するものではありません。
 
-| Artifact | Requirement mapping | Current implementation/test evidence | Disposition / remaining gap |
+|成果物|要件マッピング|現在の実装/テストの証拠|配置 / 残りのギャップ|
 |---|---|---|---|
-| `Common/LogFunctions.ps1` | EOLM-FIL-001–010, EOLM-ENV-001–003, EOLM-TST-001–003 | Filename/date and cutoff helper functions plus the PowerShell 7.6.7 guard exist. Validate invokes `tests/Test-LogFunctions.ps1`; Validate #25 succeeded: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372725014. | Partial. Helper coverage does not prove directory enumeration, sync, manifest, archive, or all operational entry points enforce the guard. |
-| `Config/PC-A.example.json` | EOLM-CFG-001–007, EOLM-ARC-001, EOLM-TST-006 | Example sets `allowArchive: false`; JSON syntax is checked in CI. | Partial. This is deliberately non-operational; production activation requires a reviewed active config. Runtime role enforcement is absent. |
-| `Config/PC-B.example.json` | EOLM-CFG-001–007, EOLM-ARC-006, EOLM-TST-006 | Example omits `allowArchive`; JSON syntax is checked in CI. | Partial. No dedicated negative test was found proving a PC-B config with an injected `allowArchive` is rejected at runtime. |
-| `contracts/drive-request.schema.json` | EOLM-DRV-011, EOLM-DRV-016, EOLM-CFG-005, EOLM-TST-004, EOLM-TST-006 | Schema restricts requests to `list_files`, `get_file_metadata`, `upload_file`, and `download_file`, with `dry_run`; unknown/delete operations are rejected by schema tests. | Partial. Approved-root enforcement, path canonicalization, actual Dry Run side effects, and adapter execution are not proven by JSON Schema. |
-| `contracts/drive-response.schema.json` | EOLM-DRV-012–013, EOLM-TST-004 | Schema validates response envelope, error codes and success/error field consistency. | Partial. It cannot prove request/response correlation, operation matching, process exit-code consistency, timeout handling, or operation-specific result semantics. |
-| `tests/test_contract_schemas.py` | EOLM-DRV-011–013, EOLM-TST-004, EOLM-TST-006 | Tests supported operations, required fields, unknown/delete rejection, selected extra fields and response consistency. Validate #25 succeeded: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372725014. | Partial. No OAuth, Drive integration, PowerShell/Python IPC, retry, timeout, correlation, or runtime no-delete proof. |
-| `tests/Test-LogFunctions.ps1` | EOLM-FIL-001–010, EOLM-ENV-001–003, EOLM-TST-001–003 | Helper tests include invalid names/dates/months, leap day, year rollover and representative cutoff cases; Validate #25 succeeded: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372725014. | Partial. Extension case sensitivity, culture independence, filename-date/metadata disagreement, broad month-end boundaries, mixed-directory enumeration and runtime run-status remain open. |
-| `tests/Test-ReleasePackage.ps1` | EOLM-REL-001–003, EOLM-REL-011, EOLM-REL-013, EOLM-TST-006, EOLM-ENV-001 | Package Validation runs package-builder tests; historical run #25 succeeded: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372724979. Current tests require explicit `-TargetRole`, reject legacy-only deployability, require both official paths for PC-A, require SyncLogs and exclude ArchiveLogs for PC-B, and test review-only marking. | Partial. The historical run citation is not the current evidence baseline. Current role/entry-point checks are still package-builder checks only; official runtime entry points are absent, and final allowlist/deployment policy remains subject to OSD-09. |
-| `.github/workflows/validate.yml` | EOLM-TST-001–004, EOLM-ENV-001–003 | Installs/verifies PowerShell 7.6.7, validates JSON schemas/configs, runs `Test-LogFunctions.ps1` and PSScriptAnalyzer. Validate #25 succeeded: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372725014. | Partial. Static/schema/helper tests only; no end-to-end sync, Drive, manifest or archive tests, and no official entry points to validate at startup. |
-| `.github/workflows/package-validation.yml` | EOLM-TST-001, EOLM-REL-001–003, EOLM-REL-013, EOLM-ENV-001 | Installs/verifies PowerShell 7.6.7 and runs package-builder tests. Package Validation #25 succeeded: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372724979. | Partial. Does not prove a deployable PC-A/PC-B package or cloud release workflow. |
-| `.github/scripts/Build-ReleasePackage.ps1` | EOLM-REL-001–003, EOLM-REL-010–013, EOLM-CFG-003–005 | Uses an explicit allowlist, requires `-TargetRole`, checks example-config semantics, hashes the ZIP, requires `SyncLogs.ps1` for both roles, additionally requires `ArchiveLogs.ps1` for PC-A, excludes it for PC-B, rejects legacy-only deployability, and marks review-only artifacts when runtime entry points are missing. | Partial. These checks are package-level only. The tracked tree still has only a sentinel `SyncLogs.ps1` and no `ArchiveLogs.ps1`, so runtime/deployment acceptance is absent; cloud publication is not implemented and OSD-09 final allowlist/deployment policy remains unresolved. |
-| Operational entry points and launchers | EOLM-ENV-001–003, EOLM-CFG-002–003, EOLM-OPS-001–006, EOLM-ARC-001, EOLM-ARC-006 | Recursive tracked-tree inventory contains no `.bat`/`.cmd`, `SyncLogs.ps1`, `ArchiveLogs.ps1`, or Python Drive adapter. | Not implemented. No claim of runtime execution or all-entrypoint PowerShell guard coverage is valid. |
-| `.gitignore`, `CHANGELOG.md`, `VERSION`, PR template | EOLM-ENV-004, EOLM-REL-001–005, EOLM-REL-009, EOLM-REL-012, EOLM-TST-008 | Files exist in repository; release/version requirements are now ID-mapped. | Partial. Presence does not prove each release updates version/changelog, tag/VERSION consistency, release provenance, or immutable publication. |
+| `Common/LogFunctions.ps1` | EOLM-FIL-001–010, EOLM-ENV-001–003, EOLM-TST-001–003 |ファイル名/日付およびカットオフ ヘルパー関数に加えて、PowerShell 7.6.7 ガードが存在します。 Validate は `tests/Test-LogFunctions.ps1` を呼び出します。 #25 の検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372725014.|部分的。ヘルパーの適用範囲は、ディレクトリの列挙、同期、マニフェスト、アーカイブ、またはすべての運用エントリ ポイントがガードを適用することを証明するものではありません。|
+| `Config/PC-A.example.json` | EOLM-CFG-001–007, EOLM-ARC-001, EOLM-TST-006 |例では、`allowArchive: false` を設定します。 JSON 構文は CI でチェックされます。|部分的。これは意図的に動作しないようにしています。実稼働アクティベーションには、レビュー済みのアクティブな構成が必要です。ランタイムロールの強制はありません。|
+| `Config/PC-B.example.json` | EOLM-CFG-001–007, EOLM-ARC-006, EOLM-TST-006 |例では `allowArchive` が省略されています。 JSON 構文は CI でチェックされます。|部分的。 `allowArchive` が注入された PC-B 構成が実行時に拒否されることを証明する専用のネガティブ テストは見つかりませんでした。|
+| `contracts/drive-request.schema.json` | EOLM-DRV-011, EOLM-DRV-016, EOLM-CFG-005, EOLM-TST-004, EOLM-TST-006 |スキーマはリクエストを `list_files`、`get_file_metadata`、`upload_file`、および `download_file`、および `dry_run` に制限します。不明な/削除操作はスキーマ テストによって拒否されます。|部分的。承認されたルートの強制、パスの正規化、実際の Dry Run の副作用、およびアダプターの実行は、JSON Schema によって証明されていません。|
+| `contracts/drive-response.schema.json` | EOLM-DRV-012–013, EOLM-TST-004 |スキーマは、応答エンベロープ、エラー コード、成功/エラー フィールドの一貫性を検証します。|部分的。リクエスト/レスポンスの相関関係、操作の一致、プロセスの終了コードの一貫性、タイムアウト処理、または操作固有の結果のセマンティクスを証明することはできません。|
+| `tests/test_contract_schemas.py` | EOLM-DRV-011–013, EOLM-TST-004, EOLM-TST-006 |サポートされている操作、必須フィールド、不明/削除拒否、選択された追加フィールド、および応答の一貫性をテストします。 #25 の検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372725014.|部分的。 OAuth、ドライブ統合、PowerShell/Python IPC、再試行、タイムアウト、相関、またはランタイム非削除証明はありません。|
+| `tests/Test-LogFunctions.ps1` | EOLM-FIL-001–010, EOLM-ENV-001–003, EOLM-TST-001–003 |ヘルパー テストには、無効な名前/日付/月、閏日、年ロールオーバー、および代表的なカットオフ ケースが含まれます。 #25 の検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372725014.|部分的。拡張子の大文字と小文字の区別、文化の独立性、ファイル名と日付/メタデータの不一致、月末の幅広い境界、混合ディレクトリの列挙、およびランタイムの実行ステータスは未解決のままです。|
+| `tests/Test-ReleasePackage.ps1` | EOLM-REL-001–003, EOLM-REL-011, EOLM-REL-013, EOLM-TST-006, EOLM-ENV-001 |パッケージ検証では、パッケージ ビルダー テストが実行されます。履歴実行 #25 は成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372724979. 現在のテストでは、明示的な `-TargetRole`、レガシーのみの展開可能性の拒否、PC-A の両方の公式パスの必要、PC-B の SyncLogs の要求と ArchiveLogs の除外、およびテストのレビューのみのマーキングが必要です。|部分的。過去の実行の引用は現在の証拠のベースラインではありません。現在のロール/エントリ ポイント チェックは、依然としてパッケージ ビルダー チェックのみです。公式のランタイム エントリ ポイントは存在せず、最終的な許可リスト/展開ポリシーは OSD-09 の対象のままです。|
+| `.github/workflows/validate.yml` | EOLM-TST-001–004, EOLM-ENV-001–003 |PowerShell 7.6.7 をインストール/検証し、JSON スキーマ/構成を検証し、`Test-LogFunctions.ps1` および PSScriptAnalyzer を実行します。 #25 の検証が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372725014.|部分的。静的/スキーマ/ヘルパー テストのみ。エンドツーエンドの同期、ドライブ、マニフェストまたはアーカイブのテストはなく、起動時に検証する公式のエントリ ポイントもありません。|
+| `.github/workflows/package-validation.yml` | EOLM-TST-001, EOLM-REL-001–003, EOLM-REL-013, EOLM-ENV-001 |PowerShell 7.6.7 をインストール/検証し、パッケージ ビルダー テストを実行します。パッケージ検証 #25 が成功しました: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372724979.|部分的。デプロイ可能な PC-A/PC-B パッケージまたはクラウド リリース ワークフローを証明するものではありません。|
+| `.github/scripts/Build-ReleasePackage.ps1` | EOLM-REL-001–003, EOLM-REL-010–013, EOLM-CFG-003–005 |明示的な許可リストを使用し、`-TargetRole` を要求し、サンプル構成セマンティクスをチェックし、ZIP をハッシュし、両方のロールに `SyncLogs.ps1` を要求し、さらに PC-A には `ArchiveLogs.ps1` を要求し、PC-B には除外し、レガシーのみの展開可能性を拒否し、ランタイム エントリ ポイントが欠落している場合はレビュー専用成果物をマークします。|部分的。これらのチェックはパッケージレベルのみです。追跡されるツリーには依然としてセンチネル `SyncLogs.ps1` のみがあり、`ArchiveLogs.ps1` がないため、ランタイム/デプロイメントの受け入れは行われません。クラウド公開は実装されておらず、OSD-09 最終的な許可リスト/展開ポリシーは未解決のままです。|
+|運用エントリ ポイントとランチャー| EOLM-ENV-001–003, EOLM-CFG-002–003, EOLM-OPS-001–006, EOLM-ARC-001, EOLM-ARC-006 |再帰追跡ツリー インベントリには、`.bat`/`.cmd`、`SyncLogs.ps1`、`ArchiveLogs.ps1`、または Python ドライブ アダプターが含まれません。|未実装。ランタイム実行またはすべてのエントリポイント PowerShell ガード カバレッジの主張は有効ではありません。|
+|`.gitignore`、`CHANGELOG.md`、`VERSION`、PR テンプレート| EOLM-ENV-004, EOLM-REL-001–005, EOLM-REL-009, EOLM-REL-012, EOLM-TST-008 |ファイルはリポジトリに存在します。リリース/バージョン要件は ID マップされるようになりました。|部分的。存在することは、各リリースの更新バージョン/変更ログ、タグ/バージョンの一貫性、リリースの出所、または不変の公開を証明するものではありません。|
 
-Static safety scan at this baseline found `Remove-Item` only in the package builder for its generated ZIP and temporary staging directory, and in package tests for temporary fixtures. These are build/test cleanup paths, not source-log or Drive-log deletion implementations. The request schema has no Drive-delete operation and tests reject delete requests. This static finding is not a runtime guarantee.
+このベースラインでのスタティック セーフティ スキャンでは、生成された ZIP および一時 ステージング ディレクトリのパッケージ ビルダーと、一時フィクスチャのパッケージ テストでのみ `Remove-Item` が見つかりました。これらはビルド/テストのクリーンアップ パスであり、ソース ログやドライブ ログの削除実装ではありません。要求スキーマにはドライブ削除操作がなく、テストは削除要求を拒否します。この静的な結果は実行時を保証するものではありません。
 
-## 4.2 Implementation-workflow phase acceptance crosswalk
+<a id="42-implementation-workflow-phase-acceptance-crosswalk"></a>
+## 4.2 実装ワークフロー フェーズの承認クロスウォーク
 
-Source: `docs/development/implementation-workflow.md` §4–6. This matrix connects phase exit criteria to requirement IDs and the actual tracked implementation/test state. “Mapped” means traceability exists; it does not mean acceptance passed.
+出典: `docs/development/implementation-workflow.md` §4–6。このマトリックスは、フェーズ終了基準を要件 ID および実際に追跡された実装/テスト状態に関連付けます。 「マッピングされた」とは、トレーサビリティが存在することを意味します。受け入れが通過したことを意味するものではありません。
 
-| Phase / exit gate | Requirement IDs | Current artifact/test evidence | Acceptance state and remaining blocker |
+|フェーズ/出口ゲート|要件 ID|現在の成果物/テスト証拠|受け入れ状態と残りのブロッカー|
 |---|---|---|---|
-| Phase 0 — Baseline and decisions: filename patterns, manifest schema, unmarked-file origin rules specified; OAuth scope and schedule remain gated | EOLM-FIL-001–005, EOLM-MAN-001–012, EOLM-DRV-007, EOLM-OPS-001–002, EOLM-TST-003–004 | `docs/design/filename-and-period-selection.md`, `docs/design/staging-file-lifecycle.md`, `docs/design/powershell-python-contract.md`, request/response schemas; helper/schema CI only | Partial/blocked. OSD-01, OSD-02, OSD-05 and OSD-08 record the deferred choices; MAN-011 timestamp policy shape is approved; numeric tolerances, applicability, and clock-sync/monitoring expectations remain unresolved. |
-| Phase 1 — Common functions/configuration: validated config/role, filename and period selection, hashing, manifests, structured logs, safe paths, Dry Run; unit tests for boundaries/config/manifest/hash/errors | EOLM-ENV-001–005, EOLM-CFG-001–007, EOLM-FIL-001–010, EOLM-MAN-001–012, EOLM-SEC-001, EOLM-OPS-003–005, EOLM-SAF-001–006, EOLM-TST-001–004 | `Common/LogFunctions.ps1`, example configs, JSON schemas, `tests/Test-LogFunctions.ps1`, `tests/test_contract_schemas.py`, Validate workflow | Partial. Helper tests/schema parsing exist, but runtime config loader, role/path enforcement, manifest engine, structured runtime logging and Dry Run orchestration are absent. |
-| Phase 2 — Synchronization: backlog enumeration, collision-safe staging/copy/hash/cloud verification, manifests/status, no eligible files as successful skip, PC-B excludes archive/delete | EOLM-SYN-001–009, EOLM-FIL-003–010, EOLM-DRV-001–016, EOLM-STG-001–012, EOLM-MAN-001–010, EOLM-SAF-001–006, EOLM-TST-004–006, EOLM-TST-009–010 | `scripts/SyncLogs.ps1` exists only as a sentinel; no `Run_Log_Sync.bat`, Python Drive adapter, operational sync implementation, or runtime sync test suite exists | Not implemented. Acceptance cases listed in implementation workflow have no executable runtime tests. |
-| Phase 3 — PC-A archive: validate both PC manifests and current cloud state; copy/hash/record only; never delete Drive; PC-B cannot archive | EOLM-ARC-001–006, EOLM-MAN-007, EOLM-MAN-010–011, EOLM-SAF-001–005, EOLM-TST-006, EOLM-TST-010 | No official `scripts/ArchiveLogs.ps1`, archive status manifest implementation, or runtime archive tests | Not implemented/blocked. PC-A role enforcement and freshness policy are unresolved in runtime; PC-B negative execution test does not exist. |
-| Phase 4 — Recovery/idempotency: repeat after partial completion, resolve duplicates/collisions, verify trusted origin, survive interrupted copy/manifest writes and Drive failures | EOLM-SYN-008–009, EOLM-DRV-001–010, EOLM-MAN-001–012, EOLM-STG-005–012, EOLM-LCK-001–003, EOLM-ARC-001–006, EOLM-TST-004–006, EOLM-TST-009–010 | Test plan describes scenarios; no operational scripts, mock-Drive runtime integration suite, or recovery tests exist | Not implemented/blocked. Trusted-manifest criteria, mixed run-status aggregation and MAN-011 freshness must be decided before deterministic acceptance. |
-| Phase 5 — Package/CI: approved per-PC allowlists, all official runtime files present, forbidden content absent, PowerShell analysis and behavior tests pass | EOLM-ENV-004, EOLM-CFG-002–005, EOLM-REL-001–003, EOLM-REL-009, EOLM-REL-011–013, EOLM-TST-001–008 | `.github/scripts/Build-ReleasePackage.ps1`, `tests/Test-ReleasePackage.ps1`, Validate and Package Validation workflows | Partial. Review-only builder/CI and role-specific package checks exist, but the package cannot be deployable while `SyncLogs.ps1` is only a sentinel, `ArchiveLogs.ps1` and launchers are absent, and final PC-A/PC-B allowlists remain subject to approval. |
-| Phase 6 — Drive distribution: reviewed release, SHA-256 verification, cloud confirmation, publish `latest.json` last, manual apply and preserve previous pointer on failure | EOLM-DRV-004, EOLM-DRV-007, EOLM-REL-004–015, EOLM-SEC-001, EOLM-TST-001–002, EOLM-TST-005–007 | `docs/release/distribution-design.md` and release-gate IDs only; no protected release workflow, Drive uploader or PC-side deployer | Blocked/not implemented. OSD-05–07 and OSD-09 track auth, release authorization/provenance, retention and package/deployment choices; no failure-injection tests. |
-| Phase 7 — Dry Run/controlled rollout: preserve active configs, inspect candidates/hashes/manifests, prove cloud state, test archive gates and no-delete surface, operator sign-off | EOLM-CFG-004–007, EOLM-DRV-016, EOLM-MAN-007–011, EOLM-ARC-001–006, EOLM-SAF-001–006, EOLM-TST-005–011 | `dry_run` schema field and documented test scenarios only; no runtime Dry Run or operator sign-off evidence | Not implemented/blocked. OSD-04 tracks the unresolved permitted report/manifest/lock/temp-file side effects; no runtime snapshot/no-mutation tests or signed rollout evidence. |
-| Phase 8 — Scheduled operation: same logic as manual runs, lock/lease and stale-lock recovery, visible errors, manual recovery path | EOLM-OPS-001–006, EOLM-LCK-001–004, EOLM-TST-005, EOLM-TST-007–008 | No official launchers, Task Scheduler setup, operational logging/exit-code implementation, or lock implementation | Not implemented/blocked. OSD-08 tracks scheduler and stale-lock policy; no overlap/stale-lock/repeated-run tests or operations evidence. |
+|フェーズ 0 — ベースラインと決定: ファイル名パターン、マニフェスト スキーマ、マークされていないファイルの生成元ルールの指定。 OAuth スコープとスケジュールはゲートされたままです| EOLM-FIL-001–005, EOLM-MAN-001–012, EOLM-DRV-007, EOLM-OPS-001–002, EOLM-TST-003–004 |`docs/design/filename-and-period-selection.md`、`docs/design/staging-file-lifecycle.md`、`docs/design/powershell-python-contract.md`、リクエスト/レスポンス スキーマ。ヘルパー/スキーマ CI のみ|部分的/ブロックされています。 OSD-01、OSD-02、OSD-05、および OSD-08 は、延期された選択肢を記録します。 MAN-011 タイムスタンプ ポリシーの形状が承認されました。数値の許容誤差、適用性、クロック同期/監視の期待は未解決のままです。|
+|フェーズ 1 — 共通の機能/構成: 検証された構成/役割、ファイル名と期間の選択、ハッシュ、マニフェスト、構造化ログ、安全なパス、Dry Run。境界/config/manifest/hash/errors の単体テスト| EOLM-ENV-001–005, EOLM-CFG-001–007, EOLM-FIL-001–010, EOLM-MAN-001–012, EOLM-SEC-001, EOLM-OPS-003–005, EOLM-SAF-001–006, EOLM-TST-001–004 |`Common/LogFunctions.ps1`、サンプル構成、JSON スキーマ、`tests/Test-LogFunctions.ps1`、`tests/test_contract_schemas.py`、ワークフローの検証|部分的。ヘルパー tests/schema 解析は存在しますが、ランタイム構成ローダー、ロール/パス強制、マニフェスト エンジン、構造化ランタイム ログ、および Dry Run オーケストレーションは存在しません。|
+|フェーズ 2 — 同期: バックログの列挙、衝突安全なステージング/コピー/ハッシュ/クラウド検証、マニフェスト/ステータス、成功したスキップとして適格なファイルなし、PC-B はアーカイブ/削除を除外します| EOLM-SYN-001–009, EOLM-FIL-003–010, EOLM-DRV-001–016, EOLM-STG-001–012, EOLM-MAN-001–010, EOLM-SAF-001–006, EOLM-TST-004–006, EOLM-TST-009–010 |`scripts/SyncLogs.ps1` は見張りとしてのみ存在します。 `Run_Log_Sync.bat`、Python ドライブ アダプター、動作同期実装、またはランタイム同期テスト スイートが存在しません|未実装。実装ワークフローにリストされている受け入れケースには、実行可能なランタイム テストがありません。|
+|フェーズ 3 — PC-A アーカイブ: PC マニフェストと現在のクラウド状態の両方を検証します。コピー/ハッシュ/記録のみ。ドライブは決して削除しないでください。 PC-B はアーカイブできません| EOLM-ARC-001–006, EOLM-MAN-007, EOLM-MAN-010–011, EOLM-SAF-001–005, EOLM-TST-006, EOLM-TST-010 |公式の `scripts/ArchiveLogs.ps1`、アーカイブ ステータス マニフェストの実装、またはランタイム アーカイブ テストはありません|未実装/ブロックされています。 PC-A ロールの適用と鮮度ポリシーは実行時に未解決です。 PC-B 否定的な実行テストは存在しません。|
+|フェーズ 4 — リカバリ/冪等性: 部分的に完了した後に繰り返し、重複/衝突を解決し、信頼できる発行元を検証し、中断されたコピー/マニフェスト書き込みとドライブ障害を存続させます。| EOLM-SYN-008–009, EOLM-DRV-001–010, EOLM-MAN-001–012, EOLM-STG-005–012, EOLM-LCK-001–003, EOLM-ARC-001–006, EOLM-TST-004–006, EOLM-TST-009–010 |テスト計画にはシナリオが記載されています。運用スクリプト、モックドライブランタイム統合スイート、リカバリテストは存在しません|未実装/ブロックされています。信頼できるマニフェスト基準、混合実行ステータスの集計、および MAN-011 の鮮度は、確定的に受け入れられる前に決定する必要があります。|
+|フェーズ 5 — パッケージ/CI: PC ごとの許可リストが承認され、すべての公式ランタイム ファイルが存在し、禁止されたコンテンツが存在せず、PowerShell 分析および動作テストに合格| EOLM-ENV-004, EOLM-CFG-002–005, EOLM-REL-001–003, EOLM-REL-009, EOLM-REL-011–013, EOLM-TST-001–008 |`.github/scripts/Build-ReleasePackage.ps1`、`tests/Test-ReleasePackage.ps1`、検証およびパッケージ検証ワークフロー|部分的。レビュー専用のビルダー/CI およびロール固有のパッケージ チェックは存在しますが、`SyncLogs.ps1` が監視のみであり、`ArchiveLogs.ps1` とランチャーが存在しない間はパッケージを展開できず、最終的な PC-A/PC-B 許可リストは承認の対象のままです。|
+|フェーズ 6 — ドライブの配布: リリースのレビュー、SHA-256 の検証、クラウドの確認、最後に `latest.json` を公開、失敗時に以前のポインタを手動で適用して保存| EOLM-DRV-004, EOLM-DRV-007, EOLM-REL-004–015, EOLM-SEC-001, EOLM-TST-001–002, EOLM-TST-005–007 |`docs/release/distribution-design.md` およびリリースゲート ID のみ。保護されたリリース ワークフロー、ドライブ アップローダーまたは PC 側のデプロイヤーはありません|ブロックされているか、実装されていません。 OSD-05–07 および OSD-09 は、認証、リリース認可/出所、保持、およびパッケージ/展開の選択を追跡します。失敗挿入テストはありません。|
+|フェーズ 7 — Dry Run/制御ロールアウト: アクティブな構成の保存、候補/ハッシュ/マニフェストの検査、クラウド状態の証明、アーカイブ ゲートと非削除サーフェスのテスト、オペレーターのサインオフ| EOLM-CFG-004–007, EOLM-DRV-016, EOLM-MAN-007–011, EOLM-ARC-001–006, EOLM-SAF-001–006, EOLM-TST-005–011 |`dry_run` スキーマ フィールドと文書化されたテスト シナリオのみ。ランタイム Dry Run またはオペレーターのサインオフの証拠がない|未実装/ブロックされています。 OSD-04 は、未解決の許可されたレポート/マニフェスト/ロック/一時ファイルの副作用を追跡します。実行時スナップショット/非突然変異テストや署名されたロールアウト証拠はありません。|
+|フェーズ 8 — スケジュールされた操作: 手動実行と同じロジック、ロック/リースおよび古いロックの回復、目に見えるエラー、手動回復パス| EOLM-OPS-001–006, EOLM-LCK-001–004, EOLM-TST-005, EOLM-TST-007–008 |公式ランチャー、タスク スケジューラのセットアップ、操作ログ/終了コードの実装、またはロックの実装はありません。|未実装/ブロックされています。 OSD-08 は、スケジューラと古いロック ポリシーを追跡します。重複/古いロック/繰り返し実行のテストや操作の証拠はありません。|
 
-Phase-level conclusion: the workflow phases now have an explicit requirement-ID and artifact/test disposition. This closes a traceability-document gap only. It does not close any runtime acceptance gate, and P0-010 remains open until every normative clause and phase gate has an approved decision where required and objective implementation/test evidence or a reasoned blocked/not-applicable disposition.
+フェーズレベルの結論: ワークフローフェーズには、明示的な要件 ID と成果物/テストの性質が含まれるようになりました。これにより、トレーサビリティと文書のギャップが解消されるだけです。実行時受け入れゲートは閉じず、P0-010 は、すべての規範条項およびフェーズ ゲートが必要な場合に承認された決定を下し、客観的な実装/テストの証拠、または理由のあるブロック/適用不可の処分が行われるまで開いたままになります。
 
-## 4.3 Deferred specification decisions and acceptance blockers
+<a id="43-deferred-specification-decisions-and-acceptance-blockers"></a>
+## 4.3 仕様の決定の延期と受け入れの阻害要因
 
-`docs/requirements/p0-open-specification-decisions.md` is the consolidated backlog for choices that must not be guessed during implementation. The current source clauses and requirement IDs are already represented; the remaining issue is an approved decision or objective acceptance evidence, not permission to invent a policy.
+`docs/requirements/p0-open-specification-decisions.md` は、実装中に推測してはいけない選択肢の統合されたバックログです。現在のソース句と要件 ID はすでに表されています。残りの問題は、承認された決定または客観的な受け入れの証拠であり、ポリシーを作成する許可ではありません。
 
-| Decision backlog item | Source/decision reference | Related requirement IDs | Current disposition |
+|意思決定のバックログ項目|ソース/決定の参照先|関連する要件 ID|現在の配置|
 |---|---|---|---|
-| OSD-01 — Trust criteria for pre-existing unmarked Drive objects | `docs/development/implementation-workflow.md` §2.4; staging lifecycle §7; C-32 | EOLM-DRV-010, EOLM-SYN-006–009, EOLM-MAN-001–010 | Blocked. Define provenance predicate and ambiguous-object tests before treating an object as a verified duplicate/archive candidate. |
-| OSD-02 — Complete manifest schema and state-transition table | C-26; `docs/design/staging-file-lifecycle.md` §6–8 | EOLM-MAN-001–012, EOLM-REQ-001, EOLM-STG-001–012 | Blocked. Approve schema/version, allowed transitions, malformed-data, crash and concurrency behavior. |
-| OSD-03 — Mixed file/run/period status aggregation | `docs/design/filename-and-period-selection.md` §6–7; staging lifecycle §8; C-25/C-26; `docs/archive/decisions/osd-03-status-aggregation-options.md` | EOLM-FIL-004–005, EOLM-MAN-003–006, EOLM-MAN-009–012, EOLM-OPS-003, EOLM-TST-003/010 | Blocked. PR #40 adds non-normative options and impact comparison only; no policy is approved, the exhaustive aggregation table is absent, and runtime tests remain unimplemented. |
-| OSD-04 — Dry Run permitted local side effects | contract §3; implementation workflow Phase 1/7; C-30 | EOLM-DRV-016, EOLM-SAF-002/006, EOLM-TST-005/007 | Blocked. Enumerate permitted report/manifest/lock/temp-file effects and prove no forbidden mutation by before/after snapshots. |
-| OSD-05 — Least-privilege Drive authentication and real-folder access | C-23/C-27; contract §2; distribution design §8/§11 | EOLM-DRV-007, EOLM-REL-010, EOLM-SEC-001 | Blocked. Select and validate the identity/scope against actual My Drive ownership/sharing/quota constraints. |
-| OSD-06 — Release approval, tag/version consistency, provenance and immutable publication | C-27; distribution design §2–3/§7–8/§11 | EOLM-REL-004, EOLM-REL-006, EOLM-REL-010–014 | Blocked. Release workflow and approval/provenance policy are not implemented or approved. |
-| OSD-07 — Release retention and cleanup authorization | C-27; distribution design §3/§11 | EOLM-REL-005, EOLM-REL-007, EOLM-REL-015 | Blocked. Keep automated cleanup disabled until a retention rule is approved. |
-| OSD-08 — Scheduler times and stale-lock/lease recovery | C-24; implementation workflow Phase 8 | EOLM-OPS-001–006, EOLM-LCK-001–004, EOLM-TST-005/007/008 | Blocked. Approve schedule and recovery rules before Task Scheduler rollout. |
-| OSD-09 — Final per-PC package allowlists and active-config migration | distribution design §3–6; P0-006/P0-009 | EOLM-CFG-001–007, EOLM-REL-001–003, EOLM-REL-007, EOLM-REL-013, EOLM-TST-006 | Blocked. Official entry points and final PC-A/PC-B allowlists are absent; builder still uses a legacy deployability sentinel. |
+|OSD-01 — 既存のマークされていないドライブ オブジェクトの信頼基準|`docs/development/implementation-workflow.md` §2.4; ステージング ライフサイクル §7; C-32| EOLM-DRV-010, EOLM-SYN-006–009, EOLM-MAN-001–010 |ブロックされました。オブジェクトを検証済みの複製/アーカイブ候補として扱う前に、来歴述語とあいまいオブジェクトのテストを定義します。|
+|OSD-02 — 完全なマニフェスト スキーマと状態遷移テーブル| C-26; `docs/design/staging-file-lifecycle.md` §6–8 | EOLM-MAN-001–012, EOLM-REQ-001, EOLM-STG-001–012 |ブロックされました。スキーマ/バージョン、許可された遷移、不正なデータ、クラッシュおよび同時実行動作を承認します。|
+|OSD-03 — 混合ファイル/実行/期間ステータスの集計|`docs/design/filename-and-period-selection.md` §6–7; ステージング ライフサイクル §8; C-25/C-26; `docs/archive/decisions/osd-03-status-aggregation-options.md`| EOLM-FIL-004–005, EOLM-MAN-003–006, EOLM-MAN-009–012, EOLM-OPS-003, EOLM-TST-003/010 |ブロックされました。 PR #40 は、非標準オプションと影響比較のみを追加します。ポリシーは承認されず、網羅的な集計テーブルは存在せず、実行時テストは未実装のままです。|
+|OSD-04 — Dry Run 許可されるローカル副作用|契約 §3;実装ワークフロー フェーズ 1/7; C-30| EOLM-DRV-016, EOLM-SAF-002/006, EOLM-TST-005/007 |ブロックされました。許可されているレポート/マニフェスト/ロック/一時ファイルの影響を列挙し、スナップショットの前後で禁止された変更がないことを証明します。|
+|OSD-05 — 最小特権のドライブ認証と実フォルダー アクセス|C-23/C-27;契約§2;配電設計 §8/§11| EOLM-DRV-007, EOLM-REL-010, EOLM-SEC-001 |ブロックされました。実際の My Drive の所有権/共有/クォータの制約に照らして ID/スコープを選択し、検証します。|
+|OSD-06 — リリースの承認、タグ/バージョンの一貫性、来歴および不変の公開|C-27;配電設計 §2–3/§7–8/§11| EOLM-REL-004, EOLM-REL-006, EOLM-REL-010–014 |ブロックされました。リリース ワークフローと承認/出所ポリシーは実装または承認されていません。|
+|OSD-07 — 保持とクリーンアップの承認の解放|C-27;配電設計 §3/§11| EOLM-REL-005, EOLM-REL-007, EOLM-REL-015 |ブロックされました。保持ルールが承認されるまで、自動クリーンアップを無効にしておきます。|
+|OSD-08 — スケジューラ時間と古いロック/リースの回復|C-24;実装ワークフロー フェーズ 8| EOLM-OPS-001–006, EOLM-LCK-001–004, EOLM-TST-005/007/008 |ブロックされました。タスク スケジューラをロールアウトする前に、スケジュールと回復ルールを承認します。|
+|OSD-09 — PC ごとの最終パッケージ許可リストとアクティブ構成の移行|配布設計 §3–6; P0-006/P0-009| EOLM-CFG-001–007, EOLM-REL-001–003, EOLM-REL-007, EOLM-REL-013, EOLM-TST-006 |ブロックされました。公式のエントリ ポイントと最終的な PC-A/PC-B 許可リストは存在しません。ビルダーは依然として従来のデプロイアビリティ センチネルを使用しています。|
 
-Resolved rule: period eligibility uses filename date only; `LastWriteTime` and verified metadata must not override filename-derived eligibility. The remaining filename/metadata disagreement item is a test gap, not a request to change this rule.
+解決されたルール: 期間対象条件にはファイル名の日付のみが使用されます。 `LastWriteTime` および 確認済み メタデータは、ファイル名から派生した適格性をオーバーライドしてはなりません。残りのファイル名/メタデータの不一致項目はテストギャップであり、このルールの変更要求ではありません。
 
-## 5. Exit criteria for P0-010
+<a id="5-exit-criteria-for-p0-010"></a>
+## 5.  P0-010 の終了基準
 
-P0-010 must remain open until all conditions below are satisfied:
+P0-010 は、以下の条件がすべて満たされるまで開いたままにする必要があります。
 
-- Every tracked file has a recorded category and review status.
-- Every normative section/bullet/table row in the listed specifications maps to one or more stable EOLM IDs, or is explicitly classified as informational, deferred, or unresolved.
-- Every EOLM ID cites an exact source heading/section; locator placeholders such as “confirm” have been removed or explained.
-- The SYNC, MAN, ARC, and IPC scenario IDs map to requirement IDs and executable tests or are explicitly marked not implemented.
-- Every implementation artifact maps to requirements and tests; no document-only assertion is described as runtime verification.
-- All discovered cross-cutting requirements in §3 are added to the register or explicitly dispositioned with rationale.
-- The traceability register and this audit agree on statuses, priorities, and P0 crosswalk.
-- No requirement is marked `verified` without objective evidence.
+- 追跡されたすべてのファイルには、カテゴリとレビュー ステータスが記録されています。
+- リストされた仕様内のすべての規範的なセクション/箇条書き/表の行は、1 つ以上の安定した EOLM ID にマップされるか、情報提供、延期、または未解決として明示的に分類されます。
+- すべての EOLM ID は正確なソースの見出し/セクションを引用します。 「確認」などのロケーターのプレースホルダーは削除または説明されました。
+- SYNC、MAN、ARC、および IPC のシナリオ ID は、要件 ID および実行可能テストにマップされるか、明示的に未実装としてマークされます。
+- すべての実装成果物は要件とテストにマップされます。ドキュメントのみのアサーションは実行時検証として記述されません。
+- §3 で発見されたすべての横断的要件は登録に追加されるか、根拠を付けて明示的に処理されます。
+- トレーサビリティ レジスタとこの監査は、ステータス、優先順位、および P0 クロスウォークに関して一致しています。
+- 客観的な証拠がなければ、要件に `verified` のマークが付けられることはありません。
 
-## 6. Audit disposition
+<a id="6-audit-disposition"></a>
+## 6. 監査処分
 
-Current result: **P0-010 remains open**. The first pass found substantial mapping gaps, especially in IPC/security logging, configuration/path safety, detailed manifest semantics, distribution/rollback, and scenario-to-requirement crosswalks. This file records those gaps; it does not silently promote them to completed requirements.
-
-
-## SEL-RT-01–10 fixture traceability
-
-See [`docs/archive/validation/sel-rt-fixture-traceability.md`](sel-rt-fixture-traceability.md) for the fixture-by-fixture mapping of intended assertions, requirement IDs, existing helper evidence, missing runtime evidence, and decision blockers. This is a static design audit only. SEL-RT-01–10 remain not implemented/not run because the official runtime selection entry point is absent. This crosswalk does not close P0-010 or unblock OSD-02, OSD-03, or EOLM-MAN-011.
+現在の結果: **P0-010 はオープンのままです**。最初のパスでは、特に IPC/セキュリティ ロギング、構成/パスの安全性、詳細なマニフェスト セマンティクス、配布/ロールバック、およびシナリオから要件へのクロスウォークにおいて、大幅なマッピングのギャップが見つかりました。このファイルはそれらのギャップを記録します。完了した要件に黙って昇格するわけではありません。
 
 
-## Latest config-role evidence reconciliation (PR #55)
+<a id="sel-rt-0110-fixture-traceability"></a>
+## SEL-RT-01–10 治具のトレーサビリティ
 
-- Review baseline: `3bfe6e6681223b02fae954909eb50340a03242c1` (PR #55 merge).
-- `EOLM-CFG-001`: no runtime config loader or semantic validator is present. Current Validate parses example JSON syntax only; valid/invalid/missing/unknown-field and role/path tests remain absent.
-- `EOLM-CFG-004` / `EOLM-ARC-001`: the PC-A example uses `allowArchive: false`, and the PC-B example omits `allowArchive`; these are example contents, not proof that a runtime gate enforces the policy. Positive/negative semantic tests remain absent.
-- `EOLM-CFG-005`: no semantic config validator proves deletion-capability settings are rejected; full source/package absence audit remains incomplete.
-- `EOLM-ARC-006`: package-builder status remains partial; example JSON parsing is not proof that a PC-B package/runtime lacks archive capability.
-- Validate: success on PR #55 HEAD `da77fe28f8fd05b1ef8f58d6569ea49d36b7c1df` — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327426.
-- Package Validation: success on the same PR #55 HEAD — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327464.
-- This is static traceability documentation only. It does not close P0-010 or establish runtime verification.
+意図したアサーション、要件 ID、既存のヘルパー証拠、欠落している実行時証拠、および意思決定ブロッカーのフィクスチャごとのマッピングについては、[`docs/archive/validation/sel-rt-fixture-traceability.md`](sel-rt-fixture-traceability.md) を参照してください。これは静的な設計の監査のみです。 SEL-RT-01–10 は、公式のランタイム選択エントリ ポイントが存在しないため、実装されず、実行されないままになります。この対応表は、P0-010 を閉鎖したり、OSD-02、OSD-03、または EOLM-MAN-011 のブロックを解除したりするものではありません。
 
 
-## Focused evidence reconciliation — C-20/C-21/C-28 (PR #57)
+<a id="latest-config-role-evidence-reconciliation-pr-55"></a>
+## 最新の構成と役割の証拠の調整 (PR #55)
 
-This reconciliation is deliberately limited to the PC-role/configuration and archive-gate clauses. It distinguishes normative policy, tracked examples, workflow checks, and missing executable evidence.
+- ベースラインを確認します: `3bfe6e6681223b02fae954909eb50340a03242c1` (PR #55 マージ)。
+- `EOLM-CFG-001`: ランタイム構成ローダーまたはセマンティック バリデーターが存在しません。現在の検証では、例の JSON 構文のみが解析されます。 valid/invalid/missing/不明-field および role/path テストは存在しないままです。
+- `EOLM-CFG-004` / `EOLM-ARC-001`: PC-A の例では `allowArchive: false` が使用され、PC-B の例では `allowArchive` が省略されています。これらは内容の例であり、ランタイム ゲートがポリシーを強制することを証明するものではありません。肯定的/否定的な意味論的テストは存在しないままです。
+- `EOLM-CFG-005`: 削除機能設定が拒否されたことを証明するセマンティック構成バリデータはありません。完全なソース/パッケージ不在監査は 未完了 のままです。
+- `EOLM-ARC-006`: パッケージ ビルダーのステータスは部分的なままです。例 JSON の解析は、PC-B パッケージ/ランタイムにアーカイブ機能がないことを証明するものではありません。
+- 検証: PR #55 の 成功 HEAD `da77fe28f8fd05b1ef8f58d6569ea49d36b7c1df` — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327426.
+- パッケージの検証: 同じ PR #55 HEAD 上の 成功 — https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327464.
+- これは静的なトレーサビリティに関するドキュメントのみです。 P0-010 は閉じられず、実行時検証も確立されません。
 
-| Normative clause | Requirement IDs | Tracked artifact / check actually present | Evidence disposition | Remaining acceptance gap |
+
+<a id="focused-evidence-reconciliation--c-20c-21c-28-pr-57"></a>
+## 重点的な証拠の調整 — C-20/C-21/C-28 (PR #57)
+
+この調整は、意図的に PC-role/configuration および archive-gate 句に限定されています。規範的なポリシー、追跡された例、ワークフローのチェック、実行可能な証拠の欠落を区別します。
+
+|規範条項|要件 ID|追跡された成果物/チェックは実際に存在します|証拠の処分|受け入れに残る不足|
 |---|---|---|---|---|
-| C-20/C-21: official sync/archive entry points and role-specific fail-closed config | EOLM-CFG-001–004, EOLM-CFG-007, EOLM-ARC-001/006 | `Config/PC-A.example.json`, `Config/PC-B.example.json`; `.github/workflows/validate.yml` uses `ConvertFrom-Json` for example JSON; `docs/requirements/requirements-traceability.md` §5.2 | Documentation/config examples and JSON syntax check only. No runtime config loader, semantic role/path validator, or official `SyncLogs.ps1` / `ArchiveLogs.ps1` entry point is present. | Implement and test role/path/capability semantics only after the approved implementation phase and required decisions; include positive and negative tests for missing/malformed/unknown/role-inappropriate settings. |
-| C-28: PC-A explicit archive gate and PC-B archive prohibition | EOLM-CFG-004, EOLM-CFG-007, EOLM-ARC-001/006, EOLM-MAN-007/010–012, EOLM-DRV-005–008, EOLM-SAF-001–003 | PC-A example has `allowArchive: false`; PC-B example omits `allowArchive`; package validation tests exercise the current builder, whose deployability sentinel still references the legacy entry point. | Example values and builder tests do not demonstrate runtime authorization or prove that PC-B package/runtime lacks archive capability. No cloud/manifest freshness or copy-only runtime evidence exists. | Add PC-A true/false/missing and PC-B-present negative tests; verify per-PC package command surface, both-PC manifest/cloud content and freshness, and archive copy/verify/record behavior before any runtime requirement is considered verified. |
-| C-19/C-22: deletion capability excluded | EOLM-CFG-005, EOLM-SAF-001/003/005, EOLM-TST-005/006 | Static audit and examples only; no semantic config validator or complete source/package rejection test is evidenced by the current config workflow. | Partial; absence has not been proven across all runtime and packaged artifacts. | Complete source/package capability scan and executable rejection checks. Do not add deletion operations or settings while doing so. |
+|C-20/C-21: 公式同期/アーカイブ エントリ ポイントとロール固有のフェールクローズ設定| EOLM-CFG-001–004, EOLM-CFG-007, EOLM-ARC-001/006 |`Config/PC-A.example.json`、`Config/PC-B.example.json`; `.github/workflows/validate.yml` は `ConvertFrom-Json` を使用します (例: JSON)。 `docs/requirements/requirements-traceability.md` §5.2|ドキュメント/構成の例と JSON 構文チェックのみ。ランタイム構成ローダー、セマンティック ロール/パス バリデータ、または公式 `SyncLogs.ps1` / `ArchiveLogs.ps1` エントリ ポイントは存在しません。|承認された実装フェーズと必要な決定の後にのみ、役割/パス/機能セマンティクスを実装およびテストします。欠落/不正な設定/不明な設定/役割が不適切な設定に対する肯定的テストと否定的テストが含まれます。|
+|C-28: PC-A 明示的なアーカイブ ゲートおよび PC-B アーカイブ禁止| EOLM-CFG-004, EOLM-CFG-007, EOLM-ARC-001/006, EOLM-MAN-007/010–012, EOLM-DRV-005–008, EOLM-SAF-001–003 |PC-A の例には `allowArchive: false` があります。 PC-B の例では `allowArchive` が省略されています。パッケージ検証テストでは、現在のビルダーが実行されますが、そのデプロイメント センチネルは引き続きレガシー エントリ ポイントを参照します。|値の例とビルダー テストは、ランタイム認証を実証したり、PC-B パッケージ/ランタイムにアーカイブ機能が欠けていることを証明したりするものではありません。クラウド/マニフェストの鮮度やコピーのみの実行時の証拠は存在しません。|PC-A true/false/missing および PC-B-present 陰性テストを追加します。ランタイム要件が検証済みとみなされる前に、PC ごとのパッケージ コマンド サーフェス、PC マニフェスト/クラウドのコンテンツと鮮度、およびアーカイブのコピー/検証/記録動作を検証します。|
+|C-19/C-22: 削除機能は除外されています| EOLM-CFG-005, EOLM-SAF-001/003/005, EOLM-TST-005/006 |静的監査と例のみ。現在の構成ワークフローでは、セマンティック構成バリデータや完全なソース/パッケージ拒否テストが証明されていません。|部分的;すべてのランタイムおよびパッケージ化された成果物にわたって存在しないことが証明されているわけではありません。|ソース/パッケージの機能スキャンと実行可能ファイルの拒否チェックを完了します。この際、追加の削除操作や設定を行わないでください。|
 
-Relevant CI evidence is limited to its own PR HEAD: PR #55 Validate https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327426 and Package Validation https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327464; both succeeded on `da77fe28f8fd05b1ef8f58d6569ea49d36b7c1df`. PR #56 Validate https://github.com/wasawo/eo-log-maintenance/actions/runs/39397556050 and Package Validation https://github.com/wasawo/eo-log-maintenance/actions/runs/39397556030; both succeeded on `a0ecc3c2d4d291a6558f22eb0b1ef3fc3da2fe64`. These runs validate the checks present in those revisions; they do not prove the missing runtime behaviors described above.
+関連する CI 証拠は、独自の PR HEAD に限定されています: PR #55 https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327426 の検証と https://github.com/wasawo/eo-log-maintenance/actions/runs/39397327464; のパッケージ検証は両方とも `da77fe28f8fd05b1ef8f58d6569ea49d36b7c1df` で成功しました。 PR #56 https://github.com/wasawo/eo-log-maintenance/actions/runs/39397556050 の検証と https://github.com/wasawo/eo-log-maintenance/actions/runs/39397556030; のパッケージ検証は両方とも `a0ecc3c2d4d291a6558f22eb0b1ef3fc3da2fe64` で成功しました。これらの実行により、それらのリビジョンに存在するチェックが検証されます。これらは、上記で説明した実行時の動作が欠落していることを証明するものではありません。
 
-P0-010 remains open. This focused crosswalk is a documentation audit, not runtime acceptance evidence.
+P0-010 は開いたままです。この焦点を絞ったクロスウォークは文書監査であり、実行時の受け入れ証拠ではありません。
 
 
-## Focused evidence reconciliation — C-23 / OSD-05 (PR #58)
+<a id="focused-evidence-reconciliation--c-23--osd-05-pr-58"></a>
+## 重点的な証拠の調整 — C-23 / OSD-05 (PR #58)
 
-| Normative clause | Requirement IDs | Current artifacts and evidence | Disposition | Remaining acceptance gap |
+|規範条項|要件 ID|既存成果物と証拠|処分|受け入れに残る不足|
 |---|---|---|---|---|
-| C-23: select minimum viable OAuth scope and validate list, metadata, upload, and download/hash operations against intended My Drive folders | EOLM-DRV-007, EOLM-REL-010, EOLM-SEC-001, EOLM-TST-004–005 | `docs/design/powershell-python-contract.md` defines adapter operations and credential handling; `contracts/drive-request.schema.json` / `drive-response.schema.json` and `tests/test_contract_schemas.py` cover structural contract examples; `docs/release/distribution-design.md` documents secrets/package exclusions. OSD-05 explicitly states the identity/scope is not selected or validated. | Blocked; contract/schema coverage is not an authentication or authorization test. No production credentials or real Drive operations are evidenced or permitted by this audit. | Approve the identity and minimum scope; test access to the intended folders and required operations with least privilege; record evidence and failure behavior before enabling production upload. Do not widen scope or claim validation from mocks/schema checks. |
+|C-23: 実行可能な最小限の OAuth スコープを選択し、対象のマイ ドライブ フォルダーに対するリスト、メタデータ、アップロード、およびダウンロード/ハッシュ操作を検証します。| EOLM-DRV-007, EOLM-REL-010, EOLM-SEC-001, EOLM-TST-004–005 |`docs/design/powershell-python-contract.md` はアダプターの操作と認証情報の処理を定義します。 `contracts/drive-request.schema.json` / `drive-response.schema.json` および `tests/test_contract_schemas.py` では構造契約の例を取り上げます。 `docs/release/distribution-design.md` は、秘密/パッケージの除外を文書化します。 OSD-05 は、同一性/スコープが選択または検証されていないことを明示的に示しています。|ブロックされました。コントラクト/スキーマの適用範囲は、認証または認可テストではありません。この監査では、本番環境の認証情報や実際のドライブ操作は証明されず、許可されません。|ID と最小範囲を承認します。最小限の特権で目的のフォルダーへのアクセスと必要な操作をテストします。実稼働アップロードを有効にする前に、証拠と失敗の動作を記録します。スコープを拡大したり、モック/スキーマ チェックから検証を要求したりしないでください。|
 
-The relevant CI runs are historical and SHA-scoped: PR #57 Validate https://github.com/wasawo/eo-log-maintenance/actions/runs/39398340496 and Package Validation https://github.com/wasawo/eo-log-maintenance/actions/runs/39398340472 both succeeded on `d34ad777451274531f881bdc225c1648b9da6ec7`. They validate that revision's configured CI checks only and provide no OAuth/Drive authorization evidence.
+関連する CI の実行は履歴的で SHA スコープです: PR #57 https://github.com/wasawo/eo-log-maintenance/actions/runs/39398340496 の検証とパッケージの検証 https://github.com/wasawo/eo-log-maintenance/actions/runs/39398340472 は両方とも `d34ad777451274531f881bdc225c1648b9da6ec7` で成功しました。これらは、そのリビジョンの構成済み CI チェックのみを検証し、OAuth/ドライブ認証の証拠は提供しません。
 
-P0-010 remains open. C-23/OSD-05 remains blocked until identity/scope approval and objective least-privilege access validation exist.
+P0-010 は開いたままです。 C-23/OSD-05 は、ID/スコープの承認と客観的な最小特権アクセスの検証が完了するまでブロックされたままになります。
 
 
-## Focused evidence reconciliation — C-24 / OSD-08 (PR #59)
+<a id="focused-evidence-reconciliation--c-24--osd-08-pr-59"></a>
+## 重点的な証拠の調整 — C-24 / OSD-08 (PR #59)
 
-| Normative clause | Requirement IDs | Current artifacts and evidence | Disposition | Remaining acceptance gap |
+|規範条項|要件 ID|既存成果物と証拠|処分|受け入れに残る不足|
 |---|---|---|---|---|
-| C-24: monthly schedule with first-start catch-up, quiet/staggered PC-A/PC-B times, and bounded PC-A checks | EOLM-OPS-001/002/004/006, EOLM-LCK-001–004, EOLM-TST-005/007/008 | `docs/decisions/decision-register-c18-c32.md` records the intended rule and explicitly defers exact times; `docs/development/implementation-workflow.md` Phase 8 describes scheduled operation; `docs/requirements/p0-open-specification-decisions.md` OSD-08 records scheduler and stale-lock policy as blocked. Requirement register marks OPS-001/002 blocked and OPS-004 not started. | Blocked; documentation states intent and decision dependency only. No Task Scheduler setup, lock/lease implementation, or executable operational tests are present. | Approve quiet/staggered times and stale-lock/lease recovery policy before rollout. Then test missed monthly run/catch-up, overlap, stale lock, failure visibility, bounded wait, and manual recovery. Do not infer operational readiness from doc/CI checks. |
+|C-24: 初回開始のキャッチアップ、静か/時間差の PC-A/PC-B 回、制限付き PC-A チェックを含む月次スケジュール| EOLM-OPS-001/002/004/006, EOLM-LCK-001–004, EOLM-TST-005/007/008 |`docs/decisions/decision-register-c18-c32.md` は、意図したルールを記録し、正確な時間を明示的に延期します。 `docs/development/implementation-workflow.md` フェーズ 8 では、スケジュールされた操作について説明します。 `docs/requirements/p0-open-specification-decisions.md` OSD-08 は、スケジューラと古いロック ポリシーをブロックされたものとして記録します。要件レジスターは、OPS-001/002 がブロックされ、OPS-004 が開始されていないことをマークします。|ブロックされました。ドキュメントには、意図と決定の依存関係のみが記載されています。タスク スケジューラのセットアップ、ロック/リースの実装、または実行可能な動作テストは存在しません。|ロールアウト前に、静かな時間/時間差と古いロック/リースの回復ポリシーを承認します。次に、毎月の実行/キャッチアップの欠落、重複、古いロック、障害の可視性、制限された待機、および手動リカバリをテストします。 doc/CI チェックから運用準備状況を推測しないでください。|
 
-PR #58 Validate https://github.com/wasawo/eo-log-maintenance/actions/runs/39398777874 and Package Validation https://github.com/wasawo/eo-log-maintenance/actions/runs/39398777906 both succeeded on PR HEAD `438ea52e52b2ad0309a7edf46ca365b25a0047b5`. These CI runs validate configured checks only and are not scheduler or lock runtime evidence.
+PR #58 検証 https://github.com/wasawo/eo-log-maintenance/actions/runs/39398777874 とパッケージ検証 https://github.com/wasawo/eo-log-maintenance/actions/runs/39398777906 は両方とも PR HEAD `438ea52e52b2ad0309a7edf46ca365b25a0047b5` で成功しました。これらの CI の実行は、構成されたチェックのみを検証し、スケジューラまたはロックの実行時の証拠ではありません。
 
-P0-010 remains open; C-24 / OSD-08 remains blocked pending approved operational policy and executable evidence.
+P0-010 は開いたままです。 C-24 / OSD-08 は、未確定 承認された運用ポリシーと実行可能な証拠によってブロックされたままになります。
 
 
-## Focused evidence reconciliation — C-25 filename validation and failure status (next bounded task)
+<a id="focused-evidence-reconciliation--c-25-filename-validation-and-failure-status-next-bounded-task"></a>
+## 重点的な証拠の調整 — C-25 ファイル名の検証と 失敗 ステータス (次の限定タスク)
 
-| Normative clause | Requirement IDs | Current artifacts and evidence | Evidence disposition | Remaining acceptance gap |
+|規範条項|要件 ID|既存成果物と証拠|証拠の処分|受け入れに残る不足|
 |---|---|---|---|---|
-| C-25: anchored log-type filename patterns, strict invariant `yyyyMMdd` calendar-date parsing, no `LastWriteTime` fallback, surfaced validation errors, and no fully-successful status when relevant invalid files remain | EOLM-FIL-001–005, EOLM-FIL-009/010, EOLM-MAN-004; EOLM-TST-003 and related status tests | `docs/design/filename-and-period-selection.md` specifies anchored BattleLog/ErrorReport patterns, case-sensitive `.txt`, real calendar-date parsing, no timestamp fallback, and failure-status behavior. `docs/validation/filename-period-test-plan.md` and `docs/archive/validation/sel-rt-fixture-traceability.md` describe intended test cases/fixtures. `docs/requirements/requirements-traceability.md` maps the requirement IDs and P0-008. | Specification and test-design traceability only. Test-plan rows and fixture mappings are not evidence that the official runtime selection entry point was executed. Existing helper/schema/package CI must not be represented as end-to-end filename-to-run-status proof. | Verify the actual CI commands and executable test inventory for filename helper edge cases; add or record missing executable tests for malformed patterns, invalid calendar dates, case-sensitive extension, no timestamp fallback, mixed valid/invalid inputs, and affected-scope failure aggregation. Runtime selection entry point remains absent, so end-to-end acceptance remains blocked. |
+|C-25: アンカーされたログタイプのファイル名パターン、厳密に不変の `yyyyMMdd` カレンダー日付解析、`LastWriteTime` フォールバックなし、検証エラーの表面化、関連する無効なファイルが残っている場合の完全成功ステータスなし|EOLM-FIL-001–005、EOLM-FIL-009/010、EOLM-MAN-004; EOLM-TST-003 および関連ステータス テスト|`docs/design/filename-and-period-selection.md` は、アンカーされた BattleLog/ErrorReport パターン、大文字と小文字を区別する `.txt`、実際のカレンダー日付解析、タイムスタンプ フォールバックなし、および 失敗 ステータス動作を指定します。 `docs/validation/filename-period-test-plan.md` および `docs/archive/validation/sel-rt-fixture-traceability.md` は、対象となるテスト ケース/フィクスチャを説明します。 `docs/requirements/requirements-traceability.md` は要件 ID と P0-008 をマップします。|仕様およびテスト設計のトレーサビリティのみ。テスト計画行とフィクスチャ マッピングは、公式のランタイム選択エントリ ポイントが実行されたという証拠ではありません。既存のヘルパー/スキーマ/パッケージ CI は、ファイル名から実行ステータスまでのエンドツーエンドの証明として表現されてはなりません。|ファイル名ヘルパーのエッジ ケースの実際の CI コマンドと実行可能テスト インベントリを確認します。不正なパターン、無効なカレンダー日付、大文字と小文字を区別する拡張子、タイムスタンプ フォールバックなし、有効/無効の混合入力、および影響を受けるスコープの 失敗 集計に対する欠落している実行可能テストを追加または記録します。ランタイム選択エントリ ポイントが存在しないままであるため、エンドツーエンドの受け入れはブロックされたままになります。|
 
-C-25 is not closed by this crosswalk. Any CI evidence added later must identify the exact PR HEAD SHA and distinguish helper-level tests from the absent runtime selection/run-status path. Do not change the specified filename eligibility rule or invent a status aggregation policy while OSD-03 and EOLM-MAN-011 remain unresolved.
+C-25 はこの対応表によって完了にはならない。後で追加される CI 証拠は、正確な PR HEAD SHA を特定し、ヘルパー レベルのテストを、存在しないランタイム選択/実行ステータス パスから区別する必要があります。 OSD-03 と EOLM-MAN-011 が未解決のままである間は、指定されたファイル名の適格性ルールを変更したり、ステータス集計ポリシーを作成したりしないでください。
 
-PR #59 Validate https://github.com/wasawo/eo-log-maintenance/actions/runs/39399004810 and Package Validation https://github.com/wasawo/eo-log-maintenance/actions/runs/39399004898 both succeeded on PR HEAD `5ebba2e4b511f9292c51e0e8f51a97534b1619b4`. They validate the configured checks on that revision only and provide no scheduler/lock runtime evidence.
+PR #59 検証 https://github.com/wasawo/eo-log-maintenance/actions/runs/39399004810 とパッケージ検証 https://github.com/wasawo/eo-log-maintenance/actions/runs/39399004898 は両方とも PR HEAD `5ebba2e4b511f9292c51e0e8f51a97534b1619b4` で成功しました。これらは、そのリビジョンに対してのみ構成されたチェックを検証し、スケジューラ/ロックの実行時の証拠は提供しません。
 
-P0-010 remains open. C-25 runtime acceptance remains incomplete until executable evidence covers filename validation and the required run-status behavior.
+P0-010 は開いたままです。 C-25 実行時の受け入れは、実行可能な証拠がファイル名の検証と必要な実行ステータスの動作をカバーするまで、未完了 のままです。
 
 
-## Focused evidence reconciliation — C-26 manifest schema and state transitions (next bounded task)
+<a id="focused-evidence-reconciliation--c-26-manifest-schema-and-state-transitions-next-bounded-task"></a>
+## 焦点を絞った証拠の調整 — C-26 マニフェスト スキーマと状態遷移 (次のバインドされたタスク)
 
-| Normative clause | Requirement IDs | Current artifacts and evidence | Evidence disposition | Remaining acceptance gap |
+|規範条項|要件 ID|既存成果物と証拠|証拠の処分|受け入れに残る不足|
 |---|---|---|---|---|
-| C-26: define a versioned manifest schema and complete state-transition model, including required fields/types/enums/timestamps, per-file outcomes and Drive identity, compatibility, malformed-data rejection, crash recovery, and concurrent updates | EOLM-MAN-001–012, EOLM-REQ-001, EOLM-STG-001–012, EOLM-TST-004–006/010 | `docs/decisions/decision-register-c18-c32.md` C-26 lists the required design areas as deferred. `docs/requirements/p0-open-specification-decisions.md` OSD-02 marks schema baseline/approval incomplete and calls for a complete transition table plus positive/negative, malformed-version, identity-mismatch, crash and concurrency tests. `docs/design/staging-file-lifecycle.md` contains lifecycle prose, but that alone is not a complete approved transition table. Repository tree inspection did not find a tracked manifest schema artifact at the expected `contracts/manifest.schema.json` path. | Blocked. Current records describe the decision and requirements but do not establish an approved, versioned manifest schema or a complete transition table. Do not infer schema existence from unrelated Drive request/response schemas, nor infer runtime behavior from schema tests. | Approve required fields, status enums/transitions, compatibility policy, identity/provenance rules, and crash/concurrency semantics. Then add the authoritative versioned schema and table-driven positive/negative tests; verify malformed versions, identity mismatch, crash recovery, and concurrent updates. Record executable evidence and keep requirements blocked until acceptance criteria are met. |
+|C-26: バージョン管理されたマニフェスト スキーマと 完了 状態遷移モデルを定義します。これには、必須のフィールド/タイプ/列挙型/タイムスタンプ、ファイルごとの結果とドライブ ID、互換性、不正なデータの拒否、クラッシュ回復、同時更新が含まれます。| EOLM-MAN-001–012, EOLM-REQ-001, EOLM-STG-001–012, EOLM-TST-004–006/010 |`docs/decisions/decision-register-c18-c32.md` C-26 には、延期として必要な設計領域がリストされています。 `docs/requirements/p0-open-specification-decisions.md` OSD-02 は、スキーマのベースライン/承認 未完了 をマークし、完了 遷移テーブルに加えて、ポジティブ/ネガティブ、不正な形式のバージョン、同一性 不一致、クラッシュおよび同時実行テストを呼び出します。 `docs/design/staging-file-lifecycle.md` にはライフサイクルの散文が含まれていますが、それだけでは 完了 承認された遷移テーブルではありません。リポジトリ ツリー検査では、予期された `contracts/manifest.schema.json` パスで追跡されたマニフェスト スキーマ 成果物が見つかりませんでした。|ブロックされました。現在の記録には決定事項と要件が記載されていますが、承認され、バージョン管理されたマニフェスト スキーマや完全な移行テーブルは確立されていません。無関係なドライブ要求/応答スキーマからスキーマの存在を推測したり、スキーマ テストから実行時の動作を推測したりしないでください。|必須フィールド、ステータス列挙/遷移、互換性ポリシー、同一性/来歴ルール、クラッシュ/同時実行セマンティクスを承認します。次に、権限のあるバージョン管理されたスキーマとテーブル駆動のポジティブ/ネガティブ テストを追加します。不正なバージョン、ID の不一致、クラッシュ回復、同時更新を検証します。実行可能な証拠を記録し、受け入れ基準が満たされるまで要件をブロックしたままにします。|
 
-C-26 / OSD-02 remains blocked; this documentation crosswalk does not select policy values or create a schema because the approving decisions are still open. P0-010 remains open.
+C-26 / OSD-02 はブロックされたままです。承認決定がまだ未解決であるため、このドキュメントのクロスウォークではポリシー値の選択やスキーマの作成は行われません。 P0-010 は開いたままです。
 
 
-## Focused evidence reconciliation — C-27 distribution release controls
+<a id="focused-evidence-reconciliation--c-27-distribution-release-controls"></a>
+## 重点的な証拠の調整 — C-27 配布リリース管理
 
-| Normative clause | Requirement IDs | Current artifacts and evidence | Evidence disposition | Remaining acceptance gap |
+|規範条項|要件 ID|既存成果物と証拠|証拠の処分|受け入れに残る不足|
 |---|---|---|---|---|
-| C-27: approve the distribution folder/access model, release authentication, tag/version/approval controls, and old-package retention before production distribution | EOLM-REL-004–007, EOLM-REL-010–015, EOLM-SEC-001, EOLM-TST-006 | `docs/release/distribution-design.md` defines a proposed one-way GitHub-to-Drive flow, allowlist package contents, immutable version folders, checksum verification, manual PC-side application, and a `latest.json` update-last pattern. `docs/decisions/decision-register-c18-c32.md` marks C-27 deferred. `docs/requirements/p0-open-specification-decisions.md` tracks OSD-06 (release authorization/identity), OSD-07 (retention), and OSD-09 (PC allowlists/deployment) as blocked. The tracked tree contains a package builder and package-builder tests, but no release-publishing workflow or production Drive uploader; CI checks validate the configured builder/tests only. | Proposed design and package-builder evidence only. No protected release event, approved identity/authentication, release-tag/version approval enforcement, Drive publication, or retention behavior has been demonstrated. Package validation is not release acceptance. | Approve the release authorization/provenance policy and retention rules; confirm the Drive folder/access model and least-privilege identity; implement a protected release workflow with tag/VERSION consistency, collision/failure handling and previous-pointer preservation; add executable negative tests for PR/push denial, tag mismatch, existing-version collision, upload/verification failure and retention safeguards. Keep production upload and automated cleanup disabled until approval and tests are complete. |
+|C-27: 本番配布前の配布フォルダ/アクセス モデル、リリース認証、タグ/バージョン/承認管理、および古いパッケージの保持を承認します。| EOLM-REL-004–007, EOLM-REL-010–015, EOLM-SEC-001, EOLM-TST-006 |`docs/release/distribution-design.md` は、提案された一方向の GitHub からドライブへのフロー、ホワイトリスト パッケージの内容、不変バージョン フォルダー、チェックサム検証、手動の PC 側アプリケーション、および `latest.json` 最終更新パターンを定義します。 `docs/decisions/decision-register-c18-c32.md` は、C-27 を延期としてマークします。 `docs/requirements/p0-open-specification-decisions.md` は、OSD-06 (承認/ID の解放)、OSD-07 (保持)、および OSD-09 (PC ホワイトリスト/展開) をブロックされたものとして追跡します。追跡されるツリーにはパッケージ ビルダーとパッケージ ビルダー テストが含まれていますが、リリース公開ワークフローや運用ドライブ アップローダーは含まれていません。 CI チェックは、構成されたビルダー/テストのみを検証します。|提案されたデザインとパッケージ ビルダーの証拠のみ。保護されたリリース イベント、承認された ID/認証、リリース タグ/バージョンの承認の強制、ドライブの公開、または保持動作は実証されていません。パッケージの検証はリリースの承認ではありません。|リリースの承認/出所ポリシーと保持ルールを承認します。ドライブのフォルダー/アクセス モデルと最小権限の ID を確認します。タグ/バージョンの一貫性、衝突/障害の処理、以前のポインタの保存を備えた保護されたリリースのワークフローを実装します。 PR/プッシュ拒否、タグの不一致、既存バージョンの衝突、アップロード/検証の失敗、および保持の安全対策のための実行可能なネガティブ テストを追加します。承認とテストが完了するまで、実稼働環境のアップロードと自動クリーンアップを無効にしておきます。|
 
-C-27 remains deferred; OSD-06 and OSD-07 remain blocked. OSD-09 is a related but separate per-PC allowlist/deployment gate. This crosswalk does not approve release policy or claim production distribution is operational. P0-010 remains open.
+C-27 は延期されたままです。 OSD-06 と OSD-07 はブロックされたままです。 OSD-09 は、関連していますが、PC ごとの個別の許可リスト/展開ゲートです。このクロスウォークは、リリース ポリシーを承認したり、実稼働ディストリビューションが動作していると主張したりするものではありません。 P0-010 は開いたままです。
 
 
-## Focused evidence reconciliation — C-29 retry ownership and idempotency
+<a id="focused-evidence-reconciliation--c-29-retry-ownership-and-idempotency"></a>
+## 重点的な証拠の調整 — C-29 所有権と冪等性の再試行
 
-| Normative clause | Requirement IDs | Current artifacts and evidence | Evidence disposition | Remaining acceptance gap |
+|規範条項|要件 ID|既存成果物と証拠|証拠の処分|受け入れに残る不足|
 |---|---|---|---|---|
-| C-29 / C-18: Python performs exactly one API attempt per invocation; PowerShell alone classifies retryable failures and owns a maximum of four total attempts with 1/5/15-minute waits; ambiguous upload outcomes require Drive-state reconciliation before retry | EOLM-DRV-008–012, EOLM-IPC-004–006, EOLM-OPS-003, EOLM-TST-004/007/008; related EOLM-REL-012 | `docs/decisions/decision-register-c18-c32.md` records the fixed retry rule. `docs/design/powershell-python-contract.md` §§2, 6–8 specifies error codes, retry ownership, retry ceiling, waits, upload-outcome reconciliation and the prohibition on implicit HTTP-client/library retries. The tracked tree has request/response schemas and schema/helper/package tests, but no Python Drive adapter, official PowerShell orchestrator, or process-boundary harness; IPC-01–06 remain not implemented/not run. | Contractual design evidence only. No executable evidence demonstrates one API attempt per adapter invocation, PowerShell-only retry classification, exact wait sequence, hidden retry disabling, or ambiguous-upload reconciliation. Successful schema/package CI does not establish runtime retry behavior. | Implement only after the runtime contract and prerequisite decisions are approved. Add deterministic adapter tests proving one call per invocation and no implicit client retries; orchestrator tests for retryable/non-retryable codes, 4-attempt ceiling, 1/5/15-minute waits using injected clock/sleeper, timeout/response-loss handling, and upload-state reconciliation before retry. Preserve no-delete constraints and test that exhausted retries fail the run rather than report success. |
+|C-29 / C-18: Python は呼び出しごとに API を 1 回だけ実行します。 PowerShell のみが再試行可能な失敗を分類し、1/5/15 分の待機を伴う合計最大 4 つの試行を所有します。 曖昧 アップロード結果では、再試行する前にドライブ状態の調整が必要です|EOLM-DRV-008–012、EOLM-IPC-004–006、EOLM-OPS-003、EOLM-TST-004/007/008;関連EOLM-REL-012|`docs/decisions/decision-register-c18-c32.md` は固定の再試行規則を記録する。`docs/design/powershell-python-contract.md` §§2、6〜8 は、エラーコード、再試行の担当、上限、待機、アップロード結果の照合、HTTPクライアント・ライブラリによる暗黙の再試行の禁止を定める。追跡対象には要求・応答スキーマとスキーマ・ヘルパー・パッケージのテストがあるが、Python のDriveアダプター、正式な PowerShell の統括処理、プロセス境界の試験ハーネスはない。IPC-01〜06 は未実装・未実行のままである。|契約上の設計証拠のみ。アダプター呼び出しごとに 1 つの API 試行、PowerShell のみの再試行分類、正確な待機シーケンス、非表示の再試行の無効化、または曖昧なアップロードの調整を示す実行可能な証拠はありません。スキーマ/パッケージ CI が成功しても、実行時の再試行動作は確立されません。|実行時契約と前提条件の決定が承認された後にのみ実装します。呼び出しごとに 1 つの呼び出しと暗黙的なクライアントの再試行がないことを証明する確定的なアダプター テストを追加します。オーケストレーターは、再試行可能/再試行不可能なコード、4 試行の上限、注入されたクロック/スリーパーを使用した 1/5/15 分の待機、タイムアウト/応答損失の処理、再試行前のアップロード状態の調整をテストします。削除禁止制約を保持し、再試行を使い果たした場合に成功を報告するのではなく、実行が失敗することをテストします。|
 
-C-29's retry ownership rule is recorded as fixed, but runtime acceptance remains open until executable process-boundary evidence exists. This crosswalk does not introduce runtime behavior, credentials, real Drive calls, production paths, real logs, or deletion behavior. P0-010 remains open.
+C-29 の再試行所有権ルールは修正済みとして記録されますが、実行可能なプロセス境界の証拠が存在するまで、ランタイムの受け入れはオープンのままになります。このクロスウォークでは、実行時の動作、認証情報、実際のドライブ呼び出し、運用パス、実際のログ、または削除動作は導入されません。 P0-010 は開いたままです。
 
 
-## Focused evidence reconciliation — C-30 Dry Run side-effect boundary (OSD-04)
+<a id="focused-evidence-reconciliation--c-30-dry-run-side-effect-boundary-osd-04"></a>
+## 重点的な証拠の調整 — C-30 Dry Run 副作用境界 (OSD-04)
 
-| Normative clause | Requirement IDs | Current artifacts and evidence | Evidence disposition | Remaining acceptance gap |
+|規範条項|要件 ID|既存成果物と証拠|証拠の処分|受け入れに残る不足|
 |---|---|---|---|---|
-| C-30 / OSD-04: define Dry Run's complete local side-effect boundary, including reports, operational manifests, locks, temporary request/response files, and cleanup, while prohibiting Drive mutations and downloaded/final-content writes | EOLM-DRV-016, EOLM-SAF-002/006, EOLM-TST-005/007 | `docs/design/powershell-python-contract.md` §3 prohibits Drive changes and downloaded-content writes when `dry_run=true`; §8 describes per-invocation temporary request files and their cleanup. `docs/validation/runtime-safety-test-scenarios.md` ARC-01 and §7 require a Dry Run to avoid upload, final placement, archive placement, and deletion. `docs/requirements/p0-open-specification-decisions.md` OSD-04 explicitly says permitted reporting/manifest/lock/temp-file side effects are not fully enumerated. The tracked tree has no official operational orchestrator or runtime Dry Run implementation; ARC-01 and related scenarios are design expectations, not executed tests. | Partial design evidence only. Drive mutation and content-write prohibitions are stated, but there is no complete approved allowed/forbidden local side-effect matrix and no before/after filesystem plus mocked-Drive snapshot test evidence. | Approve a side-effect matrix for reports, manifests, lock acquisition/state, temporary request/response files, staging, archive/final paths, and cleanup. Then implement deterministic Dry Run tests using isolated temporary directories and mocked Drive snapshots; compare pre/post filesystem and Drive state, assert allowed report outputs only, and verify no operational manifest/lock mutation unless explicitly approved. Keep the current conservative prohibition until approval. |
+|C-30 / OSD-04: レポート、操作マニフェスト、ロック、一時要求/応答ファイル、クリーンアップを含む Dry Run の 完了 ローカル副作用境界を定義し、ドライブの変更とダウンロード/最終コンテンツの書き込みを禁止します| EOLM-DRV-016, EOLM-SAF-002/006, EOLM-TST-005/007 |`docs/design/powershell-python-contract.md` §3 は、`dry_run=true` の場合、ドライブの変更とダウンロードされたコンテンツの書き込みを禁止します。 §8 では、呼び出しごとの一時リクエスト ファイルとそのクリーンアップについて説明します。 `docs/validation/runtime-safety-test-scenarios.md` ARC-01 および §7 では、アップロード、最終配置、アーカイブ配置、削除を回避するために Dry Run が必要です。 `docs/requirements/p0-open-specification-decisions.md` OSD-04 は、許可されているレポート/マニフェスト/ロック/一時ファイルの副作用が完全に列挙されていないことを明示的に示しています。追跡されるツリーには、正式な運用オーケストレーターやランタイム Dry Run 実装はありません。 ARC-01 および関連シナリオは設計上の想定であり、実行されたテストではありません。|部分的な設計証拠のみ。ドライブの突然変異とコンテンツ書き込みの禁止が記載されていますが、完全に承認された許可/禁止のローカル副作用マトリックスはなく、ファイルシステムと模擬ドライブ スナップショット テストの前後の証拠もありません。|レポート、マニフェスト、ロックの取得/状態、一時的な要求/応答ファイル、ステージング、アーカイブ/最終パス、クリーンアップの副作用マトリックスを承認します。次に、分離された一時ディレクトリとモック化されたドライブ スナップショットを使用して、決定論的な Dry Run テストを実装します。事前/事後のファイルシステムとドライブの状態を比較し、許可されたレポート出力のみをアサートし、明示的に承認されない限り操作マニフェスト/ロックの変更がないことを検証します。承認されるまでは現在の保守的な禁止を維持してください。|
 
-OSD-04 remains blocked and C-30 runtime acceptance remains open. This crosswalk does not approve new side effects or implement Dry Run behavior. P0-010 remains open.
+OSD-04 はブロックされたままで、C-30 ランタイム受け入れは開いたままになります。このクロスウォークは、新しい副作用を承認したり、Dry Run 動作を実装したりするものではありません。 P0-010 は開いたままです。
 
 
-## Focused evidence reconciliation — C-31 filename-derived period eligibility
+<a id="focused-evidence-reconciliation--c-31-filename-derived-period-eligibility"></a>
+## 焦点を絞った証拠の調整 — C-31 ファイル名に基づく期間の適格性
 
-| Normative clause | Requirement IDs | Current artifacts and evidence | Evidence disposition | Remaining acceptance gap |
+|規範条項|要件 ID|既存成果物と証拠|証拠の処分|受け入れに残る不足|
 |---|---|---|---|---|
-| C-31: sync and archive eligibility uses the date parsed from the filename; process all eligible backlog periods and apply the distinct BattleLog/ErrorReport cutoffs | EOLM-FIL-001–009, EOLM-TST-003; archive gates EOLM-ARC-001–006 | `docs/decisions/decision-register-c18-c32.md` records the C-31 cutoff policy; `docs/design/filename-and-period-selection.md` §§2–7 defines anchored case-sensitive patterns, strict yyyyMMdd/InvariantCulture parsing, filename-date-only eligibility, backlog processing, sync/archive cutoffs, and invalid-name failure handling. `docs/validation/filename-period-test-plan.md` specifies SEL-RT-01–10, including backlog, LastWriteTime disagreement, mixed valid/invalid inputs, empty versus ineligible versus enumeration failure, and source immutability. `Common/LogFunctions.ps1` and `tests/Test-LogFunctions.ps1` provide executable helper-level pattern/date/cutoff assertions; PR #34 added month-end boundaries. PR #64 Validate (https://github.com/wasawo/eo-log-maintenance/actions/runs/39401658111) and Package Validation (https://github.com/wasawo/eo-log-maintenance/actions/runs/39401658097) succeeded on PR #64 HEAD `a7302714fd15671c397b1f631d62eca81c433a7d`; these are general repository CI evidence, not a runtime enumeration run. | Specification and helper-level evidence only. CI does not demonstrate runtime directory enumeration, every eligible backlog period being selected, filename-date precedence over filesystem timestamps at the orchestration boundary, mixed-directory failure aggregation, or source immutability during an actual selection run. SEL-RT-01–10 remain design-only and not executed. | Implement an official target-enumeration entry point only after the required runtime decisions are approved. Then run the SEL-RT synthetic fixture matrix against isolated temporary directories and injected time; record per-case executable results. Do not settle OSD-03 run/period status aggregation in tests before approval. Keep filename date as the sole eligibility source; do not use LastWriteTime as fallback. |
+|C-31: 同期およびアーカイブの対象条件には、ファイル名から解析された日付が使用されます。対象となるすべてのバックログ期間を処理し、個別の BattleLog/ErrorReport カットオフを適用します。|EOLM-FIL-001–009、EOLM-TST-003;アーカイブゲート EOLM-ARC-001–006|`docs/decisions/decision-register-c18-c32.md` は C-31 の対象期間境界の方針を記録する。`docs/design/filename-and-period-selection.md` §§2〜7 は、全体一致・大小文字を区別するパターン、yyyyMMdd/InvariantCultureによる厳密な解析、ファイル名の日付だけによる対象判定、過去の未処理分、同期・アーカイブの境界、無効な名前の失敗処理を定める。`docs/validation/filename-period-test-plan.md` は SEL-RT-01〜10 を定め、未処理分、LastWriteTimeとの不一致、有効・無効入力の混在、空・対象外・列挙失敗の区別、元の不変性を含む。`Common/LogFunctions.ps1` と `tests/Test-LogFunctions.ps1` は、パターン・日付・境界に対する実行可能なヘルパー検証を提供する。PR #34 で月末境界を追加した。PR #64 のHEAD `a7302714fd15671c397b1f631d62eca81c433a7d` に対するPR #64 のValidate（https://github.com/wasawo/eo-log-maintenance/actions/runs/39401658111）とPackage Validation（https://github.com/wasawo/eo-log-maintenance/actions/runs/39401658097）は成功した。これはリポジトリ全般の CI の証拠であり、実行時の列挙処理を実施した証拠ではない。|仕様およびヘルパーレベルの証拠のみ。 CI は、実行時ディレクトリの列挙、選択されている対象となるすべてのバックログ期間、オーケストレーション境界でのファイルシステムのタイムスタンプに対するファイル名と日付の優先順位、混合ディレクトリ障害の集計、実際の選択実行中のソースの不変性を示していません。 SEL-RT-01–10 はデザインのみのままであり、実行されません。|公式のターゲット列挙エントリ ポイントは、必要な実行時の決定が承認された後にのみ実装してください。次に、分離された一時ディレクトリと注入時間に対して SEL-RT 合成フィクスチャ マトリックスを実行します。ケースごとの実行可能結果を記録します。承認前に、テストでの OSD-03 実行/期間ステータスの集計を解決しないでください。ファイル名の日付を唯一の対象判定の根拠として保持します。 LastWriteTime をフォールバックとして使用しないでください。|
 
-C-31's cutoff policy is specified and portions of its helper logic are covered by executable tests, but end-to-end selection acceptance remains open. This reconciliation does not close P0-010 or authorize runtime, Drive, or destructive operations.
+C-31 のカットオフ ポリシーが指定されており、そのヘルパー ロジックの一部は実行可能なテストでカバーされていますが、エンドツーエンドの選択の受け入れはオープンなままです。この調整は、P0-010 を閉じたり、ランタイム、ドライブ、または破壊的な操作を許可したりするものではありません。
 
 
-## Focused evidence reconciliation — C-32 initial inventory and restore boundary
+<a id="focused-evidence-reconciliation--c-32-initial-inventory-and-restore-boundary"></a>
+## 重点的な証拠の調整 - C-32 初期インベントリと復元境界
 
-| Normative clause | Requirement IDs | Current artifacts and evidence | Evidence disposition | Remaining acceptance gap |
+|規範条項|要件 ID|既存成果物と証拠|証拠の処分|受け入れに残る不足|
 |---|---|---|---|---|
-| C-32: keep initial inventory/restoration records separate from operational manifests; compare Drive files against PC-A backups by name, size and SHA-256; require Dry Run review before restoration; hold unmatched/conflicting/unknown-origin files; never automatically restore, archive, or delete them; do not treat inventory completion as operational sync/archive success | EOLM-SYN-006–009, EOLM-SAF-002, related EOLM-TST-005/007 | `docs/decisions/decision-register-c18-c32.md` records the C-32 policy. `README.md` documents inventory/restore constraints. `docs/requirements/requirements-traceability.md` provides the associated requirement IDs. `docs/development/implementation-workflow.md` and `docs/requirements/p0-open-specification-decisions.md` retain provenance/trust and Dry Run decision gates. The tracked tree contains no dedicated operational inventory/restore entry point or runtime inventory report implementation. Existing schema/helper/package CI is not an inventory execution test; PR #65 Validate (https://github.com/wasawo/eo-log-maintenance/actions/runs/39402126761) and Package Validation (https://github.com/wasawo/eo-log-maintenance/actions/runs/39402126688) succeeded on PR #65 HEAD `f1069a88af0c16d1997c5e50519a689973040cb7`, but those runs did not execute inventory/restore behavior. C-32 itself does not define a separate inventory report format. | Policy/document mapping exists; operational inventory, provenance comparison, Dry Run restore review, and hold/quarantine behavior have no executable runtime evidence. Inventory completion cannot establish sync success or archive eligibility. Unknown-origin object trust remains constrained by OSD-01, and Dry Run side effects remain blocked by OSD-04. | Before implementing inventory/restore, define any required report contract only if the normative source requires it; otherwise do not invent one. Implement isolated synthetic tests for name/size/hash comparison, matched/unmatched/conflicting/unknown-origin disposition, before/after source/cloud snapshots, and the separation between inventory results and operational manifests. Resolve OSD-01/OSD-04 gates before any provenance-dependent restore behavior. Keep automatic restore/archive/delete prohibited for ambiguous items. |
+|C-32: 初期インベントリ/復元記録を運用マニフェストとは別に保管します。ドライブ ファイルを名前、サイズ、SHA-256 に基づいて PC-A バックアップと比較します。復元前にDry Runのレビューが必要です。一致しない/競合する/不明 起源のファイルを保持します。決して自動的に復元、アーカイブ、または削除しないでください。インベントリの完了を運用上の同期/アーカイブとして扱わないでください 成功|EOLM-SYN-006–009、EOLM-SAF-002、関連する EOLM-TST-005/007|`docs/decisions/decision-register-c18-c32.md` は C-32 ポリシーを記録します。 `README.md` は、インベントリ/復元の制約を文書化します。 `docs/requirements/requirements-traceability.md` は、関連する要件 ID を提供します。 `docs/development/implementation-workflow.md` と `docs/requirements/p0-open-specification-decisions.md` は出所/信頼性と Dry Run 決定ゲートを保持します。追跡されるツリーには、専用の運用インベントリ/復元エントリ ポイントや実行時インベントリ レポートの実装は含まれません。既存のスキーマ/ヘルパー/パッケージ CI はインベントリ実行テストではありません。 PR #65 検証 (https://github.com/wasawo/eo-log-maintenance/actions/runs/39402126761) とパッケージ検証 (https://github.com/wasawo/eo-log-maintenance/actions/runs/39402126688) は PR #65 HEAD `f1069a88af0c16d1997c5e50519a689973040cb7` で成功しましたが、これらの実行ではインベントリ/復元動作が実行されませんでした。 C-32 自体は、個別の一覧レポート形式を定義しません。|ポリシー/ドキュメントのマッピングが存在します。運用インベントリ、来歴の比較、Dry Run 復元レビュー、および保留/隔離動作には、実行可能な実行時の証拠がありません。インベントリの完了では、同期の成功やアーカイブの適格性を確立できません。不明な生成元のオブジェクトの信頼は OSD-01 によって制限されたままであり、Dry Run の副作用は OSD-04 によってブロックされたままになります。|インベントリ/復元を実装する前に、規範的なソースが要求する場合にのみ、必要なレポート コントラクトを定義します。それ以外の場合は発明しないでください。名前/サイズ/ハッシュの比較、一致/不一致/競合/不明な生成元の性質、ソース/クラウドのスナップショットの前後、インベントリ結果と運用マニフェストの分離のための分離された合成テストを実装します。出所に依存した復元動作の前に、OSD-01/OSD-04 ゲートを解決します。あいまいな項目については、自動復元/アーカイブ/削除を禁止しておきます。|
 
-C-32 is policy-mapped but not runtime-implemented or runtime-verified. This audit does not create an inventory format, authorize restoration against real Drive data, or close P0-010.
+C-32 はポリシーマップされていますが、ランタイム実装またはランタイム 確認済み ではありません。この監査では、インベントリ形式の作成、実際のドライブ データに対する復元の承認、P0-010 の終了は行われません。
 
 
-## Focused evidence reconciliation — C-28 archive gate (reconciled after PR #90)
+<a id="focused-evidence-reconciliation--c-28-archive-gate-reconciled-after-pr-90"></a>
+## 重点証拠の調整 — C-28 アーカイブ ゲート (PR #90 後に調整)
 
-| Normative clause | Requirement IDs | Current artifacts and evidence | Evidence disposition | Remaining acceptance gap |
+|規範条項|要件 ID|既存成果物と証拠|証拠の処分|受け入れに残る不足|
 |---|---|---|---|---|
-| C-28: PC-A archive requires explicit `allowArchive: true`; missing/invalid values fail closed; PC-B config containing `allowArchive` is invalid | EOLM-CFG-004/007, EOLM-ARC-001/004/005, EOLM-SAF-001/003, EOLM-TST-005/006 | `Config/PC-A.example.json` retains safe default `allowArchive: false`; `Config/PC-B.example.json` omits it. PR #78's `.github/scripts/Build-ReleasePackage.ps1` now validates example-config role semantics and rejects PC-A non-boolean `allowArchive`, PC-B `allowArchive`, and `allowDelete`; `tests/Test-ReleasePackage.ps1` has package-builder fixture coverage for those cases. These are example/package-builder checks only; there is no official runtime config loader or archive entry point. | Example/package-builder semantic evidence exists; runtime authorization not implemented / not run | Add active-config loader tests for PC-A true/false/missing/invalid and PC-B property absent/present. Verify rejection happens before file enumeration or any side effect. Do not treat example config validation as runtime authorization. |
-| C-28: both PCs' relevant manifests and cloud content must be verified before archive; stale, missing, failed, mismatched or unknown state blocks archive | EOLM-MAN-001–012, EOLM-ARC-001/003/006, EOLM-DRV-005–008, EOLM-SAF-003, EOLM-MAN-011, related EOLM-TST-005/007 | MAN-01–10 and the C-28 scenario prose describe expected gates. No official runtime entry points, manifest schema/readers/writers, cloud content verifier or archive orchestrator exist. OSD-02 blocks schema/state transitions; OSD-03 blocks exhaustive mixed-result aggregation; EOLM-MAN-011 remains blocked because numeric freshness/future-time tolerances and applicability remain undefined. | Design-only; blocked / not implemented / not run | Resolve OSD-02/03 and MAN-011 policy; then implement and test missing/old/future/mismatched/failed/unknown manifests, content hash changes, timeout/unknown API outcomes, and prove no archive copy begins before all required checks succeed. |
-| C-28: archive is copy, verify, and record only; never delete the Drive source or local source | EOLM-ARC-001–006, EOLM-SAF-001/004/005, EOLM-TST-005/006, P0-012 | ARC-01–09 describe Dry Run, copy/hash/record ordering, failure retention, PC-B exclusion and conflict handling. PR #84's bounded deletion-surface audit provides static evidence for inspected paths/contracts/config templates; PR #78 rejects `allowDelete` in example configs. No runtime archive implementation, full release-package capability proof, or executable before/after source/Drive mutation test exists. | Policy plus bounded static/package evidence; runtime no-delete guarantee not established | Add static guard fixtures that deliberately introduce forbidden delete APIs/config/contract operations and must fail. Once runtime exists, snapshot local source, Drive mock, staging, archive and manifest around each success/failure path; prove no source deletion and no overwrite on hash conflict. Keep P0-012 open. |
-| C-28 / ARC-08: interrupted copy or uncertain verification must reconcile safely without overwriting a conflict or claiming success | EOLM-ARC-003/006, EOLM-MAN-005/009/010/012, EOLM-DRV-005/008, EOLM-SAF-003/005 | ARC-08 defines recovery expectations in prose only. No archive destination reconciliation, idempotency logic, manifest writer, or fault-injection runtime tests exist. OSD-01 blocks trust of unmarked objects; OSD-02/03 block manifest/state and status policy. | Not implemented / not run; decision-blocked where noted | After policy approval, test absent destination, matching existing hash, conflicting hash, inaccessible destination, interrupted copy, verification timeout and manifest-write failure. Assert no overwrite/delete and no success status until verification plus result recording complete. |
+|C-28: PC-A アーカイブには明示的な `allowArchive: true` が必要です。欠落値または無効な値はフェールクローズされます。 `allowArchive` を含む PC-B 構成は無効です| EOLM-CFG-004/007, EOLM-ARC-001/004/005, EOLM-SAF-001/003, EOLM-TST-005/006 |`Config/PC-A.example.json` は安全なデフォルトの `allowArchive: false` を保持します。 `Config/PC-B.example.json` は省略します。 PR #78 の `.github/scripts/Build-ReleasePackage.ps1` は、example-config ロールのセマンティクスを検証し、PC-A 非ブール値 `allowArchive`、PC-B `allowArchive`、および `allowDelete` を拒否するようになりました。 `tests/Test-ReleasePackage.ps1` には、これらのケースに対応するパッケージ ビルダー フィクスチャが含まれています。これらはサンプル/パッケージビルダーのチェックのみです。公式のランタイム設定ローダーやアーカイブ エントリ ポイントはありません。|例/パッケージビルダーの意味論的な証拠が存在します。実行時認可が実装されていない/実行されていない|PC-A true/false/欠落/無効および PC-B プロパティの欠落/存在に対するアクティブ構成ローダー テストを追加します。ファイルの列挙や副作用の前に拒否が発生することを確認します。サンプル構成の検証を実行時の認証として扱わないでください。|
+|C-28: アーカイブする前に、PC の関連マニフェストとクラウド コンテンツの両方が 確認済み である必要があります。古い、欠落している、失敗した、不一致、または 不明 状態ブロックのアーカイブ|EOLM-MAN-001–012、EOLM-ARC-001/003/006、EOLM-DRV-005–008、EOLM-SAF-003、EOLM-MAN-011、関連 EOLM-TST-005/007|MAN-01–10 および C-28 シナリオの散文では、予想されるゲートについて説明します。公式のランタイム エントリ ポイント、マニフェスト スキーマ/リーダー/ライター、クラウド コンテンツ検証ツール、またはアーカイブ オーケストレーターは存在しません。 OSD-02 はスキーマ/状態遷移をブロックします。 OSD-03 は、徹底的な混合結果の集計をブロックします。 EOLM-MAN-011 は、数値の鮮度/将来の許容範囲と適用性が未定義のままであるため、ブロックされたままです。|デザインのみ。ブロックされている / 未実装 / 実行されていない|OSD-02/03 および MAN-011 ポリシーを解決します。次に、欠落/古い/将来/不一致/失敗/不明のマニフェスト、コンテンツ ハッシュの変更、タイムアウト/不明な API 結果を実装してテストし、必要なチェックがすべて成功する前にアーカイブ コピーが開始されないことを証明します。|
+|C-28: アーカイブはコピー、検証、記録のみです。ドライブ ソースまたはローカル ソースは決して削除しないでください| EOLM-ARC-001–006, EOLM-SAF-001/004/005, EOLM-TST-005/006, P0-012 |ARC-01–09 では、Dry Run、コピー/ハッシュ/レコードの順序付け、失敗 の保持、PC-B の除外、および競合の処理について説明します。 PR #84 の限定削除サーフェス監査は、検査されたパス/contracts/config テンプレートの静的な証拠を提供します。 PR #78 は、構成例の `allowDelete` を拒否します。ランタイム アーカイブの実装、完全なリリース パッケージ機能の証明、またはソース/ドライブの変更テストの前後に実行可能なファイルは存在しません。|ポリシーと限定された静的/パッケージの証拠。ランタイム非削除保証が確立されていない|禁止された API/構成/契約の削除操作を意図的に導入し、必ず失敗させる静的ガード フィクスチャを追加します。ランタイムが存在したら、成功/失敗のパスごとにローカル ソース、ドライブ モック、ステージング、アーカイブ、マニフェストのスナップショットを作成します。ソースの削除やハッシュの競合がないことを証明します。 P0-012 を開いたままにしてください。|
+|C-28 / ARC-08: 中断されたコピーまたは不確実な検証は、競合を上書きしたり、成功 を要求したりすることなく、安全に調整する必要があります。| EOLM-ARC-003/006, EOLM-MAN-005/009/010/012, EOLM-DRV-005/008, EOLM-SAF-003/005 |ARC-08 は回復の期待値を散文のみで定義します。アーカイブ宛先調整、べき等ロジック、マニフェスト ライター、またはフォールト挿入ランタイム テストは存在しません。 OSD-01 はマークのないオブジェクトの信頼をブロックします。 OSD-02/03 block manifest/状態・ステータスの方針.|実装されていない/実行されていません。記載されている場合は意思決定がブロックされます|ポリシーの承認後、宛先の不在、一致する既存のハッシュ、ハッシュの競合、アクセス不能な宛先、コピーの中断、検証タイムアウト、およびマニフェスト書き込みの失敗をテストします。検証と結果の記録が完了するまで、上書き/削除なし、および成功ステータスなしをアサートします。|
 
-### Evidence boundary and disposition
+<a id="evidence-boundary-and-disposition"></a>
+### 証拠の境界と扱い
 
-- PR #78's role/config checks are real package-builder tests, but they validate example config and packaging behavior; they do not validate a runtime active configuration or authorize archive operations.
-- MAN/ARC tables and schema tests do not execute a two-PC manifest gate, freshness check, cloud content verification, copy/verify/record ordering, or interruption recovery.
-- OSD-01/02/04 and EOLM-MAN-011 remain distinct blockers; OSD-03 aggregation policy/representation is approved but report contract/evidence remains open. Do not infer trust, full state transitions, Dry Run local side effects, or freshness thresholds.
-- EOLM-ARC-001–006 remain not implemented/not run or blocked as above. P0-010 and P0-012 remain open.
-- Safety boundary: documentation-only audit; no credentials, Drive calls, real logs, production paths, archive writes, or deletion behavior.
+- PR #78 のロール/構成チェックは実際のパッケージ ビルダー テストですが、サンプル構成とパッケージング動作を検証します。ランタイムのアクティブな構成を検証したり、アーカイブ操作を許可したりすることはありません。
+- MAN/ARC テーブルとスキーマ テストでは、2 台の PC のマニフェスト ゲート、鮮度チェック、クラウド コンテンツの検証、コピー/検証/レコードの順序付け、または中断回復は実行されません。
+- OSD-01/02/04 および EOLM-MAN-011 は依然として別個のブロッカーです。 OSD-03 集計ポリシー/表現は承認されていますが、レポート契約/証拠は未解決のままです。信頼、完全な状態遷移、Dry Run ローカルの副作用、または鮮度のしきい値を推測しないでください。
+- EOLM-ARC-001–006 は、上記のように実装されていない/実行されていない、またはブロックされたままです。 P0-010 と P0-012 は開いたままになります。
+- 安全境界: 文書のみの監査。認証情報、ドライブ呼び出し、実際のログ、本番パス、アーカイブ書き込み、または削除動作はありません。
 
-## Latest tracked-tree source-clause disposition (PR #69 merge baseline)
+<a id="latest-tracked-tree-source-clause-disposition-pr-69-merge-baseline"></a>
+## 最新の追跡ツリー ソース句の配置 (PR #69 マージ ベースライン)
 
-- Review baseline: `13df2952fe8e13ca114ddcf21532d840dfa8264e` (PR #69 merge). This is a static comparison of the tracked documentation, requirement register, source/test inventory, and known implementation/test files; it is not a fresh runtime execution.
-- **No source-section row in §2.1 is currently classified Unmapped.** The only literal `Unmapped` entry in the document is the definition in §1, not a source clause. Normative sections are linked to stable requirement IDs; this resolves ID-mapping visibility only, not implementation or acceptance.
-- Remaining Partial / blocked rows fall into these evidence dispositions:
-  1. **Helper-level executable evidence exists, runtime selection absent:** filename/date/cutoff helper assertions in `Common/LogFunctions.ps1` and `tests/Test-LogFunctions.ps1`; no official enumeration entry point, LastWriteTime-disagreement runtime fixture, mixed-directory aggregation, or run-status evidence.
-  2. **Schema-only / contract-shape evidence:** Drive request/response schema and `tests/test_contract_schemas.py`; no process-boundary proof for stdout/stderr, request correlation, timeout, exit-code consistency, secret redaction, retry ownership, or real adapter behavior.
-  3. **Package-builder / static evidence:** allowlist and review-only package checks; no operational SyncLogs/ArchiveLogs entry-point logic (SyncLogs is a sentinel and ArchiveLogs is absent), approved per-PC package command surface, semantic role/capability enforcement, or deployable release workflow.
-  4. **Design mapped but decision blocked:** manifest schema/state transitions (OSD-02), mixed run/period status aggregation (OSD-03 and EOLM-MAN-011), Dry Run local side effects (OSD-04), OAuth identity/scope (OSD-05), release authorization/retention/per-PC deployment (OSD-06/07/09), scheduler/lock recovery (OSD-08), and trusted-object provenance (OSD-01).
-  5. **No-delete and source preservation:** prohibitions are documented and schemas restrict exposed operations, but a complete source/package capability scan plus executable runtime/package rejection and before/after mutation evidence remain absent; P0-012 stays open.
-- Disposition: these rows are not “unmapped” merely because runtime tests are missing. Keep them Partial, blocked, or not implemented according to their current evidence; do not promote them to verified based on documentation CI. The clause-to-requirement-to-implementation-to-executable-test-to-objective-evidence chain is still incomplete, so P0-010 remains open.
-- Required next work: use the per-clause matrices in §§2–3.11 and focused C-18–C-32 crosswalks below to resolve stale/contradictory statuses one bounded slice at a time. Do not invent manifest/report schemas or run-status policy and do not introduce credentials, real Drive calls, real logs, production paths, or deletion behavior.
+- ベースラインを確認します: `13df2952fe8e13ca114ddcf21532d840dfa8264e` (PR #69 マージ)。これは、追跡されたドキュメント、要件登録、ソース/テスト インベントリ、および既知の実装/テスト ファイルの静的な比較です。これは新たなランタイム実行ではありません。
+- **__2.1 のソース セクション行は現在マップされていないと分類されています。** ドキュメント内の唯一のリテラル `Unmapped` エントリは、ソース句ではなく、§1 の定義です。規範セクションは安定した要件 ID にリンクされています。これは ID マッピングの可視性のみを解決し、実装や受け入れは解決しません。
+- 残りの部分的/ブロックされた行は、次の証拠の性質に分類されます。
+  1. **ヘルパー レベルの実行可能証拠が存在しますが、ランタイム選択がありません:** `Common/LogFunctions.ps1` および `tests/Test-LogFunctions.ps1` のファイル名/日付/カットオフ ヘルパー アサーション。公式の列挙エントリ ポイント、LastWriteTime の不一致ランタイム フィクスチャ、混合ディレクトリの集約、または実行ステータスの証拠はありません。
+  2. **スキーマのみ / 契約形状の証拠:** リクエスト/レスポンス スキーマおよび `tests/test_contract_schemas.py` を駆動します。 stdout/stderr、リクエストの相関関係、タイムアウト、終了コードの一貫性、シークレットの編集、所有権の再試行、または実際のアダプターの動作に対するプロセス境界の証明はありません。
+  3. **パッケージビルダー / 静的証拠:** ホワイトリストおよびレビュー専用パッケージのチェック。操作可能な SyncLogs/ArchiveLogs エントリ ポイント ロジック (SyncLogs はセンチネルであり、ArchiveLogs は存在しません)、承認された PC ごとのパッケージ コマンド サーフェス、セマンティックな役割/機能の強制、または展開可能なリリース ワークフローはありません。
+  4. **デザインはマップされましたが、意思決定はブロックされました:** マニフェスト スキーマ/状態遷移 (OSD-02)、混合実行/期間ステータス集計 (OSD-03 および EOLM-MAN-011)、Dry Run ローカル副作用 (OSD-04)、OAuth 同一性/スコープ (OSD-05)、リリース承認/保持/PC ごとの展開 (OSD-06/07/09)、スケジューラー/ロック回復 (OSD-08)、および信頼できるオブジェクトの出所 (OSD-01)。
+  5. **削除禁止とソース保存:** の禁止事項が文書化され、スキーマによって公開操作が制限されていますが、完了 ソース/パッケージの機能スキャンと実行可能ランタイム/パッケージの拒否、および変更前後の証拠は存在しないままです。 P0-012 は開いたままです。
+- 性質: これらの行は、ランタイム テストが欠落しているという理由だけで「マップ解除」されません。現在の証拠に基づいて、部分的、ブロックされている、または実装されていないものを維持します。ドキュメント CI に基づいて、それらを 確認済み に昇格させないでください。条項から要件、実装、実行可能テスト、客観的証拠のチェーンは依然として 未完了 であるため、P0-010 は開いたままになります。
+- 必要な次の作業: §§2–3.11 の句ごとの行列と、以下の焦点を当てた C-18–C-32 のクロスウォークを使用して、一度に 1 つの境界付きスライスごとに古い/矛盾したステータスを解決します。マニフェスト/レポート スキーマや実行ステータス ポリシーを作成したり、認証情報、実際のドライブ呼び出し、実際のログ、運用パス、または削除動作を導入したりしないでください。
 
 
-## Focused evidence reconciliation — IPC-01–06 (post-PR #81 baseline)
+<a id="focused-evidence-reconciliation--ipc-0106-post-pr-81-baseline"></a>
+## 重点的な証拠の調整 — IPC-01–06 (PR #81 ベースライン後)
 
-This slice reconciles the six process-boundary scenarios against the contract, tracked schema/test artifacts, and actual evidence state. The scenario names and expected fail-closed outcomes remain normative in `docs/validation/runtime-safety-test-scenarios.md` §6; mapping them to schema tests does not imply the process-boundary behavior is implemented.
+このスライスは、契約、追跡されたスキーマ/テスト成果物、および実際の証拠の状態に対して 6 つのプロセス境界シナリオを調整します。シナリオ名と予想されるフェイルクローズ結果は、`docs/validation/runtime-safety-test-scenarios.md` §6 の標準のままです。それらをスキーマ テストにマッピングしても、プロセス境界の動作が実装されることを意味するものではありません。
 
-| Scenario | Normative source clause | Requirement IDs | Existing artifact / test evidence | Evidence disposition | Remaining acceptance gap |
+|シナリオ|規範的なソース句|要件 ID|既存の成果物/テスト証拠|証拠の処分|受け入れに残る不足|
 |---|---|---|---|---|---|
-| IPC-01 — nonzero Python exit code must not be treated as success | `docs/design/powershell-python-contract.md` §§2, 5–6 | EOLM-DRV-013, EOLM-TST-004 | Contract specifies exit-code/JSON validation. `contracts/drive-response.schema.json` validates response shape only; `tests/test_contract_schemas.py` does not launch a child process or observe an exit code. | Not implemented / not run | Process harness must prove every nonzero exit fails closed even when stdout contains success-shaped JSON. |
-| IPC-02 — empty, invalid, multiple, or contaminated stdout must be rejected | Contract §§5–6 | EOLM-DRV-012–013, EOLM-TST-004 | Response schema and `test_contract_schemas.py` validate JSON instances, not raw stdout bytes, UTF-8 decoding, output count, or extra banners/diagnostics. Contract requires one UTF-8 JSON response on stdout and diagnostics on stderr. | Not implemented / not run | Test empty output, invalid UTF-8, malformed JSON, multiple JSON values, and non-JSON prefix/suffix through the real wrapper boundary. |
-| IPC-03 — response request ID / operation must match request | Contract §§4–5, 8 | EOLM-DRV-013, EOLM-TST-004 | Request and response schemas declare UUID/operation fields. Schema tests validate field formats and allowed operations but do not correlate a request with a separately produced response. | Not implemented / not run | Use mismatched request IDs and operations in process-level fixtures; assert response is discarded and workflow stops. |
-| IPC-04 — process exit code and JSON success must be consistent | Contract §§5–6 | EOLM-DRV-013, EOLM-TST-004 | Response schema enforces internal consistency between `success`, `result`, and `error`; existing tests include inconsistent success/error fields. No test joins that JSON result to the child process exit code. | Partial schema-shape evidence only; IPC behavior not implemented / not run | Add a process-level mismatch matrix: exit 0 + failure JSON, nonzero + success JSON, malformed output + either exit class. |
-| IPC-05 — child process timeout must fail closed | Contract §§2, 8; `docs/validation/runtime-safety-test-scenarios.md` §6 | EOLM-DRV-013, EOLM-OPS-003, EOLM-TST-004 | Contract assigns timeout ownership to PowerShell. No official PowerShell orchestrator or process-boundary harness is present; schema tests cannot demonstrate timeout/termination behavior. | Not implemented / not run | Add a deterministic hanging-child fixture; assert timeout is recorded, result is not inferred as success/not-run, and no follow-on operation is authorized. |
-| IPC-06 — secrets must not leak to stdout, stderr, or operational logs | Contract §§1–2, 9; `docs/validation/runtime-safety-test-scenarios.md` §6 | EOLM-SEC-001, EOLM-OPS-005, EOLM-TST-005 | Contract documents redaction. No Python adapter or runtime logging path is present; schema tests do not inject secret-bearing exceptions or inspect process/log output. | Not implemented / not run | Inject synthetic secrets in exceptions and verify stdout/stderr/log capture is sanitized without using real credentials. |
+|IPC-01 — ゼロ以外の Python 終了コードを 成功 として扱ってはなりません| `docs/design/powershell-python-contract.md` §§2, 5–6 | EOLM-DRV-013, EOLM-TST-004 |契約では終了コード/JSON 検証を指定します。 `contracts/drive-response.schema.json` は応答形状のみを検証します。 `tests/test_contract_schemas.py` は子プロセスを起動せず、終了コードも監視しません。|未実装 / 未実行|プロセス ハーネスは、標準出力に成功の形をした JSON が含まれている場合でも、ゼロ以外のすべての出口が失敗して閉じられたことを証明する必要があります。|
+|IPC-02 — 空、無効、複数、または汚染された標準出力は拒否される必要があります|契約 §§5–6| EOLM-DRV-012–013, EOLM-TST-004 |応答スキーマと `test_contract_schemas.py` は、生の stdout バイト、UTF-8 デコード、出力カウント、または追加のバナー/診断ではなく、JSON インスタンスを検証します。コントラクトには、stdout での 1 つの UTF-8 JSON 応答と、stderr での診断が必要です。|未実装 / 未実行|空の出力、無効な UTF-8、不正な形式の JSON、複数の JSON 値、および実際のラッパー境界を介した非 JSON プレフィックス/サフィックスをテストします。|
+|IPC-03 — 応答要求 ID / 操作は要求と一致する必要があります|契約 §§4–5、8| EOLM-DRV-013, EOLM-TST-004 |リクエストおよびレスポンスのスキーマは、UUID/操作フィールドを宣言します。スキーマ テストは、フィールドの形式と許可された操作を検証しますが、リクエストと個別に生成されたレスポンスを関連付けることはありません。|未実装 / 未実行|プロセスレベルのフィクスチャで一致しないリクエスト ID とオペレーションを使用します。アサート応答は破棄され、ワー​​クフローが停止します。|
+|IPC-04 — プロセス終了コードと JSON 成功 は一致している必要があります|契約 §§5–6| EOLM-DRV-013, EOLM-TST-004 |応答スキーマは、`success`、`result`、および `error` 間の内部一貫性を強制します。既存のテストには、一貫性のない成功/エラー フィールドが含まれています。 JSON の結果を子プロセスの終了コードに結合するテストはありません。|部分的なスキーマ形状の証拠のみ。 IPC 動作が実装されていない/実行されていない|プロセスレベルの不一致行列を追加します: 終了 0 + 失敗 JSON、ゼロ以外 + 成功 JSON、不正な出力 + いずれかの終了クラス。|
+|IPC-05 — 子プロセスのタイムアウトはフェイルクローズする必要があります|契約 §§2、8; `docs/validation/runtime-safety-test-scenarios.md` §6| EOLM-DRV-013, EOLM-OPS-003, EOLM-TST-004 |コントラクトはタイムアウト所有権を PowerShell に割り当てます。公式の PowerShell オーケストレーターやプロセス境界ハーネスは存在しません。スキーマ テストでは、タイムアウト/終了の動作を実証できません。|未実装 / 未実行|決定的な吊り下げ子フィクスチャを追加します。アサート タイムアウトは記録され、結果は成功/未実行として推論されず、後続の操作は許可されません。|
+|IPC-06 — 秘密情報が stdout、stderr、または操作ログに漏洩してはなりません|契約 §§1–2、9; `docs/validation/runtime-safety-test-scenarios.md` §6| EOLM-SEC-001, EOLM-OPS-005, EOLM-TST-005 |契約書類の編集。 Python アダプターまたはランタイム ログ パスが存在しません。スキーマ テストでは、秘密を伴う例外を挿入したり、プロセス/ログ出力を検査したりしません。|未実装 / 未実行|例外に合成シークレットを挿入し、実際の認証情報を使用せずに stdout/stderr/log キャプチャがサニタイズされていることを確認します。|
 
-### Evidence boundary and disposition
+<a id="evidence-boundary-and-disposition-1"></a>
+### 証拠の境界と扱い
 
-- Existing executable CI coverage: `tests/test_contract_schemas.py` checks Draft 2020-12 schema validity, allowed operations, required fields, UUID/SHA-256 format, unknown-field/operation rejection, and response-field consistency. It does **not** execute IPC-01–06.
-- Relevant CI: `Validate` runs the schema tests; `Package Validation` tests the package builder. Passing either workflow is not evidence of process-boundary behavior.
-- Runtime artifacts absent at this baseline: official `scripts/SyncLogs.ps1`, `scripts/ArchiveLogs.ps1`, Python Drive adapter, and a PowerShell/Python process harness. The request/response schemas are not a substitute for those components.
-- Keep IPC-01–06 classified as not implemented/not run (IPC-04 has schema-shape evidence only). Do not mark the six scenarios verified or close P0-010 on the basis of schema/package/documentation CI.
-- Safety boundary: no real credentials, Drive calls, real logs, production paths, or deletion behavior. OSD-02/03/04/05 and contract operator approval remain separate gates.
+- 既存の実行可能な CI の検証範囲: `tests/test_contract_schemas.py` はDraft 2020-12 のスキーマ妥当性、許可操作、必須項目、UUID/SHA-256 形式、不明なフィールド・操作の拒否、応答フィールド間の整合を検証する。IPC-01〜06 を **実行するものではない**。
+- 関連する CI: `Validate` はスキーマ テストを実行します。 `Package Validation` はパッケージ ビルダーをテストします。どちらのワークフローを通過しても、プロセス境界動作の証拠にはなりません。
+- このベースラインには存在しないランタイム 成果物: 公式 `scripts/SyncLogs.ps1`、`scripts/ArchiveLogs.ps1`、Python ドライブ アダプター、および PowerShell/Python プロセス ハーネス。リクエスト/レスポンス スキーマは、これらのコンポーネントの代わりにはなりません。
+- IPC-01–06 を未実装/未実行として分類しておきます (IPC-04 にはスキーマ形状の証拠のみがあります)。スキーマ/パッケージ/ドキュメント CI に基づいて、6 つのシナリオを 確認済み とマークしたり、P0-010 を閉じたりしないでください。
+- 安全境界: 実際の認証情報、ドライブ呼び出し、実際のログ、運用パス、または削除動作はありません。 OSD-02/03/04/05 と契約オペレーターの承認は別個のゲートのままです。
 
 
-## Focused evidence reconciliation — MAN-01–10 and EOLM-MAN-011/012 (post-PR #82 baseline)
+<a id="focused-evidence-reconciliation--man-0110-and-eolm-man-011012-post-pr-82-baseline"></a>
+## 重点的な証拠の調整 — MAN-01–10 および EOLM-MAN-011/012 (PR 後 #82 ベースライン)
 
-This slice distinguishes manifest policy documented in `docs/design/staging-file-lifecycle.md` §8 and scenario expectations in `docs/validation/runtime-safety-test-scenarios.md` §4 from executable implementation evidence. The current tree has no `contracts/manifest.schema.json`, manifest reader/writer, official runtime entry points, or runtime manifest/archive gate. The Drive request/response schemas do not define the maintenance manifest.
+このスライスは、`docs/design/staging-file-lifecycle.md` §8 に文書化されたマニフェスト ポリシーと `docs/validation/runtime-safety-test-scenarios.md` §4 のシナリオの期待を、実行可能実装の証拠から区別します。現在のツリーには、`contracts/manifest.schema.json`、マニフェスト リーダー/ライター、公式ランタイム エントリ ポイント、またはランタイム マニフェスト/アーカイブ ゲートがありません。ドライブのリクエスト/レスポンス スキーマはメンテナンス マニフェストを定義しません。
 
-| Scenario / requirement group | Normative source | Requirement IDs | Existing artifacts and evidence | Evidence disposition | Remaining acceptance gap |
+|シナリオ/要件グループ|基準ソース|要件 ID|既存の成果物と証拠|証拠の処分|受け入れに残る不足|
 |---|---|---|---|---|---|
-| MAN-01 — matching successful manifests for both PCs | `docs/validation/runtime-safety-test-scenarios.md` §4; `docs/design/staging-file-lifecycle.md` §8 | EOLM-MAN-002/003/004/007/010, EOLM-ARC-002 | Scenario and lifecycle text define correlation by PC, period, log type, and verified content; no manifest implementation or archive gate exists. | Not implemented / not run | Add synthetic matching and mismatching identity fixtures and prove that manifest success alone cannot bypass cloud re-verification. |
-| MAN-02 — PC-B manifest absent | Scenario §4; lifecycle §8 | EOLM-MAN-001/007, EOLM-ARC-002/005 | Expected block is documented; no manifest selector/archive gate test exists. | Not implemented / not run | Missing-manifest fixture must block PC-A archive. |
-| MAN-03 — PC-B manifest failure/partial failure | Scenario §4; lifecycle §8 | EOLM-MAN-004/007, EOLM-ARC-002/005 | Status names and no-fallback rule are described in prose; no state machine or runtime test exists. | Not implemented / not run | Latest failed/partial manifest must block archive despite an older success. |
-| MAN-04 — manifest freshness | Scenario §4; contract §§2/9 | EOLM-MAN-011, EOLM-ARC-005 | The scenario expects stale evidence to block archive. Policy shape is approved, but numeric tolerances, exact applicability, and clock-sync/monitoring expectations remain unresolved. OSD-02/03 remain related dependencies. | Blocked by unresolved policy; not implemented / not run | Approve freshness semantics first; then add deterministic stale, future-dated, and clock-skew fixtures. Do not infer a threshold. |
-| MAN-05 — target period mismatch | Scenario §4; lifecycle §8 | EOLM-MAN-002/009, EOLM-ARC-005 | Filename/payload identity matching is specified in prose; no manifest parser or mismatch test exists. | Not implemented / not run | Mismatched period identity must fail closed. |
-| MAN-06 — log type mismatch | Scenario §4; lifecycle §8 | EOLM-MAN-002/009, EOLM-ARC-005 | Log-type identity is described; no manifest parser or runtime gate exists. | Not implemented / not run | BattleLog/ErrorReport mismatch fixture must block archive. |
-| MAN-07 — malformed JSON, missing fields, unknown version, or identity mismatch | Scenario §4; lifecycle §§8–9 | EOLM-MAN-009/012, EOLM-DRV-013 | `tests/test_contract_schemas.py` validates the Drive adapter schemas, not a maintenance-manifest schema. No manifest schema or validator is tracked. | Blocked pending OSD-02 schema baseline; not implemented / not run | Approve manifest fields/version/transitions, then add malformed JSON, missing field, unknown version, and filename/payload identity tests. |
-| MAN-08 — explicit zero-work success | Scenario §4; lifecycle §8 | EOLM-MAN-004, EOLM-FIL-010 | Text defines `status: success` with `outcome: no_work`; `tests/README.md` lists zero-work distinction as a planned runtime test. No executable manifest/run-status test exists. | Not implemented / not run | Prove explicit zero-work success is distinguishable from no run and from an empty result caused by enumeration failure. |
-| MAN-09 — no manifest or only previous manifest | Scenario §4; lifecycle §8 | EOLM-MAN-004/005/007, EOLM-ARC-005 | Text says each run has a new ID and latest run takes precedence; no run initialization or latest-manifest selector exists. | Not implemented / not run | Missing/current-run-absent and previous-run-only fixtures must not be accepted as current success. |
-| MAN-10 — one PC incomplete, running, or failed | Scenario §4; lifecycle §8 | EOLM-MAN-003/004/007, EOLM-ARC-002 | Cross-PC gating is described but no orchestration or runtime archive gate exists. | Not implemented / not run | Test the full status combinations after OSD-02/03 are approved; one PC's success must not imply both-PC completion. |
-| EOLM-MAN-011 — timestamps, time zone, freshness and clock skew | Contract §§2/9; scenario MAN-04 | EOLM-MAN-011 | Requirement row and OSD register explicitly record missing policy; no schema or implementation exists. | Blocked — freshness rule undefined | Record approved values/rules and affected IDs before implementing freshness-dependent archive gating. |
-| EOLM-MAN-012 — reject unknown versions, malformed data, inconsistent identity/transitions, missing fields | Lifecycle §§3/8–9; contract §9 | EOLM-MAN-012, EOLM-MAN-009, EOLM-REQ-001 | Drive adapter schema tests do not exercise manifest/metadata readers. Manifest schema and readers are absent; full legal transition table is not approved. | Blocked pending OSD-02; not implemented / not run | Approve schema and transition table, then add negative schema and state-transition tests; no missing transition may be invented by this audit. |
+|MAN-01 — 両方の PC の成功したマニフェストの一致| `docs/validation/runtime-safety-test-scenarios.md` §4; `docs/design/staging-file-lifecycle.md` §8 | EOLM-MAN-002/003/004/007/010, EOLM-ARC-002 |シナリオとライフサイクル テキストは、PC、期間、ログ タイプ、検証済みコンテンツごとの相関関係を定義します。マニフェスト実装やアーカイブ ゲートは存在しません。|未実装 / 未実行|合成一致および不一致の ID フィクスチャを追加し、マニフェストの成功だけではクラウドの再検証を回避できないことを証明します。|
+|MAN-02 — PC-B マニフェストがありません|シナリオ §4;ライフサイクル §8| EOLM-MAN-001/007, EOLM-ARC-002/005 |予期されるブロックは文書化されています。マニフェスト セレクター/アーカイブ ゲート テストは存在しません。|未実装 / 未実行|マニフェスト欠落フィクスチャは PC-A アーカイブをブロックする必要があります。|
+|MAN-03 — PC-B マニフェスト 失敗/部分 失敗|シナリオ §4;ライフサイクル §8| EOLM-MAN-004/007, EOLM-ARC-002/005 |ステータス名と非フォールバック ルールは散文で説明されています。ステート マシンやランタイム テストは存在しません。|未実装 / 未実行|最新の失敗した/部分的なマニフェストは、古い成功にもかかわらずアーカイブをブロックする必要があります。|
+|MAN-04 — 鮮度の明示|シナリオ §4;契約書 §§2/9| EOLM-MAN-011, EOLM-ARC-005 |このシナリオでは、古い証拠がアーカイブをブロックすることを想定しています。ポリシーの形状は承認されていますが、数値許容範囲、正確な適用性、およびクロック同期/監視の期待は未解決のままです。 OSD-02/03 は関連する依存関係のままです。|未解決のポリシーによりブロックされました。実装されていない/実行されていない|最初に鮮度セマンティクスを承認します。次に、確定的な古い、将来の日付の、クロック スキューのフィクスチャを追加します。しきい値を推測しないでください。|
+|MAN-05 — 対象期間 不一致|シナリオ §4;ライフサイクル §8| EOLM-MAN-002/009, EOLM-ARC-005 |ファイル名とペイロードの ID の一致は散文で指定されます。マニフェスト パーサーや不一致テストは存在しません。|未実装 / 未実行|期間 ID が一致しない場合は、フェールクローズする必要があります。|
+|MAN-06 — ログ タイプ 不一致|シナリオ §4;ライフサイクル §8| EOLM-MAN-002/009, EOLM-ARC-005 |ログタイプの同一性について説明します。マニフェスト パーサーやランタイム ゲートは存在しません。|未実装 / 未実行|BattleLog/ErrorReport 不一致 フィクスチャはアーカイブをブロックする必要があります。|
+|MAN-07 — 不正な形式の JSON、フィールドの欠落、不明 のバージョン、または ID 不一致|シナリオ §4;ライフサイクル §§8–9| EOLM-MAN-009/012, EOLM-DRV-013 |`tests/test_contract_schemas.py` は、メンテナンス マニフェスト スキーマではなく、ドライブ アダプター スキーマを検証します。マニフェスト スキーマやバリデーターは追跡されません。|Blocked pending OSD-02 schema baseline;実装されていない/実行されていない|マニフェストのフィールド/バージョン/トランジションを承認し、不正な形式の JSON、フィールドの欠落、不明なバージョン、ファイル名/ペイロードの ID テストを追加します。|
+|MAN-08 — 明示的なゼロ作業 成功|シナリオ §4;ライフサイクル §8| EOLM-MAN-004, EOLM-FIL-010 |テキストは `status: success` と `outcome: no_work` を定義します。 `tests/README.md` には、計画された実行時テストとしてゼロ作業の区別がリストされています。実行可能なマニフェスト/実行ステータス テストは存在しません。|未実装 / 未実行|明示的なゼロワークの成功が、実行されないことや、列挙の失敗による空の結果と区別できることを証明します。|
+|MAN-09 — マニフェストがないか、以前のマニフェストのみ|シナリオ §4;ライフサイクル §8| EOLM-MAN-004/005/007, EOLM-ARC-005 |テキストには、各実行には新しい ID があり、最新の実行が優先されると記載されています。実行初期化または最新マニフェスト セレクターは存在しません。|未実装 / 未実行|欠落しているフィクスチャ、現在の実行が存在しないフィクスチャ、および以前の実行のみのフィクスチャを現在の成功として受け入れてはなりません。|
+|MAN-10 — PC 1 台 未完了、実行中、または 失敗した|シナリオ §4;ライフサイクル §8| EOLM-MAN-003/004/007, EOLM-ARC-002 |クロス PC ゲートについては説明されていますが、オーケストレーションまたはランタイム アーカイブ ゲートは存在しません。|未実装 / 未実行|OSD-02/03 が承認された後、ステータスの完全な組み合わせをテストします。 1 台の PC の 成功 は、両方の PC の完了を暗示してはなりません。|
+|EOLM-MAN-011 — タイムスタンプ、タイムゾーン、鮮度、クロックスキュー|契約 §§2/9;シナリオ MAN-04| EOLM-MAN-011 |要件行と OSD レジスタは、欠落しているポリシーを明示的に記録します。スキーマや実装は存在しません。|ブロックされました — 鮮度ルールが未定義です|鮮度に依存したアーカイブ ゲーティングを実装する前に、承認された値/ルールと影響を受ける ID を記録します。|
+|EOLM-MAN-012 — 不明 バージョン、不正な形式のデータ、一貫性のない ID/遷移、欠落フィールドを拒否します|ライフサイクル §§3/8–9;契約書§9| EOLM-MAN-012, EOLM-MAN-009, EOLM-REQ-001 |ドライブ アダプター スキーマ テストでは、マニフェスト/メタデータ リーダーは実行されません。マニフェスト スキーマとリーダーが存在しません。完全な法的移行表は承認されていません。|Blocked pending OSD-02;実装されていない/実行されていない|スキーマと遷移テーブルを承認してから、ネガティブ スキーマと状態遷移テストを追加します。この監査によって、欠落している遷移が発見されることはありません。|
 
-### Evidence boundary and disposition
+<a id="evidence-boundary-and-disposition-2"></a>
+### 証拠の境界と扱い
 
-- `docs/design/staging-file-lifecycle.md` §8 is normative design prose for manifest identity, status, zero-work, latest-run precedence, atomic update, and crash-left `running` handling. It is not an implementation artifact.
-- `docs/validation/runtime-safety-test-scenarios.md` MAN-01–10 supplies test intentions, not executable tests.
-- `contracts/drive-request.schema.json`, `contracts/drive-response.schema.json`, and `tests/test_contract_schemas.py` cover the PowerShell/Python adapter contract only. They are not a manifest schema or manifest runtime test.
-- OSD-02 blocks the manifest schema/state-transition baseline; OSD-03 blocks exhaustive mixed run/period status aggregation; EOLM-MAN-011 blocks freshness-dependent archive gating. Do not infer missing schema fields, legal transitions, freshness values, or aggregation policy.
-- Keep MAN-01–10 and EOLM-MAN-011/012 not implemented/not run or blocked as shown. P0-010 and P0-012 remain open; documentation and adapter-schema CI do not establish manifest runtime acceptance.
-- Safety boundary unchanged: no credentials, real Drive calls, real logs, production paths, or deletion behavior.
+- `docs/design/staging-file-lifecycle.md` §8 は、マニフェスト ID、ステータス、ゼロワーク、最新実行の優先順位、アトミック更新、およびクラッシュレフト `running` 処理の標準的な設計散文です。これは実装成果物ではありません。
+- `docs/validation/runtime-safety-test-scenarios.md` MAN-01–10 は、実行可能なテストではなく、テストの意図を提供します。
+- `contracts/drive-request.schema.json`、`contracts/drive-response.schema.json`、および `tests/test_contract_schemas.py` は、PowerShell/Python アダプター契約のみをカバーします。これらはマニフェスト スキーマまたはマニフェスト ランタイム テストではありません。
+- OSD-02 はマニフェスト スキーマ/状態遷移ベースラインをブロックします。 OSD-03 は、実行/期間の混合ステータスの徹底的な集計をブロックします。 EOLM-MAN-011 は、鮮度に依存したアーカイブ ゲーティングをブロックします。欠落しているスキーマ フィールド、法的な移行、鮮度の値、または集計ポリシーを推測しないでください。
+- MAN-01–10 および EOLM-MAN-011/012 は、示されているように実装されていない、実行されていない、またはブロックされたままにしておきます。 P0-010 と P0-012 は開いたままになります。ドキュメントとアダプター スキーマ CI は、マニフェスト ランタイムの受け入れを確立しません。
+- 安全境界は変更されていません: 認証情報、実際のドライブ呼び出し、実際のログ、運用パス、または削除動作はありません。
 
 
-## Focused evidence reconciliation — EOLM-REQ-001 and EOLM-STG-001–012 (post-PR #85 baseline)
+<a id="focused-evidence-reconciliation--eolm-req-001-and-eolm-stg-001012-post-pr-85-baseline"></a>
+## 重点的な証拠の調整 — EOLM-REQ-001 および EOLM-STG-001–012 (PR 後 #85 ベースライン)
 
-This section reconciles the staging lifecycle source clauses with requirement IDs, tracked implementation/test artifacts, and the actual evidence state. `docs/design/staging-file-lifecycle.md` §§3–7 and 9–12 are design requirements and acceptance perspectives; they do not establish that the behavior is implemented.
+このセクションでは、ステージング ライフサイクル ソース句と要件 ID、追跡された実装/テスト成果物、および実際の証拠の状態を調整します。 `docs/design/staging-file-lifecycle.md` §§3–7 および 9–12 は設計要件と受け入れの観点です。動作が実装されていることを確立するものではありません。
 
-| Source clause | Requirement IDs | Required behavior | Tracked implementation / executable test evidence | Disposition | Remaining acceptance evidence |
+|ソース句|要件 ID|必要な動作|追跡された実装/実行可能テストの証拠|処分|残りの受諾証拠|
 |---|---|---|---|---|---|
-| §3 — staging location outside Drive sync | EOLM-STG-001, EOLM-CFG-006 | Resolve staging under `%LOCALAPPDATA%\eo-log-maintenance\staging`; reject configured paths that overlap Drive roots. | No official runtime entry point or active-config path validator; package-builder checks only example config paths. | Not implemented / not run | Runtime path resolution and positive/negative root-separation tests on isolated temporary roots. |
-| §3 — unique name and atomic create-new | EOLM-STG-002, EOLM-STG-010, EOLM-REQ-001 | Name `<run_id>_<sequence>_<original_filename>`; never overwrite; collision advances sequence; exhaustion fails closed. | Requirement text exists; no staging copy implementation or race/collision test exists. | Not implemented / not run | Concurrent create-new race test, occupied-name sequence test, exhaustion test, and assertion that pre-existing bytes remain unchanged. |
-| §3 — adjacent metadata and atomic metadata update | EOLM-STG-003, EOLM-MAN-008, EOLM-MAN-012 | Record run ID, source relative path/name, size, SHA-256, status and staging path; temp-write, re-read/validate JSON, then replace official metadata. | No staging metadata schema, writer/reader, or executable metadata test. Manifest schema is also absent; OSD-02 does not define a complete metadata schema. | Blocked / not implemented / not run | Approve required field types/version and validation semantics; then test missing/unknown fields, malformed JSON, write interruption, replacement behavior, and identity mismatch. |
-| §4 — frozen target inventory and source re-hash | EOLM-STG-004–005, EOLM-LCK-001 | Freeze after lock + residual inspection; later arrivals defer; disappeared or changed source fails without upload. | `Common/LogFunctions.ps1` has filename/date helper tests only. No runtime enumerator, inventory freeze, source hash/recheck, or run-status test exists. | Not implemented / not run | Isolated directory tests for late arrival, disappearance, size/hash mutation, and no upload for invalidated target. |
-| §5 — staging capacity/reserve | EOLM-STG-009 | Check at run start and immediately before each copy; use remaining target bytes + 10% rounded up + exactly 100,000,000 bytes; handle mid-copy exhaustion. | Design specifies the formula; no capacity estimator or staging-copy fault-injection test exists. | Not implemented / not run | Formula boundary/rounding tests, both check-point assertions, simulated insufficient space and mid-copy failure. |
-| §5–6 — copy failure cleanup scope | EOLM-STG-010, EOLM-SAF-005 | Attempt cleanup only for the incomplete staging file created by the current operation; on cleanup failure retain and warn. | No staging implementation or filesystem mutation test. | Not implemented / not run | Fault-injection test proving unrelated/pre-existing staging files and metadata remain unchanged; cleanup failure must emit a warning. |
-| §6 — state set and legal transitions | EOLM-REQ-001, EOLM-STG-003, EOLM-STG-006, EOLM-STG-011–012, EOLM-MAN-012 | States named in prose: staging, ready, pending, uploaded, verified, failed, unknown. Upload is gated on verified ready copy; inconsistent state/metadata is held. | No staging state machine or metadata validator. The complete allowed transition-edge table is explicitly unresolved under OSD-02; do not infer transitions from the list of state names. | Blocked by OSD-02; not implemented / not run | Approve complete legal/illegal transition table and metadata schema, then add table-driven transition tests and file/metadata disagreement fixtures. |
-| §6 — metadata-first order and verified upload input | EOLM-STG-003, EOLM-STG-005–006, EOLM-REQ-001 | Write staging metadata before copy; verify size/hash before ready; upload only staging copy, never re-read source as payload. | No official sync entry point, staging copy function, adapter implementation, or runtime payload-path assertion. | Not implemented / not run | Instrumented adapter test asserts payload path is under staging root and upload is impossible before verified ready state. |
-| §6–7 — cloud verification and uncertain upload outcome | EOLM-DRV-004–006, EOLM-DRV-008, EOLM-STG-011 | Verify content via trustworthy SHA-256 or download/hash; unknown outcomes require Drive reconciliation; unknown/unverified results retain staging. | Request/response schemas and schema tests only; no Drive adapter or upload reconciliation logic. | Not implemented / not run; adapter/auth validation also blocked | Mocked upload-before/after-timeout scenarios, matching/mismatching hash, absent/inaccessible object, and proof that uncertain outcomes never authorize cleanup. |
-| §6–7 — cleanup gate | EOLM-STG-011–012, EOLM-SAF-003/005 | Remove staging only after upload success, cloud content verification, and required manifest update; failed deletion warns without retroactively failing successful upload. | No staging cleanup gate, manifest writer, or cleanup fault-injection test. | Not implemented / not run; manifest dependency blocked by OSD-02 | Full truth table over upload, verification, manifest-update, and deletion outcomes; assert staging retention for every non-confirmed-success combination. |
-| §8 — per-file outcomes and run status | EOLM-MAN-003–006, EOLM-OPS-003, EOLM-TST-005, EOLM-REQ-001 | Unknown is never success; per-file state contributes to final run status; zero work is distinguishable from failure/no run. | No manifest writer, run-status aggregator, or executable mixed-result tests. | Blocked by OSD-02/03; not implemented / not run | Approve schema/transitions and exhaustive aggregation policy; then test verified/failed/unknown/unclassifiable/zero-work combinations. |
-| §9 — residual staging inspection | EOLM-STG-007–008, EOLM-LCK-001, EOLM-OPS-003 | Under lock and before uploads, inspect leftovers; warn and retain all residuals; inspection failure blocks uploads and fails the run. | No official entry point or residual inspector; no orphan/malformed/missing-pair or permission/IO tests. | Not implemented / not run | Isolated orphan file/metadata fixtures; verify no recovery/deletion, no upload before inspection completes, and distinguish ordinary residue from inspection failure. |
-| §11 — explicit non-goals | EOLM-SAF-001/004, EOLM-TST-006, EOLM-STG-002/006/007, EOLM-DRV-001/004 | No source/Drive deletion, overwrite, age cleanup, automatic residual recovery, metadata-only verification, direct source upload, or Python retries. | Bounded deletion-surface audit PR #84 provides partial static evidence for named paths/contracts/config templates only. No runtime package acceptance or staging implementation exists. | Partial static evidence only; runtime not implemented / not run | Maintain source/config/contract/package negative tests and state-mutation snapshots as runtime artifacts are added; do not claim complete negative capability now. |
-| §12 — staging acceptance perspectives | EOLM-TST-001–006, EOLM-TST-009–010, EOLM-REQ-001 | Runtime tests cover the staging lifecycle, failure paths, cloud verification, cleanup, residuals and locks. | `tests/README.md` describes planned tests; existing `tests/Test-LogFunctions.ps1` is helper-level filename/date evidence, not staging lifecycle coverage. | Test plan only; executable staging tests absent | Link each acceptance perspective to a named executable test and CI run; retain explicit not-implemented/blocked status until then. |
+|§3 — ステージング ドライブ同期外の場所| EOLM-STG-001, EOLM-CFG-006 |`%LOCALAPPDATA%\eo-log-maintenance\staging` の下でステージングを解決します。ドライブルートと重複する構成されたパスを拒否します。|公式のランタイム エントリ ポイントやアクティブ構成パス バリデータはありません。 package-builder は、サンプル構成パスのみをチェックします。|未実装 / 未実行|実行時パス解決と、分離された一時ルートに対するポジティブ/ネガティブ ルート分離テスト。|
+|§3 — 一意の名前とアトミックな新規作成| EOLM-STG-002, EOLM-STG-010, EOLM-REQ-001 |名前は`<run_id>_<sequence>_<original_filename>`。決して上書きしないでください。衝突進行シーケンス。枯渇が安全側で拒否します。|要件テキストが存在します。ステージング コピーの実装や競合/衝突テストは存在しません。|未実装 / 未実行|新規作成競合テスト、占有名シーケンス テスト、枯渇テスト、および既存のバイトが変更されないことのアサーションを同時に実行します。|
+|§3 — 隣接メタデータとアトミックメタデータの更新| EOLM-STG-003, EOLM-MAN-008, EOLM-MAN-012 |実行 ID、ソースの相対パス/名前、サイズ、SHA-256、ステータス、ステージング パスを記録します。一時書き込み、JSON の再読み取り/検証を行ってから、公式メタデータを置き換えます。|ステージング メタデータ スキーマ、ライター/リーダー、または実行可能なメタデータ テストはありません。マニフェストスキーマも存在しません。 OSD-02 は完全なメタデータ スキーマを定義しません。|ブロックされています / 未実装 / 実行されていません|必要なフィールドのタイプ/バージョンおよび検証セマンティクスを承認します。次に、欠落または不明なフィールド、不正な形式の JSON、書き込みの中断、置換動作、および ID の不一致をテストします。|
+|§4 — 凍結されたターゲット インベントリとソースの再ハッシュ| EOLM-STG-004–005, EOLM-LCK-001 |ロック後フリーズ+残存検査;それ以降の到着は延期されます。ソースが消えたり変更されたりすると、アップロードできません。|`Common/LogFunctions.ps1` にはファイル名/日付ヘルパー テストのみがあります。ランタイム列挙子、インベントリの凍結、ソース ハッシュ/再チェック、または実行ステータス テストは存在しません。|未実装 / 未実行|分離されたディレクトリは、到着の遅れ、消失、サイズ/ハッシュの変更、および無効なターゲットのアップロードなしをテストします。|
+|§5 — ステージング 容量/予備| EOLM-STG-009 |実行開始時と各コピーの直前にチェックします。残りのターゲット バイト + 切り上げ 10% + 正確に 100、000、000 バイトを使用します。コピー途中の枯渇を処理します。|設計は式を指定します。容量推定機能やステージング コピーのフォールト挿入テストは存在しません。|未実装 / 未実行|数式境界/丸めテスト、チェックポイント アサーションの両方で、スペース不足とコピー途中のエラーをシミュレートしました。|
+|§5–6 — 失敗 クリーンアップ スコープのコピー| EOLM-STG-010, EOLM-SAF-005 |現在の操作で作成された不完全なステージング ファイルに対してのみクリーンアップを試みます。クリーンアップが失敗した場合は保持して警告します。|ステージング実装やファイルシステム変更テストはありません。|未実装 / 未実行|フォールト挿入テストにより、無関係または既存のステージング ファイルとメタデータが変更されていないことが証明されます。クリーンアップが失敗した場合は、警告を発する必要があります。|
+|§6 — 状態セットと正当な遷移| EOLM-REQ-001, EOLM-STG-003, EOLM-STG-006, EOLM-STG-011–012, EOLM-MAN-012 |散文で名前が付けられた状態: ステージング、準備完了、保留中、アップロード済み、検証済み、失敗、不明。アップロードは、検証済みの準備完了コピーに基づいて行われます。矛盾した状態/メタデータが保持されます。|ステージング ステート マシンやメタデータ バリデータはありません。完全な許可された遷移エッジ テーブルは、OSD-02 では明示的に未解決です。状態名のリストから遷移を推測しないでください。|OSD-02 によってブロックされました。実装されていない/実行されていない|完全な合法/違法遷移テーブルとメタデータ スキーマを承認し、テーブル駆動の遷移テストとファイル/メタデータの不一致フィクスチャを追加します。|
+|§6 — メタデータ優先および 確認済み アップロード入力| EOLM-STG-003, EOLM-STG-005–006, EOLM-REQ-001 |コピー前に ステージング メタデータを書き込みます。 準備済み の前のサイズ/ハッシュを確認します。 ステージング コピーのみをアップロードし、ソースをペイロードとして再読み取りしないでください。|公式の同期エントリ ポイント、ステージング コピー機能、アダプター実装、またはランタイム ペイロード パス アサーションはありません。|未実装 / 未実行|インスツルメントされたアダプターのテストでは、ペイロード パスがステージング ルートの下にあり、準備完了状態が検証されるまでアップロードは不可能であるとアサートされます。|
+|§6–7 — クラウド検証と不確実なアップロード結果| EOLM-DRV-004–006, EOLM-DRV-008, EOLM-STG-011 |信頼できる SHA-256 またはダウンロード/ハッシュを介してコンテンツを検証します。 不明 の結果にはドライブの調整が必要です。 不明/未検証の結果は ステージング を保持します。|リクエスト/レスポンススキーマおよびスキーマテストのみ。ドライブ アダプターまたはアップロード調整ロジックがありません。|実装されていない/実行されていません。アダプター/認証検証もブロックされる|タイムアウト前/タイムアウト後のアップロード シナリオの模擬、ハッシュの一致/不一致、オブジェクトの不在/アクセス不能、および不確実な結果がクリーンアップを許可しないことの証明。|
+|§6–7 — クリーンアップ ゲート| EOLM-STG-011–012, EOLM-SAF-003/005 |ステージングを削除するのは、アップロードが成功し、クラウド コンテンツが検証され、必要なマニフェストが更新された後でのみです。削除に失敗した場合は、成功したアップロードを遡って失敗することなく警告します。|ステージング クリーンアップ ゲート、マニフェスト ライター、クリーンアップ フォールト挿入テストはありません。|実装されていない/実行されていません。マニフェストの依存関係が OSD-02 によってブロックされました|アップロード、検証、マニフェスト更新、削除の結果に関する完全な真理表。成功が確認されていないすべての組み合わせに対してステージング保持をアサートします。|
+|§8 — ファイルごとの結果と実行ステータス| EOLM-MAN-003–006, EOLM-OPS-003, EOLM-TST-005, EOLM-REQ-001 |不明は 成功 ではありません。ファイルごとの状態は最終的な実行ステータスに影響します。ゼロ作業は、失敗/実行なしと区別できます。|マニフェスト ライター、実行ステータス アグリゲータ、または実行可能な混合結果テストはありません。|Blocked by OSD-02/03;実装されていない/実行されていない|スキーマ/遷移および徹底的な集約ポリシーを承認します。次に、検証済み/失敗/不明/分類不能/ゼロ作業の組み合わせをテストします。|
+|§9 — 残留 ステージング 検査| EOLM-STG-007–008, EOLM-LCK-001, EOLM-OPS-003 |ロック中、アップロード前に残り物を検査します。すべての残留物を警告し、保持します。検査 失敗 はアップロードをブロックし、実行に失敗します。|正式な入国ポイントや残留検査官は存在しない。孤立/不正/欠落ペアまたは許可/IO テストはありません。|未実装 / 未実行|孤立した孤立したファイル/メタデータ フィクスチャ。検査が完了する前に回復/削除がないこと、アップロードがないことを確認し、通常の残留物と検査の失敗を区別します。|
+|§11 — 明示的な非目標| EOLM-SAF-001/004, EOLM-TST-006, EOLM-STG-002/006/007, EOLM-DRV-001/004 |ソース/ドライブの削除、上書き、経過時間のクリーンアップ、自動残差回復、メタデータのみの検証、ソースの直接アップロード、または Python 回の再試行はありません。|境界付き削除サーフェス監査 PR #84 は、名前付きパス/contracts/config テンプレートのみについて部分的な静的証拠を提供します。ランタイム パッケージの受け入れやステージング実装は存在しません。|部分的な静的証拠のみ。ランタイムが実装されていない/実行されていない|ランタイム成果物が追加されたときに、ソース/構成/コントラクト/パッケージのネガティブテストと状態変異スナップショットを維持します。今は完全なネガティブ・ケイパビリティを主張しないでください。|
+|§12 — ステージング 受け入れの観点| EOLM-TST-001–006, EOLM-TST-009–010, EOLM-REQ-001 |ランタイム テストでは、ステージング ライフサイクル、障害パス、クラウド検証、クリーンアップ、残差、ロックがカバーされます。|`tests/README.md` は計画されたテストについて説明します。既存の `tests/Test-LogFunctions.ps1` はヘルパー レベルのファイル名/日付の証拠であり、ステージング ライフサイクル カバレッジではありません。|テスト計画のみ。実行可能な ステージング テストがありません|各受け入れパースペクティブを名前付きの実行可能テストにリンクし、CI を実行します。それまでは明示的な未実装/ブロック状態を保持します。|
 
-### Evidence boundary and disposition
+<a id="evidence-boundary-and-disposition-3"></a>
+### 証拠の境界と扱い
 
-- No tracked official runtime entry points, staging metadata schema/reader/writer, staging state machine, inventory-freeze implementation, residual inspector, or executable staging lifecycle test harness is present at this baseline.
-- Existing filename helper tests do not establish staging lifecycle behavior. Drive request/response schema tests do not establish cloud operations, staging upload gating, manifest writes, or cleanup safety.
-- OSD-02 blocks the normative metadata/manifest schema and complete state-transition table; OSD-03 blocks exhaustive mixed run-status aggregation; OSD-04 remains relevant to Dry Run side-effect constraints. Do not fill those gaps with inferred policy.
-- EOLM-REQ-001 and EOLM-STG-001–012 remain not implemented/not run, or blocked as identified above. P0-010 remains open.
-- Safety boundary: documentation-only audit; no credentials, Drive calls, real logs, production paths, or deletion behavior.
+- 追跡された公式ランタイム エントリ ポイント、ステージング メタデータ スキーマ/リーダー/ライター、ステージング ステート マシン、インベントリ凍結実装、残留インスペクター、または実行可能 ステージング ライフサイクル テスト ハーネスは、このベースラインには存在しません。
+- 既存のファイル名ヘルパー テストでは、ステージング ライフサイクル動作が確立されません。ドライブのリクエスト/レスポンス スキーマ テストでは、クラウド操作、ステージング アップロード ゲート、マニフェストの書き込み、またはクリーンアップの安全性は確立されません。
+- OSD-02 は、標準メタデータ/マニフェスト スキーマと 完了 状態遷移テーブルをブロックします。 OSD-03 は、徹底的な混合実行ステータス集計をブロックします。 OSD-04 は、Dry Run の副作用制約に引き続き関連します。推測されたポリシーでこれらのギャップを埋めないでください。
+- EOLM-REQ-001 および EOLM-STG-001–012 は、上記で特定されたように実装されていない/実行されていない、またはブロックされたままです。 P0-010 は開いたままです。
+- 安全境界: 文書のみの監査。認証情報、ドライブ呼び出し、実際のログ、本番パス、または削除動作はありません。
 
 
-## Focused evidence reconciliation — EOLM-LCK-001–004 and residual inspection (post-PR #87 baseline)
+<a id="focused-evidence-reconciliation--eolm-lck-001004-and-residual-inspection-post-pr-87-baseline"></a>
+## 重点的な証拠の調整 — EOLM-LCK-001–004 および残存検査 (PR 後 #87 ベースライン)
 
-This slice maps the locking and residual-staging clauses to their requirements and current artifacts. The specification is normative design prose; it does not prove the mutex, startup gate, or scheduler exists.
+このスライスは、locking 句と残りの ステージング 句をその要件と現在の成果物にマップします。この仕様は標準的な設計の散文です。ミューテックス、起動ゲート、またはスケジューラが存在することを証明するものではありません。
 
-| Source clause | Requirement IDs | Required behavior | Tracked implementation / executable test evidence | Disposition | Remaining acceptance evidence |
+|ソース句|要件 ID|必要な動作|追跡された実装/実行可能テストの証拠|処分|残りの受諾証拠|
 |---|---|---|---|---|---|
-| `docs/design/staging-file-lifecycle.md` §9 — inspect residual staging after lock acquisition and before uploads | EOLM-STG-007/008, EOLM-LCK-001, EOLM-OPS-003 | Inspect staging on every run; any residue warns and is retained; inspection failure blocks uploads and produces failure status. | No official entry point or residual inspector; no executable orphan-file, metadata-only, malformed-metadata, or access-denied test. | Not implemented / not run | Temporary fixtures for every residue class, and a distinct enumeration/permission-failure test proving no upload starts before inspection succeeds. |
-| §9 — malformed metadata logging | EOLM-STG-007, EOLM-SEC-001, EOLM-OPS-003/005, EOLM-MAN-012 | Log the path and issue; include run ID only if safely parsed; do not process the affected artifact. | No metadata reader or runtime logging path. Drive-adapter schema tests do not validate staging metadata or log-injection handling. | Blocked by OSD-02 schema baseline; not implemented / not run | Approve metadata schema; test malformed/hostile JSON, safe run-ID parsing, sanitized structured logs, and retention without mutation. |
-| `docs/design/staging-file-lifecycle.md` §10 — global lock per PC | EOLM-LCK-001 | One lock serializes all maintenance operations on a PC; PC-A and PC-B use independent locks. | No lock helper or operational entry point; no same-PC contention/cross-PC independence test. | Not implemented / not run | Deterministic two-process contention test proving same-PC serialization and independent locks across PC roles. |
-| §10 — bounded acquisition and no stealing | EOLM-LCK-002 | Wait/retry up to 60 seconds; then log another process is running and exit without killing or stealing the lock. | Requirement prose only; no injectable clock/wait, lock helper, or timeout test. | Not implemented / not run | Deterministic timeout test proving bounded exit and no force-kill, lease theft, or unrelated state mutation. |
-| §10 — contention versus abandoned mutex | EOLM-LCK-003, EOLM-MAN-006 | Contention exit is an operational skip, not a business failure; abandoned mutex after crash is logged and actual prior state is verified before proceeding. | No mutex implementation, prior-state verifier, manifest reader, or crash/abandoned-mutex test. The manifest state/schema dependency remains blocked by OSD-02; aggregation/status interpretation remains blocked by OSD-03. | Blocked by OSD-02/03; not implemented / not run | Approve manifest/state semantics, then test ordinary contention separately from abandoned mutex, with no automatic rewrite of crash-left `running`, no recovery/deletion of residual artifacts, and no upload until state is verified. |
-| C-24 / `docs/development/implementation-workflow.md` Phase 8 — scheduled runs and bounded PC-A checks | EOLM-LCK-004, EOLM-OPS-001/002/004/006, EOLM-TST-005/007/008 | Monthly run plus missed-run catch-up, quiet/staggered PC-A/PC-B times, bounded waiting, same safety logic for manual/scheduled runs. | No Task Scheduler setup, official entry point, lock/lease implementation, or overlap/missed-run test. OSD-08 explicitly defers schedule and stale-lock/lease recovery policy. | Blocked by OSD-08; not implemented / not run | Obtain operator approval for schedule and recovery policy before rollout; then test catch-up, stagger, overlap, bounded wait, failure visibility, and manual recovery. Do not infer exact schedule times or lease rules. |
+|`docs/design/staging-file-lifecycle.md` §9 — ロック取得後およびアップロード前に残りの ステージング を検査します| EOLM-STG-007/008, EOLM-LCK-001, EOLM-OPS-003 |実行ごとにステージングを検査します。残留物があると警告され、保持されます。検査に失敗するとアップロードがブロックされ、失敗ステータスが生成されます。|正式な入国ポイントや残留検査官は存在しない。実行可能な孤立したファイル、メタデータのみ、不正な形式のメタデータ、またはアクセス拒否されたテストはありません。|未実装 / 未実行|すべての残基クラスの一時的なフィクスチャ、および検査が成功する前にアップロードが開始されないことを証明する個別の列挙/許可失敗テスト。|
+|§9 — 不正な形式のメタデータ ログ| EOLM-STG-007, EOLM-SEC-001, EOLM-OPS-003/005, EOLM-MAN-012 |パスと問題を記録します。安全に解析された場合にのみ実行 ID を含めます。影響を受ける成果物を処理しないでください。|メタデータ リーダーまたはランタイム ロギング パスはありません。ドライブ アダプター スキーマ テストでは、ステージング メタデータやログ挿入処理は検証されません。|OSD-02 スキーマ ベースラインによってブロックされます。実装されていない/実行されていない|メタデータ スキーマを承認します。不正な形式/敵対的な JSON、安全な run-ID 解析、サニタイズされた構造化ログ、および突然変異のない保持をテストします。|
+|`docs/design/staging-file-lifecycle.md` §10 — PC ごとのグローバル ロック| EOLM-LCK-001 |1 つのロックで PC 上のすべてのメンテナンス操作がシリアル化されます。 PC-A と PC-B は独立したロックを使用します。|ロックヘルパーや操作上のエントリポイントはありません。同一 PC 競合/クロス PC 独立性テストはありません。|未実装 / 未実行|決定論的な 2 プロセス競合テストにより、同一 PC のシリアル化と PC ロール全体での独立したロックが証明されます。|
+|§10 — 制限付き取得および盗用なし| EOLM-LCK-002 |60 秒まで待機/再試行します。次に、別のプロセス 実行中 をログに記録し、ロックを強制終了したり盗んだりせずに終了します。|要件は散文のみ。挿入可能なクロック/待機、ロック ヘルパー、またはタイムアウト テストはありません。|未実装 / 未実行|確定的タイムアウト テストにより、制限された終了と、強制終了、リースの盗難、または無関係な状態の突然変異がないことが証明されます。|
+|§10 — 競合と放棄されたミューテックス| EOLM-LCK-003, EOLM-MAN-006 |競合による終了は、業務上の失敗ではなく、操作のスキップです。クラッシュ後に放棄されたミューテックスがログに記録され、続行する前に実際の以前の状態が検証されます。|ミューテックスの実装、以前の状態の検証機能、マニフェスト リーダー、またはクラッシュ/放棄されたミューテックス テストはありません。マニフェストの状態/スキーマの依存関係は OSD-02 によってブロックされたままです。集計/ステータスの解釈は OSD-03 によってブロックされたままです。|Blocked by OSD-02/03;実装されていない/実行されていない|マニフェスト/状態セマンティクスを承認し、破棄されたミューテックスとは別に通常の競合をテストします。クラッシュレフト `running` の自動書き換えは行わず、残留成果物の回復/削除は行わず、状態が検証されるまでアップロードは行いません。|
+|C-24 / `docs/development/implementation-workflow.md` フェーズ 8 — スケジュールされた実行と制限された PC-A チェック| EOLM-LCK-004, EOLM-OPS-001/002/004/006, EOLM-TST-005/007/008 |毎月の実行と見逃した実行のキャッチアップ、静かな/時間差のPC-A/PC-B回、制限された待機、手動/スケジュールされた実行の同じ安全ロジック。|タスク スケジューラのセットアップ、公式エントリ ポイント、ロック/リースの実装、重複/実行ミス テストはありません。 OSD-08 は、スケジュールと古いロック/リースの回復ポリシーを明示的に延期します。|OSD-08 によってブロックされました。実装されていない/実行されていない|展開前にスケジュールと復旧ポリシーについてオペレーターの承認を取得します。次に、キャッチアップ、スタッガー、オーバーラップ、制限付き待機、障害の可視性、および手動リカバリをテストします。正確なスケジュール時間やリース ルールを推測しないでください。|
 
-### Evidence boundary and disposition
+<a id="evidence-boundary-and-disposition-4"></a>
+### 証拠の境界と扱い
 
-- Current executable CI covers helper-level filename/date behavior, JSON contract schemas, package-builder tests, and static analysis. It does not execute lock contention, residual staging inspection, mutex recovery, scheduler behavior, or pre-upload gating.
-- Residual presence alone is warning-only; failure to inspect residual state blocks uploads. Do not collapse these two cases into one status path.
-- OSD-02 and OSD-03 remain separate blockers for manifest/state semantics; OSD-08 blocks schedule and stale-lock/lease policy. Do not infer missing recovery behavior from the phrase “verify prior state.”
-- EOLM-LCK-001–003 and EOLM-STG-007/008 remain not implemented/not run or blocked as shown; EOLM-LCK-004 remains blocked by OSD-08. P0-010 remains open.
-- Safety boundary: documentation-only audit; no credentials, Drive calls, real logs, production paths, scheduler setup, or deletion behavior.
+- 現在の実行可能ファイル CI は、ヘルパー レベルのファイル名/日付の動作、JSON コントラクト スキーマ、パッケージ ビルダー テスト、および静的分析をカバーしています。ロック競合、残留 ステージング 検査、ミューテックス回復、スケジューラー動作、またはアップロード前のゲーティングは実行されません。
+- 残留している場合は警告のみです。 失敗 は、残存状態を検査してアップロードをブロックします。これら 2 つのケースを 1 つのステータス パスにまとめないでください。
+- OSD-02 と OSD-03 は、マニフェスト/状態セマンティクスに対する個別のブロッカーのままです。 OSD-08 は、スケジュールと古いロック/リース ポリシーをブロックします。 「以前の状態を確認する」というフレーズから、欠落している回復動作を推測しないでください。
+- EOLM-LCK-001–003 および EOLM-STG-007/008 は、示されているように実装されていない、実行されていない、またはブロックされたままです。 EOLM-LCK-004 は OSD-08 によってブロックされたままです。 P0-010 は開いたままです。
+- 安全境界: 文書のみの監査。認証情報、ドライブ呼び出し、実際のログ、運用パス、スケジューラのセットアップ、または削除動作はありません。
 
 
-## Focused evidence reconciliation — Dry Run side-effect boundary (post-PR #88 baseline)
+<a id="focused-evidence-reconciliation--dry-run-side-effect-boundary-post-pr-88-baseline"></a>
+## 重点的な証拠の調整 — Dry Run 副作用境界 (PR 後 #88 ベースライン)
 
-This section maps the Dry Run requirements to current contract text, requirement IDs, and executable evidence. OSD-04 remains open: the prohibition on Drive mutation and downloaded-content writes is explicit, but the complete allowed/forbidden local side-effect matrix is not approved.
+このセクションでは、Dry Run 要件を現在の契約テキスト、要件 ID、および実行可能な証拠にマップします。 OSD-04 は未解決のままです。ドライブの変更とダウンロードされたコンテンツの書き込みの禁止は明示的ですが、完了 の許可/禁止ローカル副作用マトリックスは承認されていません。
 
-| Source clause | Requirement IDs | Required behavior | Existing implementation / test evidence | Disposition | Remaining acceptance evidence |
+|ソース句|要件 ID|必要な動作|既存の実装/テストの証拠|処分|残りの受諾証拠|
 |---|---|---|---|---|---|
-| `docs/design/powershell-python-contract.md` §3 — adapter operations with `dry_run=true` | EOLM-DRV-016, EOLM-SAF-006, EOLM-TST-005/007 | Adapter must not mutate Drive or write downloaded content to staging; it validates the request and returns a plan/result. | Request schema includes a Dry Run field/example and schema tests validate contract shape. No Python adapter implementation or mocked behavior test exists. | Not implemented / not run | Per-operation adapter tests for all four allowlisted operations, proving zero Drive mutation and no downloaded-content write in Dry Run. |
-| Contract §§1–2 and implementation workflow Phase 1 — PowerShell owns Dry Run and safety gates | EOLM-SAF-002/006, EOLM-DRV-014, EOLM-OPS-003 | PowerShell remains the sole orchestrator; Dry Run cannot bypass role, path, manifest, cloud-verification, or approval gates. | No official runtime entry point or orchestrator. Schema tests cannot prove gate ordering or reject a caller that tries to bypass the wrapper. | Not implemented / not run | Integration tests proving gates are still evaluated, and no write/upload/archive/delete path is invoked under Dry Run. |
-| `docs/validation/runtime-safety-test-scenarios.md` ARC-01 — archive Dry Run | EOLM-SAF-006, EOLM-ARC-001/002/005, EOLM-TST-005 | Report intended targets/actions without archive placement, Drive mutation, source mutation, or deletion. | ARC-01 is a scenario description only; no archive entry point or Dry Run test exists. | Not implemented / not run | Snapshot source, staging, archive, manifest, and mocked Drive state before/after; assert the approved side-effect matrix exactly. |
-| Contract §§4/8–9 — temporary IPC files and operational records | EOLM-DRV-015, EOLM-OPS-005, EOLM-SAF-006 | Request/response temp files, lock state, report output, and manifest writes must follow explicit Dry Run side-effect policy; cleanup may affect only artifacts created by the current invocation. | IPC temp-file lifecycle and structured logging are specified but not implemented. The contract does not fully enumerate whether Dry Run may create/update a manifest, acquire/write lock artifacts, or emit persistent reports. | Blocked by OSD-04; not implemented / not run | Approve an explicit allow/deny matrix for reports, manifests, locks, temp files and cleanup, then test before/after filesystem snapshots and invocation-owned cleanup. |
-| OSD-04 — permitted local side effects | EOLM-DRV-016, EOLM-SAF-002/006, EOLM-TST-005/007 | Define exactly which local side effects Dry Run may perform, especially report output, manifest writes, lock state, temporary files and cleanup. | Open-decision register marks OSD-04 blocked. No policy decision or runtime test resolves the full local side-effect boundary. | Blocked — policy incomplete | Obtain explicit maintainer approval before implementation/acceptance; do not treat a proposal or schema example as approval. |
+|`docs/design/powershell-python-contract.md` §3 — `dry_run=true` によるアダプター操作| EOLM-DRV-016, EOLM-SAF-006, EOLM-TST-005/007 |アダプターはドライブを変更したり、ダウンロードしたコンテンツをステージングに書き込んだりしてはなりません。リクエストを検証し、計画/結果を返します。|リクエスト スキーマには Dry Run フィールド/例が含まれており、スキーマ テストにより契約の形状が検証されます。 Python アダプターの実装または模擬動作テストは存在しません。|未実装 / 未実行|許可リストに登録されている 4 つの操作すべてについて、操作ごとのアダプター テストが行われ、ドライブの変更がゼロで、Dry Run にダウンロードされたコンテンツの書き込みがないことが証明されます。|
+|契約 §§1–2 および実装ワークフロー フェーズ 1 — PowerShell は Dry Run および安全ゲートを所有します| EOLM-SAF-002/006, EOLM-DRV-014, EOLM-OPS-003 |PowerShell は引き続き唯一のオーケストレーターです。 Dry Run は、ロール、パス、マニフェスト、クラウド検証、または承認ゲートをバイパスできません。|公式のランタイム エントリ ポイントやオーケストレーターはありません。スキーマ テストでは、ゲート順序を証明したり、ラッパーをバイパスしようとする呼び出し元を拒否したりすることはできません。|未実装 / 未実行|ゲートが評価されることを証明する統合テストは引き続き評価され、Dry Run では書き込み/アップロード/アーカイブ/削除パスは呼び出されません。|
+|`docs/validation/runtime-safety-test-scenarios.md` ARC-01 — アーカイブ Dry Run| EOLM-SAF-006, EOLM-ARC-001/002/005, EOLM-TST-005 |アーカイブの配置、ドライブの変更、ソースの変更、または削除を行わずに、意図したターゲット/アクションをレポートします。|ARC-01 is a シナリオの説明のみ;アーカイブ エントリ ポイントまたは Dry Run テストが存在しません。|未実装 / 未実行|スナップショット ソース、ステージング、アーカイブ、マニフェスト、モック化された前後のドライブの状態。承認された副作用マトリックスを正確に主張します。|
+|契約 §§4/8–9 — 一時 IPC ファイルと運用記録| EOLM-DRV-015, EOLM-OPS-005, EOLM-SAF-006 |リクエスト/レスポンスの一時ファイル、ロック状態、レポート出力、およびマニフェストの書き込みは、明示的な Dry Run 副作用ポリシーに従う必要があります。クリーンアップは、現在の呼び出しによって作成された成果物のみに影響を与える可能性があります。|IPC 一時ファイルのライフサイクルと構造化ログは指定されていますが、実装されていません。この契約では、Dry Run がマニフェストを作成/更新できるかどうか、ロック 成果物を取得/書き込みできるか、永続レポートを発行できるかどうかが完全には列挙されていません。|OSD-04 によってブロックされました。実装されていない/実行されていない|レポート、マニフェスト、ロック、一時ファイル、クリーンアップの明示的な許可/拒否マトリックスを承認し、ファイルシステムのスナップショットと呼び出し所有のクリーンアップの前後でテストします。|
+|OSD-04 — 許可されるローカル副作用| EOLM-DRV-016, EOLM-SAF-002/006, EOLM-TST-005/007 |Dry Run が実行する可能性のあるローカルの副作用、特にレポート出力、マニフェストの書き込み、ロック状態、一時ファイル、クリーンアップを正確に定義します。|オープン決定レジスタマーク OSD-04 がブロックされました。ポリシー決定や実行時テストでは、ローカルの副作用境界を完全に解決することはできません。|ブロック済み — ポリシーが不完全|実装/承認前に明示的なメンテナーの承認を取得します。提案やスキーマの例を承認として扱わないでください。|
 
-### Evidence boundary and disposition
+<a id="evidence-boundary-and-disposition-5"></a>
+### 証拠の境界と扱い
 
-- Dry Run is not an alternative authorization mode and must not bypass any normal safety gate.
-- Existing schema/helper/package CI does not execute Dry Run and cannot prove unchanged source, staging, archive, manifest, or Drive state.
-- OSD-04 remains blocked until the complete side-effect matrix is approved. OSD-02/03 and EOLM-MAN-011 remain separate blockers for manifest schema/transitions, run-status aggregation, and freshness-dependent archive gating.
-- EOLM-DRV-016 and EOLM-SAF-006 remain not implemented/not run or blocked as described. P0-010 and P0-012 remain open.
-- Safety boundary: documentation-only audit; no credentials, Drive calls, real logs, production paths, or deletion behavior.
+- Dry Run は代替認証モードではないため、通常のセーフティ ゲートをバイパスしてはなりません。
+- 既存のスキーマ/ヘルパー/パッケージ CI は Dry Run を実行せず、変更されていないソース、ステージング、アーカイブ、マニフェスト、またはドライブの状態を証明できません。
+- OSD-04 は、完了 副作用マトリックスが承認されるまでブロックされたままになります。 OSD-02/03 および EOLM-MAN-011 は、マニフェスト スキーマ/遷移、実行ステータスの集計、および鮮度に依存したアーカイブ ゲーティングに対する個別のブロッカーのままです。
+- EOLM-DRV-016 および EOLM-SAF-006 は、説明どおりに実装されず、実行されず、またはブロックされたままになります。 P0-010 と P0-012 は開いたままになります。
+- 安全境界: 文書のみの監査。認証情報、ドライブ呼び出し、実際のログ、本番パス、または削除動作はありません。
 
 
-## Focused evidence reconciliation — security logging and IPC temporary files (post-PR #89 baseline)
+<a id="focused-evidence-reconciliation--security-logging-and-ipc-temporary-files-post-pr-89-baseline"></a>
+## 重点的な証拠の調整 - セキュリティ ログと IPC 一時ファイル (PR #89 ベースライン後)
 
-This slice maps the contract's secret-handling and operational-log clauses to requirement IDs and actual executable evidence. The contract is still marked review-pending; no runtime adapter, IPC wrapper, or operational logging path exists.
+このスライスは、契約の秘密処理条項と運用ログ条項を要件 ID と実際の実行可能な証拠にマップします。契約はまだレビュー-pendingとマークされています。ランタイム アダプター、IPC ラッパー、または操作ログ パスが存在しません。
 
-| Source clause | Requirement IDs | Required behavior | Existing implementation / test evidence | Disposition | Remaining acceptance evidence |
+|ソース句|要件 ID|必要な動作|既存の実装/テストの証拠|処分|残りの受諾証拠|
 |---|---|---|---|---|---|
-| `docs/design/powershell-python-contract.md` §§1–2 — credentials and sensitive API payloads | EOLM-SEC-001, EOLM-DRV-007, EOLM-TST-004/005 | Load credentials only from an approved local store; never print tokens, client secrets, authorization headers, or sensitive raw API payloads to stdout or logs. | No Python Drive/auth adapter or operational logging path. Schema tests validate JSON shape but do not inject secret-bearing exceptions or inspect stdout/stderr/logs. OAuth scope/auth setup is blocked by OSD-05. | Not implemented / not run; auth policy blocked by OSD-05 | Approve least-privilege identity/scope, then inject synthetic secrets into success/failure/timeout exceptions and assert redaction across stdout, stderr, structured logs and retained diagnostics. |
-| Contract §5 — stdout contains exactly one UTF-8 JSON response; diagnostics go to stderr | EOLM-DRV-012/013, EOLM-TST-004 | Reject empty/malformed/multiple JSON output, invalid UTF-8, banners, traceback leakage, request/response identity mismatch, and exit-code/JSON inconsistency. | Existing schema tests validate JSON objects and response fields, not raw process streams, UTF-8 decoding, child exit code, or correlation at the actual process boundary. | Not implemented / not run | Process-boundary negative matrix with synthetic stdout/stderr and exit codes; ensure secret-bearing diagnostics are sanitized and the workflow fails closed. |
-| Contract §§4/8–9 — access-restricted per-run IPC files and invocation-owned cleanup | EOLM-DRV-015, EOLM-OPS-005, EOLM-SEC-001, EOLM-TST-004/005 | Restrict temporary request/response files to the run, exclude credentials, and clean up only files created by the current invocation. | No official PowerShell wrapper, Python adapter, IPC temp-file manager, or permission/cleanup test exists. | Not implemented / not run | Temporary-root tests verify ACL/permission behavior, no credential fields, unique per-run paths, cleanup on success/failure/timeout, and preservation of unrelated files. |
-| Contract §9 — structured operational logging | EOLM-OPS-003/005, EOLM-SEC-001, EOLM-TST-005 | Record UTC timestamp, run ID, request ID where applicable, operation, elapsed time, exit code, fixed error code, and sanitized outcome; failures must not be silent skips. | No runtime logger, stable operational error path, or logging schema/assertions. Schema/package CI does not test logs. | Not implemented / not run | Schema/field tests for success, validation failure, permission error, timeout, retry and unknown result; secret-redaction and log-injection assertions. |
-| Contract §10 — operator review and runtime integration acceptance | EOLM-TST-011, EOLM-DRV-012/013/015, EOLM-SEC-001 | Approve the PowerShell/Python contract and pass executable integration tests before operational acceptance. | Contract status is review pending; P0-005 and EOLM-TST-011 record approval/integration tests as incomplete. | Blocked pending operator approval and runtime tests | Record explicit operator approval and CI-linked process-boundary tests. Do not treat schema validation or this audit as contract acceptance. |
+|`docs/design/powershell-python-contract.md` §§1–2 — 認証情報と機密性の高い API ペイロード| EOLM-SEC-001, EOLM-DRV-007, EOLM-TST-004/005 |認証情報は、承認されたローカル ストアからのみロードしてください。トークン、クライアント シークレット、認証ヘッダー、または機密の生の API ペイロードを stdout またはログに出力しないでください。|いいえ Python ドライブ/認証アダプターまたは操作ログ パス。スキーマ テストは JSON 形状を検証しますが、秘密を含む例外を挿入したり、stdout/stderr/log を検査したりしません。 OAuth スコープ/認証の設定は OSD-05 によってブロックされています。|実装されていない/実行されていません。認証ポリシーが OSD-05 によってブロックされました|最小権限の同一性/スコープを承認し、合成シークレットを成功/失敗/タイムアウト例外に挿入し、stdout、stderr、構造化ログ、および保持された診断全体でリダクションをアサートします。|
+|コントラクト §5 — 標準出力には UTF-8 JSON 応答が 1 つだけ含まれます。診断は標準エラー出力に行きます| EOLM-DRV-012/013, EOLM-TST-004 |空/不正な/複数の JSON 出力、無効な UTF-8、バナー、トレースバック漏洩、リクエスト/レスポンス ID の不一致、および終了コード/JSON の不一致を拒否します。|既存のスキーマ テストは、生のプロセス ストリーム、UTF-8 デコード、子終了コード、または実際のプロセス境界での相関ではなく、JSON オブジェクトと応答フィールドを検証します。|未実装 / 未実行|合成 stdout/stderr および終了コードを含むプロセス境界の負の行列。秘密を含む診断が確実にサニタイズされ、ワークフローがフェールクローズされるようにします。|
+|コントラクト §§4/8–9 — アクセスが制限された実行ごとの IPC ファイルと呼び出し所有のクリーンアップ| EOLM-DRV-015, EOLM-OPS-005, EOLM-SEC-001, EOLM-TST-004/005 |一時的な要求/応答ファイルの実行を制限し、認証情報を除外し、現在の呼び出しによって作成されたファイルのみをクリーンアップします。|公式の PowerShell ラッパー、Python アダプター、IPC 一時ファイル マネージャー、またはパーミッション/クリーンアップ テストは存在しません。|未実装 / 未実行|一時ルート テストでは、ACL/権限の動作、認証情報フィールドなし、実行ごとの一意のパス、成功/失敗/タイムアウト時のクリーンアップ、無関係なファイルの保存を検証します。|
+|契約 §9 — 構造化された操作ログ| EOLM-OPS-003/005, EOLM-SEC-001, EOLM-TST-005 |UTC タイムスタンプ、実行 ID、該当する場合はリクエスト ID、操作、経過時間、終了コード、修正されたエラー コード、サニタイズ結果を記録します。失敗はサイレントスキップであってはなりません。|ランタイム ロガー、安定した操作エラー パス、またはログ スキーマ/アサーションはありません。スキーマ/パッケージ CI はログをテストしません。|未実装 / 未実行|スキーマ/フィールドの成功、検証失敗、権限エラー、タイムアウト、再試行、および不明な結果のテスト。 Secret-redaction および log-injection アサーション。|
+|契約 §10 — オペレーターのレビューとランタイム統合の承認| EOLM-TST-011, EOLM-DRV-012/013/015, EOLM-SEC-001 |PowerShell/Python 契約を承認し、運用受諾前に実行可能な統合テストに合格します。|契約ステータスは審査保留中です。 P0-005 および EOLM-TST-011 は、承認/統合テストが不完全であると記録します。|ブロックされた保留中のオペレーターの承認と実行時テスト|明示的なオペレーターの承認と CI にリンクされたプロセス境界テストを記録します。スキーマの検証またはこの監査を契約の承諾として扱わないでください。|
 
-### Evidence boundary and disposition
+<a id="evidence-boundary-and-disposition-6"></a>
+### 証拠の境界と扱い
 
-- The current CI's schema tests are not secret-redaction tests, raw stdout/stderr tests, process timeout tests, IPC-file ACL tests, or operational logging tests.
-- Do not put actual credentials in tests or logs. All future redaction fixtures must use synthetic sentinel strings and isolated temporary files.
-- OSD-05 blocks auth/scope selection; contract operator approval and IPC integration tests remain separate acceptance gates. A passed Validate run does not resolve either gate.
-- EOLM-SEC-001, EOLM-OPS-005, and EOLM-DRV-015 remain not implemented/not run; EOLM-TST-011 remains blocked pending operator approval and runtime tests. P0-005 and P0-010 remain open.
-- Safety boundary: documentation-only audit; no credentials, Drive calls, real logs, production paths, or deletion behavior.
+- 現在の CI のスキーマ テストは、秘密編集テスト、生の stdout/stderr テスト、プロセス タイムアウト テスト、IPC ファイル ACL テスト、または操作ログ テストではありません。
+- 実際の認証情報をテストやログに含めないでください。今後のすべてのリダクション フィクスチャは、合成センチネル文字列と分離された一時ファイルを使用する必要があります。
+- OSD-05 は認証/スコープの選択をブロックします。契約オペレーターの承認と IPC 統合テストは、引き続き別々の受け入れゲートとなります。合格した Validate 実行では、どちらのゲートも解決されません。
+- EOLM-SEC-001、EOLM-OPS-005、および EOLM-DRV-015 は実装されていない/実行されていないままです。 EOLM-TST-011 はブロックされたままです 未確定 オペレーターの承認と実行時テスト。 P0-005 と P0-010 は開いたままになります。
+- 安全境界: 文書のみの監査。認証情報、ドライブ呼び出し、実際のログ、本番パス、または削除動作はありません。
 
 
-## Focused evidence reconciliation — Drive listing completeness and candidate identity (post-PR #93 baseline)
+<a id="focused-evidence-reconciliation--drive-listing-completeness-and-candidate-identity-post-pr-93-baseline"></a>
+## 重点的な証拠の調整 — リストの完全性と対象候補の身元を促進します (PR #93 ベースライン後)
 
-This slice maps the Drive list/reconciliation requirements to the adapter contract, schema tests, and actual implementation state. The adapter contract defines the intended boundary; it does not establish that any API operation is implemented or that a listing is complete.
+このスライスは、ドライブ リスト/調整要件をアダプター コントラクト、スキーマ テスト、および実際の実装状態にマップします。アダプター コントラクトは、意図した境界を定義します。 API 操作が実装されていること、またはリストが 完了 であることは確立されません。
 
-| Source clause | Requirement IDs | Required behavior | Existing implementation / executable test evidence | Disposition | Remaining acceptance evidence |
+|ソース句|要件 ID|必要な動作|既存の実装/実行可能テストの証拠|処分|残りの受諾証拠|
 |---|---|---|---|---|---|
-| `docs/design/powershell-python-contract.md` §3 — list Drive files for a configured parent | EOLM-DRV-009, EOLM-DRV-011, EOLM-TST-004/005 | Listing must paginate explicitly; a failed/interrupted page must not be reported as a complete inventory. Request validation must enforce the allowlisted operation and required parent parameter. | `contracts/drive-request.schema.json` and `tests/test_contract_schemas.py` cover request shape for `list_files`, including rejection of a request missing its required parent. No Python adapter, pagination loop, page-token handling, or mocked multi-page execution test exists. | Contract/schema-shape evidence only; adapter behavior not implemented / not run | Add mocked one-page and multi-page cases, empty final page, repeated/invalid page token, first/later-page API failure, and timeout. Assert a partial result is never returned as a complete inventory and no follow-on reconciliation/archive action is authorized. |
-| `docs/design/powershell-python-contract.md` §§3/7 — reconcile Drive candidates by stable identity and relevant attributes | EOLM-DRV-010, EOLM-SYN-006–009, EOLM-ARC-002/005, EOLM-TST-005/010 | Candidate selection must use stable Drive identity plus applicable parent/name/size/content attributes; zero, multiple, ambiguous, or unmarked candidates must fail closed rather than selecting an arbitrary match. | Request/response schemas and tests validate JSON fields and allowlisted operations; they do not implement candidate matching, provenance/trust decisions, or Drive reconciliation. OSD-01 blocks the trust predicate for pre-existing unmarked objects. | Not implemented / not run; trust-dependent paths blocked by OSD-01 | Add deterministic zero/one/multiple-candidate fixtures, same-name/different-parent and same-name/different-size cases, matching/mismatching content hashes, and unmarked/unknown-origin cases. Record the selected stable identity and prove ambiguous cases cause no upload/archive/overwrite/delete. Resolve OSD-01 before accepting provenance-dependent behavior. |
-| Contract §2/§3 — adapter input is not authorization to mutate or overwrite | EOLM-DRV-011/014, EOLM-SAF-001/003, EOLM-TST-004/005 | Path and operation arguments are validated against approved roots and the operation allowlist; Python performs only the requested adapter operation and cannot decide workflow completion or enable deletion/overwrite. | Schema rejects unknown operations/fields, including delete operations, but no runtime request validator, allowed-root enforcement, PowerShell orchestrator, or process-boundary test exists. | Partial schema evidence; runtime boundary not implemented / not run | Test path traversal, wrong roots, unknown fields/operations, request/response identity mismatch, and attempts to use an adapter response to bypass orchestration gates. Keep the four-operation contract as the maximum adapter surface; do not infer broader permission from a path. |
+|`docs/design/powershell-python-contract.md` §3 — 構成された親のドライブ ファイルのリスト| EOLM-DRV-009, EOLM-DRV-011, EOLM-TST-004/005 |リストは明示的にページ分割する必要があります。失敗した/中断されたページを完全なインベントリとして報告してはなりません。リクエストの検証では、ホワイトリストに登録された操作と必須の親パラメータを強制する必要があります。|`contracts/drive-request.schema.json` および `tests/test_contract_schemas.py` は、必要な親が欠落しているリクエストの拒否を含む、`list_files` のリクエスト形式をカバーします。 Python アダプター、ページ分割ループ、ページトークン処理、または模擬マルチページ実行テストは存在しません。|契約/スキーマ形状の証拠のみ。アダプターの動作が実装されていない/実行されていない|モック化された 1 ページおよび複数ページのケース、空の最終ページ、繰り返し/無効なページ トークン、最初/後のページ API エラー、およびタイムアウトを追加します。部分的な結果が完全なインベントリとして返されることはなく、その後の調整/アーカイブ アクションは許可されないことをアサートします。|
+|`docs/design/powershell-python-contract.md` §§3/7 — 安定した ID と関連する属性に基づいてドライブ候補を調整します| EOLM-DRV-010, EOLM-SYN-006–009, EOLM-ARC-002/005, EOLM-TST-005/010 |候補の選択では、安定したドライブ ID と、該当する親/名前/サイズ/コンテンツ属性を使用する必要があります。ゼロ、複数、曖昧、またはマークのない候補は、任意の一致を選択するのではなく、失敗して終了する必要があります。|リクエスト/レスポンスのスキーマとテストは、JSON フィールドと許可リストに登録された操作を検証します。対象候補の照合、来歴/信頼性の決定、またはドライブの調整は実装されません。 OSD-01 は、既存のマークされていないオブジェクトの信頼述語をブロックします。|実装されていない/実行されていません。信頼に依存するパスが OSD-01 によってブロックされました|決定的なゼロ/1/複数の候補フィクスチャ、同じ名前/異なる親および同じ名前/異なるサイズのケース、一致/不一致のコンテンツ ハッシュ、およびマークなし/不明な起源のケースを追加します。選択した安定した ID を記録し、曖昧なケースがアップロード/アーカイブ/上書き/削除の原因にならないことを証明します。出所依存の動作を受け入れる前に OSD-01 を解決してください。|
+|コントラクト §2/§3 — アダプター入力は変更または上書きを許可されていません| EOLM-DRV-011/014, EOLM-SAF-001/003, EOLM-TST-004/005 |パスと操作の引数は、承認されたルートと操作の許可リストに対して検証されます。 Python は、要求されたアダプター操作のみを実行し、ワークフローの完了を決定したり、削除/上書きを有効にしたりすることはできません。|スキーマは、削除操作を含む不明な操作/フィールドを拒否しますが、ランタイム リクエスト バリデーター、許可されたルートの強制、PowerShell オーケストレーター、またはプロセス境界テストは存在しません。|部分的なスキーマの証拠。ランタイム境界が実装されていない/実行されていない|パス トラバーサル、間違ったルート、不明 フィールド/操作、要求/応答 ID 不一致 をテストし、アダプター応答を使用してオーケストレーション ゲートをバイパスしようとしています。アダプターの最大表面として 4 つの操作の契約を維持します。パスからより広範な許可を推測しないでください。|
 
-### Evidence boundary and disposition
+<a id="evidence-boundary-and-disposition-7"></a>
+### 証拠の境界と扱い
 
-- Existing `test_contract_schemas.py` assertions establish request/response schema behavior only. They do not make API calls, simulate pagination, reconcile candidate identity, or prove that all Drive pages were consumed.
-- No Python Drive adapter is present at the PR #93 baseline. Do not label listing, pagination, identity matching, or reconciliation as implemented.
-- EOLM-DRV-009 remains not implemented/not run; EOLM-DRV-010 remains not implemented/not run and blocked for unmarked-object trust decisions by OSD-01. P0-010 remains open.
-- Safety boundary: documentation-only audit; no credentials, Drive calls, real logs, production paths, uploads, archive writes, or deletion behavior.
+- 既存の `test_contract_schemas.py` アサーションは、要求/応答スキーマの動作のみを確立します。 API 呼び出しを行ったり、ページ分割をシミュレートしたり、対象候補の ID を調整したり、すべてのドライブ ページが消費されたことを証明したりすることはありません。
+- いいえ Python ドライブ アダプターが PR #93 ベースラインに存在します。リスト、ページネーション、ID マッチング、またはリコンシリエーションに実装済みのラベルを付けないでください。
+- EOLM-DRV-009 は実装されていない/実行されていないままです。 EOLM-DRV-010 は未実装/実行されず、OSD-01 によるマークされていないオブジェクトの信頼決定がブロックされたままです。 P0-010 は開いたままです。
+- 安全境界: 文書のみの監査。認証情報、ドライブ呼び出し、実際のログ、本番パス、アップロード、アーカイブ書き込み、または削除動作はありません。
 
 
-## Focused evidence reconciliation — C-29 retry ownership and unknown upload outcomes (post-PR #94 baseline)
+<a id="focused-evidence-reconciliation--c-29-retry-ownership-and-unknown-upload-outcomes-post-pr-94-baseline"></a>
+## 重点的な証拠の調整 — C-29 再試行の所有権と 不明 のアップロード結果 (PR 後 #94 ベースライン)
 
-This slice reconciles retry/idempotency clauses with requirement IDs, runtime scenarios, tracked implementation, and objective evidence. C-29 defines policy; it does not prove retries, Drive reconciliation, or idempotency are implemented.
+このスライスは、再試行/冪等性句と要件 ID、実行時シナリオ、追跡された実装、および客観的な証拠を調整します。 C-29 はポリシーを定義します。再試行、ドライブ調整、冪等性が実装されていることを証明するものではありません。
 
-| Source clause | Requirement IDs | Required behavior | Existing implementation / executable test evidence | Disposition | Remaining acceptance evidence |
+|ソース句|要件 ID|必要な動作|既存の実装/実行可能テストの証拠|処分|残りの受諾証拠|
 |---|---|---|---|---|---|
-| Decision register C-18/C-29; contract §7 — retry ownership and bounded attempts | EOLM-DRV-001/002, EOLM-TST-004/005; SYNC-11, RETRY-01/02 | Python performs exactly one API attempt per invocation with no hidden client/library retry. PowerShell alone classifies errors and owns at most four total attempts, with waits of 1, 5, and 15 minutes. Non-retryable auth, permission, invalid-request, verification, and ambiguity errors stop. | Contract and decision prose state this policy. The tracked tree has no Python Drive adapter or official PowerShell orchestrator, and no process-level retry test or HTTP-client retry assertion exists. Schema tests cannot count API attempts or observe delays. | Contract-only; runtime behavior not implemented / not run | Mock the adapter and clock/wait seam; prove one API attempt per invocation, at most four orchestrated attempts, exact waits, no retry for permanent errors, and no implicit HTTP-client retry. |
-| Decision register C-29; contract §§6–7 — upload result unknown after timeout/response loss | EOLM-DRV-003/006/008/010, EOLM-TST-004/005; RETRY-03–06 | Before another upload attempt, query Drive state. A unique matching object with trustworthy content verification may be reconciled as completed; confirmed absence may permit retry; inaccessible, incomplete, ambiguous, unmarked, or mismatching state must stop and retain local staging/source data. | Request/response schemas and schema tests validate message shape only. No adapter, pagination/list-completeness implementation, candidate identity reconciliation, upload operation, or retry orchestrator exists. OSD-01 blocks the trust predicate for pre-existing unmarked objects. | Not implemented / not run; provenance-dependent paths blocked by OSD-01 | Deterministic simulated upload-before-timeout and timeout-before-upload cases; unique matching hash, confirmed absence, duplicate candidates, same-name/different-parent, mismatch, incomplete listing, inaccessible Drive, and unmarked object. Assert reconciliation occurs before retry and uncertain state never becomes success or authorizes cleanup/archive. |
-| Contract §§2–3/7 — stable identity and complete Drive state before retry | EOLM-DRV-009/010/011, EOLM-DRV-013/014, EOLM-TST-004/005; RETRY-04–06 | Listing must be complete and candidate identity unambiguous. A partial page, malformed response, identity mismatch, or incomplete metadata cannot be interpreted as object absence. Adapter results do not authorize workflow continuation. | Request/response schemas cover allowed fields and operations only. There is no pagination loop, process-boundary validation, request/response correlation harness, or orchestration gate. | Schema/contract evidence only; runtime behavior not implemented / not run | Prove first/later-page failures and incomplete listings are distinct from confirmed absence; prove zero/multiple/ambiguous candidates fail closed and no retry, archive, overwrite, or cleanup occurs. |
+|決定レジスタ C-18/C-29;契約 §7 — 所有権と制限付き試行の再試行| EOLM-DRV-001/002, EOLM-TST-004/005; SYNC-11, RETRY-01/02 |Python は、非表示のクライアント/ライブラリの再試行なしで、呼び出しごとに API 試行を 1 回だけ実行します。 PowerShell だけでエラーが分類され、合計最大 4 回の試行が行われ、待機時間は 1、5、15 分になります。再試行不可能な認証、許可、無効な要求、検証、およびあいまいさのエラーが停止します。|契約書と決定書の文書には、このポリシーが記載されています。追跡されるツリーには、Python ドライブ アダプターや公式の PowerShell オーケストレーターはなく、プロセス レベルの再試行テストや HTTP クライアントの再試行アサーションも存在しません。スキーマ テストでは、API の試行をカウントしたり、遅延を観察したりすることはできません。|契約のみ。ランタイム動作が実装されていない/実行されない|アダプターとクロック/待機シームをモックします。呼び出しごとに 1 つの API 試行、最大 4 つの調整された試行、正確な待機、永続的なエラーに対する再試行なし、および暗黙的な HTTP クライアントの再試行なしを証明します。|
+|決定レジスタ C-29;コントラクト §§6–7 — タイムアウト/応答喪失後にアップロード結果が不明| EOLM-DRV-003/006/008/010, EOLM-TST-004/005; RETRY-03–06 |別のアップロードを試行する前に、ドライブの状態をクエリします。信頼できるコンテンツ検証を備えた一意の一致オブジェクトは、完了したものとして調整される場合があります。不在が確認されると再試行が許可される場合があります。アクセス不能、不完全、あいまい、マークなし、または不一致の状態の場合は、ローカルのステージング/ソース データを停止して保持する必要があります。|リクエスト/レスポンス スキーマとスキーマ テストは、メッセージの形式のみを検証します。アダプター、ページネーション/リスト完全性の実装、候補 ID の調整、アップロード操作、または再試行オーケストレーターは存在しません。 OSD-01 は、マークされていない既存のオブジェクトの信頼述語をブロックします。|実装されていない/実行されていません。出所依存のパスは OSD-01 によってブロックされています|決定的にシミュレートされたタイムアウト前アップロードおよびアップロード前タイムアウトのケース。一意の一致ハッシュ、確認された不在、重複した候補、同じ名前/異なる親、不一致、不完全なリスト、アクセスできないドライブ、マークされていないオブジェクト。再試行の前にアサート調整が行われ、不確実な状態が成功したりクリーンアップ/アーカイブが許可されることはありません。|
+|契約 §§2–3/7 — 再試行前の安定した ID と完全なドライブ状態| EOLM-DRV-009/010/011, EOLM-DRV-013/014, EOLM-TST-004/005; RETRY-04–06 |リストは完全であり、対象候補の身元が明確でなければなりません。部分的なページ、不正な形式の応答、ID の不一致、または不完全なメタデータは、オブジェクトの不在として解釈できません。アダプターの結果はワークフローの継続を許可しません。|リクエスト/レスポンス スキーマは、許可されたフィールドと操作のみをカバーします。ページネーション ループ、プロセス境界検証、リクエスト/レスポンス相関ハーネス、オーケストレーション ゲートはありません。|スキーマ/契約の証拠のみ。ランタイム動作が実装されていない/実行されない|最初/後のページの失敗および不完全なリストが確認された不在とは異なることを証明します。ゼロ/複数/曖昧な候補を証明すると失敗し、再試行、アーカイブ、上書き、クリーンアップは行われません。|
 
-### Required test disposition
+<a id="required-test-disposition"></a>
+### 必要なテスト処理
 
-| Scenario | Requirement mapping | Current state | Acceptance evidence still required |
+|シナリオ|要件マッピング|現在の状態|受理証拠は引き続き必要です|
 |---|---|---|---|
-| RETRY-01 — adapter attempt count | EOLM-DRV-001 | Not implemented / not run | Mock API call count is exactly one per adapter invocation for both success and failure. |
-| RETRY-02 — PowerShell retry owner and budget | EOLM-DRV-002 | Not implemented / not run | Inject outcomes and time; verify the four-attempt ceiling and waits of 1/5/15 minutes; prove permanent errors are not retried. |
-| RETRY-03 — timeout after upload, matching object found | EOLM-DRV-003/006 | Not implemented / not run | Reconcile via complete Drive listing and trustworthy content verification; no duplicate upload; only then classify as completed. |
-| RETRY-04 — confirmed absence after unknown outcome | EOLM-DRV-003/009 | Not implemented / not run | Prove the query completed successfully and completely before absence is accepted; then enforce the bounded retry budget. |
-| RETRY-05 — uncertain or incomplete Drive state | EOLM-DRV-003/006/008/009 | Not implemented / not run | API/listing failure, pagination failure, inaccessible object, or incomplete response stops; no absence inference, success, cleanup, or archive. |
-| RETRY-06 — mismatch, ambiguity, or unmarked object | EOLM-DRV-006/010 | Not implemented / not run; unmarked-object trust blocked by OSD-01 | Same-name/different-parent, duplicate candidates, content mismatch, and unmarked provenance fail closed without overwrite or another upload. |
+|RETRY-01 — アダプターの試行回数| EOLM-DRV-001 |未実装 / 未実行|モック API の呼び出し数は、成功しても失敗してもアダプター呼び出しごとに 1 つだけです。|
+|RETRY-02 — PowerShell 所有者と予算を再試行します| EOLM-DRV-002 |未実装 / 未実行|結果と時間を注入します。 4 回の試行の上限と 1/5/15 分の待ち時間を確認します。永続的なエラーが再試行されないことを証明します。|
+|RETRY-03 — アップロード後にタイムアウトになり、一致するオブジェクトが見つかりました| EOLM-DRV-003/006 |未実装 / 未実行|完全なドライブのリストと信頼できるコンテンツの検証を通じて調整します。重複したアップロードはありません。その後のみ、完了として分類されます。|
+|RETRY-04 — 不明 の結果後に不在が確認されました| EOLM-DRV-003/009 |未実装 / 未実行|不在が認められる前に、クエリが正常に完全に完了したことを証明してください。次に、制限された再試行バジェットを適用します。|
+|RETRY-05 — 不確実または 未完了 ドライブの状態| EOLM-DRV-003/006/008/009 |未実装 / 未実行|API/リスト 失敗、ページネーション 失敗、アクセスできないオブジェクト、または 未完了 応答が停止します。不在推論、成功、クリーンアップ、またはアーカイブはありません。|
+|RETRY-06 — 不一致、あいまいさ、またはマークされていないオブジェクト| EOLM-DRV-006/010 |実装されていない/実行されていません。マークのないオブジェクトの信頼が OSD-01 によってブロックされました|同じ名前/異なる親、重複した候補、コンテンツの不一致、マークされていない出所は、上書きや別のアップロードを行わずにフェールクローズされます。|
 
-- These scenarios are design/traceability additions only; none was executed against a runtime adapter or orchestrator.
-- Confirmed absence is valid only after a successful, complete query under an approved identity/trust policy. A failed or partial query is unknown, not absent.
-- A matching name/size or metadata-only response is not content verification. Use a trustworthy Drive SHA-256 where available, otherwise download and hash the content as specified by the contract.
-- Do not treat an unknown upload result as a safe retry signal without reconciliation. Do not infer OSD-01's unmarked-object trust rule.
-- P0-010 remains open; EOLM-DRV-001/002/003/006/008/009/010 and the RETRY scenarios remain not implemented/not run as applicable. Documentation/schema/package CI is not runtime acceptance evidence.
-- Safety boundary: no credentials, Drive calls, real logs, production paths, uploads, archive writes, or deletion behavior.
+- これらのシナリオは設計/トレーサビリティの追加のみです。ランタイム アダプターまたはオーケストレーターに対して何も実行されませんでした。
+- 確認された不在は、承認された同一性/信頼ポリシーの下で 完了 クエリが成功した後にのみ有効です。 失敗した または部分的なクエリは 不明 であり、存在しないわけではありません。
+- 一致する名前/サイズ、またはメタデータのみの応答はコンテンツ検証ではありません。利用可能な場合は信頼できるドライブ SHA-256 を使用します。それ以外の場合は、契約で指定されているようにコンテンツをダウンロードしてハッシュします。
+- 不明 アップロード結果を調整なしの安全な再試行信号として扱わないでください。 OSD-01 のマークされていないオブジェクトの信頼ルールを推測しないでください。
+- P0-010 は開いたままです。 EOLM-DRV-001/002/003/006/008/009/010 および RETRY シナリオは、該当する場合には実装されず、実行されないままになります。ドキュメント/スキーマ/パッケージ CI は、実行時の受け入れの証拠ではありません。
+- 安全境界: 認証情報なし、ドライブ呼び出し、実際のログ、運用パス、アップロード、アーカイブ書き込み、または削除動作。
 
-## Focused evidence reconciliation — C-26 manifest schema and run-state contract (post-PR #99 baseline)
+<a id="focused-evidence-reconciliation--c-26-manifest-schema-and-run-state-contract-post-pr-99-baseline"></a>
+## 重点的な証拠の調整 — C-26 マニフェスト スキーマと実行状態コントラクト (PR 後 #99 ベースライン)
 
-C-26 defines requirements for the operational manifest, but prose-level state descriptions are not a complete approved schema or transition contract. This audit separates already stated invariants from choices blocked by OSD-02/OSD-03 and EOLM-MAN-011.
+C-26 は運用マニフェストの要件を定義しますが、散文レベルの状態記述は 完了 で承認されたスキーマまたは移行契約ではありません。この監査では、すでに記述されている不変条件を、OSD-02/OSD-03 および EOLM-MAN-011 によってブロックされた選択肢から分離します。
 
-| Source clause | Requirement IDs | Existing tracked artifact/evidence | Current disposition | Required acceptance evidence |
+|ソース句|要件 ID|追跡された既存の成果物/証拠|現在の配置|必要な受諾証拠|
 |---|---|---|---|---|
-| Decision register C-26; staging lifecycle §8 — run manifest identity and status | EOLM-MAN-001–003, EOLM-MAN-007–009 | staging-file-lifecycle.md specifies a unique run_id, initial running status, final status update, run statuses running/success/partial_failure/failure, and success + outcome:no_work for verified zero-work. No operational manifest schema, reader/writer, or runtime entry point exists. | Prose requirements only; manifest runtime not implemented / not run | Approve and implement the versioned schema, required field/type/enum constraints, filename-to-payload identity checks, and malformed/unknown-version rejection. Add positive/negative schema and runtime read/write tests. |
-| Staging lifecycle §§6–8 — per-file states, run status, and transitions | EOLM-MAN-003–006, EOLM-STG-003/006/011/012, EOLM-TST-004/005 | Individual file states (staging, ready, pending, uploaded, verified, failed, unknown) and selected sequences are described, but there is no complete normative transition table covering all success, failure, retry, crash, and concurrent-update edges. OSD-02 blocks the complete schema/transition baseline; OSD-03 blocks exhaustive mixed-outcome aggregation. | Partial specification; approval blocked | Approve a complete transition matrix and run/period aggregation rules before coding. Then add table-driven tests for allowed and forbidden transitions, mixed file outcomes, empty versus failed enumeration, and source/staging preservation. Do not infer unspecified transitions. |
-| Staging lifecycle §8 — latest run and peer-manifest gate | EOLM-MAN-004/007/010/012, EOLM-ARC-002/005, EOLM-TST-005 | Prose says the latest run for PC/period/log type takes precedence; running, partial_failure, or failure must not fall back to an older success, and Drive state must be re-verified before archive. No manifest lookup, latest-run selection, or archive gate is implemented. | Contract-only; runtime not implemented / not run | Implement deterministic latest-run selection and identity validation; test stale/failed/running latest entries, mismatched PC/period/log type/run ID, and prove older success cannot authorize archive. |
-| Staging lifecycle §8; EOLM-MAN-011 — freshness, time zone, and clock skew | EOLM-MAN-011, EOLM-ARC-005, EOLM-TST-005 | Freshness-dependent archive checks are required. Timestamp policy shape is approved, but numeric tolerances, exact applicability, and clock-sync/monitoring expectations remain unresolved; OSD-02 transition completeness and OSD-03 report contract/evidence also remain open. | Blocked by EOLM-MAN-011 / OSD-02 / OSD-03 | Obtain explicit approval for numeric freshness/future-time tolerances, exact applicability, and clock-sync/monitoring expectations; then add fixed-clock tests. Do not implement a guessed freshness threshold or permit archive on an unapproved rule. |
-| Staging lifecycle §8 — crash and atomic manifest update | EOLM-MAN-008/009/012, EOLM-LCK-001–004, EOLM-TST-005/007 | The document describes temporary-file write, JSON re-read/validation, replacement, and leaving a crash-interrupted running manifest incomplete. No manifest writer, lock-aware updater, or crash/concurrency test exists. | Specified intent only; runtime not implemented / not run | Test interruption before/after replacement, malformed temp and official files, concurrent updates under the approved lock policy, and the rule that a new run uses a new ID without mutating older manifests. |
+|決定レジスタ C-26;ステージング ライフサイクル §8 — マニフェスト ID とステータスの実行| EOLM-MAN-001–003, EOLM-MAN-007–009 |staging-file-lifecycle.md は、一意の run_id、初期 実行中 ステータス、最終ステータス更新、実行ステータス 実行中/成功/partial_failure/失敗、および 確認済み ゼロ作業の 成功 + 結果:no_work を指定します。操作可能なマニフェスト スキーマ、リーダー/ライター、またはランタイム エントリ ポイントは存在しません。|散文の要件のみ。マニフェスト ランタイムが実装されていない/実行されていない|バージョン管理されたスキーマ、必須のフィールド/タイプ/列挙型の制約、ファイル名からペイロードへの ID チェック、不正な形式または不明なバージョンの拒否を承認して実装します。ポジティブ/ネガティブ スキーマとランタイム読み取り/書き込みテストを追加します。|
+|ステージング ライフサイクル §§6–8 — ファイルごとの状態、実行ステータス、および遷移| EOLM-MAN-003–006, EOLM-STG-003/006/011/012, EOLM-TST-004/005 |個々のファイルの状態 (ステージング、準備完了、保留中、アップロード、検証済み、失敗、不明) と選択されたシーケンスが説明されていますが、すべての成功、失敗、再試行、クラッシュ、および同時更新エッジをカバーする完全な規範的な遷移テーブルはありません。 OSD-02 は完全なスキーマ/遷移ベースラインをブロックします。 OSD-03 は、徹底的な混合結果の集計をブロックします。|部分的な仕様。承認がブロックされました|コーディングする前に、完全な遷移マトリックスと実行/期間集計ルールを承認してください。次に、許可された遷移と禁止された遷移、混合ファイルの結果、空の列挙と失敗した列挙、およびソース/ステージングの保存のためのテーブル駆動テストを追加します。不特定の遷移を推測しないでください。|
+|ステージング ライフサイクル §8 — 最新の実行およびピアマニフェスト ゲート| EOLM-MAN-004/007/010/012, EOLM-ARC-002/005, EOLM-TST-005 |Prose 氏は、PC/period/log タイプの最新の実行が優先されると述べています。実行中、partial_failure、または失敗しても以前の成功に戻ってはならず、アーカイブする前にドライブの状態を再検証する必要があります。マニフェストの検索、最新実行の選択、アーカイブ ゲートは実装されていません。|契約のみ。ランタイムが実装されていない/実行されていない|決定的な最新実行の選択と ID 検証を実装します。古い/失敗した/実行中の最新エントリ、一致しない PC/期間/ログ タイプ/実行 ID をテストし、古い成功ではアーカイブを承認できないことを証明します。|
+|ステージングのライフサイクル §8; EOLM-MAN-011 — 鮮度、タイムゾーン、クロックスキュー| EOLM-MAN-011, EOLM-ARC-005, EOLM-TST-005 |鮮度に応じたアーカイブチェックが必要です。タイムスタンプ ポリシーの形状は承認されていますが、数値許容誤差、正確な適用性、およびクロック同期/監視の期待は未解決のままです。 OSD-02 移行完了および OSD-03 レポート契約/証拠も未解決のままです。|EOLM-MAN-011 / OSD-02 / OSD-03 によってブロックされました|数値の鮮度/将来の許容範囲、正確な適用性、およびクロック同期/監視の期待について明示的な承認を取得します。次に、固定クロック テストを追加します。推定鮮度しきい値を実装したり、未承認のルールでアーカイブを許可したりしないでください。|
+|ステージング ライフサイクル §8 — クラッシュとアトミック マニフェストの更新| EOLM-MAN-008/009/012, EOLM-LCK-001–004, EOLM-TST-005/007 |このドキュメントでは、一時ファイルの書き込み、JSON の再読み取り/検証、置換、およびクラッシュによって中断された 実行中 マニフェスト 未完了 の残しについて説明しています。マニフェスト ライター、ロック対応アップデータ、クラッシュ/同時実行テストは存在しません。|指定された意図のみ。ランタイムが実装されていない/実行されていない|置換前後のテストの中断、不正な形式の一時ファイルと公式ファイル、承認されたロック ポリシーに基づく同時更新、および古いマニフェストを変更せずに新しい実行で新しい ID を使用するというルール。|
 
-### Manifest evidence boundary
+<a id="manifest-evidence-boundary"></a>
+### 明示的な証拠の境界
 
-- contracts/drive-response.schema.json is the Python Drive adapter response envelope; it is not the operational maintenance-manifest schema.
-- Existing contract-schema CI does not validate maintenance manifest instances, perform manifest I/O, test transitions, select the latest manifest, or exercise archive gating.
-- MAN-01–10 and EOLM-MAN-011 are not runtime acceptance evidence; MAN-04 remains blocked by missing runtime enforcement and executable freshness tests. RETRY-01–06 and SEL-RT-01–10 remain design-only/not run.
-- OSD-02 timestamp/freshness values are approved, but transition/runtime enforcement and executable tests remain pending; OSD-03 blocks exhaustive run/period aggregation; EOLM-MAN-011 acceptance remains blocked by missing runtime evidence. P0-010 remains open.
-- Safety boundary: documentation-only audit. No credentials, Drive calls, real logs, production paths, uploads, archive writes, or deletion behavior.
-
-
-## Diagnostic C-45–C-54 implementation/test evidence refresh — PRs #140/#141
-
-The current helper and synthetic-test state is summarized in docs/archive/validation/diagnostic-contract-test-evidence.md. PR #145 records the approved C-45 Option A conflict policy; runtime conflict detection and fail-closed enforcement remain unimplemented and unevidenced. C-45/C-46 ID allocation, C-47–C-49 schema/allowlists, C-51 operation-to-phase resolution, C-52 fixed message validation, and C-53/C-54 path policy have bounded helper evidence. PR #144 implements the pure C-50 token-to-code classifier; PR #146 implements the pure C-51 operation-to-phase resolver with synthetic CI tests. Producer-side precedence selection, semantic context selection, and runtime event integration remain unimplemented. Event propagation, runtime diagnostic sink non-disclosure, raw JSON duplicate-key rejection, end-to-end evidence finalization, and runtime orchestration remain unimplemented/not run. Helper/schema/package CI is not runtime acceptance evidence; P0-008/P0-010/P0-012 remain open.
+- contracts/drive-response.schema.json は Python ドライブ アダプターの応答エンベロープです。これは運用保守マニフェスト スキーマではありません。
+- 既存のコントラクト スキーマ CI は、メンテナンス マニフェスト インスタンスの検証、マニフェスト I/O の実行、移行のテスト、最新のマニフェストの選択、アーカイブ ゲーティングの実行を行いません。
+- MAN-01–10 および EOLM-MAN-011 は実行時の受け入れ証拠ではありません。 MAN-04 は、ランタイム強制と実行可能な鮮度テストが欠落しているためブロックされたままです。 RETRY-01–06 および SEL-RT-01–10 はデザインのみであり、実行されません。
+- OSD-02 タイムスタンプ/鮮度値は承認されていますが、移行/ランタイム強制および実行可能テストは 未確定 のままです。 OSD-03 は、徹底的な実行/期間の集計をブロックします。 EOLM-MAN-011 の受け入れは、実行時の証拠が不足しているためブロックされたままです。 P0-010 は開いたままです。
+- 安全境界: 文書のみの監査。認証情報、ドライブ呼び出し、実際のログ、本番パス、アップロード、アーカイブ書き込み、または削除動作はありません。
 
 
-## OSD-02 timestamp/freshness decision reconciliation — 2026-10-21
+<a id="diagnostic-c-45c-54-implementationtest-evidence-refresh--prs-140141"></a>
+## 診断 C-45–C-54 実装/テスト証拠の更新 — PR #140/#141
 
-The maintainer approved a configurable 5-minute future-time tolerance and 24-hour freshness threshold. Manifest timestamps must be parseable UTC ISO 8601 with uppercase `Z`; malformed, timezone-less, offset-form, or unparseable values are rejected. `finished_at_utc` must not precede `started_at_utc`. Freshness applies only to timestamps generated/updated during the current execution; historical manifests are not invalidated solely by age. Host OS time synchronization is assumed configured; if current UTC time is unavailable or unreliable, time-dependent operations fail closed. No separate external monitoring service is required by this decision.
-
-Required executable evidence: fixed-clock tests at and beyond both boundaries, malformed timestamp/ordering tests, invalid configuration tests, unavailable-clock fail-closed tests, and historical-age non-invalidation tests. This is policy/documentation evidence only; runtime validation, executable tests, and operational evidence remain absent. OSD-02 remains partially open for crash/concurrency/latest-manifest and transition enforcement; OSD-03, P0-008, P0-010, and P0-012 remain open.
-
-
-## OSD-03 approved report-contract compatibility note (2026-10-21)
-
-R1-B/R2-A/R3-B/R4-A/R5-A/R6-A/R7-A are approved. The report contains period summaries only and references the exact manifest and B2 evidence by canonical relative path, schema version, and SHA-256 of exact bytes. Report identity is (pc_id, log_type, run_id, report_schema_version), with no report_id field. Deterministic regeneration uses only immutable validated inputs; it must not re-enumerate mutable source directories. Period completion is complete/incomplete/indeterminate and remains report-only, not a manifest v1 enum. Local publication is authoritative; Drive replication is separate and must be content-verified before cross-PC use. These decisions do not alter manifest v1, B2 evidence structure, A2 inventory digest, or exhaustive count reconciliation. Executable schema, runtime implementation, and tests remain pending.
-
-Audit disposition: this PR records approved contract semantics only; it does not constitute source-to-test execution evidence or change runtime implementation status.
+現在のヘルパーと合成テストの状態は docs/archive/validation/diagnostic-contract-test-evidence.md. に要約されています。 PR #145 は、承認された C-45 オプション A の競合ポリシーを記録します。ランタイム競合検出とフェイルクローズ強制は未実装のままであり、証拠もありません。 C-45/C-46 ID 割り当て、C-47–C-49 スキーマ/許可リスト、C-51 操作からフェーズへの解決、C-52 固定メッセージ検証、および C-53/C-54 パス ポリシーには、限定されたヘルパー証拠があります。 PR #144 は、純粋な C-50 トークンからコードへの分類子を実装します。 PR #146 は、合成 CI テストを使用して、純粋な C-51 オペレーションからフェーズへのリゾルバーを実装します。プロデューサー側の優先順位の選択、セマンティック コンテキストの選択、およびランタイム イベントの統合は未実装のままです。イベント伝播、ランタイム診断シンクの非公開、生の JSON 重複キーの拒否、エンドツーエンドの証拠の最終化、およびランタイム オーケストレーションは未実装または実行されないままです。ヘルパー/スキーマ/パッケージ CI は実行時の受け入れの証拠ではありません。 P0-008/P0-010/P0-012 は開いたままになります。
 
 
-## OSD-03 executable schema implementation slice — PR #150 (2026-10-21)
+<a id="osd-02-timestampfreshness-decision-reconciliation--2026-10-21"></a>
+## OSD-02 タイムスタンプ/鮮度決定の調整 — 2026-10-21
 
-- Added `contracts/aggregation-report-v1.schema.json` as a strict Draft 2020-12 structural schema candidate for the approved R1–R7 report shape. It rejects unknown properties, `report_id`, unsupported/non-integer report schema versions, invalid enums/count types, non-UTC-Z timestamps, malformed lowercase SHA-256 values, and non-canonical relative paths.
-- Added schema-definition and synthetic structural-contract tests in `tests/test_contract_schemas.py`. They cover partial-failure and zero-work examples, all three period completion values, strict versioning, unknown fields, reference path/hash validation, timestamp form, enums/counts, and run-scope error shape.
-- These tests are authored but **not yet executed/evidenced** in this PR. CI must pass on the exact latest PR HEAD before merge. No runtime report reader/writer, cross-artifact digest verification, tuple/path binding, count recomputation, deterministic regeneration, atomic publication, lock integration, or Drive replication implementation is included in this slice.
-- The JSON Schema validates structure only. Cross-field and cross-artifact invariants remain mandatory fail-closed runtime checks; schema acceptance alone is not proof of report correctness or authorization for any side effect.
-- No manifest v1 fields, B2 evidence contract, A2 digest contract, or OSD-02 safety boundaries are changed. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion.
+メンテナは、構成可能な 5 分の将来時間許容範囲と 24 時間の鮮度しきい値を承認しました。マニフェストのタイムスタンプは解析可能でなければなりません UTC ISO 8601 (大文字の `Z`)。不正な形式、タイムゾーンのない値、オフセット形式の値、または解析不可能な値は拒否されます。 `finished_at_utc` を `started_at_utc` の前に置くことはできません。鮮度は、現在の実行中に生成/更新されたタイムスタンプにのみ適用されます。歴史的なマニフェストは経過時間だけで無効になるわけではありません。ホスト OS の時刻同期は構成されていると想定されます。現在の UTC 時刻が 利用不能 であるか、信頼性が低い場合、時間に依存する操作はフェールクローズされます。この決定により、別個の外部監視サービスは必要ありません。
+
+必要な実行可能証拠: 両方の境界および境界を越えた固定クロック テスト、不正な形式のタイムスタンプ/順序付けテスト、無効な構成テスト、利用不能 クロック フェールクローズ テスト、および履歴期間の非無効テスト。これはポリシー/文書の証拠のみです。ランタイム検証、実行可能テスト、および運用上の証拠は依然として存在しません。 OSD-02 は、クラッシュ/同時実行/最新マニフェストおよび移行の適用のために部分的にオープンのままです。 OSD-03、P0-008、P0-010、および P0-012 は開いたままになります。
 
 
-## PR #151 status note — OSD-03 internal consistency slice (2026-10-22)
+<a id="osd-03-approved-report-contract-compatibility-note-2026-10-21"></a>
+## OSD-03 はレポートと契約の互換性に関するメモ (2026-10-21) を承認しました
 
-PR #150 merged the structural aggregation-report v1 JSON Schema and its synthetic schema tests; PR-head and post-merge CI passed. PR #151 adds a report-local PowerShell consistency validator and synthetic tests for period uniqueness, safe reference paths/digest shape, summary count reconciliation, completion consistency, run-scope error count, and zero-work/success consistency. Until PR #151 CI passes on its exact latest HEAD, these tests are authored but not yet verified. This slice does not validate exact referenced manifest/evidence bytes, B2/A2 integrity, full target-set completeness, cross-artifact identity, deterministic regeneration, atomic publication, lock ownership, or Drive replication. P0 acceptance remains open.
+R1-B/R2-A/R3-B/R4-A/R5-A/R6-A/R7-A は承認されています。レポートには期間の概要のみが含まれており、正規の相対パス、スキーマ バージョン、正確なバイト数の SHA-256 によって正確なマニフェストと B2 証拠が参照されます。レポート ID は (pc_id、log_type、run_id、report_schema_version) で、report_id フィールドはありません。決定論的再生成では、不変の検証済み入力のみが使用されます。変更可能なソース ディレクトリを再列挙してはなりません。期間の完了は 完了/未完了/確定不能 であり、マニフェスト v1 列挙型ではなくレポートのみのままです。ローカルの公開済み成果物を正本とします。ドライブのレプリケーションは個別に行われるため、PC 間で使用する前に 内容確認済み にする必要があります。これらの決定は、マニフェスト v1、B2 証拠構造、A2 一覧ダイジェスト、または徹底的なカウント調整を変更しません。実行可能スキーマ、ランタイム実装、およびテストは 未確定 のままです。
 
-## OSD-03 status correction — 2026-10-22
+監査処理: この PR は、承認された契約セマンティクスのみを記録します。ソースからテストまでの実行の証拠を構成したり、ランタイムの実装ステータスを変更したりするものではありません。
 
-PR #151 is merged at `e93f0ea552496831c69efb1e8dd2818ac86f4e5b`. Validate and Package Validation passed on exact PR HEAD `846cfdbb1ce76f3ec1363460c4f0576b7c10a2b6` (runs `39635268289`, `39635268115`) and on the post-merge commit (runs `39636402422`, `39636402408`). The report-local consistency validator is now implemented and CI-verified within its stated scope. PR #152 adds a narrow exact-byte reference verifier; its tests are not yet CI-verified. Neither PR implements full manifest/B2 schema validation, identity binding, A2 digest recomputation, exhaustive target/count reconciliation, deterministic report regeneration, atomic publication, lock recovery, or Drive replication. P0 acceptance remains open.
+
+<a id="osd-03-executable-schema-implementation-slice--pr-150-2026-10-21"></a>
+## OSD-03 実行可能スキーマ実装スライス — PR #150 (2026-10-21)
+
+- 承認された R1 ～ R7 レポート形式の厳密なドラフト 2020-12 構造スキーマ候補として `contracts/aggregation-report-v1.schema.json` を追加しました。 不明 プロパティ、`report_id`、サポートされていない/非整数のレポート スキーマ バージョン、無効な列挙型/カウント タイプ、非 UTC-Z タイムスタンプ、不正な形式の小文字 SHA-256 値、および非正規相対パスは拒否されます。
+- `tests/test_contract_schemas.py` にスキーマ定義と合成構造契約テストを追加しました。部分的な 失敗 およびゼロ作業の例、3 つの期間完了値すべて、厳密なバージョン管理、不明 フィールド、参照パス/ハッシュ検証、タイムスタンプ形式、列挙型/カウント、および実行スコープのエラー形状をカバーしています。
+- これらのテストは作成されていますが、この PR では **まだ実行も証拠化もされていません** が証明されています。 CI は、マージ前に正確な最新の PR HEAD を渡す必要があります。このスライスには、ランタイム レポート リーダー/ライター、クロス 成果物 ダイジェスト検証、タプル/パス バインディング、カウント再計算、確定的再生成、アトミック パブリケーション、ロック統合、またはドライブ レプリケーションの実装は含まれません。
+- JSON Schema は構造のみを検証します。クロスフィールドおよびクロス成果物の不変条件は引き続き必須のフェールクローズ実行時チェックです。スキーマの受け入れだけでは、レポートの正確性や副作用の承認の証拠にはなりません。
+- マニフェスト v1 フィールド、B2 証拠コントラクト、A2 ダイジェスト コントラクト、または OSD-02 安全境界は変更されません。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。
+
+
+<a id="pr-151-status-note--osd-03-internal-consistency-slice-2026-10-22"></a>
+## PR #151 ステータスメモ — OSD-03 内部整合性スライス (2026-10-22)
+
+PR #150 は、構造集約レポート v1 JSON Schema とその合成スキーマ テストをマージしました。 PR ヘッドとマージ後の CI が合格しました。 PR #151 は、レポートローカルの PowerShell 一貫性検証機能と、期間の一意性、安全な参照パス/ダイジェスト形状、要約数の調整、完了の一貫性、実行スコープのエラー数、およびゼロ作業/成功 の一貫性についての合成テストを追加します。 PR #151 CI がその正確な最新の HEAD を渡すまで、これらのテストは作成されますが、まだ 確認済み は作成されていません。このスライスは、正確に参照されるマニフェスト/証拠バイト、B2/A2 整合性、完全なターゲット セットの完全性、クロス成果物 ID、決定論的再生成、アトミック パブリケーション、ロック所有権、またはドライブ レプリケーションを検証しません。 P0 の受付は引き続き受け付けております。
+
+<a id="osd-03-status-correction--2026-10-22"></a>
+## OSD-03 ステータス修正 — 2026-10-22
+
+PR #151 は `e93f0ea552496831c69efb1e8dd2818ac86f4e5b` にマージされます。検証およびパッケージ検証は、正確な PR HEAD `846cfdbb1ce76f3ec1363460c4f0576b7c10a2b6` (`39635268289`、`39635268115` を実行) およびマージ後のコミット (`39636402422`、`39636402408` を実行) に渡されます。レポートローカル整合性検証機能が実装され、CI ～ 確認済み はその指定された範囲内に収まります。 PR #152 は、狭い正確なバイト参照検証機能を追加します。そのテストはまだ CI-確認済み ではありません。どちらの PR も、完全なマニフェスト/B2 スキーマ検証、ID バインディング、A2 ダイジェスト再計算、徹底的なターゲット/カウント調整、決定論的レポート再生成、アトミック パブリケーション、ロック回復、またはドライブ レプリケーションを実装していません。 P0 の受付は引き続き受け付けております。

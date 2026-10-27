@@ -1,359 +1,388 @@
-# Aggregation Inventory Integrity — Decision Options
+<a id="aggregation-inventory-integrity--decision-options"></a>
+# 集約インベントリの整合性 - 意思決定オプション
 
 > 履歴/検討資料。承認済みの選択・未決候補・当時の監査根拠を含み、この移動は撤回/失効を意味しない。現在の基準は[正式要件](../../requirements/log-move-requirements.md)と[現行決定台帳](../../decisions/decision-register-c18-c32.md)。当時の対象/証拠を現在のruntime受け入れへ拡張しない。
 
-- Status: partial decision record. Storage option C3, inventory digest A2, separate immutable completeness evidence B2, embedded inventory, exhaustive count reconciliation A, canonical evidence digest A, source-entry universe A, traversal completion rule A, best-effort source-mutation detection A, enumeration status semantics A, and distinct-event enumeration error counting A are approved by the maintainer on 2026-10-21.
-- Related: docs/design/reference/aggregation-report-v1-proposal.md, OSD-02, OSD-03, P0-008, P0-010.
-- Purpose: preserve the approved inventory-integrity and enumeration-evidence decisions, their exact contract details, and remaining implementation/test requirements.
-- Compatibility constraint: do not change the approved manifest v1 field set. Any additional evidence must be stored separately and referenced by the derived aggregation report.
+- ステータス: 部分的な決定記録。ストレージ オプション C3、インベントリ ダイジェスト A2、個別の不変完全性証拠 B2、埋め込みインベントリ、網羅的カウント調整 A、正規証拠ダイジェスト A、ソース エントリ ユニバース A、トラバーサル完了ルール A、ベストエフォート ソース突然変異検出 A、列挙ステータス セマンティクス A、および個別イベント列挙エラー カウント A は、2026-10-21 の保守者によって承認されています。
+- 関連: docs/design/reference/aggregation-report-v1-proposal.md、OSD-02、OSD-03、P0-008、P0-010。
+- 目的: 承認された一覧の完全性および列挙証拠の決定、その正確な契約の詳細、および残りの実装/テスト要件を保存します。
+- 互換性制約: 承認されたマニフェスト v1 フィールド セットを変更しないでください。追加の証拠は個別に保存し、派生した集計レポートで参照する必要があります。
 
-## 1. Decision A — canonical frozen-inventory digest
+<a id="1-decision-a--canonical-frozen-inventory-digest"></a>
+## 1. 決定 A — 正規の凍結一覧ダイジェスト
 
-The digest must be reproducible across supported runtimes, independent of JSON property ordering, and sensitive to changes in any target identity or expected-content field used by the aggregation contract.
+ダイジェストは、JSON プロパティの順序とは無関係に、サポートされているランタイム間で再現可能である必要があり、集約コントラクトで使用されるターゲット ID または予期されるコンテンツ フィールドの変更の影響を受けやすい必要があります。
 
-### Option A1 — canonical JSON
+<a id="option-a1--canonical-json"></a>
+### オプション A1 — 正規 JSON
 
-Serialize the frozen eligible-target records using a formally specified canonical JSON algorithm, sort records by a specified key, then SHA-256 the UTF-8 bytes.
+正式に指定された正規の JSON アルゴリズムを使用して、凍結された適格ターゲット レコードをシリアル化し、指定されたキーでレコードを並べ替えてから、SHA-256 バイトと UTF-8 バイトを並べ替えます。
 
-- Advantages: structured and inspectable.
-- Risks: requires choosing and implementing a canonical JSON standard or specifying number, escaping, Unicode, and property-order rules precisely. Ordinary serializer output is not sufficient.
+- 利点: 構造化されており、検査可能です。
+- リスク: 正規の JSON 標準を選択して実装するか、数値、エスケープ、Unicode、およびプロパティ順序規則を正確に指定する必要があります。通常のシリアライザー出力では十分ではありません。
 
-### Option A2 — versioned length-prefixed records (recommended)
+<a id="option-a2--versioned-length-prefixed-records-recommended"></a>
+### オプション A2 — バージョン管理された長さのプレフィックス付きレコード (推奨)
 
-Construct a byte stream with a fixed domain/version prefix, then encode each target record in a fixed field order. Sort records by normalized relative-path UTF-8 byte sequence using ordinal byte comparison. Encode each field as UTF-8 preceded by its byte length in a fixed-width unsigned integer representation. Include at minimum the canonical relative path, filename, size in bytes, and expected SHA-256 from the approved manifest target record. Hash the complete stream with SHA-256.
+固定のドメイン/バージョンのプレフィックスを使用してバイト ストリームを構築し、固定のフィールド順序で各ターゲット レコードをエンコードします。序数バイト比較を使用して、正規化された相対パス UTF-8 バイト シーケンスによってレコードを並べ替えます。各フィールドを、固定幅の符号なし整数表現でバイト長を先頭に付けた UTF-8 としてエンコードします。少なくとも、正規の相対パス、ファイル名、バイト単位のサイズ、および承認されたマニフェスト ターゲット レコードから期待される SHA-256 を含めます。 完了 ストリームを SHA-256 でハッシュします。
 
-Approved normative framing (A2 approved 2026-10-21):
+承認された標準フレーム (A2 承認 2026-10-21):
 
-1. Prefix bytes are the ASCII bytes for `EO-LOG-MAINTENANCE-INVENTORY`, then one NUL byte, then ASCII `V1`, then one NUL byte.
-2. Append the target-record count as an unsigned 64-bit big-endian integer. Reject an inventory count that cannot be represented in this field.
-3. Each record has exactly four fields in this order: `relative_path`, `filename`, `size_bytes`, `expected_sha256`.
-4. For each field, append its UTF-8 byte length as an unsigned 32-bit big-endian integer, then append the field bytes. Reject a field whose encoded byte length exceeds the unsigned 32-bit range.
-5. `relative_path` uses `/` separators, is relative, has no leading or trailing slash, contains no empty, `.` or `..` segment, contains no NUL or backslash, and is not a drive-qualified or UNC path. Convert source-platform separators to `/` before validation. Reject rather than silently repair any remaining invalid path.
-6. `filename` must exactly equal the final segment of `relative_path`. Compare Unicode strings by their exact scalar sequence; do not apply NFC/NFD or case normalization. Reject invalid UTF-8/scalar representations rather than replacing characters.
-7. `size_bytes` is a non-negative integer. Its field bytes are canonical base-10 ASCII: `0` for zero, otherwise digits with no sign or leading zeroes. Reject fractional, negative, overflowed, or non-integer values.
-8. `expected_sha256` is exactly 64 lowercase ASCII hexadecimal characters. Uppercase, prefixes, whitespace, and other encodings are rejected.
-9. Sort records by the unsigned lexicographic order of their validated `relative_path` UTF-8 bytes. Reject duplicate relative paths after separator conversion and validation; do not deduplicate.
-10. The inventory digest is SHA-256 over the complete byte stream above, represented as 64 lowercase hexadecimal characters. An empty inventory consists of the prefix and an encoded record count of zero, and therefore has a deterministic digest distinct from absent inventory evidence.
-11. Since `filename` is the final path segment, including both is intentionally redundant but makes the two report identity fields independently covered by the digest and permits mismatch detection.
+1. プレフィックス バイトは、`EO-LOG-MAINTENANCE-INVENTORY` の ASCII バイト、次に 1 つの NUL バイト、次に ASCII `V1`、そして 1 つの NUL バイトです。
+2. ターゲット レコード数を符号なし 64 ビットのビッグエンディアン整数として追加します。このフィールドで表現できない一覧数は拒否します。
+3. 各レコードには、`relative_path`、`filename`、`size_bytes`、`expected_sha256` の順序で正確に 4 つのフィールドがあります。
+4. 各フィールドについて、その UTF-8 バイト長を符号なし 32 ビットのビッグエンディアン整数として追加し、その後フィールド バイトを追加します。エンコードされたバイト長が符号なし 32 ビットの範囲を超えるフィールドを拒否します。
+5. `relative_path` は `/` 区切り文字を使用し、相対的で、先頭または末尾のスラッシュがなく、空の `.` または `..` セグメントは含まれず、NUL またはバックスラッシュは含まれず、ドライブ修飾パスまたは UNC パスではありません。検証前にソースプラットフォーム区切り文字を `/` に変換します。残っている無効なパスを黙って修復するのではなく、拒否します。
+6. `filename` は、`relative_path` の最後のセグメントと正確に一致する必要があります。 Unicode 文字列を正確なスカラー シーケンスで比較します。 NFC/NFD または大文字小文字の正規化を適用しません。文字を置換するのではなく、無効な UTF-8/スカラー表現を拒否します。
+7. `size_bytes` は負ではない整数です。そのフィールドバイトは正規のbase-10 ASCII: `0` ゼロの場合、それ以外の場合は符号なしまたは先行ゼロのない数字です。小数値、負の値、オーバーフローした値、または非整数の値を拒否します。
+8. `expected_sha256` は正確に 64 小文字の ASCII 16 進文字です。大文字、プレフィックス、空白、およびその他のエンコーディングは拒否されます。
+9. 検証された `relative_path` UTF-8 バイトの符号なし辞書編集順にレコードを並べ替えます。セパレータの変換と検証後に重複する相対パスを拒否します。重複を排除しないでください。
+10. インベントリ ダイジェストは、上記の 完了 バイト ストリーム上の SHA-256 であり、64 小文字の 16 進文字で表されます。空のインベントリは、プレフィックスとエンコードされたレコード カウント 0 で構成されているため、欠落しているインベントリの証拠とは異なる決定的なダイジェストを持ちます。
+11. `filename` は最後のパス セグメントであるため、両方を含めることは意図的に冗長ですが、2 つのレポート ID フィールドが個別にダイジェストでカバーされ、不一致 の検出が可能になります。
 
-Implementation must use explicit UTF-8 encoding, byte comparisons, and explicit big-endian integer encoding. Do not use platform-default encodings, JSON serializer output, locale-sensitive sorting, filesystem timestamps, or file contents as part of this inventory digest.
+実装では、明示的な UTF-8 エンコード、バイト比較、および明示的なビッグエンディアン整数エンコードを使用する必要があります。このインベントリ ダイジェストの一部として、プラットフォームのデフォルトのエンコーディング、JSON シリアライザー出力、ロケール依存の並べ替え、ファイルシステムのタイムスタンプ、またはファイルの内容を使用しないでください。
 
-### Option A3 — hash sorted newline-delimited records
+<a id="option-a3--hash-sorted-newline-delimited-records"></a>
+### オプション A3 — ハッシュ ソートされた改行区切りレコード
 
-Sort records and hash a UTF-8 line per target with fields separated by tabs or another delimiter.
+レコードを並べ替え、タブまたは別の区切り文字で区切られたフィールドを使用して、ターゲットごとに UTF-8 行をハッシュします。
 
-- Advantages: simple to debug.
-- Risks: requires escaping every delimiter/newline and defining final-newline behavior; less robust than length-prefix framing unless rigorously specified.
+- 利点: デバッグが簡単です。
+- リスク: すべての区切り文字/改行をエスケープし、最終改行の動作を定義する必要があります。厳密に指定しない限り、長さプレフィックス フレーミングよりも堅牢性が低くなります。
 
-**Recommendation:** A2, provided the exact field set and path normalization are approved before coding. It avoids dependence on serializer behavior and makes field boundaries unambiguous.
+**推奨:** A2、コーディング前に正確なフィールド セットとパスの正規化が承認されている場合。これにより、シリアライザーの動作への依存が回避され、フィールドの境界が明確になります。
 
-### A2 implementation status (2026-10-22)
+<a id="a2-implementation-status-2026-10-22"></a>
+### A2実装状況(2026-10-22)
 
-PR #156 implemented the approved length-prefixed A2 digest in `Common/RunInputEvidenceIntegrity.py`; exact-head Validate run `39644692787` and Package Validation run `39644693181` passed on `21fa869f222f2b88b7c0ecef20f2313b9ce7c515`, and post-merge Validate run `39644870405` plus Package Validation run `39644870386` passed on `7881fe0f74699dd8aceb1e72e48a4c583c6597cd`. The tests use independent fixed expected digests, rather than deriving expected values from the implementation under test.
+PR #156 は、承認された長さプレフィックス付き A2 ダイジェストを `Common/RunInputEvidenceIntegrity.py` に実装しました。正確なヘッド検証実行 `39644692787` とパッケージ検証実行 `39644693181` が `21fa869f222f2b88b7c0ecef20f2313b9ce7c515` に渡され、マージ後の検証実行 `39644870405` とパッケージ検証実行 `39644870386` が `7881fe0f74699dd8aceb1e72e48a4c583c6597cd` に渡されます。テストでは、テスト対象の実装から期待値を導き出すのではなく、独立した固定の期待ダイジェストを使用します。
 
-### A2 reference vectors (for review and future cross-runtime tests)
+<a id="a2-reference-vectors-for-review-and-future-cross-runtime-tests"></a>
+### A2 参照ベクトル (レビューおよび将来のクロスランタイム テスト用)
 
-These fixed reference vectors define the approved A2 contract. They are not runtime test results by themselves.
+これらの固定参照ベクトルは、承認された A2 契約を定義します。これらはそれ自体では実行時テストの結果ではありません。
 
-- Empty inventory:
-  - Byte stream length: 40 bytes.
+- 空の一覧:
+  - バイト ストリームの長さ: 40 バイト。
   - SHA-256: `453b679a83dc6d6b4fe7470294c111d4938547b92c63a6b452cba822138ab17e`
-- One-record inventory:
-  - Record fields in order: relative path `2026/09/example.txt`, filename `example.txt`, size `0`, expected SHA-256 = 64 ASCII zeroes.
-  - Byte stream length: 151 bytes.
+- 1 レコードのインベントリ:
+  - フィールドを次の順序で記録します: 相対パス `2026/09/example.txt`、ファイル名 `example.txt`、サイズ `0`、予期される SHA-256 = 64 ASCII ゼロ。
+  - バイト ストリームの長さ: 151 バイト。
   - SHA-256: `85cdc7c9a41c212c7b6c83ccd85813ac4152e7cea9b3092e74e5882fd53cecbd`
 
-Future tests should independently construct these bytes in every supported implementation language and assert both the encoded bytes and digest. The test must not merely call the same production serializer to generate its expected value.
+今後のテストでは、サポートされているすべての実装言語でこれらのバイトを個別に構築し、エンコードされたバイトとダイジェストの両方をアサートする必要があります。テストでは、期待値を生成するために同じ実稼働シリアライザーを呼び出すだけではいけません。
 
-## 2. Decision B — authoritative enumeration and validation-completeness evidence
+<a id="2-decision-b--authoritative-enumeration-and-validation-completeness-evidence"></a>
+## 2. 決定 B — 権威ある列挙と検証の完全性の証拠
 
-The manifest's frozen eligible-target list cannot alone prove that initial enumeration was complete or that every relevant invalid/unclassifiable filename was recorded. A derived report must not certify no-work or period completeness without evidence for both the eligible inventory and relevant validation errors.
+マニフェストの凍結された適格ターゲット リストだけでは、最初の列挙が 完了 であること、または関連するすべての無効/分類不可能なファイル名が記録されたことを証明することはできません。派生レポートは、対象となる一覧と関連する検証エラーの両方の証拠なしに、無作業または期間の完了を証明してはなりません。
 
-### Option B1 — trust the process outcome only
+<a id="option-b1--trust-the-process-outcome-only"></a>
+### オプション B1 — プロセスの結果のみを信頼する
 
-Use in-memory enumeration success/failure flags and the generated manifest/report.
+メモリ内の列挙型 成功/失敗 フラグと生成されたマニフェスト/レポートを使用します。
 
-- Advantages: few artifacts.
-- Risks: cannot independently audit what was enumerated after a crash; absence of an error record is indistinguishable from failure to record it. Not recommended for durable report regeneration.
+- 利点: 成果物が少ない。
+- リスク: クラッシュ後に列挙された内容を独立して監査することはできません。エラー記録がない場合は、それを記録する 失敗 と区別できません。永続的なレポートの再生成には推奨されません。
 
-### Option B2 — immutable run-input evidence sidecar (recommended)
+<a id="option-b2--immutable-run-input-evidence-sidecar-recommended"></a>
+### オプション B2 — 不変の実行入力証拠サイドカー (推奨)
 
-At the start of processing, persist a separate versioned evidence record for the run, before side effects that depend on the inventory. It records:
-- run/PC/log-type identity and a unique evidence ID;
-- enumeration start/end and an explicit completed/failed result;
-- intended source root identity and scope, without secrets;
-- number of directory entries observed and number of pages/batches if the source API is paginated;
-- eligible-target records or an exact reference plus digest to the frozen eligible inventory;
-- all relevant invalid/unclassifiable entries as sanitized structured records;
-- validation completion result and counts by classification;
-- evidence schema version and integrity digest.
+処理の開始時、インベントリに依存する副作用の前に、実行用に別のバージョン管理された証拠レコードを永続化します。それは以下を記録します:
+- run/PC/ログ種別ID と一意の証拠 ID。
+- 列挙の開始/終了と明示的な完了/失敗した 結果。
+- 意図されたソース ルート ID とスコープ (シークレットなし)。
+- 観察されたディレクトリ エントリの数、およびソース API がページ分割されている場合はページ/バッチの数。
+- 適格ターゲット レコード、または凍結された適格一覧への正確な参照とダイジェスト。
+- 関連するすべての無効/分類不可能なエントリをサニタイズされた構造化レコードとして。
+- 検証完了結果と分類別の数。
+- 証拠スキーマのバージョンと整合性ダイジェスト。
 
-The evidence record is immutable once the run begins processing. If enumeration fails or evidence cannot be durably written/validated, do not classify the run as a valid no-work run and do not certify periods complete. The evidence integrity digest is now normatively specified in `docs/design/run-input-evidence-v1-proposal.md` §5; the schema still requires implementation and independent vectors. The aggregation report references the exact evidence ID/path and verifies its identity and digest. Regeneration is permitted only from the same manifest plus this preserved evidence; never reconstruct historical completeness by rescanning mutable source directories.
+実行の処理が開始されると、証拠レコードは不変になります。列挙が失敗した場合、または証拠を永続的に書き込み/検証できない場合は、実行を有効な非作業実行として分類せず、期間 完了 を認定しません。証拠完全性ダイジェストは現在、`docs/design/run-input-evidence-v1-proposal.md` §5 で規定されています。スキーマには依然として実装と独立したベクトルが必要です。集約レポートは正確な証拠 ID/パスを参照し、その身元とダイジェストを検証します。再生成は、同じマニフェストとこの保存された証拠からのみ許可されます。変更可能なソース ディレクトリを再スキャンして履歴の完全性を再構築しないでください。
 
-- Advantages: durable audit trail; supports crash-safe regeneration and distinguishes empty source from failed/incomplete enumeration.
-- Risks: additional schema, lifecycle, and storage decisions; the evidence must be written safely before the processing run relies on it.
+- 利点: 耐久性のある監査証跡。クラッシュセーフな再生成をサポートし、空のソースを 失敗した/未完了 列挙から区別します。
+- リスク: 追加のスキーマ、ライフサイクル、ストレージに関する決定。証拠は、処理の実行がそれに依存する前に安全に書き込まれる必要があります。
 
-### Option B3 — store completeness fields in the derived report only
+<a id="option-b3--store-completeness-fields-in-the-derived-report-only"></a>
+### オプション B3 — 完全性フィールドを派生レポートにのみ保存します
 
-Write enumeration and validation evidence directly into the final report.
+列挙と検証の証拠を最終レポートに直接書き込みます。
 
-- Advantages: one artifact.
-- Risks: the report is produced after processing; a crash before report publication can lose the only completeness evidence. It does not support regeneration after a crash unless the evidence is separately preserved. Not recommended as the sole evidence source.
+- 利点: 成果物が 1 つ。
+- リスク: レポートは処理後に作成されます。レポートの公開前にクラッシュが発生すると、完全性の唯一の証拠が失われる可能性があります。証拠が別途保存されていない限り、衝突後の再生はサポートされません。唯一の証拠源としては推奨されません。
 
-**Recommendation:** B2. Keep the manifest v1 schema unchanged, define a small separately versioned evidence artifact, and let the aggregation report reference it. If the evidence artifact cannot be established as immutable and trustworthy, fail closed.
+**推奨事項:** B2.マニフェスト v1 スキーマを変更しないで、個別にバージョン管理された小さな証拠成果物を定義し、集計レポートでそれを参照できるようにします。証拠成果物が不変で信頼できるものであると確立できない場合は、フェールクローズします。
 
-## 3. Decision C — canonical storage and publication scope
+<a id="3-decision-c--canonical-storage-and-publication-scope"></a>
+## 3. 決定 C — 正規のストレージと公開範囲
 
-### Option C1 — local-only evidence/report
+<a id="option-c1--local-only-evidencereport"></a>
+### オプション C1 — ローカルのみの証拠/レポート
 
-Store sidecar and report under a local maintenance directory.
+サイドカーとレポートをローカルのメンテナンス ディレクトリに保存します。
 
-- Advantages: local atomic file operations are available and do not depend on Drive write semantics.
-- Risks: a report is not automatically available to the other PC; PC-local durability and backup need explicit treatment.
+- 利点: ローカルのアトミック ファイル操作が利用可能であり、ドライブの書き込みセマンティクスに依存しません。
+- リスク: 他の PC ではレポートを自動的に利用できません。 PC ローカルの耐久性とバックアップには明示的な処理が必要です。
 
-### Option C2 — Drive-only evidence/report
+<a id="option-c2--drive-only-evidencereport"></a>
+### オプション C2 — ドライブのみの証拠/レポート
 
-Store both under the maintenance folder in Drive.
+両方をドライブのメンテナンス フォルダーに保存します。
 
-- Advantages: shared visibility across PCs.
-- Risks: local filesystem atomicity assumptions do not apply; object identity, upload verification, and collision handling must be specified separately.
+- 利点: PC 間で共有された可視性。
+- リスク: ローカル ファイルシステムのアトミック性の仮定は適用されません。オブジェクト ID、アップロード検証、および衝突処理は個別に指定する必要があります。
 
-### Option C3 — local authoritative artifacts plus verified Drive copy
+<a id="option-c3--local-authoritative-artifacts-plus-verified-drive-copy"></a>
+### オプション C3 — ローカルの信頼できる成果物と 確認済み ドライブのコピー
 
-Write and validate local immutable artifacts first, then publish a Drive copy using the existing verified-upload discipline. Treat the Drive copy as unavailable until identity/content verification succeeds. Do not let an incomplete Drive copy replace the local authoritative artifact.
+最初にローカルの不変成果物を書き込み、検証してから、既存の 確認済み アップロード規則を使用してドライブのコピーを公開します。 ID/コンテンツの検証が成功するまで、ドライブのコピーを 利用不能 として扱います。 未完了 ドライブのコピーをローカルの信頼できる成果物に置き換えないでください。
 
-- Advantages: local crash-safe publication and cross-PC access after verified replication.
-- Risks: two durability states must be modeled, and the report must not imply Drive availability before verification.
+- 利点: ローカルのクラッシュセーフなパブリケーションと、確認済み レプリケーション後のクロス PC アクセス。
+- リスク: 2 つの耐久性状態をモデル化する必要があり、レポートは検証前にドライブの可用性を暗示してはなりません。
 
-**Decision (2026-10-21): C3 approved.** The maintainer selected A: both PCs must be able to access the aggregation report and evidence. Therefore, create and validate immutable authoritative artifacts locally first, then publish verified copies to Google Drive for cross-PC visibility. A Drive copy is not considered available until its identity and content are verified. Local and Drive publication states must be represented separately; failure to replicate must not invalidate or overwrite the local authoritative artifact. This decision does not approve a particular Drive API upload/locking implementation.
+**決定 (2026-10-21): C3 承認。** 管理者は A を選択しました: 両方の PC が集計レポートと証拠にアクセスできる必要があります。したがって、まずローカルで不変の権限のある成果物を作成して検証してから、PC 間で可視化できるように 確認済み コピーを Google Drive に公開します。ドライブのコピーは、その ID とコンテンツが 確認済み になるまで利用可能とは見なされません。ローカルおよびドライブのパブリケーション状態は個別に表す必要があります。 失敗 を複製する場合、ローカルの信頼できる成果物を無効にしたり上書きしたりしてはなりません。この決定は、特定のドライブ API のアップロード/ロックの実装を承認するものではありません。
 
-## 4. Approval checklist
+<a id="4-approval-checklist"></a>
+## 4. 承認チェックリスト
 
-**Decision (2026-10-21): A2 approved.** The maintainer accepted the versioned length-prefixed record framing, including the four-field order, explicit UTF-8 and big-endian length encoding, path validation rules, byte-order sorting, duplicate rejection, and deterministic empty-inventory digest described above.
+**決定 (2026-10-21): A2 承認。** メンテナは、4 つのフィールドの順序、明示的な UTF-8 およびビッグエンディアンの長さのエンコード、パス検証ルール、バイト順の並べ替え、重複の拒否、および上記の決定論的な空のインベントリ ダイジェストを含む、バージョン化された長さのプレフィックス付きレコード フレーム構成を受け入れました。
 
-Before implementation, explicitly approve or revise each item:
+実装する前に、各項目を明示的に承認または修正してください。
 
-- [x] Digest framing and field set: A2, including both filename and relative path.
-- [x] Path syntax/normalization and duplicate-path rejection rules.
-- [x] Completeness evidence source: B2 immutable run-input evidence sidecar.
-- [x] Evidence sidecar stores full frozen target records (embedded inventory).
-- [x] Report/evidence storage: C3 approved — local authoritative artifacts plus verified Drive copies.
-- [x] Missing, malformed, conflicting, or not durably published evidence fails closed; no no-work or period-complete certification.
-- [x] A report may certify period completion only when the manifest and completeness evidence both validate.
+- [x] ダイジェスト フレーミングとフィールド セット: A2、ファイル名と相対パスの両方を含む。
+- [x] パスの構文/正規化および重複パスの拒否ルール。
+- [x] 完全性証拠ソース: B2 不変実行入力証拠サイドカー。
+- [x] 証拠サイドカーは、完全に凍結されたターゲット レコード (埋め込みインベントリ) を保存します。
+- [x] レポート/証拠ストレージ: C3 承認 — ローカルの信頼できる成果物と 確認済み ドライブのコピー。
+- [x] 証拠が欠落している、形式が間違っている、矛盾している、または永続的に公開されていない証拠はクローズされません。ノーワークまたは期間-complete認定はありません。
+- [x] レポートは、マニフェストと完全性の証拠の両方が検証された場合にのみ、期間の完了を証明できます。
 
-## 5. Acceptance tests required
+<a id="5-acceptance-tests-required"></a>
+## 5. 受け入れテストが必要
 
-- Identical inventory produces the same digest across supported runtimes and input ordering.
-- Changing any included field changes the digest.
-- Duplicate normalized paths, invalid path segments, invalid hashes, and invalid sizes are rejected.
-- Empty inventory has a deterministic digest distinct from missing inventory evidence.
-- Successful empty enumeration is distinguishable from access failure, interrupted enumeration, and missing evidence.
-- Invalid/unclassifiable relevant names are preserved as structured evidence and cannot silently disappear.
-- Report generation rejects identity/digest mismatch between report, manifest, and evidence.
-- Crash before report publication can regenerate only from immutable validated inputs.
-- Missing or incomplete evidence prevents no-work certification and period-complete certification.
-- Tests use synthetic fixtures and temporary directories only; no real logs or Drive data.
+- 同じインベントリでは、サポートされているランタイムと入力順序にわたって同じダイジェストが生成されます。
+- 含まれるフィールドを変更すると、ダイジェストが変更されます。
+- 重複する正規化パス、無効なパス セグメント、無効なハッシュ、および無効なサイズは拒否されます。
+- 空の一覧には、欠落している一覧の証拠とは異なる決定的なダイジェストがあります。
+- 成功した空の列挙は、失敗 へのアクセス、列挙の中断、証拠の欠落とは区別できます。
+- 無効または分類できない関連する名前は構造化された証拠として保存され、黙って消えることはありません。
+- レポート生成では、レポート、マニフェスト、および証拠の間の同一性/ダイジェスト 不一致 が拒否されます。
+- レポート公開前のクラッシュは、不変の検証済み入力からのみ再生成できます。
+- 証拠が欠落しているか、未完了 であるため、無労働認定と期間 完了 認定が妨げられます。
+- テストでは合成フィクスチャと一時ディレクトリのみを使用します。実際のログやドライブ データはありません。
 
-No runtime implementation, executable tests, or operational evidence is claimed by this proposal.
+この提案では、ランタイム実装、実行可能テスト、または運用上の証拠は主張されていません。
 
 
-## Enumeration completion rule — C-41
+<a id="enumeration-completion-rule--c-41"></a>
+## 列挙完了ルール — C-41
 
-**Approved option A (2026-10-21):** enumeration is `completed` only after the root and every reached directory have been traversed to normal exhaustion with no enumeration, access, I/O, entry-inspection, or enumerator cleanup/disposal errors. Catch errors raised lazily during iteration; opening an enumerator successfully does not prove completion. On the first such error, stop traversal, record a sanitized diagnostic, increment `enumeration_errors`, and mark the enumeration `failed` or `incomplete` according to the schema. Never skip a failed subtree or certify count reconciliation, a complete inventory, or no-work from incomplete traversal.
+**承認されたオプション A (2026-10-21):** 列挙は、ルートおよび到達したすべてのディレクトリが列挙、アクセス、I/O、エントリ検査、または列挙子のクリーンアップ/破棄エラーなしで通常の枯渇まで走査された後にのみ `completed` になります。反復中に遅延して発生したエラーをキャッチします。列挙子を正常に開いても、完了したことは証明されません。最初のこのようなエラーでは、トラバーサルを停止し、サニタイズされた診断を記録し、`enumeration_errors` をインクリメントし、スキーマに従って列挙型 `failed` または `incomplete` をマークします。 失敗した サブツリーをスキップしたり、カウント調整、完了 インベントリ、または 未完了 トラバーサルからの非作業を証明したりしないでください。
 
-Concurrent source mutation is addressed by the approved best-effort detection rule in C-42 below; this is not an atomic snapshot guarantee. This is a specification decision only; executable tests and runtime implementation are not claimed.
+同時ソース変異は、以下の C-42 の承認されたベストエフォート検出ルールによって対処されます。これはアトミックなスナップショットを保証するものではありません。これは仕様上の決定のみです。実行可能テストとランタイム実装は要求されません。
 
 
-## Source mutation detection — C-42
+<a id="source-mutation-detection--c-42"></a>
+## ソース変異検出 — C-42
 
-**Approved option A (2026-10-21):** use best-effort change detection, not an atomic filesystem snapshot. Record each traversed directory's observed entry-name/type set and each regular file's relevant metadata (entry type, size, last-write timestamp at supported API precision). After enumeration and eligible-target hash collection, re-enumerate directories and re-check observed file metadata. Calculate eligible-target hashes from the bytes represented by the frozen inventory and reject a read if the target's relevant metadata changes across that read.
+**承認されたオプション A (2026-10-21):** は、アトミック ファイルシステム スナップショットではなく、ベストエフォート型の変更検出を使用します。走査された各ディレクトリの観察されたエントリ名/タイプ セットと各通常ファイルの関連メタデータ (エントリ タイプ、サイズ、サポートされている API 精度での最終書き込みタイムスタンプ) を記録します。列挙と適格なターゲット ハッシュの収集後、ディレクトリを再列挙し、観察されたファイルのメタデータを再確認します。凍結されたインベントリによって表されるバイトから対象となるターゲットのハッシュを計算し、読み取り全体でターゲットの関連メタデータが変更された場合は読み取りを拒否します。
 
-Any detected add/remove/rename/type/size/timestamp change, target-set mismatch, or error in the second pass invalidates the evidence; mark enumeration failed/incomplete and do not publish it as completed. Changes that occur and revert between checks or preserve all checked metadata may evade detection, so the implementation must not claim snapshot-level consistency or perfect mutation detection. Executable tests and runtime implementation remain pending.
+2 番目のパスで検出された追加/削除/名前変更/タイプ/サイズ/タイムスタンプの変更、ターゲット セット 不一致、またはエラーは証拠を無効にします。列挙体 失敗した/未完了 をマークし、完了済みとして公開しないでください。チェック間で発生して元に戻る変更、またはチェックされたすべてのメタデータを保存する変更は検出を回避する可能性があるため、実装ではスナップショット レベルの一貫性や完全な変異検出を主張してはなりません。実行可能テストとランタイム実装は 未確定 のままです。
 
 
-## Enumeration status semantics — C-43
+<a id="enumeration-status-semantics--c-43"></a>
+## 列挙ステータスのセマンティクス — C-43
 
-**Approved option A (2026-10-21):** status is determined by observed outcome.
+**承認されたオプション A (2026-10-21):** ステータスは、観察された結果によって決定されます。
 
-- `completed`: root and every reached directory reached normal exhaustion and all required C-42 consistency checks passed.
-- `failed`: an explicit failure/invalidating condition was observed (including enumeration/access/I/O or entry-inspection errors, unsupported non-regular entry types, detected source mutation, or inconsistent metadata/hash reads).
-- `incomplete`: the run ended before completion without an observed failure cause (for example cancellation, timeout, interruption, or process termination), provided a durable evidence record can still be finalized. If no evidence record can be finalized, missing/unfinalized evidence is invalid and must not be synthesized.
-- Only `completed` can support no-work or completeness certification. Both other statuses fail closed.
+- `completed`: ルートと到達したすべてのディレクトリが通常の枯渇に達し、必要なすべての C-42 整合性チェックに合格しました。
+- `failed`: 明示的な 失敗/無効状態が観察されました (列挙/アクセス/I/O またはエントリ検査エラー、サポートされていない非正規エントリ タイプ、検出されたソースの変更、または一貫性のないメタデータ/ハッシュ読み取りを含む)。
+- `incomplete`: 永続的な証拠記録がまだ確定できる場合、観測された 失敗 原因 (キャンセル、タイムアウト、中断、プロセス終了など) が発生せずに実行が完了前に終了しました。証拠記録を最終的に確定できない場合、欠落または未確定の証拠は無効となり、合成してはなりません。
+- `completed` のみが無作業または完全性の認証をサポートできます。他のステータスは両方ともフェールクローズされます。
 
-**C-44 is resolved below:** `enumeration_errors` counts distinct underlying error events, with propagated observations counted once and independent failures counted separately. Executable status-transition/interruption tests remain pending; no runtime implementation or test evidence is claimed.
+**C-44 は以下で解決されます。 ** `enumeration_errors` は、伝播された観測値が 1 回カウントされ、独立したエラーが個別にカウントされる、個別の基礎となるエラー イベントをカウントします。実行可能なステータス遷移/中断テストは 未確定 のままです。実行時の実装やテストの証拠は主張されていません。
 
 
-## `enumeration_errors` counting semantics — C-44
+<a id="enumeration_errors-counting-semantics--c-44"></a>
+## `enumeration_errors` カウントセマンティクス — C-44
 
-**Approved option A (2026-10-21):** count distinct underlying enumeration-error events, not catch sites, log statements, or affected entries.
+**承認されたオプション A (2026-10-21):** サイト、ログ ステートメント、または影響を受けるエントリをキャッチするのではなく、基礎となる個別の列挙エラー イベントをカウントします。
 
-- The count equals the number of distinct error events represented by unique sanitized diagnostic records. Each event has one stable `error_id`; these errors are not added to the entry-classification totals.
-- The same failure propagated through multiple layers is one event and is counted once. Independently observed failures count separately, even if they share a path or error code.
-- Do not deduplicate solely by matching error code/path. If event identity is ambiguous, use a documented deterministic correlation rule and test it; do not silently drop a potentially distinct failure.
-- Any enumeration-error event prevents `enumeration.status = completed`.
+- このカウントは、サニタイズされた一意の診断レコードによって表される個別のエラー イベントの数と等しくなります。各イベントには 1 つの安定した `error_id` があります。これらのエラーはエントリ分類の合計には追加されません。
+- 複数のレイヤーを介して伝播される同じ 失敗 は 1 つのイベントであり、1 回カウントされます。独立して観察された障害は、パスやエラー コードを共有している場合でも、個別にカウントされます。
+- エラー コード/パスの一致のみによって重複排除を行わないでください。イベント ID が 曖昧 の場合は、文書化された決定論的相関ルールを使用してテストします。潜在的に異なる 失敗 を黙って削除しないでください。
+- 列挙エラー イベントがあると、`enumeration.status = completed` が妨げられます。
 
-C-45 is resolved by the error-event identity rule below.
+C-45 は、以下のエラー イベント ID ルールによって解決されます。
 
 
-## Error-event identity — C-45
+<a id="error-event-identity--c-45"></a>
+## エラー イベント ID — C-45
 
-**Approved option A (2026-10-21):** assign one event ID when an enumeration failure is first observed and propagate it through subsequent layers. Wrappers must preserve the ID. Repeated observations with the same ID produce one diagnostic event and one count; independent failures receive distinct IDs even when path or code match. Conflicting immutable/core attributes for one ID are an internal consistency error. **Approved C-45 conflict disposition (Option A, 2026-10-21):** fail closed with a fixed, non-disclosing internal-consistency failure and reject finalization/publication of the affected diagnostic evidence artifact. Do not serialize either conflicting variant as valid completed evidence and do not increment the distinct-event count for the conflicting observation. Preserve the first observation only as safe in-memory context; do not mutate historical/published evidence. The run/evidence must remain incomplete or failed under the separately approved run-state contract; this decision does not define a new manifest status. IDs must be unique within the run/evidence artifact. Exact encoding and exhaustion handling are resolved by C-46 below; runtime implementation and acceptance tests are pending.
+**承認されたオプション A (2026-10-21):** は、列挙 失敗 が最初に観察されたときに 1 つのイベント ID を割り当て、それを後続のレイヤーに伝播します。ラッパーは ID を保存する必要があります。同じ ID で観察を繰り返すと、1 つの診断イベントと 1 つのカウントが生成されます。独立した障害は、パスまたはコードが一致する場合でも、個別の ID を受け取ります。 1 つの ID の不変/コア属性が競合すると、内部整合性エラーが発生します。 **承認された C-45 競合処理 (オプション A、2026-10-21): ** は固定された非開示の内部一貫性 失敗 でフェイルクローズされ、影響を受ける診断証拠成果物の最終化/公開が拒否されます。どちらの矛盾するバリアントも有効な完了した証拠としてシリアル化したり、矛盾する観察の個別イベント数を増加させたりしないでください。最初の観測値は安全なメモリ内コンテキストとしてのみ保存します。歴史的/公開された証拠を改変しないでください。実行/証拠は、別途承認された実行状態契約に基づいて 未完了 または 失敗した のままでなければなりません。この決定は、新しいマニフェストのステータスを定義するものではありません。 ID は実行/証拠成果物内で一意である必要があります。正確なエンコードと枯渇処理は、以下の C-46 によって解決されます。ランタイム実装と受け入れテストは 未確定 です。
 
-**C-46 resolved:** the error ID encoding, scope, and collision policy are defined below.
+**C-46 解決済み:** エラー ID エンコーディング、範囲、および衝突ポリシーは以下に定義されています。
 
 
-## `error_id` format and collision handling — C-46
+<a id="error_id-format-and-collision-handling--c-46"></a>
+## `error_id` 形式と衝突処理 — C-46
 
-**Approved option A (2026-10-21):** use a per-run monotonic sequence formatted as `ERR-000001`, `ERR-000002`, and so on. Allocate once when a distinct error event is first created and preserve that ID through all subsequent layers. IDs must not be reused within one run/evidence artifact. For cross-run identification, combine the run identifier with `error_id`; the ID alone is not globally unique. If the sequence range is exhausted, fail closed rather than wrap, reuse, or truncate an ID. Executable tests and runtime implementation remain pending.
+**承認されたオプション A (2026-10-21):** は、`ERR-000001`、`ERR-000002` などとしてフォーマットされた実行ごとの単調シーケンスを使用します。個別のエラー イベントが最初に作成されるときに 1 回割り当てられ、その後のすべてのレイヤーを通じてその ID が保持されます。 ID は 1 つの実行/証拠成果物内で再利用してはなりません。クロスラン識別の場合は、ラン識別子を `error_id` と組み合わせます。 ID だけではグローバルに一意ではありません。シーケンス範囲を使い果たした場合は、ID をラップ、再利用、または切り詰めるのではなく、フェールクローズします。実行可能テストとランタイム実装は 未確定 のままです。
 
-**C-47 resolved:** diagnostic fields, nullability, and sanitization rules are defined below.
+**C-47 解決済み:** 診断フィールド、null 可能性、およびサニタイズ ルールは以下で定義されています。
 
 
-## Diagnostic record schema and sanitization — C-47
+<a id="diagnostic-record-schema-and-sanitization--c-47"></a>
+## 診断記録スキーマとサニタイズ — C-47
 
-**Approved option A (2026-10-21; canonical field contract):** each diagnostic has required keys `error_id`, `error_code`, `phase`, `operation`, `target_relative_path`, and `message`. `error_id`, `error_code`, `phase`, and `operation` are non-null; `target_relative_path` and `message` may be explicit JSON `null` when no safe value exists. Non-null paths use normalized `/` separators, are relative to the configured source root, and cannot contain absolute roots, drive letters, UNC roots, or traversal outside that root. A non-null path is limited to 1024 Unicode scalar values after separator normalization; a longer path is unsafe and must be emitted as JSON `null` without truncation. A non-null message is a sanitized summary limited to 512 Unicode characters; redact credentials, tokens, connection strings, secret-bearing query parameters, personal data, absolute paths, and control characters. Never serialize raw exception objects, raw exception text, stack traces, environment variables, request/response bodies, or arbitrary metadata. Do not silently truncate required identifiers. If a required non-null field cannot be safely populated, fail evidence finalization closed rather than emit a malformed record. Count distinct events by unique `error_id`. Executable schema and sanitization tests remain pending.
+**承認されたオプション A (2026-10-21; 正規フィールド契約):** 各診断には必須キー `error_id`、`error_code`、`phase`、`operation`、`target_relative_path`、および `message` があります。 `error_id`、`error_code`、`phase`、および `operation` は null ではありません。安全な値が存在しない場合、`target_relative_path` および `message` は明示的な JSON `null` になる可能性があります。非 null パスは正規化された `/` 区切り文字を使用し、構成されたソース ルートに相対的であり、絶対ルート、ドライブ文字、UNC ルート、またはそのルートの外側のトラバーサルを含めることはできません。非 null パスは、区切り文字の正規化後は 1024 Unicode スカラー値に制限されます。長いパスは安全ではないため、切り捨てずに JSON `null` として出力する必要があります。非 null メッセージは、512 Unicode 文字に限定されたサニタイズされた概要です。認証情報、トークン、接続文字列、秘密を含むクエリ パラメータ、個人データ、絶対パス、および制御文字を編集します。生の例外オブジェクト、生の例外テキスト、スタック トレース、環境変数、リクエスト/レスポンス本体、または任意のメタデータを決してシリアル化しないでください。必要な識別子を黙って切り捨てないでください。必須の非 null フィールドを安全に設定できない場合は、不正な形式のレコードを出力するのではなく、証拠のファイナライズを終了して失敗します。一意の `error_id` ごとに個別のイベントをカウントします。実行可能スキーマとサニタイズ テストは 未確定 のままです。
 
-**C-49 approved:** the diagnostic vocabularies are fixed allowlists with reserved unknown values as specified below. C-50 mapping rules are recorded below.
+**C-49 承認済み:** 診断ボキャブラリは、以下に指定されているように予約された 不明 値を持つ固定ホワイトリストです。 C-50 マッピング ルールは以下に記録されます。
 
 
-### Diagnostic schema versioning and compatibility — C-48
+<a id="diagnostic-schema-versioning-and-compatibility--c-48"></a>
+### 診断スキーマのバージョン管理と互換性 — C-48
 
-**Approved option A (2026-10-21):** each diagnostic record must contain an explicit positive integer `schema_version`. Validators accept only versions for which an exact validator is implemented. Missing, malformed, non-integer, non-positive, or unsupported versions are rejected; unknown fields are rejected rather than ignored.
+**承認されたオプション A (2026-10-21):** 各診断レコードには、明示的な正の整数 `schema_version` が含まれている必要があります。バリデーターは、正確なバリデーターが実装されているバージョンのみを受け入れます。欠落しているバージョン、不正な形式のバージョン、非整数のバージョン、非正のバージョン、またはサポートされていないバージョンは拒否されます。 不明 フィールドは無視されるのではなく拒否されます。
 
-- The meaning, required keys, types, nullability, field constraints, allowed values, and sanitization semantics of each released version are immutable.
-- Any change that makes an existing record structurally or semantically incompatible requires a new integer schema version. Because unknown fields are rejected, adding a field is also a schema-version change.
-- Never silently migrate, rewrite, repair, or relabel historical evidence. A validator may read an older version only when an explicit version-specific validator remains implemented; validation must not mutate the record.
-- The containing run-input evidence keeps its separate `evidence_schema_version`; the diagnostic record's `schema_version` governs only the diagnostic object. Version values must not be inferred from one another.
-- Reject duplicate/unknown properties and validate the complete record against the exact selected version before counting the diagnostic as valid evidence.
-- Required tests: valid supported version; missing, null, string, fractional, zero, negative, and unsupported versions; unknown fields; missing/extra fields; per-version type/nullability constraints; no implicit migration or mutation; old-version acceptance only while its explicit validator exists.
+- リリースされた各バージョンの意味、必須キー、型、NULL 可能性、フィールド制約、許可される値、およびサニタイズ セマンティクスは不変です。
+- 既存のレコードを構造的または意味的に互換性がなくなる変更を行う場合は、新しい整数スキーマ バージョンが必要です。 不明 フィールドは拒否されるため、フィールドの追加はスキーマ バージョンの変更にもなります。
+- 歴史的証拠を黙って移行、書き換え、修復、または再ラベル付けしないでください。バリデーターは、明示的なバージョン固有のバリデーターが実装されたままである場合にのみ、古いバージョンを読み取ることができます。検証ではレコードを変更してはなりません。
+- 含まれる実行入力証拠は、別個の `evidence_schema_version` を保持します。診断レコードの `schema_version` は、診断オブジェクトのみを管理します。バージョン値を相互に推測してはなりません。
+- 重複/不明 プロパティを拒否し、診断を有効な証拠としてカウントする前に、選択した正確なバージョンに対して 完了 レコードを検証します。
+- 必要なテスト: サポートされている有効なバージョン。欠落、null、文字列、小数、ゼロ、負、およびサポートされていないバージョン。 不明 フィールド;不足している/余分なフィールド。バージョンごとの型/null 可能性の制約。暗黙的な移行や突然変異はありません。古いバージョンは、明示的なバリデータが存在する場合にのみ受け入れられます。
 
-Runtime implementation and executable tests remain pending.
+ランタイム実装と実行可能テストは 未確定 のままです。
 
-**C-49 approved:** the diagnostic vocabularies are fixed allowlists with reserved unknown values as specified below. C-50 mapping rules are recorded below.
+**C-49 承認済み:** 診断ボキャブラリは、以下に指定されているように予約された 不明 値を持つ固定ホワイトリストです。 C-50 マッピング ルールは以下に記録されます。
 
 
-### Diagnostic controlled vocabularies — C-49
+<a id="diagnostic-controlled-vocabularies--c-49"></a>
+### 診断管理対象語彙 — C-49
 
-**Approved option A (2026-10-21):** `error_code`, `phase`, and `operation` are restricted to the fixed allowlists below. Unrecognized failure types map to `unknown_error`; an unidentifiable phase or operation maps to `unknown`. Raw exception class names and exception messages must never be used as enum values.
+**承認されたオプション A (2026-10-21):** `error_code`、`phase`、および `operation` は、以下の固定ホワイトリストに制限されています。認識されない 失敗 タイプは `unknown_error` にマップされます。識別できないフェーズまたは操作は `unknown` にマップされます。生の例外クラス名と例外メッセージを列挙値として使用してはなりません。
 
-**Initial diagnostic schema v1 allowlists**
+**初期診断スキーマ v1 ホワイトリスト**
 
 - `error_code`: `enumeration_failed`, `invalid_filename`, `file_access_denied`, `file_read_failed`, `file_metadata_failed`, `hash_failed`, `source_mutation_detected`, `manifest_invalid`, `evidence_invalid`, `validation_failed`, `serialization_failed`, `aggregation_failed`, `publication_failed`, `unknown_error`.
 - `phase`: `enumeration`, `classification`, `metadata`, `content_read`, `hashing`, `manifest_validation`, `evidence_validation`, `evidence_finalization`, `aggregation`, `report_serialization`, `report_publication`, `unknown`.
 - `operation`: `enumerate_entries`, `classify_target`, `read_metadata`, `read_content`, `compute_hash`, `detect_source_mutation`, `validate_manifest`, `validate_evidence`, `finalize_evidence`, `aggregate_results`, `serialize_report`, `publish_report`, `unknown`.
 
-Values are exact, case-sensitive identifiers; no aliases, whitespace normalization, dynamic enum extension, or free-form values are accepted. An implementation must map known failures to the most specific applicable code and use `unknown_error` only when no known code applies. The `unknown` phase/operation values indicate that the context genuinely cannot be determined; they must not conceal a known mapping defect. Adding an allowlist value requires a reviewed schema/contract update and corresponding positive/negative tests. A change that alters the schema contract follows C-48 versioning rules.
+値は正確で、大文字と小文字が区別される識別子です。エイリアス、空白の正規化、動的な列挙拡張、または自由形式の値は受け入れられません。実装では、既知の障害を最も具体的な適用可能なコードにマッピングし、既知のコードが適用されない場合にのみ `unknown_error` を使用する必要があります。 `unknown` フェーズ/オペレーション値は、コンテキストを実際には決定できないことを示しています。既知のマッピング欠陥を隠してはなりません。ホワイトリスト値を追加するには、レビューされたスキーマ/契約の更新と、対応するポジティブ/ネガティブ テストが必要です。スキーマ コントラクトを変更する変更は、C-48 バージョン管理ルールに従います。
 
-**Required tests:** every listed value accepted; unlisted values, case variants, empty strings, and null rejected for these non-null fields; known failures map deterministically to specific codes; unmapped failures map to `unknown_error`; genuinely unknown phase/operation map to `unknown`; exception text/class names are never emitted as values.
+**必須テスト:** リストされているすべての値が受け入れられます。リストにない値、大文字と小文字の違い、空の文字列、および null は、null 以外のフィールドでは拒否されます。既知の障害は特定のコードに決定的にマッピングされます。マップされていない障害は `unknown_error` にマップされます。純粋に 不明 フェーズ/操作は `unknown` にマップされます。例外テキスト/クラス名が値として出力されることはありません。
 
-Runtime implementation and executable tests remain pending.
+ランタイム実装と実行可能テストは 未確定 のままです。
 
-**C-50 approved:** the deterministic failure-condition mapping and precedence rules are defined below. **C-51 approved:** the deterministic phase/operation mapping and fallback rules are defined below. **Next decision C-52:** define diagnostic message template selection and sanitization behavior for each known error category.
+**C-50 承認済み:** 決定論的な 失敗 条件マッピングと優先順位ルールは以下に定義されています。 **C-51 承認済み:** 決定論的なフェーズ/操作マッピングとフォールバック ルールは以下に定義されています。 **次の決定 C-52:** は、既知のエラー カテゴリごとに診断メッセージ テンプレートの選択とサニタイズ動作を定義します。
 
 
-### Deterministic failure-condition mapping and precedence — C-50
+<a id="deterministic-failure-condition-mapping-and-precedence--c-50"></a>
+### 決定的な 失敗 条件のマッピングと優先順位 — C-50
 
-**Approved option A (2026-10-21):** map each distinct failure event to exactly one primary `error_code` using explicit conditions and precedence. Use only the C-49 schema-v1 allowlist. The mapping is based on structured operation context, validation result, and stable platform error categories—not exception-message text or raw exception class names.
+**承認されたオプション A (2026-10-21):** は、明示的な条件と優先順位を使用して、それぞれの個別の 失敗 イベントを 1 つのプライマリ `error_code` にマッピングします。 C-49 schema-v1 ホワイトリストのみを使用してください。マッピングは、例外メッセージ テキストや生の例外クラス名ではなく、構造化された操作コンテキスト、検証結果、安定したプラットフォーム エラー カテゴリに基づいています。
 
-| Priority | Observable condition | `error_code` | Classification rule |
+|優先度|観察可能な状態| `error_code` |分類ルール|
 |---:|---|---|---|
-| 1 | A manifest is readable but fails its defined syntax, schema, identity, or integrity validation | `manifest_invalid` | Use only for invalid manifest content; access/read failures use the more specific I/O rules below. |
-| 2 | Run-input evidence is readable but fails its defined schema, identity, inventory, count, or integrity validation | `evidence_invalid` | Use only for invalid evidence content; access/read failures use the more specific I/O rules below. |
-| 3 | A source entry or frozen target set changes during the approved consistency checks, or the before/after metadata or target identity does not reconcile | `source_mutation_detected` | Requires an observed mismatch; do not infer mutation merely from an unrelated read error. |
-| 4 | A filename violates the documented naming/period/eligibility syntax | `invalid_filename` | Apply during classification before attempting target-content processing. Preserve the invalid entry in validation evidence. |
-| 5 | The platform reports an explicit access-denied/permission-denied condition for the attempted operation | `file_access_denied` | Use only when the platform provides a structured access-denied signal; do not infer from free-form message text. |
-| 6 | Opening or enumerating the configured source root or a reached directory fails for a reason other than explicit access denial | `enumeration_failed` | Includes iteration failure, interrupted directory enumeration reported as an operation failure, and enumerator cleanup/disposal failure. |
-| 7 | Required file metadata cannot be retrieved or validated before content reading, without a more specific access-denied or mutation classification | `file_metadata_failed` | Includes inability to obtain required type/size/timestamp metadata. |
-| 8 | Reading file content fails before hashing can complete, without a more specific access-denied or mutation classification | `file_read_failed` | Do not classify a hash-algorithm/computation failure as a content-read failure when reading completed. |
-| 9 | Hash computation fails after the intended content bytes have been read, or the hash operation itself reports failure | `hash_failed` | A content-read failure takes precedence when bytes could not be read. |
-| 10 | A report/evidence/manifest object fails a general validation rule not covered by the specific manifest/evidence categories above | `validation_failed` | Use only for other explicit contract validation failures; do not use as a catch-all for operational failures. |
-| 11 | Deterministic serialization of a validated report/evidence object fails | `serialization_failed` | Distinguish serialization from the later write/publish step. |
-| 12 | Deriving period summaries/counts or reconciling validated inputs into the aggregation model fails | `aggregation_failed` | Use for aggregation logic failures, not invalid input artifacts already classified above. |
-| 13 | Writing or publishing the final report artifact fails after successful aggregation/serialization | `publication_failed` | Includes final local publication or verified Drive-copy publication; preserve local authoritative artifacts when possible. |
-| 14 | A failure is observed but no preceding condition matches deterministically | `unknown_error` | Required fallback. Do not guess from exception text; retain only sanitized context permitted by C-47. |
+| 1 |マニフェストは読み取り可能ですが、定義された構文、スキーマ、ID、または整合性の検証に失敗します。| `manifest_invalid` |無効なマニフェスト コンテンツにのみ使用します。アクセス/読み取りエラーには、以下のより具体的な I/O ルールが使用されます。|
+| 2 |実行入力証拠は読み取り可能ですが、定義されたスキーマ、ID、インベントリ、カウント、または整合性の検証に失敗します。| `evidence_invalid` |無効な証拠コンテンツにのみ使用します。アクセス/読み取りエラーには、以下のより具体的な I/O ルールが使用されます。|
+| 3 |承認された整合性チェック中にソース エントリまたは凍結されたターゲット セットが変更されるか、前後のメタデータまたはターゲット ID が一致しない| `source_mutation_detected` |観察された不一致が必要です。無関係な読み取りエラーだけから突然変異を推測しないでください。|
+| 4 |ファイル名が文書化された命名/期間/対象条件の構文に違反しています。| `invalid_filename` |ターゲット コンテンツの処理を試みる前に、分類中に適用します。無効なエントリを検証証拠に保存します。|
+| 5 |プラットフォームは、試行された操作に対して明示的なアクセス拒否/許可拒否状態を報告します。| `file_access_denied` |プラットフォームが構造化されたアクセス拒否信号を提供する場合にのみ使用します。自由形式のメッセージ テキストから推測しないでください。|
+| 6 |構成されたソース ルートまたは到達したディレクトリを開くか列挙することが、明示的なアクセス拒否以外の理由で失敗する| `enumeration_failed` |反復の失敗、操作の失敗として報告されたディレクトリ列挙の中断、および列挙子のクリーンアップ/破棄の失敗が含まれます。|
+| 7 |より具体的なアクセス拒否または変更の分類がなければ、コンテンツの読み取り前に必要なファイルのメタデータを取得または検証することはできません| `file_metadata_failed` |必要なタイプ/サイズ/タイムスタンプのメタデータを取得できないことも含まれます。|
+| 8 |より具体的なアクセス拒否または突然変異の分類がないと、ハッシュが完了する前にファイル コンテンツの読み取りが失敗します。| `file_read_failed` |読み取り完了時に、ハッシュ アルゴリズム/計算エラーをコンテンツ読み取りエラーとして分類しないでください。|
+| 9 |意図したコンテンツバイトが読み取られた後にハッシュ計算が失敗するか、ハッシュ操作自体が失敗を報告する| `hash_failed` |バイトを読み取れなかった場合は、コンテンツ読み取り失敗が優先されます。|
+| 10 |レポート/証拠/マニフェスト オブジェクトは、上記の特定のマニフェスト/証拠カテゴリではカバーされない一般的な検証ルールに合格しません。| `validation_failed` |他の明示的なコントラクト検証が失敗した場合にのみ使用します。運用上の失敗をすべてカバーするものとして使用しないでください。|
+| 11 |検証済みレポート/証拠オブジェクトの決定論的シリアル化が失敗する| `serialization_failed` |シリアル化と後の書き込み/公開ステップを区別します。|
+| 12 |期間の要約/カウントの導出、または集計モデルへの検証済み入力の調整が失敗します| `aggregation_failed` |上記で分類済みの無効な入力成果物ではなく、集計ロジックの障害に使用します。|
+| 13 |集計/シリアル化が成功した後、最終レポート 成果物の作成または公開が失敗する| `publication_failed` |最終的なローカル出版物または検証されたドライブコピーの出版物が含まれます。可能な場合は、ローカルの信頼できる成果物を保存します。|
+| 14 |障害が観察されたが、先行する条件が決定的に一致しない| `unknown_error` |必須のフォールバック。例外のテキストから推測しないでください。 C-47 によって許可されたサニタイズされたコンテキストのみを保持します。|
 
-**Precedence and event rules**
+**優先順位とイベントのルール**
 
-1. Evaluate the table from top to bottom and select the first condition whose required evidence is present. The table priority resolves overlapping descriptions.
-2. An explicit access-denied signal is classified as `file_access_denied` for the affected operation, except when the failure is actually a readable-but-invalid manifest/evidence validation result or an independently observed source-mutation mismatch. A failure to open/read an artifact is not a content-validation failure.
-3. Assign one primary `error_code` per distinct `error_id`. The same event propagated through layers retains its original code and ID; downstream wrappers must not reclassify it. An independently observed failure gets a new ID and is classified separately.
-4. When multiple independent failures are observed, classify each event independently; do not collapse events merely because they share a path or code. A single event must not be double-counted under multiple codes.
-5. Mapping must use structured context and stable error categories. Do not parse localized/free-form exception messages to choose a code. Do not include raw exception text in diagnostic enum values or sanitized messages.
-6. If a known failure cannot be distinguished reliably from another category using available structured evidence, use `unknown_error` rather than making an unsupported inference. `unknown_error` must not conceal a known mapping defect.
-7. The mapping table and precedence are normative for diagnostic schema v1. Changing the allowlist, field contract, or versioned semantics requires review under C-48; never silently reinterpret historical diagnostics.
+1. テーブルを上から下に評価し、必要な証拠が存在する最初の条件を選択します。テーブルの優先順位により、重複する説明が解決されます。
+2. 明示的なアクセス拒否シグナルは、失敗 が実際には読み取り可能だが無効なマニフェスト/証拠の検証結果である場合、または独立して観測されたソース変異 不一致 である場合を除き、影響を受ける操作に関して `file_access_denied` として分類されます。成果物を開く/読み取るための 失敗 は、コンテンツ検証 失敗 ではありません。
+3. 個別の `error_id` ごとに 1 つのプライマリ `error_code` を割り当てます。レイヤーを介して伝播される同じイベントは、元のコードと ID を保持します。ダウンストリームのラッパーはそれを再分類してはなりません。独立して観察された 失敗 は新しい ID を取得し、個別に分類されます。
+4. 複数の独立した障害が観察された場合は、各イベントを個別に分類します。パスやコードを共有しているという理由だけでイベントを折りたたまないでください。単一のイベントを複数のコードで二重にカウントしてはなりません。
+5. マッピングでは、構造化コンテキストと安定したエラー カテゴリを使用する必要があります。コードを選択するために、ローカライズされた/自由形式の例外メッセージを解析しないでください。診断列挙値またはサニタイズされたメッセージに生の例外テキストを含めないでください。
+6. 既知の 失敗 を、利用可能な構造化証拠を使用して別のカテゴリから確実に区別できない場合は、サポートされていない推論を行うのではなく、`unknown_error` を使用してください。 `unknown_error` は既知のマッピング欠陥を隠してはなりません。
+7. マッピング テーブルと優先順位は、診断スキーマ v1 の標準です。ホワイトリスト、フィールド コントラクト、またはバージョン対応セマンティクスを変更するには、C-48 に基づくレビューが必要です。過去の診断を黙って再解釈しないでください。
 
-**Required tests:** one positive fixture for each mapping row; access-denied versus generic I/O; invalid filename before content access; read failure versus hash failure; readable-invalid manifest/evidence versus unreadable artifact; mutation versus ordinary read failure; serialization versus publication failure; overlapping-condition precedence; same-event propagation preserves original code and ID; independent events remain distinct; unknown condition falls back to `unknown_error`; mapping never inspects free-form exception text; every emitted code is in the C-49 allowlist.
+**必須テスト:** マッピング行ごとに 1 つのポジティブ フィクスチャ。アクセス拒否 I/O と汎用 I/O。コンテンツにアクセスする前のファイル名が無効です。読み取り 失敗 とハッシュ 失敗;読み取り可能または無効なマニフェスト/証拠と読み取り不可能な成果物。突然変異と通常の読み取り 失敗;シリアル化と出版物 失敗;重複条件の優先順位。同じイベントの伝播では、元のコードと ID が保持されます。独立したイベントは区別されたままです。 不明 状態は `unknown_error` に戻ります。マッピングは自由形式の例外テキストを決して検査しません。発行されたすべてのコードは C-49 許可リストに含まれます。
 
-Runtime implementation and executable tests remain pending; this decision defines the contract only.
+ランタイム実装と実行可能テストは 未確定 のままです。この決定は契約のみを定義します。
 
 
 
-**Runtime input contract — approved model A:** the trusted event producer supplies exactly one required, case-sensitive scalar Condition identifier when the distinct event is first created. The pure classifier Resolve-DiagnosticErrorCode maps that identifier to exactly one C-49 error_code; it does not inspect exception messages/classes, stack traces, paths, or arbitrary metadata, and does not allocate or modify error_id, phase, or operation. Producer-side selection must follow the priority table above when more than one condition could apply. Propagation layers preserve the first event's identity and classification and must not call the classifier again for that event.
+**ランタイム入力コントラクト — 承認済みモデル A:** 信頼できるイベント プロデューサーは、個別のイベントが最初に作成されるときに、必須の大文字と小文字が区別されるスカラー条件識別子を 1 つだけ提供します。純粋な分類子 Resolve-DiagnosticErrorCode は、その識別子を 1 つの C-49 error_code に正確にマップします。例外メッセージ/クラス、スタック トレース、パス、または任意のメタデータは検査されず、error_id、フェーズ、または操作の割り当てや変更も行われません。複数の条件が適用される可能性がある場合、プロデューサー側の選択は上記の優先順位の表に従う必要があります。伝播層は最初のイベントの ID と分類を保持し、そのイベントに対して分類子を再度呼び出してはなりません。
 
-| Exact Condition identifier | Required structured evidence | error_code |
+|正確な条件識別子|必要な構造化証拠| error_code |
 |---|---|---|
-| manifest_readable_invalid | Manifest read completed; syntax/schema/identity/integrity validation failed | manifest_invalid |
-| evidence_readable_invalid | Evidence read completed; schema/identity/inventory/count/integrity validation failed | evidence_invalid |
-| source_mutation_observed | Approved before/after identity or metadata comparison observed a mismatch | source_mutation_detected |
-| target_filename_invalid | Strict filename/date/period/eligibility validation failed | invalid_filename |
-| access_denied_observed | Platform/API supplied an explicit structured access-denied result | file_access_denied |
-| directory_enumeration_failed | Root/reached-directory enumeration failed, without a more specific condition above | enumeration_failed |
-| target_metadata_failed | Required metadata retrieval/validation failed before content read | file_metadata_failed |
-| target_content_read_failed | Intended content bytes could not be read before hashing completed | file_read_failed |
-| content_digest_failed | Intended bytes were available but digest computation failed | hash_failed |
-| general_contract_validation_failed | Explicit contract validation failed outside the manifest/evidence-specific cases | validation_failed |
-| report_serialization_failed | Serialization of a validated report/evidence object failed | serialization_failed |
-| aggregation_failed | Summary/count/reconciliation derivation failed after input validation | aggregation_failed |
-| report_publication_failed | Final report writing/publication failed after successful aggregation/serialization | publication_failed |
-| unmatched_failure | A real failure was observed but no listed condition applies | unknown_error |
+| manifest_readable_invalid |マニフェストの読み取りが完了しました。構文/スキーマ/同一性/整合性の検証に失敗しました| manifest_invalid |
+| evidence_readable_invalid |証拠の読み取りが完了しました。スキーマ/同一性/インベントリ/カウント/整合性の検証に失敗しました| evidence_invalid |
+| source_mutation_observed |ID またはメタデータの比較で不一致が観察される前/後に承認されました| source_mutation_detected |
+| target_filename_invalid |厳密なファイル名/日付/期間/対象条件の検証に失敗しました| invalid_filename |
+| access_denied_observed |プラットフォーム/API が明示的な構造化アクセス拒否結果を提供しました| file_access_denied |
+| directory_enumeration_failed |上記のより具体的な条件がなければ、ルート/到達ディレクトリの列挙に失敗しました| enumeration_failed |
+| target_metadata_failed |コンテンツを読み取る前に、必要なメタデータの取得/検証が失敗しました| file_metadata_failed |
+| target_content_read_failed |ハッシュが完了する前に、意図したコンテンツバイトを読み取ることができませんでした| file_read_failed |
+| content_digest_failed |意図したバイトは利用可能でしたが、ダイジェストの計算に失敗しました| hash_failed |
+| general_contract_validation_failed |明示的な契約の検証がマニフェスト/証拠固有のケース以外で失敗した| validation_failed |
+| report_serialization_failed |検証されたレポート/証拠オブジェクトのシリアル化に失敗しました| serialization_failed |
+| aggregation_failed |入力検証後に要約/カウント/調整の導出に失敗しました| aggregation_failed |
+| report_publication_failed |集計/シリアル化は成功したが、最終レポートの作成/公開に失敗した| publication_failed |
+| unmatched_failure |実際の障害が観察されましたが、記載されている条件は適用されません| unknown_error |
 
-These condition identifiers are internal call-contract values, not persisted schema fields or new error_code values. Input must be a scalar string matching one exact token. Null, empty, non-string, unknown, collection-shaped, or case-variant inputs are rejected with a fixed non-disclosing error; they do not silently map to unknown_error. unmatched_failure is reserved for a real observed failure with no matching known condition, not missing instrumentation or malformed classifier input.
+これらの条件識別子は内部の呼び出しコントラクト値であり、永続化されたスキーマ フィールドや新しい error_code 値ではありません。入力は、1 つの正確なトークンに一致するスカラー文字列である必要があります。 Null、空、非文字列、不明、コレクション形式、または大文字と小文字が異なる入力は、修正された非開示エラーで拒否されます。これらは暗黙的に unknown_error にマッピングされません。 unmatched_failure は、一致する既知の条件がなく、インストルメントの欠落や不正な形式の分類子の入力がない、実際に観察された 失敗 用に予約されています。
 
-**Evidence boundary:** this pure mapping helper verifies only token-to-code mapping. It does not prove event-producer correctness, precedence selection across multiple observations, event-ID propagation/deduplication, runtime sink behavior, or end-to-end evidence finalization. Those remain runtime acceptance gaps.
+**証拠境界:** この純粋なマッピング ヘルパーは、トークンからコードへのマッピングのみを検証します。イベント プロデューサーの正確性、複数の観測にわたる優先順位の選択、イベント ID の伝播/重複排除、ランタイム シンクの動作、またはエンドツーエンドの証拠の確定を証明するものではありません。これらは実行時の許容ギャップとして残ります。
 
-### Deterministic phase and operation mapping — C-51
+<a id="deterministic-phase-and-operation-mapping--c-51"></a>
+### 確定的なフェーズと動作のマッピング — C-51
 
-**Approved option A (2026-10-21):** derive phase and operation from the explicit processing context at the point the diagnostic event is first created. Use the following normative mapping table. The pair describes the operation that failed, not merely the layer that later observed or logged the failure.
+**承認されたオプション A (2026-10-21):** は、診断イベントが最初に作成された時点で、明示的な処理コンテキストからフェーズと操作を導出します。次の標準マッピング テーブルを使用します。このペアは、単に後で 失敗 を観察または記録した層ではなく、失敗した が実行する操作を記述します。
 
-| Processing context / failed action | phase | operation |
+|処理コンテキスト/失敗したアクション|フェーズ|オペレーション|
 |---|---|---|
-| Enumerating the source root or traversing a reached directory | enumeration | enumerate_entries |
-| Parsing/classifying a target filename or determining its period/eligibility | classification | classify_target |
-| Reading required file metadata (type, size, timestamp) | metadata | read_metadata |
-| Opening/reading target file content | content_read | read_content |
-| Computing the content digest after bytes are available | hashing | compute_hash |
-| Comparing frozen inventory/metadata/identity to detect source changes | metadata | detect_source_mutation |
-| Validating manifest syntax, schema, identity, or integrity | manifest_validation | validate_manifest |
-| Validating run-input evidence schema, inventory, counts, or integrity | evidence_validation | validate_evidence |
-| Finalizing and validating the completed diagnostic/evidence object | evidence_finalization | finalize_evidence |
-| Deriving summaries, counts, and reconciliations from validated inputs | aggregation | aggregate_results |
-| Serializing a validated report into its canonical output representation | report_serialization | serialize_report |
-| Writing/publishing the final report artifact or verifying its published copy | report_publication | publish_report |
-| The actual processing context cannot be established from trusted structured state | unknown | unknown |
+|ソース ルートを列挙するか、到達したディレクトリを横断します|列挙型| enumerate_entries |
+|ターゲット ファイル名の解析/分類、またはその期間/適格性の判断|分類| classify_target |
+|必要なファイルのメタデータ (タイプ、サイズ、タイムスタンプ) を読み取り中|メタデータ| read_metadata |
+|ターゲットファイルの内容を開く/読み込む| content_read | read_content |
+|バイトが利用可能になった後にコンテンツ ダイジェストを計算しています|ハッシュ| compute_hash |
+|ソースの変更を検出するために凍結されたインベントリ/メタデータ/同一性を比較しています|メタデータ| detect_source_mutation |
+|マニフェスト構文、スキーマ、ID、または整合性を検証しています| manifest_validation | validate_manifest |
+|実行入力証拠のスキーマ、一覧、数、または整合性を検証しています| evidence_validation | validate_evidence |
+|完成した診断/証拠オブジェクトの最終処理と検証| evidence_finalization | finalize_evidence |
+|検証された入力からの要約、カウント、および調整の導出|集計| aggregate_results |
+|検証済みレポートを正規の出力表現にシリアル化しています| report_serialization | serialize_report |
+|最終レポート成果物の作成/公開、または公開されたコピーの検証| report_publication | publish_report |
+|実際の処理コンテキストを信頼された構造化状態から確立できません| unknown | unknown |
 
-**Selection and propagation rules**
+**選択と伝播のルール**
 
-1. Capture the phase/operation pair from structured state when the underlying event is first converted into a diagnostic. The event creator assigns the pair together with error_id and error_code.
-2. Propagation, wrapping, retry reporting, cleanup, and logging layers preserve the original pair. They must not replace it with their own context simply because they observe the same event later.
-3. Select the most specific table row matching the failed action. For example, a manifest that is read successfully but fails contract validation uses manifest_validation / validate_manifest; a failure to read content uses the applicable read operation/context.
-4. Use unknown only when trusted structured context genuinely cannot identify the phase or operation. Do not use it as a shortcut for missing instrumentation, an unimplemented mapping, or an avoidable ambiguity.
-5. The phase and operation are independent controlled values but must form a semantically valid pair under this table. Reject combinations not defined by the schema-v1 mapping contract rather than normalizing aliases or inferring values from exception messages.
-6. No new fields or allowlist values are introduced. The contract remains within C-48/C-49 diagnostic schema v1. Any future change to the mapping semantics requires review and explicit versioning assessment.
+1. 基礎となるイベントが最初に診断に変換されるときに、構造化された状態からフェーズ/操作のペアをキャプチャします。イベント作成者は、error_id および error_code とともにペアを割り当てます。
+2. 伝播、ラッピング、レポートの再試行、クリーンアップ、およびログの各レイヤーは、元のペアを保持します。後で同じ出来事を観察したからといって、それを自分のコンテキストに置き換えてはなりません。
+3. 失敗した アクションに一致する最も具体的なテーブル行を選択します。たとえば、正常に読み取られたがコントラクトの検証に失敗したマニフェストは、manifest_validation / validate_manifest を使用します。コンテンツを読み取る 失敗 は、該当する読み取り操作/コンテキストを使用します。
+4. 不明 は、信頼できる構造化コンテキストが本当にフェーズまたは操作を識別できない場合にのみ使用してください。これを、欠落しているインストルメンテーション、未実装のマッピング、または回避可能な曖昧さのショートカットとして使用しないでください。
+5. 位相と動作は独立して制御される値ですが、このテーブルでは意味的に有効なペアを形成する必要があります。エイリアスの正規化や例外メッセージからの値の推論ではなく、schema-v1 マッピング コントラクトで定義されていない組み合わせを拒否します。
+6. 新しいフィールドや許可リストの値は導入されません。コントラクトは C-48/C-49 診断スキーマ v1 内に残ります。マッピング セマンティクスに対する将来の変更には、レビューと明示的なバージョン管理の評価が必要です。
 
-**Required tests:** positive fixture for every row; each allowlisted phase/operation appears in valid fixtures; invalid pair rejection; same-event propagation preserves the original pair across wrappers/cleanup/logging; operation failure is distinguished from later observer context; manifest/evidence read failure versus validation failure; genuinely unavailable context maps to unknown/unknown; missing instrumentation is surfaced by tests rather than silently accepted; no free-form exception parsing; deterministic repeated results.
+**必須テスト:** すべての行にポジティブなフィクスチャ。ホワイトリストに登録された各フェーズ/オペレーションは有効なフィクスチャに表示されます。無効なペアの拒否。同じイベントの伝播では、ラッパー/クリーンアップ/ロギング全体で元のペアが保持されます。操作 失敗 は、後のオブザーバー コンテキストとは区別されます。マニフェスト/証拠読み取り 失敗 と検証 失敗;本当に 利用不能 コンテキストは 不明/不明 にマップされます。欠落している計測器は、黙って受け入れられるのではなく、テストによって表面化されます。自由形式の例外解析はありません。決定的な反復結果。
 
-**Approved input contract — Option C (2026-10-21):** the trusted producer supplies exactly one required, case-sensitive scalar `operation` identifier from the existing C-51 operation allowlist when the distinct diagnostic event is first created. `Resolve-DiagnosticPhaseOperation -Operation` derives the unique approved `phase` and returns the exact input operation unchanged. It does not allocate `error_id`, classify `error_code`, inspect exception messages/classes, stack traces, paths, or ambient observer context, or create/propagate runtime events.
+**承認された入力コントラクト — オプション C (2026-10-21):** 信頼できるプロデューサーは、個別の診断イベントが最初に作成されるときに、既存の C-51 操作許可リストから必要な、大文字と小文字が区別されるスカラー `operation` 識別子を 1 つだけ提供します。 `Resolve-DiagnosticPhaseOperation -Operation` は、承認された一意の `phase` を派生し、正確な入力操作を変更せずに返します。 `error_id` の割り当て、`error_code` の分類、例外メッセージ/クラス、スタック トレース、パス、またはアンビエント オブザーバー コンテキストの検査、またはランタイム イベントの作成/伝播は行いません。
 
-Accepted values are exactly the operation column in the table above: `enumerate_entries`, `classify_target`, `read_metadata`, `read_content`, `compute_hash`, `detect_source_mutation`, `validate_manifest`, `validate_evidence`, `finalize_evidence`, `aggregate_results`, `serialize_report`, `publish_report`, and `unknown`. The `unknown` value is reserved for a trusted producer that has positively established that the actual failed processing context cannot be determined from trusted structured state. Missing instrumentation, missing input, invalid input, or an unimplemented mapping must be rejected, not converted to `unknown`. The resolver can validate the token and derive its pair; it cannot independently prove the producer selected the semantically correct operation.
+受け入れられる値は、上記の表の操作列とまったく同じです: `enumerate_entries`、`classify_target`、`read_metadata`、`read_content`、`compute_hash`、`detect_source_mutation`、`validate_manifest`、`validate_evidence`、`finalize_evidence`、`aggregate_results`、`serialize_report`、 `publish_report`、および`unknown`。 `unknown` 値は、実際の 失敗した 処理コンテキストが信頼できる構造化状態から決定できないことを明確に確立した、信頼できるプロデューサー用に予約されています。インストルメンテーションの欠落、入力の欠落、無効な入力、または実装されていないマッピングは、`unknown` に変換せずに拒否する必要があります。リゾルバーはトークンを検証し、そのペアを導出できます。プロデューサが意味的に正しい操作を選択したことを独立して証明することはできません。
 
-The pure resolver and synthetic table-driven tests are implemented in `Common/LogFunctions.ps1` and `tests/Test-DiagnosticPhaseOperationResolver.ps1`, and are wired into Validate CI. This helper-level evidence does not implement runtime event creation, precedence enforcement, event identity propagation/deduplication, raw JSON duplicate-key rejection, sink non-disclosure, or end-to-end acceptance.
+純粋なリゾルバー テストと合成テーブル駆動テストは `Common/LogFunctions.ps1` と `tests/Test-DiagnosticPhaseOperationResolver.ps1` に実装されており、Validate CI に接続されています。このヘルパー レベルの証拠には、ランタイム イベントの作成、優先順位の強制、イベント ID の伝播/重複排除、生の JSON 重複キーの拒否、シンクの非公開、またはエンドツーエンドの受け入れは実装されていません。
 
 
-### Diagnostic message templates and sanitization — C-52
+<a id="diagnostic-message-templates-and-sanitization--c-52"></a>
+### 診断メッセージ テンプレートとサニタイズ — C-52
 
-**Approved option A (2026-10-21):** use fixed, deterministic message templates selected by the validated `error_code`. Do not include raw exception messages, exception class names, stack traces, OS-provided error text, environment variables, request/response bodies, credentials, tokens, connection strings, absolute paths, or other uncontrolled data. Initial schema-v1 templates have no interpolated parameters; safe target context, when useful, belongs only in the separately validated `target_relative_path` field.
+**承認されたオプション A (2026-10-21):** は、検証済みの `error_code` によって選択された固定の決定論的なメッセージ テンプレートを使用します。生の例外メッセージ、例外クラス名、スタック トレース、OS 提供のエラー テキスト、環境変数、リクエスト/レスポンス本体、認証情報、トークン、接続文字列、絶対パス、その他の制御されていないデータは含めないでください。初期の schema-v1 テンプレートには補間パラメーターがありません。安全なターゲット コンテキストは、有用な場合、個別に検証された `target_relative_path` フィールドにのみ属します。
 
-| `error_code` | Normative `message` template |
+| `error_code` |標準 `message` テンプレート|
 |---|---|
 | `enumeration_failed` | `Source enumeration failed.` |
 | `invalid_filename` | `Target filename does not satisfy the naming rules.` |
@@ -370,53 +399,56 @@ The pure resolver and synthetic table-driven tests are implemented in `Common/Lo
 | `publication_failed` | `Report publication failed.` |
 | `unknown_error` | `An unclassified processing error occurred.` |
 
-**Normative rules**
+**規範的なルール**
 
-1. The selected template is determined solely by the already validated `error_code`; message generation must not inspect exception text or other free-form diagnostic data.
-2. Templates are fixed English ASCII strings in schema v1. They are below the C-47 maximum of 512 Unicode characters and are emitted exactly as specified, with no locale-dependent changes, dynamic interpolation, trimming, or punctuation variation.
-3. If a future requirement needs a parameter, it requires an explicit reviewed contract update that defines the parameter's source, type, maximum length, character policy, sanitization order, and fallback. Parameters must come from trusted structured state and a field-specific allowlist; raw exception-derived text is never an allowed parameter. Do not add parameters implicitly.
-4. If a template cannot be selected because the `error_code` is missing or invalid, reject diagnostic finalization; do not guess a template from exception data. If a validated code is `unknown_error`, use its exact generic template above.
-5. Apply the C-47 record-level constraints as well: valid UTF-8/scalar sequence, control-character safety, no raw exception object/stack trace, and message length at most 512 Unicode characters. These fixed templates inherently satisfy the length bound.
-6. Keep the message field present according to the diagnostic schema. A valid `error_code` always has a non-null template message; do not substitute JSON null for a template that is defined here. If the record cannot be finalized safely, fail evidence finalization rather than emitting a malformed diagnostic.
-7. Do not change `error_code`, `phase`, `operation`, or the event's `error_id` to make the message fit. Message content is descriptive only and is not an input to classification, deduplication, aggregation, or integrity decisions.
+1. 選択されたテンプレートは、すでに検証された `error_code` によってのみ決定されます。メッセージ生成では、例外テキストやその他の自由形式の診断データを検査してはなりません。
+2. テンプレートは、スキーマ v1 の固定英語 ASCII 文字列です。これらは、Unicode 文字の C-47 最大値 512 を下回っており、ロケールに依存した変更、動的補間、トリミング、句読点の変動なしで、指定どおりに正確に出力されます。
+3. 将来の要件でパラメーターが必要な場合は、パラメーターのソース、タイプ、最大長、文字ポリシー、サニタイズ順序、およびフォールバックを定義する、明示的にレビューされた契約更新が必要です。パラメータは、信頼できる構造化状態とフィールド固有の許可リストから取得する必要があります。例外から派生した生のテキストは、決して許可されたパラメータではありません。パラメータを暗黙的に追加しないでください。
+4. `error_code` が欠落しているか無効であるためにテンプレートを選択できない場合は、診断の終了処理を拒否します。例外データからテンプレートを推測しないでください。検証されたコードが `unknown_error` の場合は、上記のまさに汎用テンプレートを使用してください。
+5. C-47 レコード レベルの制約も適用します。有効な UTF-8/スカラー シーケンス、制御文字の安全性、生の例外オブジェクト/スタック トレースなし、メッセージの長さは最大 512 Unicode 文字です。これらの固定テンプレートは本質的に長さの制限を満たします。
+6. 診断スキーマに従ってメッセージ フィールドを維持します。有効な `error_code` には常に非 null テンプレート メッセージが含まれます。ここで定義されているテンプレートを JSON null に置き換えないでください。記録を安全に完了できない場合は、不正な診断を発行するのではなく、証拠の完了を失敗させます。
+7. メッセージを適合させるために `error_code`、`phase`、`operation`、またはイベントの `error_id` を変更しないでください。メッセージの内容は説明のみであり、分類、重複排除、集約、または整合性の決定への入力ではありません。
 
-**Required tests:** one exact expected-message fixture for every C-49 `error_code`; unknown-code rejection before message generation; `unknown_error` template; deterministic byte-for-byte output across repeated runs and locale settings; no interpolation; maximum length; control/secret/absolute-path/stack-trace/exception-text non-disclosure; valid UTF-8; message never influences code, event identity, or aggregation; invalid message-generation context fails finalization rather than emitting null or malformed output.
+**必須テスト:** C-49 `error_code` ごとに 1 つの正確な予期されるメッセージ フィクスチャ。 不明 - メッセージ生成前のコード拒否。 `unknown_error` テンプレート;繰り返しの実行とロケール設定にわたるバイトごとの出力が決定的。補間なし。最大長。コントロール/シークレット/絶対パス/スタックトレース/例外テキストの非公開。有効なUTF-8;メッセージはコード、イベント ID、または集計に影響を与えることはありません。無効なメッセージ生成コンテキストは、null または不正な出力を生成するのではなく、ファイナライズに失敗します。
 
-Runtime implementation and executable tests remain pending; this decision defines the contract only.
-
-
-### Structured-field sanitization and path safety — C-53
-
-**Approved option A (2026-10-21):** validate structured values before emission; never repair a dangerous path into a different apparently valid path. If `target_relative_path` cannot be proven safe under this contract, emit JSON `null` for that field while retaining the diagnostic event and its stable classification fields.
-
-**Normative processing order for `target_relative_path`:**
-
-1. Read the value only from trusted structured state. If absent, null, not a string, or not valid Unicode scalar text, emit `null`.
-2. Create a validation-only candidate by translating backslash separators to forward slashes. Do not collapse repeated separators, remove dot segments, trim characters, or resolve the path against the current directory; those operations could conceal unsafe input.
-3. Reject the candidate if it is empty; begins with `/`; has a drive prefix (for example, `C:`); has a UNC/device-path prefix; contains a NUL or any control character; contains a colon (including alternate-data-stream syntax); contains an empty segment, `.`, or `..` segment; or otherwise fails the defined relative-path grammar. On rejection, emit `null` for the entire field.
-4. Check each segment and the complete candidate against the project's explicit sensitive-path policy. This includes credential/token-like material and configured sensitive names/patterns. Do not infer safety merely because a value is syntactically relative. If any segment or the full candidate matches a sensitive rule, emit `null` for the entire field; do not partially redact or replace segments.
-5. Only if every check passes, emit the canonical candidate with `/` separators. Do not resolve symlinks, query the filesystem, or use the current working directory during diagnostic serialization.
-
-**Other structured fields:**
-
-- `error_id`, `error_code`, `phase`, and `operation` must pass their schema and allowlist validators. Invalid values reject diagnostic finalization; do not sanitize an invalid enum into a nearby allowed value.
-- `message` is selected solely from the exact C-52 template table. Do not interpolate path, exception, or other runtime values.
-- JSON output must use the serializer's correct string escaping. Escaping is not a substitute for validation or sensitive-data checks.
-- Sanitization must not alter event identity, classification, phase/operation, aggregation results, or source artifacts. An unsafe optional path becomes `null`; an invalid required field fails finalization.
-- The validation result must be deterministic and independent of locale, machine-specific path rules, current directory, and filesystem state.
-
-**Required tests:** null/non-string/invalid-Unicode path input; slash and backslash handling; leading slash; drive-qualified, UNC, and device paths; colon/alternate-data-stream; NUL and control characters; empty/repeated segments; `.` and `..` segments; sensitive-pattern match in first/middle/last segment; no partial redaction; valid canonical relative path; no filesystem or current-directory dependency; serializer escaping; invalid required enum rejection; unsafe optional path becomes JSON null without changing error identity/classification; deterministic results across locale and host OS settings.
-
-The sensitive-path policy's concrete pattern/segment rules and precedence are approved under C-54; see `docs/archive/decisions/decision-record-c54-sensitive-path-detection.md`. Runtime implementation and executable tests remain pending; this decision defines the contract only.
+ランタイム実装と実行可能テストは 未確定 のままです。この決定は契約のみを定義します。
 
 
-### C-54 — Approved sensitive-path pattern grammars (P1–P6, 2026-10-21)
+<a id="structured-field-sanitization-and-path-safety--c-53"></a>
+### 構造化フィールドの消毒と経路の安全 — C-53
 
-The maintainer approved option A for each P1–P6. The exact normative grammars, case rules, ASCII boundaries, scope limits, and C-53 processing-order caveat are defined in `docs/archive/decisions/decision-record-c54-sensitive-path-detection.md`, section “C-54 approved secret-format grammars — P1–P6”. That decision record is the single canonical source for regex text; do not duplicate or independently reinterpret those expressions here.
+**承認されたオプション A (2026-10-21):** 発行前に構造化された値を検証します。危険なパスを、一見有効な別のパスに修復しないでください。この契約に基づいて `target_relative_path` の安全性が証明できない場合は、診断イベントとその安定した分類フィールドを保持したまま、そのフィールドに対して JSON `null` を発行します。
 
-The required pattern-contract tests are `tests/Test-C54PatternContract.ps1`, run by the Validate workflow. They use synthetic fixtures and verify the approved regex rules only. They are not runtime sanitizer tests. Runtime sanitization and end-to-end diagnostic non-disclosure remain unimplemented/unverified; this approval does not close P0-010 or P0-012.
+**`target_relative_path`:** の標準処理順序
+
+1. 信頼できる構造化状態からのみ値を読み取ります。存在しない場合、null、文字列ではない、または有効な Unicode スカラー テキストではない場合、`null` が出力されます。
+2. バックスラッシュ区切り文字をスラッシュに変換して、検証専用の候補を作成します。繰り返される区切り文字を折りたたんだり、ドット セグメントを削除したり、文字をトリミングしたり、現在のディレクトリに対してパスを解決したりしないでください。これらの操作により、安全でない入力が隠蔽される可能性があります。
+3. 候補が空の場合は拒否します。 `/` で始まります。ドライブ接頭辞が付いています (`C:` など)。 UNC/device-path プレフィックスが付いています。 NUL または任意の制御文字が含まれています。コロンが含まれています (代替データ ストリーム構文を含む)。空のセグメント、`.`、または `..` セグメントが含まれています。そうでない場合は、定義された相対パス文法に失敗します。拒否の場合、フィールド全体に対して `null` を出力します。
+4. 各セグメントと 完了 候補をプロジェクトの明示的な機密パス ポリシーに照らしてチェックします。これには、認証情報/トークンのようなマテリアルと、設定された機密性の高い名前/パターンが含まれます。値が構文的に相対的であるという理由だけで安全性を推測しないでください。いずれかのセグメントまたは完全な候補が機密ルールに一致する場合、フィールド全体に対して `null` を出力します。セグメントを部分的に編集したり置き換えたりしないでください。
+5. すべてのチェックに合格した場合にのみ、`/` 区切り文字を使用して正規候補を出力します。診断シリアル化中に、シンボリックリンクの解決、ファイルシステムのクエリ、または現在の作業ディレクトリの使用を行わないでください。
+
+**その他の構造化フィールド:**
+
+- `error_id`、`error_code`、`phase`、および `operation` は、スキーマと許可リストのバリデーターを渡す必要があります。無効な値は診断の終了を拒否します。無効な列挙型を近くの許可された値にサニタイズしないでください。
+- `message` は、正確な C-52 テンプレート テーブルからのみ選択されます。パス、例外、またはその他のランタイム値を補間しないでください。
+- JSON 出力では、シリアライザーの正しい文字列エスケープを使用する必要があります。エスケープは検証や機密データのチェックに代わるものではありません。
+- サニタイズによって、イベント ID、分類、フェーズ/操作、集計結果、またはソース 成果物が変更されてはなりません。安全でないオプションのパスは `null` になります。無効な必須フィールドはファイナライズに失敗します。
+- 検証結果は確定的であり、ロケール、マシン固有のパス規則、現在のディレクトリ、およびファイルシステムの状態とは独立している必要があります。
+
+**必須テスト:** null/非文字列/無効な Unicode パス入力。スラッシュとバックスラッシュの処理。先頭のスラッシュ。ドライブ修飾パス、UNC パス、およびデバイス パス。コロン/代替データストリーム; NUL および制御文字。空の/繰り返しのセグメント。 `.` および `..` セグメント。最初/中間/最後のセグメントの機密パターンの一致。部分的な編集はありません。有効な正規の相対パス。ファイルシステムや現在のディレクトリへの依存関係はありません。シリアライザのエスケープ。無効な必須列挙型の拒否。安全でないオプションのパスは、エラー ID/分類を変更せずに JSON null になります。ロケールとホスト OS の設定全体で決定的な結果が得られます。
+
+機密パス ポリシーの具体的なパターン/セグメント ルールと優先順位は、C-54 に基づいて承認されています。 `docs/archive/decisions/decision-record-c54-sensitive-path-detection.md`を参照してください。ランタイム実装と実行可能テストは 未確定 のままです。この決定は契約のみを定義します。
 
 
-## OSD-03 approved report-contract compatibility note (2026-10-21)
+<a id="c-54--approved-sensitive-path-pattern-grammars-p1p6-2026-10-21"></a>
+### C-54 — 承認された機密パス パターン文法 (P1 ～ P6、2026-10-21)
 
-R1-B/R2-A/R3-B/R4-A/R5-A/R6-A/R7-A are approved. The report contains period summaries only and references the exact manifest and B2 evidence by canonical relative path, schema version, and SHA-256 of exact bytes. Report identity is (pc_id, log_type, run_id, report_schema_version), with no report_id field. Deterministic regeneration uses only immutable validated inputs; it must not re-enumerate mutable source directories. Period completion is complete/incomplete/indeterminate and remains report-only, not a manifest v1 enum. Local publication is authoritative; Drive replication is separate and must be content-verified before cross-PC use. These decisions do not alter manifest v1, B2 evidence structure, A2 inventory digest, or exhaustive count reconciliation. Executable schema, runtime implementation, and tests remain pending.
+メンテナは、各 P1 ～ P6 のオプション A を承認しました。正確な規範文法、格規則、ASCII 境界、範囲制限、および C-53 処理順序の警告は、`docs/archive/decisions/decision-record-c54-sensitive-path-detection.md` のセクション「C-54 承認された秘密形式の文法 - P1 ～ P6」で定義されています。その決定記録は、正規表現テキストの単一の正規ソースです。ここでこれらの式を複製したり、独自に再解釈したりしないでください。
+
+必要なパターン コントラクト テストは `tests/Test-C54PatternContract.ps1` で、検証ワークフローによって実行されます。合成フィクスチャを使用し、承認された正規表現ルールのみを検証します。これらは実行時サニタイザー テストではありません。実行時のサニタイズとエンドツーエンドの診断の非公開は未実装/未検証のままです。この承認は P0-010 または P0-012 を終了するものではありません。
+
+
+<a id="osd-03-approved-report-contract-compatibility-note-2026-10-21"></a>
+## OSD-03 はレポートと契約の互換性に関するメモ (2026-10-21) を承認しました
+
+R1-B/R2-A/R3-B/R4-A/R5-A/R6-A/R7-A は承認されています。レポートには期間の概要のみが含まれており、正規の相対パス、スキーマ バージョン、正確なバイト数の SHA-256 によって正確なマニフェストと B2 証拠が参照されます。レポート ID は (pc_id、log_type、run_id、report_schema_version) で、report_id フィールドはありません。決定論的再生成では、不変の検証済み入力のみが使用されます。変更可能なソース ディレクトリを再列挙してはなりません。期間の完了は 完了/未完了/確定不能 であり、マニフェスト v1 列挙型ではなくレポートのみのままです。ローカルの公開済み成果物を正本とします。ドライブのレプリケーションは個別に行われるため、PC 間で使用する前に 内容確認済み にする必要があります。これらの決定は、マニフェスト v1、B2 証拠構造、A2 一覧ダイジェスト、または徹底的なカウント調整を変更しません。実行可能スキーマ、ランタイム実装、およびテストは 未確定 のままです。

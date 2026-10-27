@@ -1,146 +1,99 @@
-# Latest manifest selection core
+<a id="latest-manifest-selection-core"></a>
+# 最新のマニフェスト選択コア
 
-> 2026-10-27 compatibility boundary: [Q1–Q10 and flattening](../../requirements/log-move-requirements.md) require per-file movement through source deletion without both-PC period waiting. The existing v1 schema/helper behavior and dated evidence below are unchanged. A v1 `verified`/report/latest-manifest result is not proof of completed movement or permission to delete; both-PC selection/report completeness is not a new archive prerequisite. Deletion-state/IPC/persistence revisions remain detailed-design work. Do not alter old immutable artifacts or infer a schema upgrade from this policy note.
+> 2026-10-27 互換性境界: [Q1〜Q10 と平坦化](../../requirements/log-move-requirements.md) では、両方の PC の期間を待たずにソース削除によるファイルごとの移動が必要です。既存の v1 スキーマ/ヘルパーの動作と以下の日付の証拠は変更されていません。 v1 `verified`/report/latest-manifest の結果は、移動の完了または削除の許可を証明するものではありません。両方の PC の選択/レポートの完全性は、新しいアーカイブの前提条件ではありません。削除状態/IPC/永続化のリビジョンは詳細設計作業のままです。古い不変の成果物を変更したり、このポリシー ノートからスキーマのアップグレードを推測したりしないでください。
 
-## Local-only schema references (2026-10-27)
+<a id="local-only-schema-references-2026-10-27"></a>
+## ローカルのみのスキーマ参照 (2026-10-27)
 
-Before constructing the manifest validator, the selector checks the loaded schema tree and requires every `$ref` / `$dynamicRef` value to be a string starting with `#`. Nonlocal HTTP/file/relative references, including unused definitions, reject with existing `manifest_schema_unavailable`. The validator also uses a registry whose retrieval callback always refuses resource retrieval, so reference resolution cannot fall back to network or other external resources. Existing repository-local fragments and structural/format checks remain supported.
+マニフェスト バリデーターを構築する前に、セレクターはロードされたスキーマ ツリーをチェックし、すべての `$ref` / `$dynamicRef` 値が `#` で始まる文字列であることを要求します。非ローカルの HTTP/ファイル/相対参照 (未使用の定義を含む) は、既存の `manifest_schema_unavailable` で拒否されます。また、バリデーターは、取得コールバックが常にリソースの取得を拒否するレジストリを使用するため、参照解決をネットワークまたは他の外部リソースにフォールバックすることはできません。既存のリポジトリ ローカル フラグメントと構造/形式チェックは引き続きサポートされます。
 
-An unresolved local fragment rejects the candidate with existing `candidate_manifest_invalid`; an invalid schema rejects with `manifest_schema_unavailable`. Neither path echoes a reference URL or modifies candidates. Core and directory tests inject external and broken schemas with socket calls prohibited and verify fixed rejection/byte preservation. This follows the report builder's existing local-reference policy without adding a package file or dependency requirement. It does not authenticate the loaded schema, impose schema-read/resource budgets, qualify roots or grant runtime/Drive authority.
+未解決のローカル フラグメントは、既存の `candidate_manifest_invalid` を持つ候補を拒否します。無効なスキーマは `manifest_schema_unavailable` で拒否されます。どちらのパスも参照 URL をエコーし​​たり、候補を変更したりしません。コアおよびディレクトリのテストでは、ソケット呼び出しが禁止された外部スキーマと壊れたスキーマを挿入し、固定された拒否/バイト保存を検証します。これは、パッケージ ファイルや依存関係の要件を追加せずに、レポート ビルダーの既存のローカル参照ポリシーに従います。ロードされたスキーマを認証したり、スキーマ読み取り/リソース バジェットを課したり、ルートを修飾したり、ランタイム/ドライブ権限を付与したりすることはありません。
 
-## Actual bytes for subclass candidate content (2026-10-27)
+<a id="actual-bytes-for-subclass-candidate-content-2026-10-27"></a>
+## サブクラス候補コンテンツの実際のバイト数 (2026-10-27)
 
-The pure selector retains support for bytes-subclass candidate content but first materializes the actual exposed buffer into plain bytes before UTF-8/JSON parsing. Exact bytes are used unchanged. Custom subclass `decode`, conversion or length methods cannot substitute different JSON for the content being validated. The original candidate and caller object are not modified; non-bytes content retains `candidate_read_failed`.
+純粋なセレクターは、バイト サブクラス候補コンテンツのサポートを保持しますが、UTF-8/JSON 解析の前に、実際に公開されているバッファーをプレーン バイトに具体化します。正確なバイトが変更されずに使用されます。カスタム サブクラス `decode`、変換メソッドまたは長さメソッドは、検証されるコンテンツを別の JSON で置き換えることはできません。元の候補と呼び出し元オブジェクトは変更されません。非バイトコンテンツは`candidate_read_failed`を保持します。
 
-Invalid actual bytes raise existing `candidate_manifest_invalid` even if custom decode could present a valid manifest. Every candidate, including an older candidate beside a newer success, still passes the same schema/identity/time checks without fallback. Synthetic core tests cover deceptive decode, valid buffers with unusable custom methods, both candidate orders and input preservation. This does not bound buffer-copy memory, authenticate provenance, grant a receipt or qualify filesystem/runtime use.
+カスタム デコードが有効なマニフェストを提示できる場合でも、無効な実際のバイトにより既存の `candidate_manifest_invalid` が発生します。新しい 成功 の隣にある古い候補を含むすべての候補は、フォールバックなしで同じスキーマ/同一性/時間チェックに合格します。合成コア テストは、不正なデコード、使用できないカスタム メソッドを含む有効なバッファ、候補順序と入力保存の両方をカバーします。これは、バッファ コピー メモリの制限、出所の認証、領収書の付与、またはファイル システム/ランタイムの使用の資格を付与するものではありません。
 
-## Duplicate entries in directory observations (2026-10-26)
+<a id="duplicate-entries-in-directory-observations-2026-10-26"></a>
+## ディレクトリ監視内の重複エントリ (2026-10-26)
 
-Each manifest directory scan rejects an exact repeated basename with `manifest_directory_changed` before replacing an existing observation. Initial and final scans follow the same rule: duplicate entries cannot be silently deduplicated into a valid candidate set, an older-success fallback or an unchanged snapshot. Caller entry/byte limits and all existing basename/content checks remain in force; resource-limit rejection can precede duplicate validation. No case normalization or filesystem alias policy is introduced.
+各マニフェスト ディレクトリ スキャンでは、既存の監視を置き換える前に、`manifest_directory_changed` を含む正確に繰り返されるベース名が拒否されます。初期スキャンと最終スキャンは同じルールに従います。つまり、重複エントリを有効な候補セット、古い 成功 フォールバック、または変更されていないスナップショットにサイレントに重複排除することはできません。呼び出し元のエントリ/バイト制限およびすべての既存のベース名/コンテンツ チェックは引き続き有効です。リソース制限の拒否は、重複検証に先立って行われる場合があります。大文字と小文字の正規化やファイルシステムのエイリアス ポリシーは導入されません。
 
-The synthetic directory suite repeats actual temp-directory entries through a scandir adapter on either scan and requires rejection with original bytes preserved. These are injected enumeration observations, not proof of a qualified provider or atomic namespace snapshot/ABA protection.
+合成ディレクトリ スイートは、どちらのスキャンでも scandir アダプタを介して実際の一時ディレクトリ エントリを繰り返し、元のバイトを保持して拒否する必要があります。これらは、注入された列挙の観察であり、適格なプロバイダーまたはアトミックな名前空間スナップショット/ABA 保護の証拠ではありません。
 
-- Basis: approved C4-A in osd-02-crash-concurrency-options.md; EOLM-MAN-002 in requirements-traceability.md; staging-file-lifecycle.md section 8.
-- Scope: supplied candidate observations only. No runtime enumeration, source/Drive access, manifest rewrite, lock disposition or operation authorization.
+- 根拠: osd-02-crash-concurrency-options.md で C4-A を承認。 requirements-traceability.md の EOLM-MAN-002。 staging-file-lifecycle.md セクション 8。
+- 範囲: 提供された候補観測値のみ。ランタイムの列挙、ソース/ドライブへのアクセス、マニフェストの書き換え、ロックの処理、または操作の承認はありません。
 
-## Explicit byte budgets for directory observations (2026-10-26)
+<a id="explicit-byte-budgets-for-directory-observations-2026-10-26"></a>
+## ディレクトリ監視の明示的なバイト バジェット (2026-10-26)
 
-`read_latest_manifest` and `read_latest_manifest_with_report` accept optional `maximum_candidate_bytes` and `maximum_total_bytes`. Each must be None or a positive exact integer; bool/string/fractional values are rejected before root I/O. No fixed production ceiling is chosen and the schema remains unchanged. None preserves the existing caller interface without imposing that ceiling.
+`read_latest_manifest` および `read_latest_manifest_with_report` は、オプションの `maximum_candidate_bytes` および `maximum_total_bytes` を受け入れます。それぞれは None または正の正確な整数でなければなりません。 bool/string/fractional 値はルート I/O の前に拒否されます。固定生産上限は選択されず、スキーマは変更されません。 [なし] は、上限を課すことなく、既存の呼び出し元インターフェイスを保持します。
 
-After metadata enumeration, every entry's initial size is checked before any payload opens. Per-file and aggregate budgets include older and foreign-period/log entries, rather than skipping large candidates or falling back to an older success. An exceeded bound rejects the entire observation. Payload reads use chunks of at most 65,536 bytes and stop at the file's initial size plus one byte; observed growth rejects immediately. Existing handle/path signature and final enumeration checks remain in place.
+メタデータの列挙後、ペイロードを開く前に、すべてのエントリの初期サイズがチェックされます。ファイルごとの予算と総予算には、大きな候補をスキップしたり、古い 成功 にフォールバックしたりするのではなく、古いエントリや外部の期間/ログ エントリが含まれます。限界を超えると、観測全体が拒否されます。ペイロードの読み取りは最大 65、536 バイトのチャンクを使用し、ファイルの初期サイズに 1 バイトを加えた時点で停止します。観察された成長はすぐに拒否されます。既存のハンドル/パスの署名と最終的な列挙チェックはそのまま残ります。
 
-The report wrapper passes the same bounds to both manifest directory observations. These byte bounds do not limit report/evidence reads inside the separate referenced-artifact validator, entry count, JSON complexity, or all memory use. The wrapper's separate optional `maximum_artifact_bytes` forwards a [per-file bound to that validator](aggregation-report-v1-proposal.md#caller-selected-local-read-bounds-2026-10-26), including report, manifest, evidence and schemas. `maximum_total_artifact_bytes` forwards an [aggregate inspected-size budget](aggregation-report-v1-proposal.md#aggregate-inspected-size-budget-2026-10-26) for that validator invocation, charging final rereads again. Invalid values reject before manifest I/O. Neither option replaces directory read bounds or charges the surrounding directory reads. They are caller-selected resource controls, not root/FS qualification, an atomic snapshot, ABA protection or authorization. [Synthetic bounds tests](../../../tests/test_manifest_reader_bounds.py) cover exact limits, aggregate scope, pre-open rejection, growth and wrapper forwarding.
+レポート ラッパーは、両方のマニフェスト ディレクトリの観察に同じ境界を渡します。これらのバイト境界は、個別の参照成果物 バリデータ内のレポート/証拠の読み取り、エントリ数、JSON の複雑さ、またはすべてのメモリ使用を制限しません。ラッパーの個別のオプションの `maximum_artifact_bytes` は、レポート、マニフェスト、証拠、スキーマを含む [そのバリデーターにバインドされたファイルごと](aggregation-report-v1-proposal.md#caller-selected-local-read-bounds-2026-10-26) を転送します。 `maximum_total_artifact_bytes` は、そのバリデータ呼び出しに対して [検査済みサイズの予算の合計](aggregation-report-v1-proposal.md#aggregate-inspected-size-budget-2026-10-26) を転送し、最終的な再読み取りを再度請求します。無効な値はマニフェスト I/O の前に拒否されます。どちらのオプションも、ディレクトリ読み取り境界を置き換えたり、周囲のディレクトリ読み取りに料金を請求したりすることはありません。これらは呼び出し元が選択したリソース制御であり、ルート/FS 資格、アトミック スナップショット、ABA 保護、または認可ではありません。 [合成境界テスト](../../../tests/test_manifest_reader_bounds.py) は、正確な制限、集計スコープ、プレオープン拒否、拡張、およびラッパー転送をカバーします。
 
-## Explicit entry budget for directory observations (2026-10-26)
+<a id="explicit-entry-budget-for-directory-observations-2026-10-26"></a>
+## ディレクトリ監視の明示的なエントリ バジェット (2026-10-26)
 
-Both readers also accept optional `maximum_entries`, which must be None or a positive exact integer and is checked before root I/O. None retains the existing unbounded entry-count interface; no production limit, retention policy or schema restriction is selected.
+どちらのリーダーもオプションの `maximum_entries` を受け入れます。これは None または正確な正の整数である必要があり、ルート I/O の前にチェックされます。 [なし] は、既存の無制限のエントリ数インターフェイスを保持します。実稼働制限、保持ポリシー、またはスキーマ制限は選択されていません。
 
-Each scan counts every directory entry before name/scope filtering, including older runs, foreign periods/log types, malformed names and non-file entries. Enumeration stops on the first excess entry with `manifest_entry_limit_exceeded`, without retaining its name or opening candidate payloads. Within the limit, all existing name/type/content checks still apply. The limit covers the initial scan and final rescan, and the report wrapper forwards it to both complete observations. A growing namespace cannot cause an unbounded list of names to be collected when this limit is supplied. Exceeding the limit rejects the entire observation without truncation, fallback, cleanup or mutation.
+各スキャンでは、古い実行、外部の期間/ログ タイプ、不正な名前、およびファイル以外のエントリを含む、名前/スコープ フィルタリングの前にすべてのディレクトリ エントリがカウントされます。列挙は、名前を保持したり、候補ペイロードを開くことなく、`manifest_entry_limit_exceeded` を持つ最初の超過エントリで停止します。制限内では、既存のすべての名前、タイプ、コンテンツのチェックが引き続き適用されます。この制限は初期スキャンと最終再スキャンをカバーしており、レポート ラッパーはそれを両方の 完了 観測に転送します。この制限が指定されている場合、名前空間が拡大しても、無制限の名前リストが収集されることはありません。制限を超えると、切り捨て、フォールバック、クリーンアップ、または突然変異を行わずに観測全体が拒否されます。
 
-An empty directory still has no selectable candidate; partial enumeration remains a read failure. The limit bounds retained entry count, not native enumeration latency, name length, report/evidence reads, JSON complexity, total memory, an atomic snapshot or later namespace changes. Root/owner/FS qualification and runtime authorization remain external. The existing [bounds suite](../../../tests/test_manifest_reader_bounds.py) covers exact boundaries, invalid inputs before I/O, foreign-period counting, early enumeration termination/context closure, final-scan growth, partial enumeration and report forwarding.
+空のディレクトリには選択可能な候補がまだありません。部分的な列挙は読み取り 失敗 のままです。この制限は、ネイティブの列挙レイテンシ、名前の長さ、レポート/証拠の読み取り、JSON の複雑さ、合計メモリ、アトミック スナップショット、またはその後の名前空間の変更ではなく、エントリ数を保持します。ルート/所有者/FS 資格および実行時認可は外部のままです。既存の [境界スイート](../../../tests/test_manifest_reader_bounds.py) は、正確な境界、I/O 前の無効な入力、外部期間のカウント、早期の列挙終了/コンテキスト クロージャ、最終スキャンの増加、部分的な列挙、レポート転送をカバーしています。
 
-## Inputs and identity
+<a id="inputs-and-identity"></a>
+## 入力と ID
 
-Common/LatestManifestSelection.py provides ManifestCandidate(filename, content)
-and select_latest_manifest. The caller supplies a complete exact-scope list or
-tuple, explicit enumeration completion, reliable UTC observation and requested
-scope. None content means an unreadable candidate and blocks the operation.
+Common/LatestManifestSelection.py はManifestCandidate(filename, content)と select_latest_manifest を提供する。呼び出し側は、厳密な対象範囲の完全なlistまたはtuple、明示的な列挙完了、信頼できる UTC の観測、要求範囲を渡す。contentがNoneなら読み取り不能な候補として処理を止める。
 
-parse_manifest_filename independently parses the existing defined basename:
-<PC-ID>_<LogType>_<TargetPeriod>_<run_id>.json. It rejects paths, malformed IDs,
-wrong log-specific period forms and unknown names. The exact parsed PC/log/
-period/run identity must match schema-validated JSON. No values are inferred
-from JSON to manufacture filename agreement. This uses the existing name
-contract; older notes saying the filename convention is open are historical,
-not authorization to invent another form.
+parse_manifest_filename は、既存の定義されたベース名を個別に解析します。
+<PC-ID>_<LogType>_<TargetPeriod>_<run_id>.json。パス、不正なID、ログ種別に合わない期間形式、不明な名前を拒否する。解析したPC・ログ種別・期間・実行の識別情報は、スキーマ検証済みの JSON と厳密に一致しなければならない。ファイル名との一致を作り出すために JSON から値を推測しない。既存の命名契約を使う。命名規約が未決とする古い記録は履歴であり、別形式を作る許可ではない。
 
-All candidates are validated before selection, including older candidates.
-Duplicate JSON keys, unknown/unsupported fields or versions, read uncertainty,
-scope mismatch and conflicting reuse of one UUID fail closed. Exceptions carry
-fixed reason codes without candidate data, names, paths or exception details.
+古い候補も含め、選択前に全候補を検証する。JSON の重複キー、不明・未対応のフィールドや版、読み取りの不確実性、範囲の不一致、同じUUIDの矛盾する再利用は安全側で拒否する。例外には固定理由コードだけを含め、候補データ、名前、パス、例外詳細は含めない。
 
-## Ordering and time
+<a id="ordering-and-time"></a>
+## 注文と時間
 
-Only a unique maximum started_at_utc is selected. A tie is ambiguous, including
-equivalent fractional spellings; enumeration order, UUID ordering, creation time
-and LastWriteTime are never tie-breaks. Fractional timestamps retain every digit
-allowed by the schema instead of truncating to Python microseconds.
+started_at_utc の最大値が一意な場合だけ選択する。小数部の異なる表記が同じ時刻を表す場合も、同着なら曖昧とする。列挙順、UUID順、作成時刻、LastWriteTimeで優先順位を付けない。小数部は Python のマイクロ秒へ切り捨てず、スキーマが許す全桁を保持する。
 
-Run times must parse as UTC ISO 8601 with uppercase Z; finish must not precede
-start. Future tolerance is an explicit helper argument with the approved initial
-five-minute default. Missing/unreliable current UTC blocks selection. Historical
-manifest age alone is not a 24-hour expiration. The caller still must establish
-clock reliability; this helper does not query or prove host time synchronization.
-Current-execution freshness and per-file/cross-artifact temporal policy remain
-separate gates.
+実行時刻は、大文字Zを持つ UTC のISO 8601 として解析でき、終了が開始より前であってはならない。未来時刻の許容差は明示的なヘルパー引数で、承認済みの初期既定値は5分。信頼できる現在の UTC が欠落・不確実なら選択を止める。過去のマニフェストは、経過時間だけで 24 時間後に失効するわけではない。呼び出し側が時計の信頼性を確立する必要があり、このヘルパーはホストの時刻同期を照会・証明しない。今回実行の鮮度と、ファイル単位・成果物間の時刻方針は別の実行条件である。
 
-By default a unique latest declared status must be success. Latest running,
-partial_failure or failure blocks; no older success fallback occurs. Explicit
-inspection mode can report the latest incomplete status, without permission to
-recover, upload or archive. Results contain only index, run_id and declared status.
+既定では、一意に決まる最新の申告状態がsuccessでなければならない。最新がrunning、partial_failure、failureなら停止し、古いsuccessへ戻らない。明示的な確認モードは最新の未完了状態を報告できるが、復旧・アップロード・アーカイブを許可しない。結果に含めるのはインデックス、run_id、申告状態のみである。
 
-## Evidence and remaining gates
+<a id="evidence-and-remaining-gates"></a>
+## 証拠と残りのゲート
 
-Thirty-two in-memory synthetic tests cover both PCs/log types, naming and identity
-mismatch, malformed/read-error/duplicate candidates, ambiguity, conflict, order
-independence, no-fallback behavior, UTC/future/finish boundaries, full schema
-fraction precision, clock uncertainty and fixed reasons/input preservation.
+32件のメモリ内合成試験は、両PC・両ログ種別、名前・識別の不一致、不正・読み取りエラー・重複候補、曖昧さ、競合、順序非依存、過去候補へ戻らないこと、UTC・未来・終了時刻の境界、スキーマの小数部全精度、時計の不確実性、固定理由・入力保全を扱う。
 
-Schema/selection success is not proof of aggregation correctness, full per-file
-semantic consistency, current Drive content, or archive eligibility. The separate read-only directory adapter below adds bounded disk observations.
-Approved-root authority, protection through later use, current clock acquisition,
-actual recovery/new-run integration and end-to-end acceptance remain incomplete. The schema file is read from the trusted repository/package;
-runtime roots and manifests are never opened by this helper. No Tier B or P0
-closure is claimed.
+スキーマ・選択の成功は、集計の正しさ、ファイルごとの意味整合全体、現在のDrive内容、アーカイブ対象条件の証明ではない。後述の読み取り専用ディレクトリアダプターは限定的なディスク観測を追加する。承認ルートの権限、後続の利用までの保護、現在時刻の取得、実際の復旧・新規実行との統合、経路全体の受け入れは未完了である。スキーマは信頼されたリポジトリ・パッケージから読み、このヘルパーは実行ルートやマニフェストを開かない。Tier B やP0の完了は主張しない。
 
-## Read-only directory adapter
+<a id="read-only-directory-adapter"></a>
+## 読み取り専用のディレクトリ アダプタ
 
-Common/ManifestDirectoryReader.py reads only the defined
-<maintenanceLocal>/_maintenance/manifests/<PC-ID>/ directory. A caller must
-supply an already trusted and qualified absolute local root and reliable UTC.
-Relative/traversing roots are rejected; missing directories are not created.
-Every directory entry must be a regular non-reparse file with a defined manifest
-basename for this PC. Temporary/unknown entries and subdirectories block selection.
-All entries, including other periods/log types for this PC, are schema/identity/
-time validated before filtering the requested tuple. This conservative adapter
-never silently drops a corrupt foreign-period candidate.
+Common/ManifestDirectoryReader.py は定義されたもののみを読み取ります
+<maintenanceLocal>/_maintenance/manifests/<PC-ID>/ ディレクトリ。呼び出し側は、信頼と必要な保証を確認済みのローカル絶対ルートと、信頼できる UTC を渡す。相対パス・上位への遡及を拒否し、不在のディレクトリは作らない。各エントリは、このPC用の規定のマニフェスト名を持つ通常ファイルであり、再解析ポイントであってはならない。一時ファイル、不明なエントリ、サブディレクトリがあれば選択を止める。要求された組を絞り込む前に、このPCの別期間・別ログ種別も含む全エントリのスキーマ・識別情報・時刻を検証する。別期間の壊れた候補も黙って除外しない。
 
-Root/ancestor identity is checked with lstat, with reparse rejection. Each file's
-identity, size and timestamps must agree at enumeration, immediately before open,
-on the opened descriptor before reading, after reading, and on the path after
-close. The directory is scanned again after selection and must match. Read or
-partial-enumeration failure blocks with fixed reasons. These are point-in-time
-checks, not a namespace snapshot, protection against arbitrary metadata restoration,
-or a guarantee about later path use.
+lstatでルートと祖先の識別情報を検査し、再解析ポイントを拒否する。各ファイルの識別・サイズ・時刻は、列挙時、開く直前、読み取り前の開いた記述子、読み取り後、閉じた後のパスで一致しなければならない。選択後にディレクトリを再走査し、一致を要求する。読み取り失敗・部分列挙は固定理由で停止する。これは各時点の検査であり、名前空間のスナップショット、任意のメタデータ復元への防御、後続のパス利用の保証ではない。
 
-The immutable result contains the selected basename, run ID, declared status,
-SHA-256 and exact bytes already validated. Content is excluded from its normal
-repr. Consumers must use those bytes rather than independently reopening a path.
-Neither the hash nor selection grants recovery, Drive, or archive authorization.
-The adapter has no write, creation, deletion or formal runtime entrypoint.
-Nineteen synthetic tests include three actual Windows junction cases, descriptor
-replacement before read, partial enumeration, final rescan mutation, no fallback,
-scope filtering, byte preservation and sanitized errors. No Tier B extension or
-P0 closure is claimed.
+不変の結果には、選択したファイル名、実行ID、申告状態、SHA-256、検証済みの厳密なバイト列を含める。通常のreprには内容を表示しない。利用側はパスを独自に開き直さず、そのバイト列を使う。ハッシュや選択は復旧・Drive・アーカイブの認可を与えない。アダプターは書き込み・作成・削除・正式な実行入口を持たない。19件の合成試験は、3件の実際の Windows のジャンクション、読み取り前の記述子の置換、部分列挙、最後の再走査時の変更、古い候補へ戻らないこと、範囲の絞り込み、バイト保全、匿名化エラーを含む。Tier B の証拠拡張やP0完了は主張しない。
 
-## Recovery composition evidence
+<a id="recovery-composition-evidence"></a>
+## 回復組成の証拠
 
-`tests/test_manifest_recovery_integration.py` passes the selected exact bytes to
-the existing pure recovery classifier. Seven synthetic tests cover latest running
-versus older success, terminal failure, ambiguous/corrupt/unreadable candidates,
-independent ownership/Drive evidence and changes after observation. The real
-Windows abandoned-mutex integration also reads the defined per-PC directory.
-A positive classifier result remains evidence about its supplied snapshot only;
-it does not transfer ownership, dispose of stale records or prove later path
-state. No operational recovery adapter or new-run creation is introduced.
+`tests/test_manifest_recovery_integration.py` は、選択した厳密なバイト列を既存の副作用のない復旧分類器へ渡す。7件の合成試験は、最新のrunningと過去のsuccess、終端の失敗、曖昧・破損・読み取り不能な候補、独立した所有権・Driveの証拠、観測後の変更を扱う。実際の Windows の放棄mutex統合も、規定のPC別ディレクトリを読む。肯定結果も渡されたスナップショットに関する証拠に限られ、所有権を移さず、古い記録を処分せず、後のパス状態を証明しない。実運用の復旧アダプターや新規実行の作成は導入しない。
 
 
-## Latest snapshot and report binding (2026-10-25)
+<a id="latest-snapshot-and-report-binding-2026-10-25"></a>
+## 最新のスナップショットとレポートのバインディング (2026-10-25)
 
-`read_latest_manifest_with_report` in the existing directory reader first performs the same complete scoped C4 read/selection. It supplies the chosen exact bytes and the normative `_maintenance/manifests/<PC-ID>/<basename>` reference as independent expectations to the report validator. A caller explicitly supplies the report and contracts paths; no report location is inferred and no missing report is generated. A valid report for another run or a copy at another path does not substitute for the selected manifest.
+`read_latest_manifest_with_report` は、最初に同じ 完了 スコープの C4 読み取り/選択を実行します。選択された正確なバイトと規範的な `_maintenance/manifests/<PC-ID>/<basename>` 参照を独立した期待値としてレポート検証ツールに提供します。呼び出し元はレポートとコントラクトのパスを明示的に提供します。レポートの場所は推測されず、欠落したレポートは生成されません。別の実行の有効なレポートまたは別のパスでのコピーは、選択したマニフェストの代わりにはなりません。
 
-The optional `expected_manifest_bytes` / `expected_manifest_path` validator inputs must be provided together with exact bytes/string types. Both omitted retain the existing standalone validator/CLI behavior. A reference-path mismatch or changed selected bytes fails closed even if the report reference hash was refreshed to match the changed content. The report must also pass the complete B2/G1/semantic and stable-read checks.
+オプションの `expected_manifest_bytes` / `expected_manifest_path` バリデーター入力は、正確なバイト/文字列タイプと一緒に提供する必要があります。両方を省略しても、既存のスタンドアロン バリデータ/CLI の動作が保持されます。レポート参照ハッシュが変更された内容と一致するように更新された場合でも、参照パス 不一致 または変更された選択バイトはフェールクローズされます。レポートは、完了 B2/G1/セマンティックおよび安定読み取りチェックにも合格する必要があります。
 
-After report validation the reader enumerates/selects again and requires the same filename, identity, status, hash and exact bytes. A newer success is a changed observation; a newer running/partial/failure blocks the default current-success query without older-success fallback. Inspection mode may observe a terminal failure with a matching report; a running manifest cannot manufacture a terminal report.
+レポートの検証後、リーダーは再度列挙/選択を行い、同じファイル名、ID、ステータス、ハッシュ、および正確なバイトを必要とします。新しい 成功 は変更された観察です。新しい 実行中/partial/失敗 は、古い 成功 フォールバックなしで、デフォルトの current-成功 クエリをブロックします。検査モードでは、一致するレポートを持つ端末 失敗 を観察できます。 実行中 マニフェストは端末レポートを作成できません。
 
-The returned `ReadManifestSelection` remains an observation. These sequential checks do not create an atomic snapshot, prevent ABA or all changes after the last read, acquire a qualified runtime lock, obtain a reliable clock, enforce current-execution freshness or verify current Drive contents. Synthetic tests cover both PCs/log types and injected selection/report changes; no archive or state mutation is authorized.
+返された `ReadManifestSelection` は観測値のままです。これらの順次チェックでは、アトミック スナップショットの作成、ABA や最後の読み取り後のすべての変更の防止、適格なランタイム ロックの取得、信頼性の高いクロックの取得、現在の実行の鮮度の強制、または現在のドライブの内容の検証は行われません。合成テストは、PC/ログの種類と、挿入された選択/レポートの変更の両方をカバーします。アーカイブや状態の変更は許可されません。

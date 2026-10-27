@@ -1,50 +1,57 @@
-# P0 PowerShell/Python Contract Review Findings
+<a id="p0-powershellpython-contract-review-findings"></a>
+# P0 PowerShell/Python 契約レビューの結果
 
 > 履歴/検討資料。承認済みの選択・未決候補・当時の監査根拠を含み、この移動は撤回/失効を意味しない。現在の基準は[正式要件](../../requirements/log-move-requirements.md)と[現行決定台帳](../../decisions/decision-register-c18-c32.md)。当時の対象/証拠を現在のruntime受け入れへ拡張しない。
 
 > 2026-10-27追記: 以下の監査結果は記載された当時の対象/基準の証拠として保持する。[現行要件台帳](../../requirements/requirements-traceability.md)はQ1〜Q10と平坦化を反映済みで、全面削除禁止・両PC期間待ち・自動suffixの旧基準を現在へ復活させない。新しい移動契約に対するsource→要件→実装→試験→証拠の再照合は未完で、本履歴だけでは受け入れを満たさない。
 
-- Status: Technical pre-review complete; operator approval is still pending. Retry/unknown-upload scenario crosswalk refreshed against PR #95 (`d744ec68954d9460159952dca70b896503d03811`).
-- Scope: static comparison of `docs/design/powershell-python-contract.md`, request/response schemas, `tests/test_contract_schemas.py`, C-18/C-29 decisions, and RETRY-01–06 in `docs/validation/runtime-safety-test-scenarios.md`.
-- No runtime adapter or retry orchestrator is implemented in the current tracked tree. These findings and scenario definitions are not evidence of a live PowerShell/Python integration test.
+- ステータス: 技術的な事前レビュー 完了;オペレーターの承認は依然として 未確定 です。再試行/不明 - アップロード シナリオのクロスウォークが PR #95 (`d744ec68954d9460159952dca70b896503d03811`) に対して更新されました。
+- 対象範囲: `docs/design/powershell-python-contract.md`、要求・応答スキーマ、`tests/test_contract_schemas.py`、C-18/C-29 の判断、および `docs/validation/runtime-safety-test-scenarios.md` 内の RETRY-01〜06 の静的比較。
+- 現在追跡されているツリーには、ランタイム アダプターまたは再試行オーケストレーターが実装されていません。これらの調査結果とシナリオの定義は、実際の PowerShell/Python 統合テストの証拠ではありません。
 
-## Findings requiring resolution before adapter implementation
+<a id="findings-requiring-resolution-before-adapter-implementation"></a>
+## アダプターの実装前に解決が必要な調査結果
 
 C-01/C-02の選択表・具体的result候補・移行判断は [IPCパス・操作別resultの判断資料](../decisions/c01-c02-ipc-contract-options.md) を参照。P1/V1/L1・現1.0改訂とR1/N1/D1は選択済みだが、操作別の具体fieldと全体契約レビューは未完了。以下の指摘のうち実装追従済みの範囲は次節に記録する。
 
-| ID | Observation | Risk / consequence | Proposed disposition | Approval needed? |
+|ID|観察|リスク/結果|提案された処分|承認が必要ですか?|
 |---|---|---|---|---|
-| C-01 | Request schema and independent PS/Python pure helpers enforce adopted P1/V1/L1 under current IPC 1.0; both path fields and dry-run modes have shared synthetic positive/negative fixtures. | Lexical success cannot prove containment, root authority, file kind, physical identity or safe use after a race. | Integrate independent PS/Python target/root/use-point checks into the future caller/adapter. External consumer absence remains unconfirmed; prior schema-valid inputs may now be rejected. | Policy selected; lexical implementation complete, runtime qualification pending |
-| C-02 | The response schema constrains the envelope and success/error consistency but leaves `result` as any object. It does not define operation-specific result fields. | The schema cannot independently detect missing or mistyped result fields for list, metadata, upload, or download operations. | Before adapter implementation, define minimum result shapes per operation and add schema fixtures. If result shape intentionally remains open during Phase 1, keep the limitation explicit and require runtime consumer assertions. | Yes: response contract scope |
-| C-03 | The contract says response `request_id` and `operation` must exactly match the request, but the JSON Schema validates each document independently and cannot compare two documents. Current tests validate examples but do not test a PowerShell caller against a Python-produced response. | Cross-message correlation can only be enforced by the caller/integration test, not by the individual response schema. | Add contract-level tests with mismatched request IDs and operation names once the adapter/caller harness exists; keep the PowerShell caller responsible for fail-closed checks. | No policy change; implementation required |
-| C-04 | The contract assigns exactly one API attempt to Python and disables implicit HTTP-client retries, but no Python adapter or test currently verifies the underlying client retry configuration. PR #95 maps this to RETRY-01, which remains not implemented/not run. | Future library defaults could violate the single-attempt contract while schema tests still pass. | When the adapter is introduced, pin the HTTP/client library behavior and test that one request causes exactly one API attempt per invocation, including the absence of implicit HTTP-client/library retries; do not claim this is proven by schema tests. | No policy change; implementation required |
-| C-05 | Exit-code/error-code mapping and `retryable` semantics are described in prose, while current tests only validate the JSON shape and a subset of error-code rejection cases. PR #95 maps bounded retry ownership to RETRY-02, which remains not implemented/not run. | A future adapter could return a schema-valid but semantically contradictory error code, retryable flag, and process exit code. | Add table-driven semantic contract tests for all defined error codes, retryability policy, and exit-code consistency before integration acceptance; RETRY-02 must also prove PowerShell-only retry ownership, the four-attempt ceiling, 1/5/15-minute waits, and no retry for permanent errors. | No policy change; implementation required |
+| C-01 |リクエスト スキーマと独立した PS/Python 純粋ヘルパーは、現在の IPC 1.0 で採用された P1/V1/L1 を強制します。パス フィールドとドライラン モードの両方に、共有の合成ポジティブ/ネガティブ フィクスチャがあります。|語彙の成功は、レース後の封じ込め、ルート権限、ファイルの種類、物理的同一性、または安全な使用を証明することはできません。|独立した PS/Python ターゲット/ルート/ユースポイント チェックを将来の呼び出し元/アダプターに統合します。外部消費者の不在は依然として確認されていない。以前のスキーマが有効な入力は拒否される可能性があります。|選択されたポリシー。字句実装は完了しましたが、実行時認定は保留中です|
+| C-02 |応答スキーマはエンベロープと 成功/error の一貫性を制約しますが、`result` は任意のオブジェクトのままにします。操作固有の結果フィールドは定義されません。|スキーマは、リスト、メタデータ、アップロード、またはダウンロード操作の結果フィールドの欠落または入力ミスを個別に検出できません。|アダプターを実装する前に、操作ごとの最小結果形状を定義し、スキーマ フィクスチャを追加します。結果の形状がフェーズ 1 中に意図的に開いたままになっている場合は、制限を明示的に保ち、ランタイム コンシューマ アサーションを必要とします。|はい: 応答コントラクトの範囲|
+| C-03 |コントラクトでは、応答 `request_id` と `operation` はリクエストと正確に一致する必要があると規定されていますが、JSON Schema は各ドキュメントを個別に検証し、2 つのドキュメントを比較することはできません。現在のテストは例を検証しますが、PowerShell 呼び出し元を Python で生成された応答に対してテストしません。|メッセージ間の相関関係は、個々の応答スキーマではなく、呼び出し元/統合テストによってのみ強制できます。|アダプター/呼び出し元ハーネスが存在したら、要求 ID と操作名が一致しないコントラクト レベルのテストを追加します。 PowerShell 呼び出し元がフェールクローズ チェックを担当するようにします。|ポリシーの変更はありません。実装が必要です|
+| C-04 |コントラクトでは、API 試行を 1 つだけ Python に割り当て、暗黙的な HTTP クライアントの再試行を無効にしていますが、現在、基礎となるクライアントの再試行構成を検証する Python アダプターまたはテストはありません。 PR #95 はこれを RETRY-01 にマップしますが、これは実装されていない/実行されていないままです。|将来のライブラリのデフォルトは、スキーマ テストが合格している間にシングル アテンプト コントラクトに違反する可能性があります。|アダプターが導入されたら、HTTP/クライアント ライブラリの動作を固定し、暗黙的な HTTP クライアント/ライブラリの再試行が存在しないことを含め、1 つのリクエストで呼び出しごとに API 試行が 1 回だけ発生することをテストします。これがスキーマテストによって証明されているとは主張しないでください。|ポリシーの変更はありません。実装が必要です|
+| C-05 |終了コード/エラーコードのマッピングと `retryable` のセマンティクスは散文で説明されていますが、現在のテストでは JSON の形状とエラーコード拒否ケースのサブセットのみが検証されています。 PR #95 は、制限付き再試行の所有権を RETRY-02 にマップしますが、これは未実装/実行されないままです。|将来のアダプターは、スキーマは有効でも意味的に矛盾したエラー コード、再試行可能フラグ、およびプロセス終了コードを返す可能性があります。|統合を受け入れる前に、定義されたすべてのエラー コード、再試行可能性ポリシー、および終了コードの一貫性に対するテーブル駆動のセマンティック コントラクト テストを追加します。 RETRY-02 は、PowerShell のみの再試行の所有権、4 回の試行の上限、1/5/15 分の待機、および永続的なエラーに対する再試行の禁止も証明する必要があります。|ポリシーの変更はありません。実装が必要です|
 
-## C-03 / partial C-05 implementation slice
+<a id="c-03--partial-c-05-implementation-slice"></a>
+## C-03 / 部分的な C-05 実装スライス
 
-`Common/DriveResponseSemantics.ps1` supplies a pure in-memory checker for ordinal request ID/operation correlation and the exit/envelope/error-code table. On 2026-10-25 it was extended with the approved retryable table: only `DRIVE_TRANSIENT_FAILURE` requires true; the other eight codes require false. The response schema enforces the same table. PS and schema tests independently cover all nine codes across four operations, approved/opposite values and invalid types; PS tests also check unchanged inputs, sanitized fixed outputs and absence of operational effects. `consistent` includes these value checks; it is not result validation, retry permission or runtime acceptance. RETRY-02 orchestration, real child/transport/schema gates, C-01/C-02 and the complete IPC review remain outstanding. This slice does not resolve C-03/C-05 as a whole or complete P0-005.
+`Common/DriveResponseSemantics.ps1` は、順序リクエスト ID/操作の相関関係および出口/エンベロープ/エラー コード テーブル用の純粋なメモリ内チェッカーを提供します。 2026-10-25 では、承認された再試行可能なテーブルで拡張されました。`DRIVE_TRANSIENT_FAILURE` のみ true が必要です。他の 8 つのコードには false が必要です。応答スキーマは同じテーブルを強制します。 PS およびスキーマ テストは、4 つの操作、承認された/反対の値、および無効な型にわたる 9 つのコードすべてを個別にカバーします。 PS テストでは、変更されていない入力、サニタイズされた固定出力、運用上の影響がないこともチェックします。 `consistent` には次の値のチェックが含まれています。これは、結果の検証、再試行の許可、または実行時の受け入れではありません。 RETRY-02 オーケストレーション、実際の子/トランスポート/スキーマ ゲート、C-01/C-02、および 完了 IPC レビューは未処理のままです。このスライスは、C-03/C-05 全体、または 完了 P0-005 を解決しません。
 
-## C-06 — Unknown upload outcome and Drive reconciliation
+<a id="c-06--unknown-upload-outcome-and-drive-reconciliation"></a>
+## C-06 — 不明なアップロード結果とドライブの調整
 
-| ID | Observation | Risk / consequence | Proposed disposition | Approval needed? |
+|ID|観察|リスク/結果|提案された処分|承認が必要ですか?|
 |---|---|---|---|---|
-| C-06 | C-29 requires Drive-state reconciliation before retrying an upload whose outcome is unknown. PR #95 defines RETRY-03–06 for timeout-after-upload, confirmed absence, incomplete/inaccessible listing, ambiguous identity, content mismatch, and unmarked objects; all remain not implemented/not run. | A timeout or lost response cannot distinguish “upload did not happen” from “upload succeeded but the response was lost.” Treating failed/partial listing as absence can create duplicate uploads or incorrectly authorize later steps. | Before retry, require a successful complete listing and unambiguous candidate identity. Only a confirmed absence under the approved trust/identity policy can qualify for another attempt; uncertain, incomplete, mismatching, or ambiguous state fails closed. OSD-01 still blocks trust decisions for pre-existing unmarked objects. Add deterministic runtime tests and preserve source/staging data on uncertainty. | No new policy approval beyond the existing OSD-01 trust decision; implementation and tests required |
+| C-06 |C-29 では、結果が 不明 となるアップロードを再試行する前に、ドライブ状態の調整が必要です。 PR #95 は、アップロード後のタイムアウト、確認された不在、未完了/アクセス不能なリスト、曖昧 ID、コンテンツ 不一致、およびマークのないオブジェクトに対して RETRY-03–06 を定義します。すべて未実装/実行されないままです。|タイムアウトまたは応答の損失では、「アップロードが行われなかった」ことと「アップロードは成功したが応答が失われた」ことを区別できません。失敗した/部分的なリストを不在として扱うと、アップロードが重複したり、後のステップが誤って承認されたりする可能性があります。|再試行する前に、成功した完全なリストと明確な対象候補 ID が必要です。承認された信頼/同一性 ポリシーに基づいて確認された不在のみが、別の試行の資格を得ることができます。不確実、不完全、不一致、またはあいまいな状態はフェールクローズされます。 OSD-01 は、既存のマークされていないオブジェクトに対する信頼の決定を依然としてブロックします。決定論的なランタイム テストを追加し、不確実性に関するソース/ステージング データを保存します。|既存の OSD-01 の信頼決定を超える新しいポリシーの承認はありません。実装とテストが必要|
 
-## Existing controls confirmed
+<a id="existing-controls-confirmed"></a>
+## 既存のコントロールが確認されました
 
-- Request schema rejects unknown top-level fields and operation-specific extra parameters.
-- Request schema permits only `list_files`, `get_file_metadata`, `upload_file`, and `download_file`; deletion operations are not allowed.
-- Response schema requires the envelope fields and enforces success/result/error consistency.
-- CI currently runs schema tests; this verifies schema validity and sample instances, not the runtime semantics listed above.
+- リクエスト スキーマは 不明 トップレベル フィールドと操作固有の追加パラメータを拒否します。
+- リクエスト スキーマは `list_files`、`get_file_metadata`、`upload_file`、および `download_file` のみを許可します。削除操作は許可されません。
+- 応答スキーマにはエンベロープ フィールドが必要で、成功/result/error の一貫性が強制されます。
+- CI は現在スキーマ テストを実行しています。これは、上記の実行時のセマンティクスではなく、スキーマの有効性とサンプル インスタンスを検証します。
 
-## Acceptance criteria for P0-005
+<a id="acceptance-criteria-for-p0-005"></a>
+## P0-005 の受け入れ基準
 
-1. Resolve C-01 and C-02 in a reviewed contract revision before adapter implementation.
-2. Add negative schema tests for path policy if that policy is represented in the schema.
-3. Add semantic contract tests for response/request correlation, exit-code consistency, retryability, and single-attempt behavior when the adapter/caller harness exists.
-4. Obtain operator review and record the approval decision in the decision register. Do not mark P0-005 complete merely because this pre-review document exists.
+1. アダプターの実装前に、レビューされた契約リビジョンで C-01 と C-02 を解決します。
+2. パス ポリシーがスキーマで表されている場合、そのポリシーのネガティブ スキーマ テストを追加します。
+3. アダプター/呼び出し元ハーネスが存在する場合の、応答/要求の相関、終了コードの一貫性、再試行可能性、および単一試行の動作に関するセマンティック コントラクト テストを追加します。
+4. オペレーターのレビューを取得し、承認の決定を決定記録簿に記録します。この事前レビュー文書が存在するという理由だけで P0-005 完了 をマークしないでください。
 
-## References
+<a id="references"></a>
+## 参照
 
 - `docs/design/powershell-python-contract.md`
 - `contracts/drive-request.schema.json`
@@ -52,4 +59,4 @@ C-01/C-02の選択表・具体的result候補・移行判断は [IPCパス・操
 - `tests/test_contract_schemas.py`
 - `docs/decisions/decision-register-c18-c32.md` C-18/C-29
 - `docs/validation/runtime-safety-test-scenarios.md` RETRY-01–06
-- Contract testing guidance: Pact recommends explicit request/response expectations and provider verification; see https://docs.pact.io/getting_started/matching. This is general guidance, not project-specific evidence.
+- 契約テストのガイダンス: Pact では、明示的なリクエスト/レスポンスの期待とプロバイダーの検証を推奨しています。 https://docs.pact.io/getting_started/matching. を参照。これは一般的なガイダンスであり、プロジェクト固有の証拠ではありません。

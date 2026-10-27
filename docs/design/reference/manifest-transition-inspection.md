@@ -1,4 +1,5 @@
-# Manifest v1 transition snapshot inspection
+<a id="manifest-v1-transition-snapshot-inspection"></a>
+# マニフェスト v1 移行スナップショット検査
 
 2026-10-25。根拠は[採用済み遷移表](../manifest-state-transition-v1-proposal.md)、[C1〜C4](../../archive/decisions/osd-02-crash-concurrency-options.md)、[OSD-03](../../archive/decisions/osd-03-status-aggregation-options.md)。実装は[ManifestTransitionInspection.py](../../../Common/ManifestTransitionInspection.py)。
 
@@ -60,7 +61,8 @@ missing priorを新規runへ置き換えず、running提案から終端reportも
 
 ## 隔離候補bundleの公開・読戻し接続
 
-### Explicit fixture publication/readback budgets (2026-10-27)
+<a id="explicit-fixture-publicationreadback-budgets-2026-10-27"></a>
+### 明示的なフィクスチャのパブリケーション/リードバック バジェット (2026-10-27)
 
 fixtureの`publish` / `readback`と全履歴使用点保存接続はoptional `maximum_record_bytes`も受け、owner取得の`acquire_owned_lock`へ渡す。不正値は他のfixture予算と同様guard/owner取得前に拒否する。record作成前超過は候補保存/検証・履歴再導出へ進まず、priorと既存候補を保持する。予算内の公開/読戻しを実際の生成record bytes長の境界で確認するが、固定本番値やowner真正性を採用しない。
 

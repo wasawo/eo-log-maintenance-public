@@ -1,86 +1,95 @@
-# C-51 structured processing-context input model options
+<a id="c-51-structured-processing-context-input-model-options"></a>
+# C-51 構造化処理コンテキスト入力モデルのオプション
 
 > 履歴/検討資料。承認済みの選択・未決候補・当時の監査根拠を含み、この移動は撤回/失効を意味しない。現在の基準は[正式要件](../../requirements/log-move-requirements.md)と[現行決定台帳](../../decisions/decision-register-c18-c32.md)。当時の対象/証拠を現在のruntime受け入れへ拡張しない。
 
-**Status:** Decision recorded 2026-10-21. The maintainer approved Option C as the input contract. The alternatives remain explanatory only; the normative C-51 mapping table and schema-v1 phase/operation allowlist are unchanged.
+**ステータス:** 決定は 2026-10-21 に記録されました。メンテナはオプション C を入力コントラクトとして承認しました。代替案は単なる説明にすぎません。標準の C-51 マッピング テーブルと schema-v1 フェーズ/操作の許可リストは変更されません。
 
-## Problem
+<a id="problem"></a>
+## 問題
 
-C-51 already approves the phase/operation mapping and propagation rules, but it does not define the exact input contract used by a future event creator to select a row. A helper must not infer context from exception text, stack traces, paths, localization, or whichever layer happens to catch the failure. Runtime entry points are not yet implemented, so this proposal does not create a runtime DTO or claim integration.
+C-51 はフェーズ/オペレーションのマッピングと伝播ルールをすでに承認していますが、将来のイベント作成者が行を選択するために使用する正確な入力コントラクトは定義していません。ヘルパーは、例外テキスト、スタック トレース、パス、ローカリゼーション、または 失敗 をキャッチするレイヤーからコンテキストを推測してはなりません。ランタイム エントリ ポイントはまだ実装されていないため、この提案ではランタイム DTO やクレーム統合は作成されません。
 
-## Constraints common to all options
+<a id="constraints-common-to-all-options"></a>
+## すべてのオプションに共通の制約
 
-- Use only the exact C-51 mapping table in `docs/archive/decisions/aggregation-inventory-integrity-options.md`.
-- The context describes the failed action at event creation, not a later observer/wrapper.
-- Preserve the selected pair unchanged when propagating the same event.
-- Unknown/unknown is valid only when trusted structured context genuinely cannot identify the failed action; missing instrumentation and invalid tokens must not silently become unknown.
-- Reject null, empty, non-string, unknown, case-variant, or malformed inputs with a fixed non-disclosing error.
-- Do not add schema fields, enum values, aliases, or free-form context strings.
-- A pure helper and synthetic tests do not establish producer correctness, propagation/deduplication, runtime sink behavior, or P0 acceptance.
+- `docs/archive/decisions/aggregation-inventory-integrity-options.md` 内の正確な C-51 マッピング テーブルのみを使用します。
+- コンテキストは、後のオブザーバー/ラッパーではなく、イベント作成時の 失敗した アクションを記述します。
+- 同じイベントを伝播するときに、選択したペアを変更せずに保持します。
+- 不明/不明 は、信頼できる構造化コンテキストが本当に 失敗した アクションを識別できない場合にのみ有効です。不足しているインストルメンテーションや無効なトークンが黙って 不明 になってはいけません。
+- null、空、非文字列、不明、大文字小文字の違い、または不正な形式の入力を拒否し、非開示エラーを修正しました。
+- スキーマ フィールド、列挙値、エイリアス、または自由形式のコンテキスト文字列を追加しないでください。
+- 純粋なヘルパーおよび合成テストでは、プロデューサーの正確性、伝播/重複排除、ランタイム シンクの動作、または P0 の受け入れは確立されません。
 
-## Option A — one exact context identifier
+<a id="option-a--one-exact-context-identifier"></a>
+## オプション A — 1 つの正確なコンテキスト識別子
 
-The trusted event producer supplies one required, case-sensitive scalar identifier representing a row of the C-51 table. A pure helper maps that identifier to the exact phase/operation pair.
+信頼できるイベント プロデューサーは、C-51 テーブルの行を表す、大文字と小文字を区別する必須のスカラー識別子を 1 つ提供します。純粋なヘルパーは、その識別子を正確なフェーズ/操作のペアにマップします。
 
-Illustrative identifiers (proposal only): `source_enumeration`, `target_classification`, `target_metadata_read`, `target_content_read`, `content_digest_computation`, `source_mutation_check`, `manifest_validation`, `evidence_validation`, `evidence_finalization`, `aggregation`, `report_serialization`, `report_publication`, `context_unavailable`.
+例示的な識別子 (提案のみ): `source_enumeration`、`target_classification`、`target_metadata_read`、`target_content_read`、`content_digest_computation`、`source_mutation_check`、`manifest_validation`、`evidence_validation`、`evidence_finalization`、`aggregation`、`report_serialization`、 `report_publication`、`context_unavailable`。
 
-**Advantages**
-- One input determines one approved pair, preventing invalid pair combinations.
-- Simple table-driven positive/negative tests.
-- Similar to the approved C-50 single-token input model.
+**利点**
+- 1 つの入力によって 1 つの承認されたペアが決定され、無効なペアの組み合わせが防止されます。
+- 単純なテーブル駆動の陽性/陰性テスト。
+- 承認された C-50 単一トークン入力モデルに似ています。
 
-**Risks**
-- Adds a second internal token vocabulary that must stay synchronized with C-51.
-- The producer must select the correct token; this helper cannot detect a producer choosing a semantically wrong but valid token.
+**リスク**
+- C-51 との同期を維持する必要がある 2 番目の内部トークン語彙を追加します。
+- プロデューサは正しいトークンを選択する必要があります。このヘルパーは、意味的に間違っているが有効なトークンを選択するプロデューサーを検出できません。
 
-## Option B — explicit phase and operation pair
+<a id="option-b--explicit-phase-and-operation-pair"></a>
+## オプション B — 明示的なフェーズと操作のペア
 
-The trusted event producer supplies two required scalar strings, `Phase` and `Operation`. A pure validator accepts only exact pairs in the C-51 table.
+信頼できるイベント プロデューサーは、2 つの必須のスカラー文字列 `Phase` と `Operation` を提供します。純粋なバリデーターは、C-51 テーブル内の正確なペアのみを受け入れます。
 
-**Advantages**
-- Inputs directly match the diagnostic schema fields and make the producer's captured context explicit.
-- No additional context-token vocabulary.
+**利点**
+- 入力は診断スキーマ フィールドと直接一致し、プロデューサーのキャプチャされたコンテキストを明示的にします。
+- 追加のコンテキストトークン語彙はありません。
 
-**Risks**
-- Two fields permit invalid or mismatched pairs and require exhaustive pair rejection tests.
-- The producer can accidentally construct a pair from different processing layers; validation proves pair membership, not provenance or semantic correctness.
+**リスク**
+- 2 つのフィールドでは無効または不一致のペアが許可されており、徹底的なペア拒否テストが必要です。
+- プロデューサは、異なる処理層から誤ってペアを構築する可能性があります。検証はペアのメンバーシップを証明するものであり、来歴や意味論的な正しさを証明するものではありません。
 
-## Option C — one exact operation identifier, phase derived centrally
+<a id="option-c--one-exact-operation-identifier-phase-derived-centrally"></a>
+## オプション C — 1 つの正確な操作識別子、中央で導出されたフェーズ
 
-The trusted event producer supplies one required, case-sensitive scalar operation identifier from the existing C-51 table. A pure helper maps that operation to its unique approved phase. The `unknown` operation maps only to `unknown` phase.
+信頼できるイベント プロデューサーは、既存の C-51 テーブルから、大文字と小文字を区別する必須のスカラー演算識別子を 1 つ提供します。純粋なヘルパーは、その操作を独自の承認済みフェーズにマッピングします。 `unknown` 操作は `unknown` フェーズにのみマップされます。
 
-**Advantages**
-- Reuses the existing operation vocabulary and avoids a second set of tokens.
-- One input prevents invalid phase/operation combinations.
-- Central mapping keeps phase derivation deterministic.
+**利点**
+- 既存の操作ボキャブラリを再利用し、2 番目のトークン セットを回避します。
+- 1 つの入力により、無効な位相/動作の組み合わせが防止されます。
+- 中央マッピングにより、位相導出の決定性が維持されます。
 
-**Risks**
-- The producer must still choose the operation correctly; helper validation cannot prove it represents the failed action.
-- The contract must explicitly reserve `unknown` for genuinely unavailable trusted context and reject missing/invalid input rather than treating it as unknown.
+**リスク**
+- プロデューサは操作を正しく選択する必要があります。ヘルパー検証では、それが 失敗した アクションを表すことを証明できません。
+- コントラクトでは、真に 利用不能 の信頼されたコンテキスト用に `unknown` を明示的に予約し、欠落または無効な入力を 不明 として扱うのではなく拒否する必要があります。
 
-## Comparison
+<a id="comparison"></a>
+## 比較
 
-| Criterion | A: context token | B: explicit pair | C: operation token |
+|基準|A: コンテキストトークン|B: 明示的なペア|C: オペレーショントークン|
 |---|---|---|---|
-| Single scalar input | Yes | No | Yes |
-| Reuses existing schema vocabulary | Partly | Yes | Yes |
-| Invalid pair possible at input | No | Yes | No |
-| New internal token set | Yes | No | No |
-| Central deterministic mapping | Yes | Validation only | Yes |
-| Producer semantic correctness independently proven | No | No | No |
+|単一のスカラー入力|はい|いいえ|はい|
+|既存のスキーマボキャブラリーを再利用します|一部|はい|はい|
+|入力時に無効なペアの可能性があります|いいえ|はい|いいえ|
+|新しい内部トークン セット|はい|いいえ|いいえ|
+|中央決定論的マッピング|はい|検証のみ|はい|
+|プロデューサーの意味論的な正しさが独立して証明されました|いいえ|いいえ|いいえ|
 
-## Recommendation
+<a id="recommendation"></a>
+## 推奨事項
 
-**Recommend Option C** because it reuses the existing operation allowlist, has a single scalar input, and deterministically derives the only permitted phase without introducing a parallel context-token vocabulary. Option A is a reasonable alternative if the maintainer prefers a separate semantic identifier. Option B is the most explicit but admits more invalid combinations.
+**オプション C** を推奨します。これは、既存の操作許可リストを再利用し、単一のスカラー入力を持ち、並列コンテキスト トークン ボキャブラリーを導入せずに唯一の許可されたフェーズを決定論的に導出するからです。オプション A は、メンテナが別個のセマンティック識別子を好む場合に合理的な代替案です。オプション B は最も明示的ですが、より多くの無効な組み合わせが許容されます。
 
-**Decision:** Option C is approved. The exact input is one required, case-sensitive scalar named `Operation`, containing an existing C-51 operation token. `Resolve-DiagnosticPhaseOperation -Operation` derives the approved phase and returns the operation unchanged. Null, empty, non-string, unknown, case-variant, and collection inputs reject with a fixed non-disclosing error. `unknown` is reserved for trusted producer context that genuinely cannot be established; it is not a fallback for missing instrumentation. The pure resolver and synthetic tests are implemented in PR #146. Runtime event production and end-to-end acceptance remain out of scope.
+**決定:** オプション C が承認されました。正確な入力は、既存の C-51 操作トークンを含む `Operation` という名前の 1 つの必須の大文字と小文字が区別されるスカラーです。 `Resolve-DiagnosticPhaseOperation -Operation` は承認されたフェーズを導出し、操作を変更せずに返します。 Null、空、非文字列、不明、大文字と小文字の区別、およびコレクションの入力は、修正された非公開エラーで拒否されます。 `unknown` は、実際には確立できない信頼できるプロデューサー コンテキスト用に予約されています。これは、欠落しているインストルメンテーションのフォールバックではありません。純粋なリゾルバーと合成テストは PR #146 に実装されています。ランタイム イベントの生成とエンドツーエンドの受け入れは引き続き対象外です。
 
-## Acceptance tests and implementation status
+<a id="acceptance-tests-and-implementation-status"></a>
+## 受け入れテストと実施状況
 
-- Every approved mapping row resolves to its exact phase/operation pair.
-- Null, empty, non-string, unknown, case-variant, collection-shaped, and malformed input is rejected without echoing the input.
-- `unknown` is accepted only through the explicitly approved context-unavailable representation.
-- Repeated calls are deterministic.
-- No exception message, exception type, stack trace, path, or ambient observer context is consulted.
-- Existing schema-v1 finalizer tests remain passing.
-- Implemented in PR #146: `tests/Test-DiagnosticPhaseOperationResolver.ps1` is wired into Validate CI; the normative contract, evidence crosswalk, traceability/inventory/audit/gap records, and `docs/handoff/next-chat.md` are updated in the same PR.
+- 承認されたすべてのマッピング行は、正確なフェーズ/操作のペアに解決されます。
+- Null、空、非文字列、不明、大文字小文字の違い、コレクション形式、および不正な入力は、入力をエコーせずに拒否されます。
+- `unknown` は、明示的に承認されたコンテキスト 利用不能 表現を通じてのみ受け入れられます。
+- 繰り返しの呼び出しは確定的です。
+- 例外メッセージ、例外タイプ、スタック トレース、パス、またはアンビエント オブザーバー コンテキストは参照されません。
+- 既存の schema-v1 ファイナライザー テストは引き続き合格します。
+- PR #146 で実装: `tests/Test-DiagnosticPhaseOperationResolver.ps1` は Validate CI に接続されます。規範的な契約、証拠の対応表、トレーサビリティ/一覧/監査/ギャップ記録、および `docs/handoff/next-chat.md` は同じ PR で更新されます。

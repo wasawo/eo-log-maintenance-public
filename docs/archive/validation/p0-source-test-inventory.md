@@ -1,211 +1,233 @@
-# P0 Source / Specification / Test Inventory
+<a id="p0-source--specification--test-inventory"></a>
+# P0 ソース/仕様/テスト インベントリ
 
 > 履歴/検討資料。承認済みの選択・未決候補・当時の監査根拠を含み、この移動は撤回/失効を意味しない。現在の基準は[正式要件](../../requirements/log-move-requirements.md)と[現行決定台帳](../../decisions/decision-register-c18-c32.md)。当時の対象/証拠を現在のruntime受け入れへ拡張しない。
 
-- Status: Partial static inventory reconciliation in progress. Latest merged tracked-tree baseline: PR #123 merge `6b543930f9a9805f50693bd6333a8278c416fe05` (2026-10-21). PR #117–#123 are documentation-only changes and add no runtime implementation or runtime acceptance evidence. Clause-by-clause source/requirement/test disposition remains open. Operational manifest schema/reader/writer, staging, enumeration, archive gate, retry orchestration, IPC, security logging, and status evidence remain absent; package-builder, Drive adapter-schema, helper, and documentation CI do not establish runtime acceptance.
-- Repository: wasawo/eo-log-maintenance-public
-- Specification/source-clause baseline commit: `097e962a1636419ceb428182da2a6a91f6380273` (PR #25 merge; preserved for source-clause traceability).
-- Latest merged tracked-tree baseline: PR #123 merge `6b543930f9a9805f50693bd6333a8278c416fe05`. PR #123 is documentation-only and adds no runtime implementation or runtime acceptance evidence. PR #122 is documentation-only and adds no runtime implementation or runtime acceptance evidence. PR #117–#123 are documentation-only and do not alter runtime implementation/test coverage. The Drive response schema is not a maintenance manifest schema; no operational manifest schema/reader/writer exists. C-29 retry/unknown-upload evidence, C-25 test-plan status, and C-26 manifest crosswalk remain documentation/traceability only; RETRY-01–06 and SEL-RT-01–10 remain not implemented/not run.
-- Related records: docs/requirements/p0-gap-register.md; docs/requirements/requirements-traceability.md; docs/archive/validation/requirements-source-audit.md; docs/archive/validation/p0-runtime-entrypoint-safety-audit.md; docs/archive/validation/p0-contract-review-findings.md; docs/archive/validation/sel-rt-fixture-traceability.md
-- Scope: repository file inventory and current specification-to-implementation-to-test relationships.
-- Limitation: static repository review only. It does not prove runtime behavior or imply incomplete runtime scripts are implemented.
+- ステータス: 部分的な静的一覧調整が進行中です。最新のマージされた追跡ツリー ベースライン: PR #123 マージ `6b543930f9a9805f50693bd6333a8278c416fe05` (2026-10-21)。 PR #117–#123 はドキュメントのみの変更であり、実行時の実装や実行時の受け入れの証拠は追加されません。条項ごとのソース/要件/テストの処理は未解決のままです。運用マニフェスト スキーマ/リーダー/ライター、ステージング、列挙、アーカイブ ゲート、再試行オーケストレーション、IPC、セキュリティ ログ、およびステータスの証拠は存在しないままです。パッケージ ビルダー、ドライブ アダプター スキーマ、ヘルパー、およびドキュメント CI は、実行時の受け入れを確立しません。
+- リポジトリ: wasawo/eo-log-maintenance-public
+- 仕様/ソース条項のベースライン コミット: `097e962a1636419ceb428182da2a6a91f6380273` (PR #25 マージ; ソース条項のトレーサビリティのために保存)。
+- 追跡対象の最新マージ基準: PR #123 のマージ `6b543930f9a9805f50693bd6333a8278c416fe05`。PR #123 とPR #122 は文書のみで、実行時の実装や受け入れ証拠を追加しない。PR #117〜#123 も文書のみで、実装・試験範囲を変更しない。Drive応答スキーマは保守マニフェストのスキーマではなく、実運用のマニフェストスキーマ・読み取り・書き込みは存在しない。C-29 の再試行・結果不明アップロードの証拠、C-25 の試験計画状態、C-26 のマニフェスト対応表は、引き続き文書・追跡上の情報のみである。RETRY-01〜06 と SEL-RT-01〜10 は未実装・未実行のままである。
+- 関連レコード: docs/requirements/p0-gap-register.md; docs/requirements/requirements-traceability.md; docs/archive/validation/requirements-source-audit.md; docs/archive/validation/p0-runtime-entrypoint-safety-audit.md; docs/archive/validation/p0-contract-review-findings.md; docs/archive/validation/sel-rt-fixture-traceability.md
+- 範囲: リポジトリ ファイル インベントリおよび現在の仕様、実装、テストの関係。
+- 制限事項: 静的リポジトリのレビューのみ。これは、実行時の動作を証明したり、未完了 実行時スクリプトが実装されていることを暗示したりするものではありません。
 
-## 1. Current source artifact inventory
+<a id="1-current-source-artifact-inventory"></a>
+## 1. 現在のソース成果物インベントリ
 
-| Area | Current artifacts | Role / evidence available | Coverage state |
+|エリア|現在の成果物|利用可能な役割/証拠|カバレッジ状態|
 |---|---|---|---|
-| Shared PowerShell functions | Common/LogFunctions.ps1, Common/README.md | Filename/date parsing and period-selection helpers; exact PowerShell 7.6.7 guard; README also describes functions not yet implemented | Partial implementation; map each function to requirement and test |
-| Operational PowerShell entry points | `scripts/SyncLogs.ps1` exists as a sentinel only; `scripts/ArchiveLogs.ps1` and operational batch entry points are absent | No operational sync/archive execution path is available to verify; SyncLogs contains no sync implementation | Unimplemented; not runtime-safe or deployable |
-| Package builder | .github/scripts/Build-ReleasePackage.ps1 | Builds review artifacts under an allowlist; sources shared functions and enforces version guard | Packaging utility exists; PC-A/PC-B release acceptance incomplete |
-| PowerShell tests | tests/Test-LogFunctions.ps1, tests/Test-ReleasePackage.ps1 | Helper functions, version-guard decisions, package-builder behavior | CI executes these tests; cannot prove absent operational entry-point safety |
-| Python/schema tests | tests/test_contract_schemas.py, requirements-test.txt | Validates request/response JSON Schema and contract examples, including unknown-operation rejection | Schema tests run in Validate; PR #49's IPC audit confirms they do not cover raw stdout/stderr, process exit codes, request correlation, timeout, secret redaction, or live Drive adapter behavior |
-| Request/response schemas | contracts/drive-request.schema.json, contracts/drive-response.schema.json | Machine-readable PowerShell/Python boundary contract | Artifacts exist; contract approval and runtime integration open |
-| Example configuration | Config/PC-A.example.json, Config/PC-B.example.json | Example per-PC paths and role settings | Package-builder tests validate template semantics and reject known unsafe variants; active-config runtime loader, approved-root containment, role-bound authorization, and PC-A positive archive authorization remain unimplemented |
-| CI validation | .github/workflows/validate.yml, .github/workflows/package-validation.yml | Installs PowerShell 7.6.7, verifies archive hash and runtime version, runs available tests and static analysis | Evidence covers current helper/package tests only |
-| Distribution documentation | docs/release/distribution-design.md, README.md, VERSION, CHANGELOG.md | Distribution constraints, project status, release metadata | Must be reconciled with future official entry points and per-PC allowlists |
-| Runtime design and safety | docs/development/implementation-workflow.md, docs/design/powershell-python-contract.md, docs/design/staging-file-lifecycle.md, docs/validation/runtime-safety-test-scenarios.md | Proposed behavior for sync, cloud verification, manifests, archive eligibility, retries, and safety | Design exists; some requirements remain proposed or unapproved |
-| Filename/period rules | `docs/design/filename-and-period-selection.md`, `docs/validation/filename-period-test-plan.md`, `Common/LogFunctions.ps1`, `tests/Test-LogFunctions.ps1` | §2 filename patterns/date parsing, §§3–4 sync/archive cutoff rules, §§6–7 invalid-name/run-status rules | FIL-001–004 and FIL-007–009 helper-level assertions are clause-mapped to `Test-LogFunctions.ps1` and Validate #44; FIL-005/006/010 remain runtime-unimplemented (mixed-error aggregation, full backlog enumeration, zero-target manifest/run status). Timestamp disagreement and enumeration are not covered by helper CI. |
-| Requirement records | docs/requirements/requirements-traceability.md, docs/archive/validation/requirements-source-audit.md, docs/decisions/decision-register-c18-c32.md, docs/requirements/p0-gap-register.md | Requirement IDs, source coverage, decisions, prioritized gaps | Baseline and disposition of partial/unmapped sections need reconciliation |
-| Future maintenance utilities | scripts/README.md | Describes planned documentation/update helpers | Utilities are not implemented and do not count as source/test coverage |
+|PowerShell 共有関数| Common/LogFunctions.ps1, Common/README.md |ファイル名/日付の解析および期間選択ヘルパー。正確な PowerShell 7.6.7 ガード。 README にはまだ実装されていない機能についても記載されています|部分的な実装。各機能を要件にマッピングしてテストする|
+|運用上の PowerShell エントリ ポイント|`scripts/SyncLogs.ps1` はセンチネルとしてのみ存在します。 `scripts/ArchiveLogs.ps1` および操作可能なバッチ エントリ ポイントがありません|検証できる動作中の同期/アーカイブ実行パスはありません。 SyncLogs には同期実装が含まれていません|未実装。ランタイムセーフまたはデプロイ可能ではない|
+|パッケージビルダー|.github/scripts/Build-ReleasePackage.ps1|ホワイトリストに基づいて成果物をレビューします。共有機能をソースし、バージョン ガードを適用します|パッケージング ユーティリティが存在します。 PC-A/PC-B リリース受付が完了していません|
+|PowerShell テスト| tests/Test-LogFunctions.ps1, tests/Test-ReleasePackage.ps1 |ヘルパー関数、バージョン ガードの決定、パッケージ ビルダーの動作|CI はこれらのテストを実行します。運用上のエントリポイントの安全性が存在しないことを証明できない|
+|Python/スキーマテスト| tests/test_contract_schemas.py, requirements-test.txt |要求/応答 JSON Schema とコントラクトの例 (不明 操作の拒否を含む) を検証します。|スキーマ テストは Validate で実行されます。 PR #49 の IPC 監査では、生の stdout/stderr、プロセス終了コード、リクエストの相関関係、タイムアウト、シークレットの編集、ライブ ドライブ アダプターの動作がカバーされていないことが確認されています。|
+|リクエスト/レスポンスのスキーマ| contracts/drive-request.schema.json, contracts/drive-response.schema.json |機械可読な PowerShell/Python 境界コントラクト|成果物は存在します。契約の承認とランタイム統合がオープン|
+|構成例| Config/PC-A.example.json, Config/PC-B.example.json |PC ごとのパスとロール設定の例|パッケージ ビルダー テストはテンプレートのセマンティクスを検証し、既知の安全でないバリアントを拒否します。 active-config ランタイム ローダー、承認されたルートの封じ込め、ロールバインドされた承認、および PC-A ポジティブ アーカイブ承認は未実装のままです|
+|CI 検証|.github/workflows/validate.yml、.github/workflows/package-validation.yml|PowerShell 7.6.7 をインストールし、アーカイブ ハッシュとランタイム バージョンを確認し、利用可能なテストと静的分析を実行します。|証拠は現在のヘルパー/パッケージ テストのみを対象としています|
+|配布ドキュメント|docs/release/distribution-design.md、README.md、バージョン、CHANGELOG.md|配布制約、プロジェクトのステータス、リリースのメタデータ|将来の公式エントリ ポイントおよび PC ごとの許可リストと調整する必要があります|
+|ランタイム設計と安全性| docs/development/implementation-workflow.md, docs/design/powershell-python-contract.md, docs/design/staging-file-lifecycle.md, docs/validation/runtime-safety-test-scenarios.md |同期、クラウド検証、マニフェスト、アーカイブ適格性、再試行、安全性に関して提案された動作|デザインは存在します。一部の要件は提案されたまま、または未承認のままです|
+|ファイル名/期間の規則| `docs/design/filename-and-period-selection.md`, `docs/validation/filename-period-test-plan.md`, `Common/LogFunctions.ps1`, `tests/Test-LogFunctions.ps1` |§2 ファイル名パターン/日付解析、§§3–4 同期/アーカイブ カットオフ ルール、§§6–7 無効名/実行ステータス ルール|FIL-001–004 および FIL-007–009 ヘルパー レベル アサーションは、`Test-LogFunctions.ps1` および Validate #44 に句マップされます。 FIL-005/006/010 はランタイム未実装のままです (混合エラーの集計、完全なバックログの列挙、ゼロターゲットのマニフェスト/実行ステータス)。タイムスタンプの不一致と列挙はヘルパー CI ではカバーされません。|
+|要件レコード| docs/requirements/requirements-traceability.md, docs/archive/validation/requirements-source-audit.md, docs/decisions/decision-register-c18-c32.md, docs/requirements/p0-gap-register.md |要件 ID、ソース カバレッジ、決定事項、優先順位付けされたギャップ|ベースラインと部分セクション/マップされていないセクションの配置には調整が必要です|
+|将来のメンテナンス ユーティリティ| scripts/README.md |計画されているドキュメント/更新ヘルパーについて説明します|ユーティリティは実装されていないため、ソース/テスト カバレッジとしてカウントされません|
 
-## 2. Traceability rules
+<a id="2-traceability-rules"></a>
+## 2. トレーサビリティのルール
 
-For every normative requirement, the traceability register should identify:
-1. Stable requirement ID and exact source path/section.
-2. Implementation artifact, or explicit Not implemented state.
-3. Verification artifact and CI/local command, or explicit No executable test yet state.
-4. Evidence (successful CI run, test output, or review decision), separate from planned verification.
-5. Dependencies on unresolved decisions or contract review.
+すべての規範的要件について、トレーサビリティ レジスタは以下を識別する必要があります。
+1. 安定した要件 ID と正確なソース パス/セクション。
+2. 実装成果物、または明示的な未実装状態。
+3. 検証成果物と CI/ローカル コマンド、または明示的な実行可能テストがまだない状態。
+4. 計画された検証とは別の証拠 (成功した CI 実行、テスト出力、またはレビュー決定)。
+5. 未解決の決定または契約レビューへの依存。
 
-A document link, schema file, or test plan is not runtime evidence. Schema/helper tests do not establish that a future operational entry point is safe.
+ドキュメント リンク、スキーマ ファイル、またはテスト計画は実行時の証拠ではありません。スキーマ/ヘルパー テストでは、将来の運用エントリ ポイントが安全であるかどうかは確認されません。
 
-## 3. Current CI evidence
+<a id="3-current-ci-evidence"></a>
+## 3. 現在のCIの証拠
 
-| Evidence | Conclusion | Does not establish |
+|証拠|結論|確立されません|
 |---|---|---|
-| Validate run 39372725014: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372725014 | Successful on PR #25 head; installs/verifies PowerShell 7.6.7, validates JSON schemas/configs, runs `tests/Test-LogFunctions.ps1`, and runs PSScriptAnalyzer. | End-to-end sync, Drive verification, manifest lifecycle, archive eligibility, all-entrypoint startup guard, or runtime no-delete proof. |
-| Package Validation run 39372724979: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372724979 | Successful on PR #25 head; installs/verifies PowerShell 7.6.7 and runs package-builder tests. | Deployable PC-A/PC-B package with final official runtime entry points. |
-| Validate run 39372313204: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372313204 | Successful on PR #24 head; retained as historical evidence. | Runtime integration and cloud behavior. |
-| Package Validation run 39372313187: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372313187 | Successful on PR #24 head; retained as historical evidence. | Production release packaging or deployment. |
-| Validate run 39373621988: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373621988 | Successful on PR #26 head; refreshes artifact inventory and static safety audit. | Runtime integration or operational deletion safety. |
-| Package Validation run 39373622016: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373622016 | Successful on PR #26 head; package-builder tests passed. | Deployable production package or cloud release workflow. |
-| Validate run 39373986586: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373986586 | Successful on PR #27 head; source matrix/crosswalk documentation validated. | Runtime integration or operational release readiness. |
-| Package Validation run 39373986582: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373986582 | Successful on PR #27 head; package-builder tests passed. | Deployable production package or cloud release workflow. |
-| Validate run 39374352642: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374352642 | Successful on PR #28 head; phase crosswalk documentation validated. | Runtime phase acceptance or operational readiness. |
-| Package Validation run 39374352675: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374352675 | Successful on PR #28 head; package-builder tests passed. | Deployable production package or cloud release workflow. |
-| Validate run 39374829187: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374829187 | Successful on PR #29 head; decision backlog and crosswalk links validated. | Resolution of any deferred policy or runtime acceptance. |
-| Package Validation run 39374829183: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374829183 | Successful on PR #29 head; package-builder tests passed. | Deployable production package or cloud release workflow. |
-| Validate run 39379247675: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379247675 | Successful on PR #38 head; validates documentation/schema/code checks with SEL-RT-01–10 explicitly labelled design-only. | Executed runtime enumeration, timestamp non-fallback, mixed-input aggregation, or no-mutation proof. |
-| Package Validation run 39379247689: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379247689 | Successful on PR #38 head; package-builder tests passed. | Deployable production package or cloud release workflow. |
-| Validate run 39379961951: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379961951 | Successful on PR #40 head; validates the non-normative OSD-03 options proposal and linked decision records. | Approval/resolution of OSD-03 or OSD-02, or runtime status aggregation. |
-| Package Validation run 39379961909: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379961909 | Successful on PR #40 head; package-builder tests passed. | Deployable production package or cloud release workflow. |
-| Validate run 39384288557: https://github.com/wasawo/eo-log-maintenance/actions/runs/39384288557 | Successful on PR #42 head; validates handoff recording PR #41 and preserves approval gates. | Runtime integration or policy approval. |
-| Package Validation run 39384288385: https://github.com/wasawo/eo-log-maintenance/actions/runs/39384288385 | Successful on PR #42 head; package-builder tests passed. | Deployable production package or cloud release workflow. |
-| Validate run 39395439176: https://github.com/wasawo/eo-log-maintenance/actions/runs/39395439176 | Successful on PR #50 head `dda840b8f3d943cc6e6ae299460ccf50ada092ca`; validates the current documentation/schema/helper/static-analysis checks. | Runtime enumeration, process-boundary IPC, sync/archive orchestration, real Drive behavior, or destructive-operation safety. |
-| Package Validation run 39395439152: https://github.com/wasawo/eo-log-maintenance/actions/runs/39395439152 | Successful on PR #50 head `dda840b8f3d943cc6e6ae299460ccf50ada092ca`; package-builder validation passed. | Deployable operational package or runtime sync/archive acceptance. |
+|実行の検証 39372725014: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372725014|PR #25 ヘッドで成功しました。 PowerShell 7.6.7 をインストール/検証し、JSON スキーマ/構成を検証し、`tests/Test-LogFunctions.ps1` を実行し、PSScriptAnalyzer を実行します。|エンドツーエンドの同期、ドライブの検証、マニフェストのライフサイクル、アーカイブの適格性、すべてのエントリポイントの起動保護、またはランタイム非削除証明。|
+|パッケージ検証の実行 39372724979: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372724979|PR #25 ヘッドで成功しました。 PowerShell 7.6.7 をインストール/検証し、パッケージ ビルダー テストを実行します。|最終的な公式ランタイム エントリ ポイントを含む展開可能な PC-A/PC-B パッケージ。|
+|実行の検証 39372313204: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372313204|PR #24 ヘッドで成功しました。歴史的証拠として残されています。|ランタイム統合とクラウド動作。|
+|パッケージ検証の実行 39372313187: https://github.com/wasawo/eo-log-maintenance/actions/runs/39372313187|PR #24 ヘッドで成功しました。歴史的証拠として残されています。|実稼働リリースのパッケージ化または展開。|
+|実行の検証 39373621988: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373621988|PR #26 ヘッドで成功しました。成果物のインベントリと静的安全性の監査を更新します。|実行時の統合または操作上の削除の安全性。|
+|パッケージ検証の実行 39373622016: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373622016|PR #26 ヘッドで成功しました。パッケージビルダーのテストに合格しました。|導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。|
+|実行の検証 39373986586: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373986586|PR #27 ヘッドで成功しました。ソース マトリックス/クロスウォーク ドキュメントが検証されました。|ランタイム統合または運用リリースの準備。|
+|パッケージ検証の実行 39373986582: https://github.com/wasawo/eo-log-maintenance/actions/runs/39373986582|PR #27 ヘッドで成功しました。パッケージビルダーのテストに合格しました。|導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。|
+|実行の検証 39374352642: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374352642|PR #28 ヘッドで成功しました。位相対応表の文書が検証されました。|ランタイムフェーズの受け入れまたは運用準備。|
+|パッケージ検証の実行 39374352675: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374352675|PR #28 ヘッドで成功しました。パッケージビルダーのテストに合格しました。|導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。|
+|実行の検証 39374829187: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374829187|PR #29 ヘッドで成功しました。意思決定のバックログと横断的なリンクが検証されました。|延期されたポリシーまたは実行時の受け入れの解決。|
+|パッケージ検証の実行 39374829183: https://github.com/wasawo/eo-log-maintenance/actions/runs/39374829183|PR #29 ヘッドで成功しました。パッケージビルダーのテストに合格しました。|導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。|
+|実行の検証 39379247675: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379247675|PR #38 ヘッドで成功しました。明示的に設計専用とラベル付けされた SEL-RT-01–10 を使用してドキュメント/スキーマ/コード チェックを検証します。|ランタイム列挙、タイムスタンプ非フォールバック、混合入力集計、または非突然変異証明が実行されました。|
+|パッケージ検証の実行 39379247689: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379247689|PR #38 ヘッドで成功しました。パッケージビルダーのテストに合格しました。|導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。|
+|実行の検証 39379961951: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379961951|PR #40 ヘッドで成功しました。非規範的な OSD-03 オプション提案とリンクされた決定記録を検証します。|OSD-03 または OSD-02 の承認/解決、または実行時のステータスの集計。|
+|パッケージ検証の実行 39379961909: https://github.com/wasawo/eo-log-maintenance/actions/runs/39379961909|PR #40 ヘッドで成功しました。パッケージビルダーのテストに合格しました。|導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。|
+|実行の検証 39384288557: https://github.com/wasawo/eo-log-maintenance/actions/runs/39384288557|PR #42 ヘッドで成功しました。ハンドオフ記録 PR #41 を検証し、承認ゲートを保持します。|実行時の統合またはポリシーの承認。|
+|パッケージ検証の実行 39384288385: https://github.com/wasawo/eo-log-maintenance/actions/runs/39384288385|PR #42 ヘッドで成功しました。パッケージビルダーのテストに合格しました。|導入可能な実稼働パッケージまたはクラウド リリースのワークフロー。|
+|実行の検証 39395439176: https://github.com/wasawo/eo-log-maintenance/actions/runs/39395439176|PR #50 ヘッド `dda840b8f3d943cc6e6ae299460ccf50ada092ca` で成功しました。現在のドキュメント/スキーマ/ヘルパー/静的分析チェックを検証します。|ランタイム列挙、プロセス境界 IPC、同期/アーカイブ オーケストレーション、実際のドライブの動作、または破壊的操作の安全性。|
+|パッケージ検証の実行 39395439152: https://github.com/wasawo/eo-log-maintenance/actions/runs/39395439152|PR #50 ヘッド `dda840b8f3d943cc6e6ae299460ccf50ada092ca` で成功しました。パッケージビルダーの検証に合格しました。|デプロイ可能な運用パッケージまたはランタイム同期/アーカイブの受け入れ。|
 
-## 4. Remaining P0-010 work
+<a id="4-remaining-p0-010-work"></a>
+## 4. 残りのP0-010作業
 
-- Continue clause-by-clause reconciliation between `docs/archive/validation/requirements-source-audit.md`, `docs/requirements/requirements-traceability.md`, current tracked artifacts, named executable tests, and objective CI evidence. The baseline and latest PR #50 CI evidence are now refreshed, but this does not mean every row is reconciled.
-- Keep IPC-01–06 marked not implemented/not run until a process-boundary harness exists; schema validation and successful documentation CI are not runtime proof.
+- `docs/archive/validation/requirements-source-audit.md`、`docs/requirements/requirements-traceability.md`、現在追跡されている成果物、名前付き実行可能テスト、および客観的な CI 証拠の間の条項ごとの調整を続行します。ベースラインと最新の PR #50 CI の証拠が更新されましたが、これはすべての行が調整されることを意味するわけではありません。
+- プロセス境界ハーネスが存在するまで、IPC-01–06 を未実装/実行しないとマークしたままにします。スキーマ検証と成功したドキュメント CI は実行時の証拠ではありません。
 
-- Reconcile every source-section row in docs/archive/validation/requirements-source-audit.md with stable IDs in docs/requirements/requirements-traceability.md; disposition each Partial and Unmapped row.
-- Exact assertion-to-requirement mappings for the existing PowerShell filename/date/cutoff helper tests are recorded in `docs/archive/validation/requirements-source-audit.md` §3.11. PR #20 reconciled scenario IDs between §3.1 and §3.10. README and C-18–C-32 rows are now being dispositioned against existing IDs; runtime test gaps remain. PR #38 adds design-only SEL-RT-01–10 runtime fixture matrix; no runtime enumeration entrypoint exists, so these are not passed evidence. Filename-date vs LastWriteTime disagreement, mixed-directory enumeration and run-status remain runtime gaps. The test plan requires synthetic fixtures and isolated temporary paths; no automated guard currently proves that the suite cannot access real logs/production paths. Planned runtime scenarios must remain labelled not implemented, not passed.
-- Keep source audit rows linked to the OSD IDs and ensure every deferred decision remains blocked until explicitly approved. Do not infer trusted-manifest, mixed run-status, MAN-011 freshness, Dry Run side-effect, Drive auth, release retention or scheduler policy.
-- Resolve duplicate or conflicting normative statements in README, implementation workflow, contract, distribution design, and decision register.
-- Record the final inventory and audit result in the gap register only after all rows are reconciled.
+- docs/archive/validation/requirements-source-audit.md のすべてのソース セクション行を docs/requirements/requirements-traceability.md の安定した ID と照合します。各部分行とマップされていない行を配置します。
+- 既存の PowerShell ファイル名/日付/カットオフ ヘルパー テストのアサーションと要件の正確なマッピングは、`docs/archive/validation/requirements-source-audit.md` §3.11 に記録されます。 PR #20 は、§3.1 と §3.10 の間のシナリオ ID を調整しました。 README 行と C-18–C-32 行が既存の ID に対して配置されるようになりました。実行時テストのギャップが残っています。 PR #38 はデザイン専用の SEL-RT-01–10 ランタイム フィクスチャ マトリックスを追加します。実行時列挙エントリポイントが存在しないため、これらは証拠として渡されません。ファイル名の日付と LastWriteTime の不一致、混合ディレクトリの列挙と実行ステータスには実行時のギャップが残ります。テスト計画には、合成フィクスチャと独立した一時パスが必要です。現在、スイートが実際のログ/運用パスにアクセスできないことを証明する自動ガードはありません。計画された実行時シナリオは、「未実装」または「未通過」というラベルを付けたままにしておく必要があります。
+- ソース監査行を OSD ID にリンクしたままにし、明示的に承認されるまですべての延期された決定がブロックされたままになるようにします。信頼できるマニフェスト、混合実行ステータス、MAN-011 の鮮度、Dry Run の副作用、ドライブ認証、リリース保持ポリシー、またはスケジューラー ポリシーを推測しないでください。
+- README、実装ワークフロー、契約、配布設計、意思決定登録内の重複または矛盾する規範ステートメントを解決します。
+- すべての行が調整された後にのみ、最終的なインベントリと監査結果をギャップ レジスタに記録します。
 
-## 5. Safety constraints
+<a id="5-safety-constraints"></a>
+## 5. 安全上の制約
 
-- No local source-log deletion or Google Drive deletion in P0-P2.
-- PC-B must not receive an archive entry point.
-- A successful package-builder test is not proof that a production package is deployable.
-- Do not close P0-010 until partial/unmapped source sections are dispositioned and requirement-to-test links are reviewed.
+- P0 ～ P2 でローカル ソース ログの削除または Google Drive の削除はありません。
+- PC-B はアーカイブ エントリ ポイントを受け取ってはなりません。
+- パッケージ ビルダー テストの成功は、運用パッケージがデプロイ可能であることを証明するものではありません。
+- 部分的/マップされていないソース セクションが処理され、要件からテストへのリンクがレビューされるまで、P0-010 を閉じないでください。
 
-## SEL-RT fixture traceability cross-reference
+<a id="sel-rt-fixture-traceability-cross-reference"></a>
+## SEL-RT 治具のトレーサビリティ相互参照
 
-- Detailed fixture-to-requirement/evidence disposition: [`docs/archive/validation/sel-rt-fixture-traceability.md`](sel-rt-fixture-traceability.md).
-- SEL-RT-01–10 remain design-only and not executed. Helper-level tests do not prove runtime enumeration, timestamp non-fallback, mixed-input status aggregation, empty-vs-failed enumeration, or source no-mutation.
-- Operational runtime behavior and runtime acceptance tests remain absent; `scripts/SyncLogs.ps1` is only a sentinel, while `scripts/ArchiveLogs.ps1` and operational launchers are absent. P0-010 remains open. OSD-02/03 and EOLM-MAN-011 numeric freshness/future-time tolerances and applicability remain unresolved.
-
-
-## 6. Latest review baseline update (PR #53)
-
-- Tracked-tree baseline: `1a54cafb2e444cc4d778a64dca0bd1439dfeff6d` (PR #53 merge).
-- PR #51 inventory/evidence refresh: Validate https://github.com/wasawo/eo-log-maintenance/actions/runs/39395744201; Package Validation https://github.com/wasawo/eo-log-maintenance/actions/runs/39395744306.
-- PR #52 source-audit/test-plan crosswalk: Validate https://github.com/wasawo/eo-log-maintenance/actions/runs/39396308946; Package Validation https://github.com/wasawo/eo-log-maintenance/actions/runs/39396308916.
-- PR #53 config-example audit correction: Validate https://github.com/wasawo/eo-log-maintenance/actions/runs/39396579155; Package Validation https://github.com/wasawo/eo-log-maintenance/actions/runs/39396579172.
-- These CI runs validated documentation, schema/helper tests, and package-builder checks at their respective PR heads. They do not constitute runtime acceptance evidence and are not interchangeable across HEAD SHAs.
-- Current config finding: `Config/PC-A.example.json` intentionally has `allowArchive: false`; `Config/PC-B.example.json` omits `allowArchive`. Validate parses example JSON but does not enforce semantic PC-role/capability constraints. No runtime config loader or operational entry-point implementation is present in the tracked tree; `scripts/SyncLogs.ps1` is a sentinel only, and `scripts/ArchiveLogs.ps1` is absent.
-- P0-010 remains open. Clause-level source-to-requirement-to-implementation-to-executable-test-to-objective-evidence reconciliation is incomplete; SEL-RT-01–10 and IPC-01–06 remain not implemented/not run. Schema tests validate contract shape/examples only and are not process-boundary evidence. OSD-02, OSD-03, and EOLM-MAN-011 remain blocked.
+- 備品から要件/証拠への詳細な対応: [`docs/archive/validation/sel-rt-fixture-traceability.md`](sel-rt-fixture-traceability.md)。
+- SEL-RT-01–10 はデザインのみであり、実行されません。ヘルパー レベルのテストでは、ランタイム列挙、タイムスタンプ非フォールバック、混合入力ステータス集計、empty-vs-失敗した 列挙、またはソースの非突然変異は証明されません。
+- 動作時の実行時の動作と実行時の受け入れテストは行われていないままです。 `scripts/SyncLogs.ps1` は単なる哨兵であり、`scripts/ArchiveLogs.ps1` と運用可能な発射装置は存在しません。 P0-010 は開いたままです。 OSD-02/03 および EOLM-MAN-011 の数値の鮮度/将来の許容範囲と適用性は未解決のままです。
 
 
-## Latest tracked-tree disposition update (PR #69 merge baseline)
+<a id="6-latest-review-baseline-update-pr-53"></a>
+## 6. 最新のレビューベースライン更新 (PR #53)
 
-- Review baseline: `13df2952fe8e13ca114ddcf21532d840dfa8264e`.
-- The source audit currently has no source-section row in §2.1 marked Unmapped; the remaining work is not a wholesale missing-ID problem. Partial rows primarily represent (a) helper-only tests without runtime enumeration/orchestration, (b) schema-only IPC evidence, (c) package-builder/static checks without operational entry-point logic or active-config runtime semantic PC-role enforcement, and (d) mapped requirements blocked by unresolved OSD decisions.
-- Existing CI remains evidence only for the exact tests it executes. PR #69's CI validated the documentation change at its PR head; it did not execute sync/archive/runtime scenarios.
-- P0-010 remains open until each applicable clause is linked to its requirement ID, implementation or explicit not-implemented state, executable test or explicit not-run/blocked state, and objective evidence. P0-012 remains open until deletion-capability absence is demonstrated across source/config/contracts/packages and runtime mutation boundaries.
-- Safety boundary unchanged: no real credentials, Google Drive operations, real logs, production paths, or deletion behavior. SEL-RT-01–10 and IPC-01–06 remain not implemented/not run.
-
-
-## 7. Latest review baseline update (PR #80)
-
-- Tracked-tree baseline: `4c9f16caf2c464bcc5720b98acb6656d5d95060a` (PR #80 merge, 2026-10-20).
-- PR #78 verifies example-config semantics during package building; PR #80 corrects traceability for the PC-A archive-entry requirement and PC-B package archive exclusion. Neither proves runtime role enforcement or runtime capability absence.
-- Official runtime entry points, manifest schema, orchestration, and process-boundary IPC harness remain absent. SEL-RT-01–10 and IPC-01–06 remain design/mapping evidence only, not implemented runtime tests.
-- P0-010 remains open for clause-level source-to-requirement-to-implementation-to-executable-test-to-objective-evidence reconciliation. P0-012 remains open for complete deletion-capability absence proof across source, config, contracts, package, and runtime boundaries.
-- OSD-02/03 and EOLM-MAN-011 remain blocked; other distribution/Dry Run decisions remain blocked as recorded in the open-decision register. Do not infer policy values or authorize release/runtime execution from passing documentation/package CI.
+- 追跡ツリー ベースライン: `1a54cafb2e444cc4d778a64dca0bd1439dfeff6d` (PR #53 マージ)。
+- PR #51 一覧/証拠の更新: https://github.com/wasawo/eo-log-maintenance/actions/runs/39395744201; の検証 パッケージの検証 https://github.com/wasawo/eo-log-maintenance/actions/runs/39395744306.
+- PR #52 ソース監査/テスト計画のクロスウォーク: 検証 https://github.com/wasawo/eo-log-maintenance/actions/runs/39396308946; パッケージ検証 https://github.com/wasawo/eo-log-maintenance/actions/runs/39396308916.
+- PR #53 構成例の監査修正: 検証 https://github.com/wasawo/eo-log-maintenance/actions/runs/39396579155; パッケージの検証 https://github.com/wasawo/eo-log-maintenance/actions/runs/39396579172.
+- これらの CI は、それぞれの PR ヘッドで検証済みのドキュメント、スキーマ/ヘルパー テスト、およびパッケージ ビルダー チェックを実行します。これらは実行時の受け入れ証拠を構成せず、HEAD SHA 間で交換可能ではありません。
+- 現在の構成結果: `Config/PC-A.example.json` には意図的に `allowArchive: false` があります。 `Config/PC-B.example.json` は `allowArchive` を省略します。 Validate はサンプル JSON を解析しますが、セマンティックな PC ロール/機能制約は強制しません。追跡されるツリーには、実行時設定ローダーや運用上のエントリポイント実装は存在しません。 `scripts/SyncLogs.ps1` は監視のみであり、`scripts/ArchiveLogs.ps1` は存在しません。
+- P0-010 は開いたままです。条項レベルのソース、要件、実装、実行可能テスト、客観的証拠の調整は 未完了 です。 SEL-RT-01–10 および IPC-01–06 は実装されていない/実行されていないままです。スキーマ テストは契約の形状/例のみを検証し、プロセス境界の証拠ではありません。 OSD-02、OSD-03、および EOLM-MAN-011 はブロックされたままです。
 
 
-## 7. Latest review baseline update (PR #84)
+<a id="latest-tracked-tree-disposition-update-pr-69-merge-baseline"></a>
+## 最新の追跡ツリー配置更新 (PR #69 マージ ベースライン)
 
-- Tracked-tree baseline: `176fe194c1511204e409a8217920372a0022e31e` (PR #84 merge, 2026-10-20).
-- IPC-01–06 are mapped in `docs/archive/validation/requirements-source-audit.md`; schema-shape evidence is distinguished from child-process exit/output/timeout/redaction tests, which remain not implemented/not run.
-- MAN-01–10 and EOLM-MAN-011/012 are mapped in `docs/archive/validation/requirements-source-audit.md`; no maintenance manifest schema, reader/writer, orchestration, or runtime archive gate exists. OSD-02/03 and EOLM-MAN-011 remain blocking.
-- `docs/archive/validation/p0-runtime-entrypoint-safety-audit.md` records a bounded static review of named tracked paths. Build/test cleanup and the four-operation adapter schema provide only partial evidence; they do not prove absence of deletion capability in future runtime code or generated deployable packages.
-- P0-010 and P0-012 remain open. Passing Validate / Package Validation means only that current checks succeeded; neither is runtime acceptance evidence.
-
-
-## 8. Latest review baseline update (PR #91)
-
-- Tracked-tree baseline: `0fe7ac0428e4596afc77464f8caa4461dd19c5b5` (PR #91 merge, 2026-10-20).
-- The C-28 audit now distinguishes PR #78's example-config/package-builder semantic checks from active-config runtime authorization. Runtime archive gate, two-PC manifest/freshness checks, cloud-content verification, copy/verify/record ordering, and interruption recovery remain not implemented/not run or blocked.
-- PR #84 remains bounded static deletion-surface evidence only. PR #91 does not add deletion guards or prove full source/config/contract/package/runtime negative capability.
-- P0-010 and P0-012 remain open. Passing documentation/package CI is not runtime acceptance evidence.
+- ベースラインを確認します: `13df2952fe8e13ca114ddcf21532d840dfa8264e`。
+- ソース監査では現在、§2.1 に「マップされていない」とマークされたソース セクション行はありません。残りの作業は、ID の紛失という大規模な問題ではありません。部分的な行は主に、(a) ランタイム列挙/オーケストレーションのないヘルパーのみのテスト、(b) スキーマのみの IPC 証拠、(c) 運用エントリ ポイント ロジックまたはアクティブ構成ランタイム セマンティック PC ロール強制のないパッケージ ビルダー/静的チェック、および (d) 未解決の OSD 決定によってブロックされたマップされた要件を表します。
+- 既存の CI は、実行された正確なテストの証拠のみが残ります。 PR #69 の CI は、PR 責任者でドキュメントの変更を検証しました。同期/アーカイブ/ランタイムのシナリオは実行されませんでした。
+- P0-010 は、該当する各条項がその要件 ID、実装または明示的な非実装状態、実行可能テストまたは明示的な非実行/ブロック状態、および客観的な証拠にリンクされるまで、開いたままになります。 P0-012 は、source/config/contracts/packages および実行時突然変異の境界を越えて削除機能の欠如が実証されるまで、開いたままになります。
+- 安全境界は変更されていません: 実際の認証情報、Google Drive 操作、実際のログ、運用パス、または削除動作はありません。 SEL-RT-01–10 および IPC-01–06 は実装されていない/実行されていないままです。
 
 
-## C-29 retry and unknown-upload evidence slice (PR #95)
+<a id="7-latest-review-baseline-update-pr-80"></a>
+## 7. 最新のレビューベースライン更新 (PR #80)
 
-- Source: docs/decisions/decision-register-c18-c32.md C-18/C-29 and docs/design/powershell-python-contract.md §§6–8.
-- Requirement IDs: EOLM-DRV-001/002/003/006/008/009/010; related evidence requirements EOLM-TST-004/005.
-- Scenario IDs: RETRY-01–06 in docs/validation/runtime-safety-test-scenarios.md.
-- Current artifacts: decision/contract prose and JSON request/response schema tests only. There is no Python Drive adapter, retry orchestrator, Drive pagination/reconciliation implementation, or executable retry test.
-- Important distinction: complete successful query proving no candidate is different from failed, partial, inaccessible, or ambiguous state. Only the former can satisfy the contract's confirmed-absence branch, subject to approved trust/identity rules. OSD-01 still blocks acceptance of pre-existing unmarked objects.
-- Status: all RETRY scenarios not implemented/not run; P0-010 remains open. No credentials, real Drive data, production paths, real logs, or deletion behavior are in scope.
-
-
-## C-26 manifest artifact inventory — PR #100
-
-- Present: prose requirements in staging-file-lifecycle.md, C-26 decision record, OSD-02/OSD-03 backlog, and MAN-01–10 scenarios.
-- Present but distinct: contracts/drive-response.schema.json validates the Python adapter response envelope only; it must not be counted as the operational run-manifest schema.
-- Absent: maintenance manifest JSON Schema, manifest reader/writer, latest-run resolver, transition validator, atomic-write implementation, runtime archive gate, and executable manifest lifecycle tests.
-- Blockers: OSD-02 (remaining transitions/crash/concurrency and runtime tests), OSD-03 (run/period aggregation), EOLM-MAN-011 (approved policy still lacks runtime enforcement and executable tests). Timestamp/freshness policy is recorded in the 2026-10-21 decision update.
+- 追跡ツリー ベースライン: `4c9f16caf2c464bcc5720b98acb6656d5d95060a` (PR #80 マージ、2026-10-20)。
+- PR #78 は、パッケージの構築中に example-config のセマンティクスを検証します。 PR #80 は、PC-A アーカイブ エントリ要件と PC-B パッケージ アーカイブ除外のトレーサビリティを修正します。どちらも、ランタイム ロールの強制やランタイム機能の欠如を証明するものではありません。
+- 公式のランタイム エントリ ポイント、マニフェスト スキーマ、オーケストレーション、およびプロセス境界 IPC ハーネスが存在しないままです。 SEL-RT-01–10 および IPC-01–06 は設計/マッピングの証拠としてのみ残されており、実行時テストは実装されていません。
+- P0-010 は、条項レベルのソース、要件、実装、実行可能テスト、客観的証拠の調整のためにオープンなままです。 P0-012 は、ソース、構成、コントラクト、パッケージ、およびランタイムの境界を越えた 完了 削除機能の不在証明に対してオープンなままです。
+- OSD-02/03 および EOLM-MAN-011 はブロックされたままです。他の配布/Dry Run の決定は、公開決定レジスターに記録されているようにブロックされたままになります。ドキュメント/パッケージ CI の受け渡しからポリシー値を推測したり、リリース/ランタイムの実行を承認したりしないでください。
 
 
-## P0-011 acceptance-gate consistency — PR #101
+<a id="7-latest-review-baseline-update-pr-84"></a>
+## 7. 最新のレビューベースライン更新 (PR #84)
 
-- The authoritative P0 readiness/acceptance gate is present in docs/development/implementation-workflow.md §4 and linked from README.md.
-- The gate explicitly rejects P0 acceptance while any P0 item is open, any required decision is blocked/unapproved, or runtime evidence is absent. Documentation-only changes cannot satisfy runtime criteria.
-- The decision register records fixed/deferred decisions; it is not itself evidence of overall P0 acceptance. The gap register and traceability remain the per-item status records.
-- This consistency correction does not close P0-011: the maintainer must still perform the final cross-document acceptance review and classify every P0-001–012 item as complete, blocked, or incomplete with evidence.
-
-## Latest tracked-tree disposition update (PR #106)
-
-- Baseline: `caf24456400c4b8d57a564c38903022f2e56688a` (PR #106 merge, 2026-10-20).
-- PR #101 aligned the P0-011 status records with the authoritative gate in `docs/development/implementation-workflow.md` §4. PRs #102–#105 refreshed audit baselines and corrected filename-helper, historical inventory, and runtime-sentinel/package-builder evidence descriptions. These updates did not complete the final maintainer review or close P0-011.
-- P0-010 remains open: the source audit, inventory, traceability, executable runtime tests, and objective runtime evidence still require clause-level reconciliation. P0-012 remains open for complete deletion-capability absence proof.
-- The gate consistency update is documentation evidence only. `scripts/SyncLogs.ps1` remains a sentinel without operational sync logic; `scripts/ArchiveLogs.ps1`, operational manifest lifecycle, Python Drive adapter, retry orchestration, and runtime IPC harness remain absent.
+- 追跡ツリー ベースライン: `176fe194c1511204e409a8217920372a0022e31e` (PR #84 マージ、2026-10-20)。
+- IPC-01–06 は `docs/archive/validation/requirements-source-audit.md` にマップされます。スキーマ形状の証拠は、実装されない/実行されないままになる子プロセスの終了/出力/タイムアウト/編集テストとは区別されます。
+- MAN-01〜10 と EOLM-MAN-011/012 は `docs/archive/validation/requirements-source-audit.md` に対応付け済みだが、保守マニフェストのスキーマ・読み取り・書き込み、統括処理、実行時のアーカイブ実行条件は存在しない。OSD-02/03 と EOLM-MAN-011 は引き続き未解決である。
+- `docs/archive/validation/p0-runtime-entrypoint-safety-audit.md` は、名前付き追跡パスの制限された静的レビューを記録します。ビルド/テストのクリーンアップと 4 つの操作からなるアダプター スキーマは、部分的な証拠しか提供しません。これらは、将来のランタイム コードまたは生成された配置可能パッケージに削除機能がないことを証明するものではありません。
+- P0-010 と P0-012 は開いたままになります。 Validate / Package Validation に合格した場合は、現在のチェックが成功したことのみを意味します。どちらも実行時の受け入れの証拠ではありません。
 
 
-## Diagnostic C-45–C-54 helper evidence — PRs #140/#141
+<a id="8-latest-review-baseline-update-pr-91"></a>
+## 8. 最新のレビューベースライン更新 (PR #91)
 
-- Added the non-normative clause-to-helper/test crosswalk in docs/archive/validation/diagnostic-contract-test-evidence.md. It records the exact scope of Test-DiagnosticErrorId.ps1, Test-DiagnosticRecordFinalizer.ps1, Test-DiagnosticPathSanitization.ps1, and Test-C54PatternContract.ps1.
-- C-45/C-46 have a tested per-run counter helper. PR #145 records approved C-45 Option A: a conflict in immutable/core attributes under the same `error_id` blocks evidence finalization/publication via a fixed, non-disclosing consistency failure. This does not establish runtime event creation, one-allocation-per-event, propagation/deduplication, conflict detection/enforcement, or concurrency safety.
-- C-47–C-49 and C-52–C-54 have helper/schema synthetic coverage as detailed in the crosswalk. PR #144 adds the pure C-50 token-to-code helper; PR #146 adds the pure C-51 operation-to-phase resolver and synthetic tests. Producer-side precedence selection, semantic context selection, runtime integration, event propagation, and end-to-end evidence remain absent.
-- PR #140 and #141 exact-head Validate/Package Validation passed. PR #144 exact-head Validate and Package Validation passed on 2599f7eff949faa1f0e341aecc53d9d1a980159a. PR #140 post-merge main CI passed. PR #141 post-merge main Validate run 39509903050 and Package Validation run 39509903012 both succeeded on merge SHA 58aeb10e3661b7cd893e1a6bfed0469e29e4089f.
-- P0-008, P0-010, and P0-012 remain open. No real logs, credentials, production paths, Drive operations, archive enablement, deletion behavior, or runtime acceptance evidence were introduced.
-
-
-## OSD-02 timestamp/freshness decision update — 2026-10-21
-
-- **Approved policy specification:** UTC ISO 8601 timestamps with uppercase `Z`; reject malformed, timezone-less, offset-form, or unparseable values; reject finish time before start time.
-- **Approved configurable defaults:** maximum future skew 5 minutes; freshness threshold 24 hours.
-- **Scope:** freshness applies only to timestamps generated/updated during the current execution. Historical manifest age alone does not invalidate history.
-- **Clock assumption:** OS time synchronization is configured; inability to obtain reliable current UTC fails closed for time-dependent operations. No external monitoring service is required.
-- **Still absent:** executable fixed-clock boundary, format/order, invalid-config, clock-unavailable, and historical-age tests; runtime validator and operational evidence. Documentation approval must not be counted as implementation.
+- 追跡ツリー ベースライン: `0fe7ac0428e4596afc77464f8caa4461dd19c5b5` (PR #91 マージ、2026-10-20)。
+- C-28 監査では、PR #78 の example-config/package-builder セマンティック チェックと active-config ランタイム認証が区別されるようになりました。ランタイム アーカイブ ゲート、2 台の PC のマニフェスト/鮮度チェック、クラウド コンテンツの検証、コピー/検証/レコードの順序付け、中断回復は実装されていない/実行されていない、またはブロックされたままです。
+- PR #84 は、境界のある静的な削除の表面のみの証拠として残ります。 PR #91 は、削除ガードを追加したり、完全なソース/構成/コントラクト/パッケージ/ランタイムのネガティブ ケーパビリティを証明したりするものではありません。
+- P0-010 と P0-012 は開いたままです。ドキュメント/パッケージ CI を渡すことは、実行時の受け入れの証拠にはなりません。
 
 
-## OSD-03 approved report-contract compatibility note (2026-10-21)
+<a id="c-29-retry-and-unknown-upload-evidence-slice-pr-95"></a>
+## C-29 の再試行と 不明 - 証拠スライスのアップロード (PR #95)
 
-R1-B/R2-A/R3-B/R4-A/R5-A/R6-A/R7-A are approved. The report contains period summaries only and references the exact manifest and B2 evidence by canonical relative path, schema version, and SHA-256 of exact bytes. Report identity is (pc_id, log_type, run_id, report_schema_version), with no report_id field. Deterministic regeneration uses only immutable validated inputs; it must not re-enumerate mutable source directories. Period completion is complete/incomplete/indeterminate and remains report-only, not a manifest v1 enum. Local publication is authoritative; Drive replication is separate and must be content-verified before cross-PC use. These decisions do not alter manifest v1, B2 evidence structure, A2 inventory digest, or exhaustive count reconciliation. Executable schema, runtime implementation, and tests remain pending.
-
-Evidence status: the new contract test scenarios are planned only and have not been executed. Existing schema/docs CI must not be promoted to runtime evidence.
-
-
-## OSD-03 executable schema implementation slice — PR #150 (2026-10-21)
-
-- Added `contracts/aggregation-report-v1.schema.json` as a strict Draft 2020-12 structural schema candidate for the approved R1–R7 report shape. It rejects unknown properties, `report_id`, unsupported/non-integer report schema versions, invalid enums/count types, non-UTC-Z timestamps, malformed lowercase SHA-256 values, and non-canonical relative paths.
-- Added schema-definition and synthetic structural-contract tests in `tests/test_contract_schemas.py`. They cover partial-failure and zero-work examples, all three period completion values, strict versioning, unknown fields, reference path/hash validation, timestamp form, enums/counts, and run-scope error shape.
-- These tests are authored but **not yet executed/evidenced** in this PR. CI must pass on the exact latest PR HEAD before merge. No runtime report reader/writer, cross-artifact digest verification, tuple/path binding, count recomputation, deterministic regeneration, atomic publication, lock integration, or Drive replication implementation is included in this slice.
-- The JSON Schema validates structure only. Cross-field and cross-artifact invariants remain mandatory fail-closed runtime checks; schema acceptance alone is not proof of report correctness or authorization for any side effect.
-- No manifest v1 fields, B2 evidence contract, A2 digest contract, or OSD-02 safety boundaries are changed. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion.
+- ソース: docs/decisions/decision-register-c18-c32.md C-18/C-29 および docs/design/powershell-python-contract.md §§6–8。
+- 要件 ID: EOLM-DRV-001/002/003/006/008/009/010;関連する証拠要件 EOLM-TST-004/005。
+- シナリオ ID: RETRY-01–06 (docs/validation/runtime-safety-test-scenarios.md.)
+- 現在の成果物: 決定/契約の散文および JSON 要求/応答スキーマ テストのみ。 Python ドライブ アダプター、再試行オーケストレーター、ドライブのページネーション/調整の実装、または実行可能な再試行テストはありません。
+- 重要な違い: 完了 クエリが成功し、候補がないことが証明された場合は、失敗した、部分的、アクセス不能、または 曖昧 状態と異なります。前者のみが、承認された信頼/同一性 ルールに従って、契約の確認済み不在ブランチを満たすことができます。 OSD-01 は、既存のマークされていないオブジェクトの受け入れを依然としてブロックします。
+- ステータス: すべての RETRY シナリオが実装されていない/実行されていません。 P0-010 は開いたままです。認証情報、実際のドライブ データ、運用パス、実際のログ、または削除動作は対象外です。
 
 
-## PR #151 status note — OSD-03 internal consistency slice (2026-10-22)
+<a id="c-26-manifest-artifact-inventory--pr-100"></a>
+## C-26 マニフェスト 成果物 インベントリ — PR #100
 
-PR #150 merged the structural aggregation-report v1 JSON Schema and its synthetic schema tests; PR-head and post-merge CI passed. PR #151 adds a report-local PowerShell consistency validator and synthetic tests for period uniqueness, safe reference paths/digest shape, summary count reconciliation, completion consistency, run-scope error count, and zero-work/success consistency. Until PR #151 CI passes on its exact latest HEAD, these tests are authored but not yet verified. This slice does not validate exact referenced manifest/evidence bytes, B2/A2 integrity, full target-set completeness, cross-artifact identity, deterministic regeneration, atomic publication, lock ownership, or Drive replication. P0 acceptance remains open.
+- 存在: staging-file-lifecycle.md、C-26 決定記録、OSD-02/OSD-03 バックログ、および MAN-01–10 シナリオの散文要件。
+- 存在しますが、異なります: contracts/drive-response.schema.json は Python アダプター応答エンベロープのみを検証します。運用可能な実行マニフェスト スキーマとしてカウントしてはなりません。
+- 欠如: メンテナンス マニフェスト JSON Schema、マニフェスト リーダー/ライター、最新実行リゾルバー、遷移バリデーター、アトミック書き込み実装、ランタイム アーカイブ ゲート、および実行可能マニフェスト ライフサイクル テスト。
+- ブロッカー: OSD-02 (残りの遷移/クラッシュ/同時実行性およびランタイム テスト)、OSD-03 (実行/期間の集計)、EOLM-MAN-011 (承認されたポリシーにはランタイムの強制と実行可能テストがまだありません)。タイムスタンプ/鮮度ポリシーは、2026-10-21 決定更新に記録されます。
 
-## OSD-03 status correction — 2026-10-22
 
-PR #151 is merged at `e93f0ea552496831c69efb1e8dd2818ac86f4e5b`. Validate and Package Validation passed on exact PR HEAD `846cfdbb1ce76f3ec1363460c4f0576b7c10a2b6` (runs `39635268289`, `39635268115`) and on the post-merge commit (runs `39636402422`, `39636402408`). The report-local consistency validator is now implemented and CI-verified within its stated scope. PR #152 adds a narrow exact-byte reference verifier; its tests are not yet CI-verified. Neither PR implements full manifest/B2 schema validation, identity binding, A2 digest recomputation, exhaustive target/count reconciliation, deterministic report regeneration, atomic publication, lock recovery, or Drive replication. P0 acceptance remains open.
+<a id="p0-011-acceptance-gate-consistency--pr-101"></a>
+## P0-011 アクセプタンスゲートの一貫性 — PR #101
+
+- 権限のある P0 準備/受け入れゲートは docs/development/implementation-workflow.md §4 に存在し、README.md からリンクされています。
+- P0 アイテムがオープンしている間、必要な決定がブロックされているか未承認であるか、実行時の証拠が存在しない場合、ゲートは P0 の受け入れを明示的に拒否します。ドキュメントのみの変更は実行時の基準を満たすことができません。
+- 決定レジスターは、固定/延期された決定を記録します。それ自体は、全体的な P0 の受け入れの証拠ではありません。ギャップレジスターとトレーサビリティーは、アイテムごとのステータス記録として残ります。
+- この整合性修正は P0-011 を終了しません。メンテナは依然として最終的な文書間の受け入れレビューを実行し、すべての P0-001–012 項目を 完了、ブロック、または証拠付き 未完了 として分類する必要があります。
+
+<a id="latest-tracked-tree-disposition-update-pr-106"></a>
+## 最新の追跡ツリー配置の更新 (PR #106)
+
+- ベースライン: `caf24456400c4b8d57a564c38903022f2e56688a` (PR #106 マージ、2026-10-20)。
+- PR #101 は、P0-011 ステータス レコードを `docs/development/implementation-workflow.md` §4 の権限のあるゲートと調整しました。 PR #102–#105 は監査ベースラインを更新し、ファイル名ヘルパー、履歴インベントリ、およびランタイム センチネル/パッケージ ビルダーの証拠の説明を修正しました。これらの更新はcomplete、最終メンテナーによるレビューや終了はP0-011されませんでした。
+- P0-010 はオープンのままです。ソース監査、インベントリ、トレーサビリティ、実行可能ランタイム テスト、および客観的なランタイム証拠には依然として条項レベルの調整が必要です。 P0-012 は、完了 の削除機能不在証明のためにオープンのままです。
+- ゲートの一貫性の更新は文書による証拠のみです。 `scripts/SyncLogs.ps1` は動作同期ロジックのない監視員のままです。 `scripts/ArchiveLogs.ps1`、運用マニフェスト ライフサイクル、Python ドライブ アダプター、再試行オーケストレーション、およびランタイム IPC ハーネスは存在しないままです。
+
+
+<a id="diagnostic-c-45c-54-helper-evidence--prs-140141"></a>
+## 診断 C-45–C-54 補助証拠 — PR #140/#141
+
+- docs/archive/validation/diagnostic-contract-test-evidence.md. に非規範条項からヘルパー/テストへのクロスウォークを追加しました。これには、Test-DiagnosticErrorId.ps1、Test-DiagnosticRecordFinalizer.ps1、Test-DiagnosticPathSanitization.ps1、および Test-C54PatternContract.ps1 の正確な範囲が記録されます。
+- C-45/C-46 には、テスト済みの実行ごとのカウンター ヘルパーがあります。 PR #145 は承認された C-45 を記録します オプション A: 同じ `error_id` の下の不変/コア属性の競合により、固定された非開示一貫性 失敗 による証拠の最終化/公開がブロックされます。これは、ランタイム イベントの作成、イベントごとに 1 つの割り当て、伝播/重複排除、競合検出/強制、または同時実行の安全性を確立するものではありません。
+- C-47–C-49 および C-52–C-54 には、クロスウォークで詳しく説明されているヘルパー/スキーマ合成カバレッジがあります。 PR #144 は、純粋な C-50 トークンからコードへのヘルパーを追加します。 PR #146 は、純粋な C-51 オペレーションからフェーズへのリゾルバーと合成テストを追加します。プロデューサー側の優先順位の選択、セマンティックコンテキストの選択、ランタイムの統合、イベントの伝播、およびエンドツーエンドの証拠は依然として存在しません。
+- PR #140 および #141 正確なヘッド検証/パッケージ検証に合格しました。 PR #144 正確なヘッド検証とパッケージ検証が 2599f7eff949faa1f0e341aecc53d9d1a980159a に渡されました。 PR #140 マージ後のメイン CI が渡されました。 PR #141 マージ後のメイン検証実行 39509903050 とパッケージ検証実行 39509903012 はどちらもマージ SHA 58aeb10e3661b7cd893e1a6bfed0469e29e4089f で成功しました。
+- P0-008、P0-010、および P0-012 は開いたままです。実際のログ、認証情報、運用パス、ドライブ操作、アーカイブの有効化、削除動作、または実行時の受け入れ証拠は導入されませんでした。
+
+
+<a id="osd-02-timestampfreshness-decision-update--2026-10-21"></a>
+## OSD-02 タイムスタンプ/鮮度決定の更新 — 2026-10-21
+
+- **承認されたポリシー仕様:** UTC ISO 8601 タイムスタンプは大文字 `Z`;不正な形式、タイムゾーンのない値、オフセット形式の値、または解析不可能な値を拒否します。開始時刻より前の終了時刻を拒否します。
+- **承認された構成可能なデフォルト:** 将来の最大スキュー 5 分。鮮度閾値24時間。
+- **Scope:** 鮮度は、現在の実行中に生成/更新されたタイムスタンプにのみ適用されます。歴史上の明示的な経過時間だけでは、歴史が無効になるわけではありません。
+- **クロックの仮定:** OS の時刻同期が構成されています。信頼できる電流 UTC を取得できないため、時間依存の操作ではフェイルクローズされます。外部監視サービスは必要ありません。
+- **まだ存在しません:** 実行可能な固定クロック境界、形式/順序、無効な構成、クロック 利用不能、および履歴期間のテスト。ランタイムバリデータと運用上の証拠。文書の承認は実装としてカウントしてはなりません。
+
+
+<a id="osd-03-approved-report-contract-compatibility-note-2026-10-21"></a>
+## OSD-03 はレポートと契約の互換性に関するメモ (2026-10-21) を承認しました
+
+R1-B/R2-A/R3-B/R4-A/R5-A/R6-A/R7-A は承認されています。レポートには期間の概要のみが含まれており、正規の相対パス、スキーマ バージョン、正確なバイト数の SHA-256 によって正確なマニフェストと B2 証拠が参照されます。レポート ID は (pc_id、log_type、run_id、report_schema_version) で、report_id フィールドはありません。決定論的再生成では、不変の検証済み入力のみが使用されます。変更可能なソース ディレクトリを再列挙してはなりません。期間の完了は 完了/未完了/確定不能 であり、マニフェスト v1 列挙型ではなくレポートのみのままです。ローカルの公開済み成果物を正本とします。ドライブのレプリケーションは個別に行われるため、PC 間で使用する前に 内容確認済み にする必要があります。これらの決定は、マニフェスト v1、B2 証拠構造、A2 一覧ダイジェスト、または徹底的なカウント調整を変更しません。実行可能スキーマ、ランタイム実装、およびテストは 未確定 のままです。
+
+証拠ステータス: 新しい契約テスト シナリオは計画されているだけで、実行されていません。既存のスキーマ/ドキュメント CI を実行時証拠に昇格させてはなりません。
+
+
+<a id="osd-03-executable-schema-implementation-slice--pr-150-2026-10-21"></a>
+## OSD-03 実行可能スキーマ実装スライス — PR #150 (2026-10-21)
+
+- 承認された R1 ～ R7 レポート形式の厳密なドラフト 2020-12 構造スキーマ候補として `contracts/aggregation-report-v1.schema.json` を追加しました。 不明 プロパティ、`report_id`、サポートされていない/非整数のレポート スキーマ バージョン、無効な列挙型/カウント タイプ、非 UTC-Z タイムスタンプ、不正な形式の小文字 SHA-256 値、および非正規相対パスは拒否されます。
+- `tests/test_contract_schemas.py` にスキーマ定義と合成構造契約テストを追加しました。部分的な 失敗 およびゼロ作業の例、3 つの期間完了値すべて、厳密なバージョン管理、不明 フィールド、参照パス/ハッシュ検証、タイムスタンプ形式、列挙型/カウント、および実行スコープのエラー形状をカバーしています。
+- これらのテストは作成されていますが、この PR では **まだ実行も証拠化もされていません** が証明されています。 CI は、マージ前に正確な最新の PR HEAD を渡す必要があります。このスライスには、ランタイム レポート リーダー/ライター、クロス 成果物 ダイジェスト検証、タプル/パス バインディング、カウント再計算、確定的再生成、アトミック パブリケーション、ロック統合、またはドライブ レプリケーションの実装は含まれません。
+- JSON Schema は構造のみを検証します。クロスフィールドおよびクロス成果物の不変条件は引き続き必須のフェールクローズ実行時チェックです。スキーマの受け入れだけでは、レポートの正確性や副作用の承認の証拠にはなりません。
+- マニフェスト v1 フィールド、B2 証拠コントラクト、A2 ダイジェスト コントラクト、または OSD-02 安全境界は変更されません。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。
+
+
+<a id="pr-151-status-note--osd-03-internal-consistency-slice-2026-10-22"></a>
+## PR #151 ステータスメモ — OSD-03 内部整合性スライス (2026-10-22)
+
+PR #150 は、構造集約レポート v1 JSON Schema とその合成スキーマ テストをマージしました。 PR ヘッドとマージ後の CI が合格しました。 PR #151 は、レポートローカルの PowerShell 一貫性検証機能と、期間の一意性、安全な参照パス/ダイジェスト形状、要約数の調整、完了の一貫性、実行スコープのエラー数、およびゼロ作業/成功 の一貫性についての合成テストを追加します。 PR #151 CI がその正確な最新の HEAD を渡すまで、これらのテストは作成されますが、まだ 確認済み は作成されていません。このスライスは、正確に参照されるマニフェスト/証拠バイト、B2/A2 整合性、完全なターゲット セットの完全性、クロス成果物 ID、決定論的再生成、アトミック パブリケーション、ロック所有権、またはドライブ レプリケーションを検証しません。 P0 の受付は引き続き受け付けております。
+
+<a id="osd-03-status-correction--2026-10-22"></a>
+## OSD-03 ステータス修正 — 2026-10-22
+
+PR #151 は `e93f0ea552496831c69efb1e8dd2818ac86f4e5b` にマージされます。検証およびパッケージ検証は、正確な PR HEAD `846cfdbb1ce76f3ec1363460c4f0576b7c10a2b6` (`39635268289`、`39635268115` を実行) およびマージ後のコミット (`39636402422`、`39636402408` を実行) に渡されます。レポートローカル整合性検証機能が実装され、CI ～ 確認済み はその指定された範囲内に収まります。 PR #152 は、狭い正確なバイト参照検証機能を追加します。そのテストはまだ CI-確認済み ではありません。どちらの PR も、完全なマニフェスト/B2 スキーマ検証、ID バインディング、A2 ダイジェスト再計算、徹底的なターゲット/カウント調整、決定論的レポート再生成、アトミック パブリケーション、ロック回復、またはドライブ レプリケーションを実装していません。 P0 の受付は引き続き受け付けております。

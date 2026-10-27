@@ -1,76 +1,83 @@
-# Derived Aggregation Report v1 Proposal
+<a id="derived-aggregation-report-v1-proposal"></a>
+# 派生集計レポート v1 プロポーザル
 
-> 2026-10-27 compatibility boundary: [Q1–Q10 and flattening](../../requirements/log-move-requirements.md) require per-file movement through source deletion without both-PC period waiting. The existing v1 schema/helper behavior and dated evidence below are unchanged. A v1 `verified`/report/latest-manifest result is not proof of completed movement or permission to delete; both-PC selection/report completeness is not a new archive prerequisite. Deletion-state/IPC/persistence revisions remain detailed-design work. Do not alter old immutable artifacts or infer a schema upgrade from this policy note.
+> 2026-10-27 互換性境界: [Q1〜Q10 と平坦化](../../requirements/log-move-requirements.md) では、両方の PC の期間を待たずにソース削除によるファイルごとの移動が必要です。既存の v1 スキーマ/ヘルパーの動作と以下の日付の証拠は変更されていません。 v1 `verified`/report/latest-manifest の結果は、移動の完了または削除の許可を証明するものではありません。両方の PC の選択/レポートの完全性は、新しいアーカイブの前提条件ではありません。削除状態/IPC/永続化のリビジョンは詳細設計作業のままです。古い不変の成果物を変更したり、このポリシー ノートからスキーマのアップグレードを推測したりしないでください。
 
-- Status: derived-report representation and R1–R7 report-contract policy approved on 2026-10-21; structural JSON Schema v1 merged in PR #150; report-local consistency checks merged in PR #151; exact-byte reference helper merged in PR #152; B2 schema merged in PR #153; manifest schema merged in PR #154. PR #155 adds an independently callable schema/identity validator for report-referenced artifacts; PR #156 adds a validation-only A2/B2 digest and count-reconciliation helper. Production entry-point integration and full acceptance remain pending.
-- Decision basis: C-33 and the OSD-02/OSD-03 representation decision dated 2026-10-21.
-- Scope: persist run/period aggregation results and run-scope validation errors without changing the approved manifest v1 field set.
-- Non-goal: this document does not claim runtime implementation or executable test evidence.
-- Decision support: see [Aggregation Inventory Integrity — Decision Options](../../archive/decisions/aggregation-inventory-integrity-options.md) for remaining inventory hashing and completeness-evidence decisions.
-- Enumeration/validation evidence schema draft: [Run Input Evidence v1 Proposal](../run-input-evidence-v1-proposal.md). B2 representation, count reconciliation, source-entry universe, canonicalization, traversal completion rule (C-41), best-effort concurrent source mutation detection (C-42), enumeration status semantics (C-43), and distinct-event enumeration error counting (C-44) are approved; executable schema and synthetic contract tests are introduced in PR #153; cross-artifact runtime implementation remains pending.
-- Approved storage direction (2026-10-21): local authoritative report/evidence artifacts with verified Google Drive copies for access from both PCs. A Drive copy is not authoritative/available to consumers until identity and content verification succeeds; publication must follow the approved OSD-02 atomic create-if-absent and lock ownership controls; implementation remains pending.
-- G1 generated-UTC derivation approved 2026-10-24: use the later original finish-UTC string from exact manifest/B2 inputs, choosing the manifest spelling for equal instants. The [selected-policy record](../../archive/decisions/selected-policy-decisions-20261024.md#3-g1の確定規則) is authoritative; builder/reference-validator follow-up is implemented with synthetic tests; formal publication/regeneration acceptance remains incomplete.
-- Approved inventory digest direction (2026-10-21): A2 versioned length-prefixed records; exact contract and reference vectors are recorded in `docs/archive/decisions/aggregation-inventory-integrity-options.md`. B2 immutable run-input evidence, embedded inventory, exhaustive count reconciliation, and canonical evidence digest rules are approved and specified in `docs/design/run-input-evidence-v1-proposal.md` and `docs/archive/decisions/aggregation-inventory-integrity-options.md`.
+- ステータス: 派生レポートの表現と R1 ～ R7 のレポート契約ポリシーが 2026-10-21 で承認されました。構造 JSON Schema v1 は PR #150 にマージされました。レポートローカル整合性チェックが PR #151 にマージされました。正確なバイト参照ヘルパーが PR #152 にマージされました。 B2 スキーマが PR #153 にマージされました。マニフェスト スキーマは PR #154 にマージされました。 PR #155 は、レポート参照成果物に対して独立して呼び出し可能なスキーマ/同一性検証ツールを追加します。 PR #156 は、検証専用の A2/B2 ダイジェストおよびカウント調整ヘルパーを追加します。実稼働エントリポイントの統合と完全な受け入れは 未確定 のままです。
+- 決定根拠: C-33 および OSD-02/OSD-03 の代表決定の日付は 2026-10-21 です。
+- スコープ: 承認されたマニフェスト v1 フィールド セットを変更せずに、実行/期間の集計結果と実行スコープの検証エラーを保持します。
+- 非目標: このドキュメントは、ランタイム実装または実行可能なテストの証拠を主張しません。
+- 意思決定サポート: 残りの一覧ハッシュと完全性証拠の決定については、[集約インベントリの整合性 - 意思決定オプション](../../archive/decisions/aggregation-inventory-integrity-options.md) を参照してください。
+- 列挙/検証証拠スキーマのドラフト: [入力証拠 v1 プロポーザルを実行](../run-input-evidence-v1-proposal.md)。 B2 表現、カウント調整、ソース エントリ ユニバース、正規化、トラバーサル完了ルール (C-41)、ベストエフォート型同時ソース変異検出 (C-42)、列挙ステータス セマンティクス (C-43)、および個別イベント列挙エラー カウント (C-44) が承認されています。実行可能スキーマと合成コントラクト テストは PR #153 で導入されています。クロス成果物 ランタイム実装は 未確定 のままです。
+- 承認されたストレージ方向 (2026-10-21): 両方の PC からのアクセスのための 確認済み Google Drive コピーを含むローカルの信頼できるレポート/証拠成果物。 ID とコンテンツの検証が成功するまで、ドライブのコピーは権限がなく、消費者は利用できません。公開は、承認された OSD-02 アトミックな存在しない場合の作成およびロック所有権制御に従う必要があります。実装はpendingのままです。
+- G1 生成 - UTC 導出承認 2026-10-24: 正確なマニフェスト/B2 入力からの後のオリジナルの仕上げ - UTC 文字列を使用し、等しい瞬間のマニフェスト スペルを選択します。 [選択されたポリシー レコード](../../archive/decisions/selected-policy-decisions-20261024.md#3-g1の確定規則) には権威があります。 builder/reference-validator のフォローアップは合成テストで実装されます。正式な出版/再生成の受け入れは 未完了 のままです。
+- 承認された一覧ダイジェスト方向 (2026-10-21): A2 バージョン化された長さプレフィックス付きレコード。正確なコントラクトと参照ベクトルは `docs/archive/decisions/aggregation-inventory-integrity-options.md` に記録されます。 B2 不変実行入力証拠、埋め込みインベントリ、網羅的カウント調整、および正規証拠ダイジェスト ルールが承認され、`docs/design/run-input-evidence-v1-proposal.md` および `docs/archive/decisions/aggregation-inventory-integrity-options.md` で指定されています。
 
-## Fixed JSON parse failures in referenced inputs (2026-10-26)
+<a id="fixed-json-parse-failures-in-referenced-inputs-2026-10-26"></a>
+## 参照された入力の JSON 解析エラーを修正しました (2026-10-26)
 
-The referenced-artifact validator maps JSON decoding ValueError and parsing RecursionError to fixed `malformed_json` for the report, manifest, B2 evidence and all three schema inputs. It returns the ordinary rejected result rather than leaking an interpreter recursion failure to the caller. The CLI preserves JSON output and exit code 2 with no traceback; the latest-manifest/report wrapper receives rejection and uses its existing `selected_manifest_report_invalid` failure.
+参照成果物の検証器は、レポート、マニフェスト、B2 証拠、3つの入力スキーマすべてについて、JSON のデコード時のValueErrorと解析時のRecursionErrorを固定の `malformed_json` に対応させる。インタープリターの再帰エラーを呼び出し側へ漏らさず、通常の拒否結果を返す。CLIはトレースバックを出さず JSON 出力と終了コード 2 を維持する。最新マニフェスト・レポートのラッパーは拒否を受け、既存の `selected_manifest_report_invalid` の失敗を使う。
 
-Floating-point tokens that overflow to nonfinite values (for example an exponent outside float range) use fixed `invalid_json_constant`, matching rejection of NaN/Infinity/-Infinity and the report builder's existing finite-float rule. Finite float tokens remain floats, original read bytes remain unchanged, and later schema/type/semantic checks remain required. No input is repaired or coerced into a valid report.
+非有限値にオーバーフローする浮動小数点トークン (浮動小数点範囲外の指数など) は固定 `invalid_json_constant` を使用し、NaN/Infinity/-Infinity の拒否とレポート ビルダーの既存の有限浮動小数点ルールに一致します。有限浮動小数点トークンは浮動小数点のままで、元の読み取りバイトは変更されず、後のスキーマ/型/セマンティック チェックが必要なままになります。入力が修復されたり、有効なレポートに強制されたりすることはありません。
 
-Synthetic read-stability tests inject excessive nesting and nonfinite numbers into each read input, verify byte preservation, and cover finite floats and CLI behavior. The report-selection suite verifies fixed wrapper rejection. This does not select a numeric depth/JSON-complexity budget, guarantee bounded parser resources or qualify runtime/Drive operations; caller byte budgets remain separate controls.
+合成読み取り安定性テストは、過剰なネストと非有限数を各読み取り入力に挿入し、バイト保存を検証し、有限浮動小数点と CLI の動作をカバーします。レポート選択スイートは、修正されたラッパーの拒否を検証します。これは、数値の深さ/JSON-複雑さのバジェットを選択したり、制限されたパーサー リソースを保証したり、ランタイム/ドライブ操作を制限したりするものではありません。呼び出し元のバイト バジェットは別個の制御のままです。
 
-## Caller-selected local read bounds (2026-10-26)
+<a id="caller-selected-local-read-bounds-2026-10-26"></a>
+## 呼び出し元が選択したローカル読み取り境界 (2026-10-26)
 
-`validate_referenced_artifacts` accepts optional `maximum_artifact_bytes`, a positive exact integer or None. Invalid values (including bool) return fixed reason `artifact_read_limit_invalid` before filesystem I/O. None selects no caller size ceiling. No production ceiling, schema constraint or retention policy is chosen. The CLI exposes the same control as `--maximum-artifact-bytes`; a rejected validation retains JSON output and exit code 2.
+`validate_referenced_artifacts` は、オプションの `maximum_artifact_bytes`、正の正確な整数、または None を受け入れます。無効な値 (ブール値を含む) は、ファイルシステム I/O の前に固定理由 `artifact_read_limit_invalid` を返します。 [なし] を選択すると、発信者サイズの上限がありません。実稼働上限、スキーマ制約、保持ポリシーは選択されません。 CLI は `--maximum-artifact-bytes` と同じコントロールを公開します。拒否された検証では、JSON 出力と終了コード 2 が保持されます。
 
-The bound applies independently to the report, referenced manifest and B2 evidence, and all three schema files, including final read-set verification. Each input's inspected size is checked before its payload opens; excess returns `artifact_read_limit_exceeded`. Reads always use chunks of at most 65,536 bytes and stop after the inspected size plus one byte. Observed growth returns `artifact_changed_during_read`, including when no caller ceiling was supplied. Existing path/handle/ancestor signatures, exact-byte hashes, semantic rederivation and final read-set comparisons remain required. A resource failure rejects the entire result with no verified artifact subset and no content/path disclosure.
+この境界は、レポート、参照されたマニフェストと B2 証拠、および最終的な読み取りセット検証を含む 3 つのスキーマ ファイルすべてに独立して適用されます。各入力の検査されたサイズは、ペイロードが開く前にチェックされます。超過すると `artifact_read_limit_exceeded` が返されます。読み取りでは常に最大 65、536 バイトのチャンクが使用され、検査されたサイズに 1 バイトを加えた後に停止します。呼び出し元の上限が指定されていない場合を含め、観察された増加は `artifact_changed_during_read` を返します。既存のパス/ハンドル/祖先の署名、正確なバイトのハッシュ、セマンティックの再導出、および最終的な読み取りセットの比較は引き続き必要です。リソース 失敗 は、確認済み 成果物 サブセットもコンテンツ/パスの開示も持たず、結果全体を拒否します。
 
-`read_latest_manifest_with_report` forwards this option to the report validator and rejects invalid values before manifest I/O. Its separate manifest candidate/total-byte and directory-entry limits continue to govern the surrounding directory observations; `maximum_artifact_bytes` does not replace those limits.
+`read_latest_manifest_with_report` は、このオプションをレポートバリデーターに転送し、マニフェスト I/O の前に無効な値を拒否します。その個別のマニフェスト候補/合計バイト数とディレクトリ エントリの制限は、引き続き周囲のディレクトリの観察を制御します。 `maximum_artifact_bytes` はこれらの制限を置き換えるものではありません。
 
-This per-file control is not an aggregate I/O/memory/JSON-complexity budget, root/FS qualification, an atomic snapshot, ABA protection or runtime authorization. Synthetic tests in [read stability](../../../tests/test_artifact_read_stability.py) and [report selection](../../../tests/test_manifest_report_selection.py) cover each input, exact ceilings, pre-open rejection, growing streams, final rereads, CLI and wrapper integration. Runtime/Drive/durability acceptance remains incomplete.
+このファイルごとの制御は、集約 I/O/メモリ/JSON 複雑さのバジェット、ルート/FS 資格、アトミック スナップショット、ABA 保護、またはランタイム認証ではありません。 [読み取りの安定性](../../../tests/test_artifact_read_stability.py) および [レポートの選択](../../../tests/test_manifest_report_selection.py) の合成テストは、各入力、正確な上限、オープン前の拒否、成長するストリーム、最終的な再読み取り、CLI およびラッパーの統合をカバーします。ランタイム/ドライブ/耐久性の受け入れは 未完了 のままです。
 
-### Aggregate inspected-size budget (2026-10-26)
+<a id="aggregate-inspected-size-budget-2026-10-26"></a>
+### 検査済みサイズの予算の合計 (2026-10-26)
 
-`maximum_total_artifact_bytes` adds an independent optional positive exact integer bound. Invalid values use `artifact_read_limit_invalid` before filesystem I/O. A fresh budget belongs to one validator invocation. Before each payload open, the file's inspected size is admitted against the remaining budget; an excess returns `artifact_total_read_limit_exceeded`, with no payload open for that file and no verified artifact subset. The report, manifest, evidence and all schemas share this budget. Every final read-set reread is charged again; accounting is not deduplicated by path or reset at the final phase. A stable six-file validation therefore admits twice the sum of those file sizes. Later calls start with a fresh budget after either success or rejection.
+`maximum_total_artifact_bytes` は、独立したオプションの正の正確な整数境界を追加します。無効な値では、ファイルシステム I/O の前に `artifact_read_limit_invalid` が使用されます。新しい予算は 1 つのバリデータ呼び出しに属します。各ペイロードを開く前に、検査されたファイルのサイズが残りのバジェットに対して許可されます。超過すると `artifact_total_read_limit_exceeded` が返されますが、そのファイルに対してオープンされているペイロードも 確認済み 成果物 サブセットもありません。レポート、マニフェスト、証拠、およびすべてのスキーマがこの予算を共有します。最後の読み取りセットの再読み取りが行われるたびに、再度課金されます。アカウンティングはパスごとに重複排除されず、最終フェーズでリセットされません。したがって、安定した 6 ファイルの検証では、これらのファイル サイズの合計の 2 倍が許容されます。その後の通話は、成功 または拒否の後に新しい予算で開始されます。
 
-The existing per-file limit applies independently and is checked first. None imposes no aggregate caller ceiling. The CLI exposes `--maximum-total-artifact-bytes`, preserving fixed JSON rejection/exit 2. The report wrapper validates and forwards the option, while its surrounding manifest directory reads remain governed by their separate controls.
+ファイルごとの既存の制限は個別に適用され、最初にチェックされます。 [なし] では、呼び出し元の合計上限が課されません。 CLI は、固定の JSON 拒否/終了 2 を保持しながら、`--maximum-total-artifact-bytes` を公開します。レポート ラッパーはオプションを検証して転送しますが、周囲のマニフェスト ディレクトリの読み取りは個別のコントロールによって管理されたままになります。
 
-This measures admitted inspected sizes, not physical disk I/O, cache traffic or total memory. The existing growth probe may read one byte beyond the admitted initial size before rejecting the invocation as changed; a failed invocation stops without retrying or refunding reservations. JSON complexity, read latency, root/FS qualification, atomicity/ABA and runtime authorization remain outside this control. No default production limit, schema change or retention policy is selected. The same synthetic suites cover exact aggregate boundaries, schema/pre-open rejection, final-phase accounting, independent invocations, both limits together and CLI/wrapper forwarding.
+これは、物理ディスク I/O、キャッシュ トラフィック、または合計メモリではなく、許可された検査サイズを測定します。既存の拡張プローブは、変更されたとして呼び出しを拒否する前に、許可された初期サイズを 1 バイト超えて読み取る可能性があります。 失敗した の呼び出しは、予約の再試行や払い戻しを行わずに停止します。 JSON 複雑さ、読み取りレイテンシー、ルート/FS 資格、アトミック性/ABA、および実行時認可は、この制御の範囲外のままです。デフォルトの実稼働制限、スキーマ変更、または保持ポリシーは選択されていません。同じ合成スイートは、正確な集計境界、スキーマ/プレオープン拒否、最終フェーズのアカウンティング、独立した呼び出し、両方の制限の組み合わせ、および CLI/ラッパー転送をカバーします。
 
-## 1. Design principles
+<a id="1-design-principles"></a>
+## 1. 設計原則
 
-1. Preserve the approved manifest v1 field set and its strict validation rules. Do not add period-summary or unassigned-error fields to that manifest.
-2. Produce one derived aggregation report per maintenance run, linked to the originating manifest by `run_id` and manifest identity.
-3. Derive file outcomes from the originating run manifest and period eligibility from the frozen filename-based inventory. Never use `LastWriteTime` as a period fallback.
-4. Record unclassifiable relevant filenames as run-scope validation errors. Do not invent a period for them.
-5. A report may certify a period complete only when report identity, inventory, file outcomes, and relevant error scope can all be validated.
-6. Missing, malformed, stale, or inconsistent evidence must fail closed. It must never be interpreted as a complete period.
-7. This report is derived evidence, not a replacement for the run manifest and not authorization to archive or delete any source.
+1. 承認されたマニフェスト v1 フィールド セットとその厳密な検証ルールを保持します。そのマニフェストに period-summary フィールドや unassigned-error フィールドを追加しないでください。
+2. `run_id` およびマニフェスト ID によって元のマニフェストにリンクされた、メンテナンス実行ごとに 1 つの派生集計レポートを生成します。
+3. 元の実行マニフェストからファイル結果を取得し、凍結されたファイル名ベースのインベントリから期間適格性を取得します。期間フォールバックとして `LastWriteTime` を決して使用しないでください。
+4. 分類できない関連ファイル名を実行範囲検証エラーとして記録します。彼らのために期間をでっち上げないでください。
+5. レポートは、レポートの ID、インベントリ、ファイルの結果、および関連するエラー範囲がすべて検証できる場合にのみ、期間 完了 を認定できます。
+6. 証拠が欠落している、形式が間違っている、古い、または一貫性がない場合は、フェイルクローズする必要があります。これを 完了 期間として解釈してはなりません。
+7. このレポートは派生証拠であり、実行マニフェストに代わるものではなく、ソースをアーカイブまたは削除する権限を与えるものでもありません。
 
-## 2. Storage and identity
+<a id="2-storage-and-identity"></a>
+## 2. ストレージと同一性
 
-Proposed local authoritative directory:
+提案されたローカル権限のあるディレクトリ:
 
 ```text
 <local-maintenance-root>/_maintenance/aggregation-reports/<PC-ID>/
 ```
 
-Publish a verified copy to the configured Google Drive maintenance root using the existing verified-upload discipline. The canonical local root and Drive destination mapping must be configuration-defined, not guessed from the current working directory. Local report creation and Drive replication are separate states: replication failure must leave the validated local artifact intact and must not claim cross-PC availability. The report identity is exactly (pc_id, log_type, run_id, report_schema_version); no separate report_id is stored.
+既存の 確認済み アップロード規則を使用して、構成された Google Drive メンテナンス ルートに 確認済み コピーを公開します。正規のローカル ルートとドライブの宛先マッピングは、現在の作業ディレクトリから推測するのではなく、構成で定義する必要があります。ローカル レポートの作成とドライブのレプリケーションは別の状態です。レプリケーション 失敗 では、検証されたローカル 成果物をそのままにしておく必要があり、PC 間の可用性を要求してはなりません。レポート ID は正確に (pc_id、log_type、run_id、report_schema_version) です。個別の report_id は保存されません。
 
-Canonical filename derived from the identity tuple:
+ID タプルから派生した正規のファイル名:
 
 ```text
 <PC-ID>_<LogType>_<run_id>_v<report_schema_version>.aggregation.json
 ```
 
-The PC ID, log type, and run ID in the filename must exactly match the corresponding report fields and the referenced manifest identity. The report must reference the manifest by its canonical relative path or exact manifest filename; implementations must not discover a manifest by guessing from timestamps.
+ファイル名の PC ID、ログ タイプ、および実行 ID は、対応するレポート フィールドおよび参照されるマニフェスト ID と正確に一致する必要があります。レポートは、正規の相対パスまたは正確なマニフェスト ファイル名でマニフェストを参照する必要があります。実装はタイムスタンプから推測してマニフェストを検出してはなりません。
 
-One report is produced for one run. It may contain summaries for multiple periods and run-scope errors that cannot be assigned to a period.
+1 回の実行に対して 1 つのレポートが作成されます。複数の期間の概要や、期間に割り当てることができない実行範囲エラーが含まれる場合があります。
 
-## 3. Proposed JSON schema shape
+<a id="3-proposed-json-schema-shape"></a>
+## 3. 提案された JSON スキーマ形状
 
-The approved structural contract is implemented as a Draft 2020-12 schema in `contracts/aggregation-report-v1.schema.json` (PR #150); PR-head and post-merge CI passed. A bounded report-local consistency validator in `Common/AggregationReportValidation.ps1` merged in PR #151 and passed CI. A separate exact-byte reference helper in `Common/AggregationArtifactReference.ps1` was merged in PR #152. Neither replaces schema validation and cross-artifact semantic checks. Full acceptance remains pending.
+承認された構造契約は、`contracts/aggregation-report-v1.schema.json` の草案 2020-12 スキーマとして実装されます (PR #150)。 PR ヘッドとマージ後の CI が合格しました。 `Common/AggregationReportValidation.ps1` の制限されたレポートローカル整合性検証ツールは PR #151 にマージされ、CI に渡されました。 `Common/AggregationArtifactReference.ps1` の別の正確なバイト参照ヘルパーが PR #152 にマージされました。どちらも、スキーマ検証と成果物間のセマンティック チェックを置き換えるものではありません。完全な承認は 未確定 のままです。
 
 ```json
 {
@@ -130,176 +137,191 @@ The approved structural contract is implemented as a Draft 2020-12 schema in `co
 }
 ```
 
-Illustrative values only; the sample counts and values are not test evidence. The report should avoid secrets, OAuth data, file contents, and unsanitized exception text.
+値は例示のみです。サンプル数と値はテストの証拠ではありません。レポートでは、機密情報、OAuth データ、ファイルの内容、およびサニタイズされていない例外テキストを避ける必要があります。
 
-### 3.1 Field intent
+<a id="31-field-intent"></a>
+### 3.1 フィールドの意図
 
-| Field | Purpose / validation |
+|フィールド|目的 / 検証|
 |---|---|
-| `report_schema_version` | Required integer; reject missing, malformed, or unsupported versions. No implicit migration. |
-| Identity | The tuple (pc_id, log_type, run_id, report_schema_version) is the unique report identity; no report_id field is stored. |
-| `run_id`, `pc_id`, `log_type` | Must match the originating manifest identity. |
-| `manifest_ref` | Canonical relative path, schema version, and SHA-256 of exact validated manifest bytes; referenced manifest must be parsed and validated. |
-| `generated_at_utc` | Approved G1: compare exact manifest.finished_at_utc and B2.enumeration.finished_at_utc as UTC instants without rounding; preserve the later original string, or the manifest's original spelling for equal instants. An immutable-input anchor, not actual report-write time, freshness or cloud-observation proof. |
-| `evidence_ref` | Canonical relative path, schema version, and SHA-256 of exact validated B2 run-input evidence bytes. |
-| `inventory_ref` | Identifies the exact frozen eligible inventory; count and digest must match the validated manifest target list and B2 evidence. |
-| `run_aggregation` | Summary must be reproducible from validated file outcomes, enumeration/validation results, and run-scope errors. |
-| `periods` | One summary-only entry per period; eligible targets are resolved from manifest and B2 evidence, not duplicated in the report. Completion is complete, incomplete, or indeterminate. |
-| `run_scope_errors` | Errors that cannot be assigned to one period; period must be null and they must not be silently dropped. |
+| `report_schema_version` |必須の整数。欠落しているバージョン、不正なバージョン、またはサポートされていないバージョンを拒否します。暗黙的な移行はありません。|
+| Identity |タプル (pc_id、log_type、run_id、report_schema_version) は一意のレポート ID です。 report_id フィールドは保存されません。|
+| `run_id`, `pc_id`, `log_type` |元のマニフェスト ID と一致する必要があります。|
+| `manifest_ref` |正規の相対パス、スキーマ バージョン、および正確に検証されたマニフェスト バイトの SHA-256。参照されたマニフェストを解析して検証する必要があります。|
+| `generated_at_utc` |承認済み G1: 丸めなしで正確な manifest.finished_at_utc と B2.enumeration.finished_at_utc を UTC インスタントとして比較します。後の元の文字列、またはマニフェストの元のスペルを同じ時点で保持します。不変の入力アンカーであり、実際のレポート作成時間、鮮度、雲観察の証拠ではありません。|
+| `evidence_ref` |正規相対パス、スキーマ バージョン、および正確に検証された B2 実行入力証拠バイトの SHA-256。|
+| `inventory_ref` |凍結された対象となる一覧を正確に特定します。カウントとダイジェストは、検証されたマニフェスト ターゲット リストと B2 証拠と一致する必要があります。|
+| `run_aggregation` |要約は、検証されたファイルの結果、列挙/検証結果、および実行スコープのエラーから再現可能である必要があります。|
+| `periods` |期間ごとに 1 つの概要のみのエントリ。対象となるターゲットはマニフェストと B2 の証拠から解決され、レポートでは重複しません。完了には、完了、不完全、または不確定があります。|
+| `run_scope_errors` |1 つの期間に割り当てることができないエラー。 period は null である必要があり、サイレントに削除してはなりません。|
 
-The inventory digest contract A2 (versioned length-prefixed records) and immutable B2 run-input evidence direction are approved and specified in `docs/archive/decisions/aggregation-inventory-integrity-options.md` and `docs/design/run-input-evidence-v1-proposal.md`. The storage direction C3 (local authoritative artifacts plus verified Drive copies) is also approved. The report structural schema candidate is in PR #150; B2's executable schema, reference-vector tests, cross-artifact runtime validation, report publication/recovery, and Drive replication remain pending.
+一覧ダイジェスト契約 A2 (バージョン管理された長さプレフィックス付きレコード) および不変 B2 実行入力証拠の方向が承認され、`docs/archive/decisions/aggregation-inventory-integrity-options.md` および `docs/design/run-input-evidence-v1-proposal.md` で指定されています。ストレージ方向 C3 (ローカルの信頼できる成果物と 確認済み ドライブのコピー) も承認されます。レポートの構造スキーマの候補は PR #150 にあります。 B2 の実行可能スキーマ、参照ベクトル テスト、クロス成果物 ランタイム検証、レポート発行/回復、およびドライブ レプリケーションは 未確定 のままです。
 
-## 4. Aggregation semantics
+<a id="4-aggregation-semantics"></a>
+## 4. 集約セマンティクス
 
-Implementation slice: `Common/AggregationReportBuilder.py` currently derives report bytes from explicit exact manifest/B2 bytes and caller-supplied trusted static schemas, canonical references, G1-derived UTC, reliable current UTC and future tolerance (default/maximum five minutes, configurable down to zero). It reuses A2/B2 and manifest-inventory checks, validates terminal verification outcomes, and performs no source scan, filesystem/Drive/lock/publication or status mutation. T-01–12 synthetic tests cover both log types; report periods use filename-derived months, including ErrorReport, independently of the manifest's annual target_period. All supplied relevant errors remain accounted for as period counts or unassigned run-scope records. A completed validation with exhaustive accounting can preserve an independently complete known period despite an unclassifiable error. Incomplete validation is not promoted by matching counts; unaffected periods remain indeterminate without the required coverage evidence. As of 2026-10-25 the source helper implements B2 V1 classification completion independently of invalid-input errors, while enumeration/read/hash uncertainty remains incomplete. The report builder derives G1 from exact immutable finish timestamps; optional caller UTC is an equality assertion, never a time source. The referenced-artifact validator also rejects a different G1 string. Producer/report integration and precision/tie/regeneration tests use synthetic inputs; formal writer/publication and runtime regeneration acceptance remain incomplete. This slice does not implement full transition enforcement, runtime acceptance, cloud verification or authorization. See the [V1/G1 comparison history](../../archive/decisions/b2-validation-coverage-report-time-options.md) and [selection record](../../archive/decisions/selected-policy-decisions-20261024.md).
+実装範囲: `Common/AggregationReportBuilder.py` は、明示された厳密なマニフェスト/B2 のバイト列と、呼び出し側が渡す信頼済み静的スキーマ・正規参照・G1由来の UTC・信頼できる現在の UTC・未来時刻の許容差からレポートを生成する。許容差は既定・上限とも5分で、0まで縮小できる。A2/B2 とマニフェスト・一覧の検証を再利用し、終端の検証結果を検証する。元の走査、ファイルシステム・Drive・ロック・公開・状態変更は行わない。T-01〜12 の合成試験は両ログ種別を扱う。レポートの期間は、マニフェストの年単位の target_period とは独立し、ErrorReport を含むファイル名由来の月を使う。渡された関連エラーは、期間別件数または期間未割当の実行単位の記録にすべて計上する。検証が完了し網羅的に計上できれば、分類不能エラーがあっても独立して完了した既知の期間を維持できる。件数の一致だけで未完了の検証を完了へ昇格させない。必要な網羅性の証拠がなければ、影響のない期間も確定不能のままとする。2026-10-25 時点の元データヘルパーは、無効入力エラーと独立した B2 V1の分類完了を実装するが、列挙・読み取り・ハッシュの不確実性は未完了とする。レポート生成器は厳密で不変の終了時刻からG1を導出する。任意の呼び出し側 UTC は一致の表明であり、時刻源にはしない。参照成果物の検証器も別のG1文字列を拒否する。生成側・レポートの統合、精度・同時刻・再生成の試験は合成入力を使う。正式な書き込み・公開と実行時の再生成受け入れは未完了である。この範囲は、遷移規則全体の強制、実運用受け入れ、クラウド検証、認可を実装しない。[V1/G1 比較履歴](../../archive/decisions/b2-validation-coverage-report-time-options.md) と [選択レコード](../../archive/decisions/selected-policy-decisions-20261024.md) を参照。
 
-Use the approved OSD-03 policy in `docs/archive/decisions/osd-03-status-aggregation-options.md`:
+`docs/archive/decisions/osd-03-status-aggregation-options.md` で承認された OSD-03 ポリシーを使用します。
 
-- Run-level `success`: all eligible targets are `verified` and there are no relevant validation/processing errors.
-- A validated zero-work run is `success` with `outcome: no_work` only when enumeration and validation completed successfully and no eligible targets exist.
-- Run-level `partial_failure`: at least one eligible target is verified and either (a) at least one eligible target is `failed`/`unknown`, or (b) a relevant unclassifiable run-scope error exists.
-- Run-level `failure`: no eligible target is verified and a processing/validation failure or relevant unclassifiable run-scope error exists, or a valid no-work result cannot be established.
-- Period completion is `complete` only when every eligible target assigned to that period is `verified` and no relevant validation/processing error affects it; use `incomplete` for known failed/unknown targets or relevant errors, and `indeterminate` when required evidence is missing, malformed, conflicting, or unverifiable. These are report-only values, not manifest enums.
-- An unclassifiable relevant filename blocks run-level success but does not automatically invalidate an independently complete known period whose inventory and relevant error scope are established.
-- `unknown` never counts as verified. Do not add run-status or outcome enum values.
+- 実行レベル `success`: 対象となるターゲットはすべて `verified` であり、関連する検証/処理エラーはありません。
+- 列挙と検証が正常に完了し、適格なターゲットが存在しない場合にのみ、検証されたゼロワーク実行は `success` と `outcome: no_work` になります。
+- 実行レベル `partial_failure`: 少なくとも 1 つの適格なターゲットが 確認済み であり、(a) 少なくとも 1 つの適格なターゲットが `failed`/`unknown` である、または (b) 関連する分類不可能な実行スコープ エラーが存在します。
+- 実行レベル `failure`: 確認済み に適格なターゲットがなく、処理/検証 失敗 または関連する分類できない実行範囲エラーが存在するか、有効な非作業結果を確立できません。
+- 期間完了が `complete` となるのは、その期間に割り当てられたすべての適格なターゲットが `verified` であり、関連する検証/処理エラーが影響しない場合のみです。既知の 失敗した/不明 ターゲットまたは関連エラーには `incomplete` を使用し、必要な証拠が欠落している、形式が間違っている、矛盾している、または検証できない場合には `indeterminate` を使用します。これらはレポート専用の値であり、マニフェスト列挙型ではありません。
+- 分類できない関連ファイル名は実行レベル 成功 をブロックしますが、インベントリと関連エラー範囲が確立されている独立した 完了 既知の期間は自動的に無効になりません。
+- `unknown` は 確認済み としてカウントされません。実行ステータスまたは結果の列挙値を追加しないでください。
 
-The report's run status/outcome must agree with the originating manifest. If the manifest does not contain an outcome for a non-zero-work run, the report must not invent a new manifest value; it records the computed aggregation and validation must follow the approved manifest contract.
+レポートの実行ステータス/結果は、元のマニフェストと一致する必要があります。マニフェストに非ゼロ作業実行の結果が含まれていない場合、レポートで新しいマニフェスト値を作成してはなりません。計算された集計が記録され、検証は承認されたマニフェスト契約に従う必要があります。
 
-### Approved G1 generated UTC (2026-10-24)
+<a id="approved-g1-generated-utc-2026-10-24"></a>
+### 承認済みの G1 生成 UTC (2026-10-24)
 
-Use only `finished_at_utc` from the exact immutable manifest and `enumeration.finished_at_utc` from the exact immutable B2 evidence. Compare valid UTC instants at the existing supported precision without rounding or truncation. Choose the later input's original string for `generated_at_utc`; if they represent the same instant, choose the manifest's original string. This defines the immutable-input anchor, not the wall-clock time when bytes were written. It is an explicit approved derivation, implemented by the pure builder and referenced-artifact validator; it does not establish actual write time or formal publication acceptance.
+正確な不変マニフェストからの `finished_at_utc` と、正確な不変 B2 証拠からの `enumeration.finished_at_utc` のみを使用します。丸めや切り捨てを行わずに、既存のサポートされている精度で有効な UTC インスタントを比較します。 `generated_at_utc` には後の入力の元の文字列を選択します。それらが同じ瞬間を表す場合は、マニフェストの元の文字列を選択します。これは、バイトが書き込まれたときの実時間ではなく、不変入力アンカーを定義します。これは明示的に承認された派生であり、純粋なビルダーと参照成果物検証ツールによって実装されます。実際の執筆時間や正式な出版物の受け入れを確立するものではありません。
 
-Missing/invalid required values or contradictions with the existing time checks stop derivation; do not fill them from a real clock, guessed value or another stored artifact. Preserve exact-input identity/digest validation, reliable current UTC, the existing maximum five-minute future tolerance, start/finish ordering and historical-age rules. Do not expire immutable historical evidence solely by age. R5-A remains exact manifest plus B2 only, with the same report identity, identical-byte idempotence and different-byte conflict; G2/G3 are not adopted. Do not rewrite previous reports into G1 form. The pure builder implements this derivation and rejects a mismatching supplied time; the referenced-artifact validator binds the same exact anchor. Formal runtime publication remains incomplete.
+必要な値が欠落しているか無効であるか、既存の時間チェックと矛盾している場合、導出は停止します。実際の時計、推測値、またはその他の保存された成果物からこれらを埋めないでください。正確な入力 ID/ダイジェスト検証、信頼性の高い現在の UTC、既存の最大 5 分間の将来許容範囲、開始/終了順序付け、および履歴期間ルールを保持します。不変の歴史的証拠を経過時間だけで期限切れにしないでください。 R5-A は、同じレポート ID、同一バイト冪等性、および異なるバイト競合を伴う、正確なマニフェストに B2 のみを加えたもののままです。 G2/G3は採用しておりません。以前のレポートを G1 形式に書き直さないでください。純粋なビルダーはこの導出を実装し、提供された時間の不一致を拒否します。参照成果物バリデーターは、まったく同じアンカーをバインドします。正式なランタイム出版物は 未完了 のままです。
 
-## 5. Inventory and per-period integrity
+<a id="5-inventory-and-per-period-integrity"></a>
+## 5. 一覧と期間ごとの整合性
 
-1. Read and validate the exact manifest referenced by manifest_ref and the exact immutable B2 evidence referenced by evidence_ref. Verify each referenced artifact's SHA-256 against its exact bytes and validate internal identity.
-2. Reconstruct the frozen eligible-target set from the B2 run-input evidence. Cross-check its identity and eligible target outcomes against the originating manifest; do not re-enumerate mutable source directories to retroactively redefine the run's inventory.
-3. Validate eligible-target count and the A2 inventory digest against the canonical frozen inventory in B2 evidence and the report's inventory_ref. Reject any disagreement.
-4. For each eligible target, validate identity, expected hash, and per-file status against the originating manifest. Reject duplicate, missing, extra, or conflicting target entries.
-5. Derive each target's period from the approved filename rule only. Reject period assignment based on filesystem timestamps or Drive metadata.
-6. Recompute every period summary and run summary from the validated evidence and manifest. Each eligible target must be assigned exactly once to a period; reject missing/duplicate period rows or count disagreement.
-7. A relevant error may affect a period only when the approved rules establish that relationship. Unassigned/run-scope errors remain visible at run scope and must not be guessed into a period.
-8. If the report cannot establish that the inventory and error set are complete, period completion is indeterminate and must not be reported as complete.
+1. manifest_ref によって参照される正確なマニフェストと、evidence_ref によって参照される正確な不変 B2 証拠を読み取り、検証します。参照されている各成果物の SHA-256 をその正確なバイトと照合して検証し、内部 ID を検証します。
+2. B2 実行入力証拠から凍結された適格ターゲット セットを再構築します。その同一性と適格なターゲットの結果を元のマニフェストと照合してクロスチェックします。実行のインベントリを遡って再定義するために、変更可能なソース ディレクトリを再列挙しないでください。
+3. B2 証拠の正規凍結一覧およびレポートの inventory_ref に対して、適格ターゲット数と A2 一覧ダイジェストを検証します。いかなる異論も拒否します。
+4. 適格なターゲットごとに、元のマニフェストに対して ID、予期されるハッシュ、およびファイルごとのステータスを検証します。重複、欠落、余分、または競合するターゲット エントリを拒否します。
+5. 承認されたファイル名ルールのみから各ターゲットの期間を導出します。ファイルシステムのタイムスタンプまたはドライブのメタデータに基づいて期間の割り当てを拒否します。
+6. すべての期間のサマリーを再計算し、検証された証拠とマニフェストからサマリーを実行します。対象となる各ターゲットは、期間に 1 回だけ割り当てる必要があります。欠落している/重複している期間行、またはカウントの不一致を拒否します。
+7. 関連するエラーは、承認されたルールによってその関係が確立されている場合にのみ、期間に影響を与える可能性があります。未割り当て/実行スコープのエラーは実行スコープで表示されたままになるため、期間を推測してはなりません。
+8. 一覧およびエラー セットが 完了 であることをレポートで確認できない場合、期間完了は 確定不能 となり、完了 としてレポートしてはなりません。
 
-The frozen eligible target list in the manifest does not, by itself, prove that initial directory enumeration completed or that all invalid/unclassifiable names were recorded. The approved B2 direction requires separate immutable run-input evidence; its proposal is `docs/design/run-input-evidence-v1-proposal.md`. Until that evidence has an approved executable schema and validated runtime implementation, the report must not certify a period complete where completeness depends on missing evidence.
+マニフェスト内の凍結された適格ターゲット リストだけでは、最初のディレクトリの列挙が完了したこと、またはすべての無効な/分類不可能な名前が記録されたことを証明するものではありません。承認された B2 方向には、別の不変の実行入力証拠が必要です。その提案は`docs/design/run-input-evidence-v1-proposal.md`です。その証拠に承認された実行可能スキーマと検証されたランタイム実装が存在するまで、レポートは、完全性が証拠の欠如に依存する期間 完了 を認定してはなりません。
 
-## 6. Publication, crash behavior, and regeneration
+<a id="6-publication-crash-behavior-and-regeneration"></a>
+## 6. パブリケーション、クラッシュ動作、および再生成
 
-Proposed safe publication contract:
+提案された安全な出版契約:
 
-1. Build the report in a temporary file in the same filesystem/directory as the final report.
-2. Serialize deterministically; flush/close the temporary file; re-read and validate it.
-3. Validate its source manifest and inventory references before publication.
-4. Publish the local authoritative report with a same-filesystem atomic create operation that does not expose a partially written final report. Never assume local filesystem atomicity applies to Drive.
-5. Replicate the validated report and its referenced immutable evidence to the configured Drive destination using a separately specified upload/verification procedure. Treat the Drive copy as published only after exact identity and content verification. Record sanitized replication failure diagnostics without deleting or corrupting the local authoritative artifact.
-6. If a final report for the same report identity already exists, do not overwrite it blindly. Compare validated content and either treat an identical report as idempotent or fail safely on conflict.
-7. A crash before publication leaves a temporary artifact that is not authoritative. Do not treat it as a final report or period-completion evidence.
-8. A missing final report may be regenerated only from the same immutable manifest and a trustworthy preserved inventory/validation record. Do not re-scan current mutable source state and claim it is the original run.
-9. If required inputs are unavailable, conflicting, or cannot prove the original run's complete inventory, retain the run as unresolved; do not fabricate a replacement report.
-10. Report-write or validation failure must be visible operationally and must never turn a failed/partial run into success.
+1. 最終レポートと同じファイルシステム/ディレクトリ内の一時ファイルにレポートを構築します。
+2. 決定的にシリアル化します。一時ファイルをフラッシュ/クローズします。再読して検証してください。
+3. 公開前にソースマニフェストとインベントリ参照を検証してください。
+4. 部分的に書き込まれた最終レポートを公開しない、同じファイルシステムのアトミック作成操作を使用して、ローカルの信頼できるレポートを公開します。ローカル ファイルシステムのアトミック性がドライブに適用されるとは決して想定しないでください。
+5. 別途指定されたアップロード/検証手順を使用して、検証済みレポートとその参照された不変証拠を、構成されたドライブの宛先に複製します。ドライブのコピーは、正確な本人確認とコンテンツの検証後にのみ公開されたものとして扱います。ローカルの信頼できる成果物を削除または破損することなく、サニタイズされたレプリケーション 失敗 診断を記録します。
+6. 同じレポート ID の最終レポートがすでに存在する場合は、それをむやみに上書きしないでください。検証されたコンテンツを比較し、同一のレポートを冪等として扱うか、競合時に安全に失敗します。
+7. 公開前にクラッシュすると、権限のない一時的な成果物が残ります。これを最終報告書または期間完了の証拠として扱わないでください。
+8. 欠落している最終レポートは、同じ不変マニフェストおよび信頼できる保存されたインベントリ/検証レコードからのみ再生成できます。現在の可変ソースの状態を再スキャンして、それが元の実行であると主張しないでください。
+9. 必要な入力が 利用不能 であるか、競合している場合、または元の実行の 完了 インベントリを証明できない場合は、実行を未解決として保持します。代替報告書を捏造しないでください。
+10. レポート書き込みまたは検証 失敗 は操作上表示される必要があり、失敗した/部分実行を 成功 に変換してはなりません。
 
-Open details before implementation: locking interaction with the global per-PC maintenance lock, temp-file cleanup policy, report collision behavior, exact atomic replace primitive, and stale/incomplete report recovery.
+実装前に詳細をオープンします: グローバル PC ごとのメンテナンス ロックとのロック相互作用、一時ファイルのクリーンアップ ポリシー、レポートの衝突動作、正確なアトミック置換プリミティブ、および古い/未完了 レポートの回復。
 
-## 7. Freshness and consistency
+<a id="7-freshness-and-consistency"></a>
+## 7. 新鮮さと一貫性
 
-- `generated_at_utc` is the G1 immutable-input anchor, not actual write time or a freshness proof.
-- A report is valid only for its exact referenced manifest and frozen inventory.
-- If the referenced manifest is missing, malformed, mismatched, or has a different `run_id`/PC/log type, reject the report.
-- A newer run must not silently cause an older report to be relabeled as current. Reports are immutable per run identity.
-- Latest-run selection and timestamp tie-breaking remain governed by the OSD-02 latest-manifest policy; this report does not override it.
-- A valid report does not independently authorize archive, overwrite, restore, or deletion. Current Drive state must still be independently re-queried and verified where required.
+- `generated_at_utc` は G1 不変入力アンカーであり、実際の書き込み時間や鮮度証明ではありません。
+- レポートは、正確に参照されたマニフェストと凍結されたインベントリに対してのみ有効です。
+- 参照されたマニフェストが見つからない、形式が間違っている、不一致である、または `run_id`/PC/log タイプが異なる場合は、レポートを拒否します。
+- 新しい実行により、古いレポートが最新レポートとして再ラベル付けされることはありません。レポートは実行 ID ごとに不変です。
+- 最新実行の選択とタイムスタンプのタイブレークは、引き続き OSD-02 最新マニフェスト ポリシーによって管理されます。このレポートはそれを上書きしません。
+- 有効なレポートは、アーカイブ、上書き、復元、または削除を個別に承認しません。現在のドライブの状態は個別に再クエリする必要があり、必要に応じて 確認済み を実行する必要があります。
 
-## 8. Acceptance tests required
+<a id="8-acceptance-tests-required"></a>
+## 8. 受け入れテストが必要
 
-Use synthetic fixtures and temporary directories only. At minimum, add table-driven tests for:
+合成フィクスチャと一時ディレクトリのみを使用してください。少なくとも、次のテーブル駆動テストを追加します。
 
-- valid schema and rejection of missing/unsupported `report_schema_version`
-- filename/report/manifest identity mismatch
-- missing or malformed source manifest
-- inventory count/digest mismatch
-- missing, extra, duplicate, or conflicting eligible-target entries
-- per-period count mismatch and duplicate period assignment
-- run aggregation mismatch against file outcomes and run-scope errors
-- zero-work versus enumeration failure versus only-invalid filenames
-- unclassifiable filename with verified work and without verified work
-- independently complete known period plus unrelated run-scope error
-- failed/unknown eligible target blocks its period
-- `LastWriteTime` conflicts with filename-derived period and is ignored
-- report missing, truncated, malformed, or inconsistent after simulated crash
-- safe idempotent regeneration from immutable inputs versus refusal when inputs are incomplete
-- concurrent report publication / existing report conflict
-- report-write failure never yields a false success
-- no source-file mutation, Drive mutation, or deletion side effects
+- 有効なスキーマと欠落/サポートされていない `report_schema_version` の拒否
+- ファイル名/レポート/マニフェスト ID 不一致
+- ソースマニフェストが見つからないか、形式が正しくありません
+- 一覧数/ダイジェスト 不一致
+- 適格なターゲット エントリが欠落している、余分、重複している、または競合しています
+- 期間別件数の不一致と期間の重複割当
+- ファイルの結果と実行スコープのエラーに対して集計 不一致 を実行します
+- ゼロワークと列挙 失敗 と無効なファイル名のみ
+- 確認済み 動作あり、確認済み 動作なしの分類できないファイル名
+- 独立して 完了 既知の期間と無関係な実行範囲エラー
+- 失敗した/不明 対象となるターゲットはその期間をブロックします
+- `LastWriteTime` はファイル名由来の期間と競合するため無視されます
+- クラッシュをシミュレートした後、レポートが欠落しているか、切り捨てられているか、不正な形式であるか、または一貫性がありません
+- 不変入力からの安全なべき等再生成と入力が 未完了 の場合の拒否
+- 同時レポート発行 / 既存レポートの競合
+- レポート書き込み 失敗 は false 成功 を生成しません
+- ソース ファイルの変更、ドライブの変更、または削除による副作用はありません
 
-## 9. Implementation and acceptance status
+<a id="9-implementation-and-acceptance-status"></a>
+## 9. 実施・受付状況
 
-R1–R7 are approved; no report-contract policy decision remains open in this document. The first executable structural-schema slice is proposed in PR #150 at `contracts/aggregation-report-v1.schema.json`, with synthetic structural tests added to `tests/test_contract_schemas.py`. The CI result for those tests is pending until the current PR's exact latest HEAD completes validation.
+R1 ～ R7 は承認されています。この文書では報告書と契約のポリシーに関する決定が未解決のままです。最初の実行可能な構造スキーマ スライスは、PR #150 の `contracts/aggregation-report-v1.schema.json` で提案されており、合成構造テストが `tests/test_contract_schemas.py` に追加されています。現在の PR の正確な最新の HEAD が検証を完了するまで、これらのテストの CI 結果は 未確定 になります。
 
-Still pending after this slice: executable B2 evidence schema; cross-artifact identity/path/hash verification; A2 inventory digest and count reconciliation in runtime code; aggregation recomputation; period/error-scope consistency; deterministic regeneration from immutable inputs; OSD-02 atomic publication and lock integration; local-vs-Drive replication verification; runtime acceptance evidence. This schema does not change manifest v1 and does not authorize runtime side effects. OSD-02, OSD-03 implementation acceptance, P0-008, P0-010, and P0-012 remain open as applicable.
+このスライスの後にはまだ 未確定 があります: 実行可能な B2 証拠スキーマ。クロス成果物 ID/パス/ハッシュ検証。 A2 実行時コードでの一覧ダイジェストとカウント調整。集計の再計算。期間/エラー範囲の一貫性。不変入力からの決定論的な再生成。 OSD-02 アトミックなパブリケーションとロックの統合。ローカルとドライブのレプリケーション検証。実行時の受け入れの証拠。このスキーマはマニフェスト v1 を変更せず、実行時の副作用を許可しません。 OSD-02、OSD-03 の実装受け入れ、P0-008、P0-010、および P0-012 は、該当する場合はオープンのままです。
 
-## Maintainer-approved OSD-03 report contract (2026-10-21)
+<a id="maintainer-approved-osd-03-report-contract-2026-10-21"></a>
+## メンテナ承認の OSD-03 レポート契約 (2026-10-21)
 
-The maintainer explicitly approved **R1-B, R2-A, R3-B, R4-A, R5-A, R6-A, R7-A**. This settles the report-contract options but does not constitute an executable JSON Schema, runtime implementation, or test evidence.
+メンテナは、**R1-B、R2-A、R3-B、R4-A、R5-A、R6-A、R7-A** を明示的に承認しました。これはレポート契約オプションを決定しますが、実行可能 JSON Schema、ランタイム実装、またはテスト証拠を構成するものではありません。
 
-- **R1-B — summaries only:** period entries contain counts and completion state, not duplicated per-target rows. Validate the eligible inventory and per-file outcomes against immutable run-input evidence and the originating manifest.
-- **R2-A — tuple identity:** report identity is exactly (pc_id, log_type, run_id, report_schema_version). Omit report_id; derive the canonical filename from that tuple. Do not add fields to manifest v1.
-- **R3-B — content-bound references:** manifest_ref and evidence_ref each include canonical relative path, schema version, and lowercase 64-character SHA-256 of exact validated bytes. Validate referenced artifact identity against the report tuple. Reject absolute paths, traversal, identity mismatch, malformed digest, or changed bytes.
-- **R4-A — reuse OSD-02 controls:** use unique same-directory temp files, flush/close, read-back validation, and atomic create-if-absent; reuse the existing per-PC maintenance lock during normal publication. Regeneration/recovery must acquire the same named mutex plus ownership-token lock record. Existing same-identity identical bytes are idempotent; different bytes are a conflict and are never overwritten. Remove a temp file only when ownership is proven; orphan temp files are non-authoritative and must not be removed based on age alone.
-- **R5-A — deterministic regeneration:** regenerate only from the exact validated manifest plus immutable B2 run-input evidence. Never re-scan mutable source directories to reconstruct historical inventory. Validate identity, inventory digest, all counts, and error scope. If inputs are incomplete/unavailable, remain unresolved. Identical output is idempotent; different content for the same identity is a conflict.
-- **R6-A — three-state period completion:** complete only if all eligible targets for the period are verified and no relevant error affects it; incomplete for known failed/unknown targets or known relevant errors; indeterminate if required evidence is missing, malformed, conflicting, or unverifiable. Never map indeterminate to complete. These are report-only values and must not be added to manifest run-status enums.
-- **R7-A — separate local/Drive states:** local validated publication is authoritative. Drive replication is a separate verified step; replication failure does not invalidate/delete the local artifact. Do not claim cross-PC availability until the Drive copy's identity and exact content are verified.
-- Recompute all summary counts from the referenced manifest and B2 evidence. Reject missing/duplicate period rows, target accounting mismatch, inventory digest/count mismatch, report/manifest/evidence identity mismatch, and inconsistent error scope. generated_at_utc uses UTC ISO 8601 uppercase Z and approved future-time validation; report age alone does not invalidate immutable historical evidence.
-- Required synthetic acceptance tests are specified but **not yet executed/evidenced**. Runtime implementation, executable schema, and operational evidence remain pending. No P0 item is closed by this documentation change.
-
-
-## OSD-03 report-contract acceptance tests — approved design, execution pending
-
-1. Required fields, strict integer schema version, unsupported versions, no implicit migration, and absence of report_id.
-2. Canonical report identity tuple and filename agreement for PC/log type/run/schema version.
-3. Canonical relative manifest_ref and evidence_ref; exact bytes SHA-256; malformed digest, absolute/traversal path, identity mismatch, and stable-path content replacement all fail closed.
-4. R1-B: report period rows contain summaries only; counts recompute from the referenced manifest and B2 evidence; no duplicated per-target inventory is trusted from the report.
-5. Inventory digest/count mismatch; missing, extra, duplicate, or multiply assigned target; missing/duplicate period row; report/manifest/evidence identity mismatch; inconsistent error scope.
-6. R6-A: complete, incomplete, and indeterminate boundaries; indeterminate never becomes complete and these values never enter manifest v1 run-status enums.
-7. R4-A publication crash points, concurrent create, identical idempotent retry, conflicting retry, unsupported atomic primitive, mutex/lock ownership, and temp-file ownership cleanup. Orphan cleanup cannot rely on age alone.
-8. R5-A regeneration only from exact immutable manifest and B2 evidence; refuse if evidence is missing, corrupt, incomplete, or inconsistent; never rescan mutable source.
-9. R7-A local publication succeeds independently of Drive replication; replication failure preserves local report; cross-PC use is blocked until identity and content verification succeeds.
-10. UTC timestamp format/future tolerance, historical age, zero-work versus failed enumeration versus only-invalid filenames, known-period completion with unrelated run-scope errors, and all approved OSD-03 aggregation cases.
-11. Synthetic fixtures and temporary directories only. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion. Evidence status: **not run / not yet evidenced**.
+- **R1-B — 概要のみ:** 期間エントリには、ターゲットごとの重複した行ではなく、カウントと完了状態が含まれます。不変の実行入力証拠および元のマニフェストに対して、適格なインベントリとファイルごとの結果を検証します。
+- **R2-A — タプル ID:** レポート ID は正確に (pc_id、log_type、run_id、report_schema_version) です。 report_id を省略します。そのタプルから正規のファイル名を導出します。マニフェスト v1 にはフィールドを追加しないでください。
+- **R3-B — コンテンツ バインドされた参照:** manifest_ref および evidence_ref にはそれぞれ、正規の相対パス、スキーマ バージョン、および正確に検証されたバイトの小文字の 64 文字 SHA-256 が含まれます。参照された成果物の ID をレポート タプルに対して検証します。絶対パス、トラバーサル、同一性 不一致、不正な形式のダイジェスト、または変更されたバイトを拒否します。
+- **R4-A — OSD-02 コントロールを再利用します。** は、同じディレクトリにある一意の一時ファイル、フラッシュ/クローズ、リードバック検証、およびアトミックな存在しない場合の作成を使用します。通常の公開中に既存の PC ごとのメンテナンス ロックを再利用します。再生成/回復では、同じ名前のミューテックスと所有権トークンのロック レコードを取得する必要があります。既存の同一性の同一バイトは冪等です。異なるバイトは競合し、上書きされることはありません。一時ファイルは、所有権が証明された場合にのみ削除してください。孤立した一時ファイルには権限がないため、経過時間だけを理由に削除してはなりません。
+- **R5-A — 決定論的再生成:** 正確に検証されたマニフェストと不変の B2 実行入力証拠からのみ再生成します。過去のインベントリを再構築するために、変更可能なソース ディレクトリを再スキャンしないでください。 ID、インベントリダイジェスト、すべてのカウント、およびエラー範囲を検証します。入力が 未完了/利用不能 の場合は、未解決のままになります。同一の出力は冪等です。同じ同一性に対する異なるコンテンツは競合です。
+- **R6-A — 3 状態の期間完了:** 完了 期間のすべての適格なターゲットが 確認済み であり、それに影響する関連エラーがない場合のみ。既知の 失敗した/不明 ターゲットまたは既知の関連エラーの場合は 未完了。 確定不能 必要な証拠が欠落している、形式が間違っている、矛盾している、または検証できない場合。 確定不能 を 完了 にマップしないでください。これらはレポート専用の値であり、マニフェストの実行ステータス列挙型に追加しないでください。
+- **R7-A — ローカル/ドライブの個別の状態:** ローカルで検証されたパブリケーションが信頼可能です。ドライブのレプリケーションは別の 確認済み ステップです。レプリケーション 失敗 はローカル 成果物を無効化/削除しません。ドライブ コピーの ID と正確なコンテンツが 確認済み になるまで、PC 間での可用性を主張しないでください。
+- 参照されたマニフェストと B2 証拠からすべてのサマリー カウントを再計算します。欠落/重複した期間行、ターゲット会計 不一致、一覧ダイジェスト/カウント 不一致、レポート/マニフェスト/証拠 ID 不一致、および一貫性のないエラー範囲を拒否します。 generated_at_utc は UTC ISO 8601 大文字の Z と承認された将来の検証を使用します。報告の経過時間だけでは、不変の歴史的証拠が無効になるわけではありません。
+- 必要な合成受け入れテストが指定されていますが、**まだ実行/証明されていません**。ランタイム実装、実行可能スキーマ、および運用上の証拠は 未確定 のままです。このドキュメントの変更によって閉じられる P0 項目はありません。
 
 
-## OSD-03 executable schema implementation slice — PR #150 (2026-10-21)
+<a id="osd-03-report-contract-acceptance-tests--approved-design-execution-pending"></a>
+## OSD-03 レポート契約受諾テスト — 承認された設計、実行 未確定
 
-- Added `contracts/aggregation-report-v1.schema.json` as a strict Draft 2020-12 structural schema candidate for the approved R1–R7 report shape. It rejects unknown properties, `report_id`, unsupported/non-integer report schema versions, invalid enums/count types, non-UTC-Z timestamps, malformed lowercase SHA-256 values, and non-canonical relative paths.
-- Added schema-definition and synthetic structural-contract tests in `tests/test_contract_schemas.py`. They cover partial-failure and zero-work examples, all three period completion values, strict versioning, unknown fields, reference path/hash validation, timestamp form, enums/counts, and run-scope error shape.
-- These tests are authored but **not yet executed/evidenced** in this PR. CI must pass on the exact latest PR HEAD before merge. No runtime report reader/writer, cross-artifact digest verification, tuple/path binding, count recomputation, deterministic regeneration, atomic publication, lock integration, or Drive replication implementation is included in this slice.
-- The JSON Schema validates structure only. Cross-field and cross-artifact invariants remain mandatory fail-closed runtime checks; schema acceptance alone is not proof of report correctness or authorization for any side effect.
-- No manifest v1 fields, B2 evidence contract, A2 digest contract, or OSD-02 safety boundaries are changed. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion.
-
-
-## Runtime reference validation slice (PR #155)
-
-The new `Common/AggregationReferencedArtifacts.ps1` wrapper invokes `Common/validate_aggregation_artifacts.py` to validate the derived report against `aggregation-report-v1.schema.json`, then validates the exact referenced manifest and B2 evidence bytes against their respective Draft 2020-12 schemas. It verifies each reference SHA-256 over the raw bytes and binds `run_id`, `pc_id`, and `log_type` across the report and both artifacts. Duplicate JSON keys, malformed/non-object JSON, unsafe paths, missing artifacts, schema errors, digest mismatches, and identity mismatches fail closed with stable reason codes; artifact contents and exception/path details are not returned.
-
-This is a standalone validation entry point, not yet wired into official sync/archive entry points. It does not calculate or reconcile B2 inventory/evidence digests, implement A2 digest generation, prove complete source enumeration, apply timestamp freshness/transition policy, coordinate locks, revalidate live Drive state, or authorize archive. Runtime packaging includes the validator, schemas, and its declared Python dependency. Synthetic tests do not constitute production acceptance.
-
-
-## Cross-artifact inventory validation update (2026-10-22)
-
-PR #157 connects the report-referenced artifact verifier to B2 canonical digest/count validation and exact manifest-to-evidence frozen-target reconciliation. The report inventory count/digest is also checked against the evidence inventory. This is still validation-only helper behavior: it does not create the artifacts, prove the source traversal was complete, publish atomically, replicate to Drive, or authorize archive/deletion. Confirm exact-head CI before claiming this validation slice is verified.
+1. 必須フィールド、厳密な整数スキーマのバージョン、サポートされていないバージョン、暗黙的な移行なし、report_id の欠如。
+2. PC/ログ タイプ/実行/スキーマ バージョンの正規レポート ID タプルとファイル名合意。
+3. 正規相対 manifest_ref および evidence_ref。正確なバイト SHA-256;不正な形式のダイジェスト、絶対パス/トラバーサル パス、同一性 不一致、および安定したパスのコンテンツ置換はすべてフェール クローズされます。
+4. R1-B: レポート期間の行には概要のみが含まれます。カウントは参照されたマニフェストと B2 証拠から再計算されます。ターゲットごとの重複したインベントリはレポートから信頼されません。
+5. 一覧ダイジェスト/カウント 不一致;割り当てられたターゲットが欠落している、余分である、重複している、または重複している。期間行が欠落または重複しています。レポート/マニフェスト/証拠の同一性 不一致;一貫性のないエラー範囲。
+6. R6-A: 完了、未完了、および 確定不能 の境界。 確定不能 が 完了 になることはなく、これらの値がマニフェスト v1 の実行ステータス列挙型に入力されることはありません。
+7. R4-A パブリケーションのクラッシュ ポイント、同時作成、同一冪等再試行、競合再試行、サポートされていないアトミック プリミティブ、ミューテックス/ロック所有権、および一時ファイル所有権のクリーンアップ。孤立ファイルの浄化は経過時間だけに頼ることはできません。
+8. R5-A 正確な不変マニフェストと B2 証拠からのみ再生成。証拠が欠落している、破損している、未完了、または矛盾している場合は拒否します。可変ソースを決して再スキャンしないでください。
+9. R7-A ローカル パブリケーションは、ドライブのレプリケーションとは関係なく成功します。レプリケーション 失敗 はローカル レポートを保存します。 ID とコンテンツの検証が成功するまで、PC 間での使用はブロックされます。
+10. UTC タイムスタンプ形式/将来の許容範囲、過去の経過期間、ゼロワーク対 失敗した 列挙と無効なファイル名のみ、無関係な実行スコープ エラーを伴う既知の期間の完了、およびすべての承認された OSD-03 集計ケース。
+11. 合成フィクスチャと一時ディレクトリのみ。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。証拠ステータス: **未実行 / まだ証拠がありません**。
 
 
-## Deterministic semantic readback (2026-10-25)
+<a id="osd-03-executable-schema-implementation-slice--pr-150-2026-10-21"></a>
+## OSD-03 実行可能スキーマ実装スライス — PR #150 (2026-10-21)
 
-The reference validator now re-derives the entire report from the exact manifest/B2 bytes already read, using `derive_aggregation_report` in the existing pure builder. It compares all fields, run and period counts/status/completion, run-scope errors/messages and array order. JSON whitespace and object key order remain flexible; numeric representation is preserved, so a report count of `1.0` does not silently match the derived integer `1`. A schema-valid report with valid reference hashes can still be rejected as `report_derivation_mismatch`; invalid terminal input semantics return `report_derivation_invalid`. Inputs are not rewritten.
+- 承認された R1 ～ R7 レポート形式の厳密なドラフト 2020-12 構造スキーマ候補として `contracts/aggregation-report-v1.schema.json` を追加しました。 不明 プロパティ、`report_id`、サポートされていない/非整数のレポート スキーマ バージョン、無効な列挙型/カウント タイプ、非 UTC-Z タイムスタンプ、不正な形式の小文字 SHA-256 値、および非正規相対パスは拒否されます。
+- `tests/test_contract_schemas.py` にスキーマ定義と合成構造契約テストを追加しました。部分的な 失敗 およびゼロ作業の例、3 つの期間完了値すべて、厳密なバージョン管理、不明 フィールド、参照パス/ハッシュ検証、タイムスタンプ形式、列挙型/カウント、および実行スコープのエラー形状をカバーしています。
+- これらのテストは作成されていますが、この PR では **まだ実行も証拠化もされていません** が証明されています。 CI は、マージ前に正確な最新の PR HEAD を渡す必要があります。このスライスには、ランタイム レポート リーダー/ライター、クロス 成果物 ダイジェスト検証、タプル/パス バインディング、カウント再計算、確定的再生成、アトミック パブリケーション、ロック統合、またはドライブ レプリケーションの実装は含まれません。
+- JSON Schema は構造のみを検証します。クロスフィールドおよびクロス成果物の不変条件は引き続き必須のフェールクローズ実行時チェックです。スキーマの受け入れだけでは、レポートの正確性や副作用の承認の証拠にはなりません。
+- マニフェスト v1 フィールド、B2 証拠コントラクト、A2 ダイジェスト コントラクト、または OSD-02 安全境界は変更されません。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。
 
-Historical derivation deliberately has no current-clock observation. It still enforces schema, B2 digest/inventory/scope, terminal results, internal timestamp ordering and exact G1 anchor. It does not substitute a report timestamp or host clock for trusted now. The normal `build_aggregation_report` and terminal transition plan still require explicit reliable current UTC and enforce their future tolerance. Historical semantic equality proves neither freshness nor a current execution condition.
 
-The direct Python CLI uses the same packaged modules from any working directory. Synthetic readback tests include terminal-plan reports, mixed/no-work/failed-enumeration cases and forged status/count/completion/error content. This closes an independent semantic comparison gap, not trusted filesystem reads, race-free snapshots, C1/C2 publication, live Drive verification or runtime/archive acceptance.
+<a id="runtime-reference-validation-slice-pr-155"></a>
+## ランタイム参照検証スライス (PR #155)
+
+新しい `Common/AggregationReferencedArtifacts.ps1` ラッパーは、`Common/validate_aggregation_artifacts.py` を呼び出して、派生レポートを `aggregation-report-v1.schema.json` に対して検証し、次に正確に参照されたマニフェストと B2 証拠バイトをそれぞれのドラフト 2020-12 スキーマに対して検証します。これは、生のバイト上で各参照 SHA-256 を検証し、レポートと両方の成果物にわたって `run_id`、`pc_id`、および `log_type` をバインドします。重複した JSON キー、不正な形式/非オブジェクト JSON、安全でないパス、成果物の欠落、スキーマ エラー、ダイジェストの不一致、および ID の不一致は、安定した理由コードでフェールクローズされます。成果物の内容と例外/パスの詳細は返されません。
+
+これはスタンドアロンの検証エントリ ポイントであり、公式の同期/アーカイブ エントリ ポイントにはまだ接続されていません。 B2 インベントリ/証拠ダイジェストの計算または調整、A2 ダイジェスト生成の実装、完了 ソース列挙の証明、タイムスタンプの鮮度/移行ポリシーの適用、ロックの調整、ドライブのライブ状態の再検証、またはアーカイブの承認は行いません。ランタイム パッケージには、バリデータ、スキーマ、およびその宣言された Python 依存関係が含まれます。総合テストは製品の受け入れを構成しません。
 
 
-## Stable read observations (2026-10-25)
+<a id="cross-artifact-inventory-validation-update-2026-10-22"></a>
+## クロス成果物インベントリ検証の更新 (2026-10-22)
 
-The reference validator inspects unresolved root/ancestor and file reparse metadata before resolution, including Windows reparse attributes rather than symlink checks alone. Each report, manifest, B2 and schema read compares path metadata with the opened handle, post-read handle/path metadata, byte length and parent-chain identities. Already-read schema objects are reused; external schema retrieval is rejected. Before returning a successful semantic result, it rereads the complete input set and compares exact bytes, metadata and chains.
+PR #157 は、レポート参照成果物検証機能を B2 正規ダイジェスト/カウント検証およびマニフェストと証拠の間の正確な凍結ターゲット調整に接続します。レポートの一覧数/ダイジェストも証拠の一覧と照合されます。これは依然として検証のみのヘルパー動作です。成果物の作成、ソース トラバーサルが 完了 であることの証明、アトミックな公開、ドライブへの複製、アーカイブ/削除の承認は行いません。この検証スライスが 確認済み であると主張する前に、exact-head CI を確認してください。
 
-Detected handle/namespace/content/schema changes fail closed. Tests use self-created temp artifacts, copied static schemas, injected metadata/late mutations and a Windows junction wholly inside the test fixture. This is point-in-time defensive inspection: it does not prove effective ACL/root approval, prevent hostile ABA or all changes after the last observation, or make several files an atomic snapshot. It adds no lock takeover, repair, write, publication or archive permission.
+
+<a id="deterministic-semantic-readback-2026-10-25"></a>
+## 決定論的セマンティックリードバック (2026-10-25)
+
+参照バリデーターは、既存の純粋なビルダーの `derive_aggregation_report` を使用して、既に読み取られた正確なマニフェスト/B2 バイトからレポート全体を再取得するようになりました。すべてのフィールド、実行および期間のカウント/ステータス/完了、実行スコープのエラー/メッセージ、配列の順序を比較します。 JSON ホワイトスペースとオブジェクト キーの順序は柔軟なままです。数値表現は保持されるため、レポート数 `1.0` は、導出された整数 `1` と暗黙的に一致しません。有効な参照ハッシュを含むスキーマが有効なレポートは、`report_derivation_mismatch` として拒否される可能性があります。無効な端末入力セマンティクスは `report_derivation_invalid` を返します。入力は書き換えられません。
+
+履歴導出には、現在のクロックの観測が意図的に含まれていません。スキーマ、B2 ダイジェスト/インベントリ/スコープ、ターミナル結果、内部タイムスタンプの順序付け、および正確な G1 アンカーが引き続き適用されます。レポートのタイムスタンプやホスト クロックを Trusted Now に置き換えることはありません。通常の `build_aggregation_report` およびターミナル移行計画では、依然として明示的な信頼できる現在の UTC が必要であり、将来の許容範囲が強制されます。歴史的な意味論的な同等性は、最新性も現在の実行条件も証明しません。
+
+直接の Python CLI は、任意の作業ディレクトリから同じパッケージ化されたモジュールを使用します。合成リードバック テストには、端末計画レポート、混合/無作業/失敗した 列挙ケース、および偽造ステータス/カウント/完了/エラー コンテンツが含まれます。これにより、信頼できないファイル システムの読み取り、競合のないスナップショット、C1/C2 パブリケーション、ライブ ドライブ検証、またはランタイム/アーカイブの受け入れなど、独立したセマンティック比較のギャップが解消されます。
+
+
+<a id="stable-read-observations-2026-10-25"></a>
+## 安定した読み取り観測 (2026-10-25)
+
+参照バリデータは、シンボリックリンク チェックだけではなく、Windows 再解析属性を含む、未解決のルート/祖先およびファイル再解析メタデータを解決前に検査します。各レポート、マニフェスト、B2、およびスキーマの読み取りでは、パス メタデータと、オープンされたハンドル、読み取り後のハンドル/パス メタデータ、バイト長、および親チェーン ID が比較されます。すでに読み取られたスキーマ オブジェクトは再利用されます。外部スキーマの取得は拒否されます。成功したセマンティック結果を返す前に、完了 入力セットを再度読み取り、正確なバイト、メタデータ、チェーンを比較します。
+
+検出されたハンドル/名前空間/コンテンツ/スキーマの変更はフェールクローズされました。テストでは、自己作成された一時成果物、コピーされた静的スキーマ、挿入されたメタデータ/遅延ミューテーション、および完全にテスト フィクスチャ内部の Windows ジャンクションを使用します。これはポイントインタイムの防御検査です。効果的な ACL/root 承認を証明したり、敵対的な ABA や最後の観察後のすべての変更を防止したり、複数のファイルをアトミック スナップショットにしたりすることはできません。ロックの引き継ぎ、修復、書き込み、公開、またはアーカイブの権限は追加されません。

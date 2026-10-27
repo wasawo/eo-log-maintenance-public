@@ -1,38 +1,42 @@
-# Distribution Design: GitHub to Google Drive
+<a id="distribution-design-github-to-google-drive"></a>
+# 分配設計: GitHub ～ Google Drive
 
-- Status: E1 release-event/manual-approval gate and all-version retention/no automatic cleanup selected on 2026-10-24; PC/version-specific explicit file manifests and separate explicit configuration migration are also selected; remaining concrete distribution details are a proposed baseline. See [selection record](../archive/decisions/selected-policy-decisions-20261024.md).
-- Last updated: 2026-10-24 (policy selections and implementation limits; production workflow remains unimplemented)
-- Repository: `wasawo/eo-log-maintenance-public`
-- Canonical source: GitHub repository, `main` branch plus reviewed release tag
-- Distribution target: Google Drive `_distribution/releases/<version>/`
-- Direction: GitHub → Google Drive only
+- ステータス: E1 リリース イベント/手動承認ゲートおよび全バージョンの保持/2026-10-24 で自動クリーンアップが選択されていません。 PC/バージョン固有の明示的なファイル マニフェストと個別の明示的な構成の移行も選択されます。残りの具体的な分布の詳細は、提案されたベースラインです。 [選択レコード](../archive/decisions/selected-policy-decisions-20261024.md)を参照してください。
+- 最終更新日: 2026-10-24 (ポリシーの選択と実装の制限。運用ワークフローは未実装のままです)
+- リポジトリ: `wasawo/eo-log-maintenance-public`
+- 正規ソース: GitHub リポジトリ、`main` ブランチ、およびレビュー済みのリリース タグ
+- 配布対象: Google Drive `_distribution/releases/<version>/`
+- 方向: GitHub → Google Drive のみ
 
-Current implementation/readiness: [2026-10-24 inventory](../development/implementation-workflow.md#9-既存の実装資産と不足). The builder supports review packages and role guards; production release/authentication/upload/deployment remains incomplete.
+現在の実装/準備状況: [2026-10-24 一覧](../development/implementation-workflow.md#9-既存の実装資産と不足)。ビルダーはレビュー パッケージとロール ガードをサポートしています。実稼働リリース/認証/アップロード/デプロイメントは 未完了 のままです。
 
-## 1. Purpose and scope
+<a id="1-purpose-and-scope"></a>
+## 1. 目的と範囲
 
-This document defines the allowlist, exclusion rules, release package, and safety requirements for one-way distribution of approved maintenance files from GitHub to Google Drive.
+この文書では、GitHub から Google Drive までの承認済みメンテナンス ファイルの一方向配布に対する許可リスト、除外ルール、リリース パッケージ、および安全要件を定義します。
 
-GitHub is the only authoritative source for managed code and documentation. Google Drive is a distribution destination, not an editing source. Changes made to files in the Drive distribution area must never be synchronized back into GitHub.
+GitHub は、マネージド コードとドキュメントの信頼できる唯一のソースです。 Google Drive は配布先であり、編集元ではありません。ドライブ配布領域内のファイルに加えられた変更は、GitHub に同期して戻さないでください。
 
-This workflow is separate from ElectronicObserver log synchronization, manifests, archival, and deletion. A distribution failure must not trigger, skip, or otherwise change log maintenance or deletion behavior.
+このワークフローは、ElectronicObserver ログの同期、マニフェスト、アーカイブ、および削除とは別のものです。ディストリビューション 失敗 は、ログのメンテナンスや削除の動作をトリガー、スキップ、または変更してはなりません。
 
-The workflow described here is a design. Google Drive API authentication and upload automation are not yet configured. The maintainer selected GitHub Actions as the publisher after the E1 approval gate (selection ㉘A); the distribution principal, authentication and provenance controls remain undecided. This does not reuse the desktop OAuth credential store or authorize live publication.
+ここで説明するワークフローは設計です。 Google Drive API 認証とアップロードの自動化はまだ構成されていません。メンテナは、E1 承認ゲート (選択 ㉘A) の後、パブリッシャーとして GitHub Actions を選択しました。配布プリンシパル、認証、来歴の管理は未定のままです。これは、デスクトップ OAuth 認証情報ストアを再利用したり、ライブ パブリケーションを承認したりしません。
 
-## 2. Distribution architecture
+<a id="2-distribution-architecture"></a>
+## 2. 分散アーキテクチャ
 
-1. A change is reviewed and merged into `main`.
-2. GitHub Actions validates the repository and builds a package from the explicit allowlist below.
-3. A release is published from a reviewed version tag (for example, `v0.1.0`).
-4. The package and SHA-256 manifest are uploaded to a version-specific Drive folder.
-5. Only after upload and integrity checks succeed is `latest.json` updated.
-6. PC-A and PC-B can retrieve and inspect a release. Applying it to a runtime directory remains a separate, manually approved operation.
+1. 変更がレビューされ、`main` にマージされます。
+2. GitHub Actions はリポジトリを検証し、以下の明示的な許可リストからパッケージを構築します。
+3. リリースはレビュー済みバージョン タグ (`v0.1.0` など) から公開されています。
+4. パッケージと SHA-256 マニフェストは、バージョン固有のドライブ フォルダーに アップロード済み されます。
+5. アップロードと整合性チェックが成功した場合にのみ、`latest.json` が更新されます。
+6. PC-A および PC-B は、リリースを取得して検査できます。ランタイム ディレクトリへの適用は、手動で承認された個別の操作のままです。
 
-A normal push or pull-request validation must not upload to Google Drive. The selected E1 gate uses a reviewed-tag release event plus explicit manual approval by the maintainer, followed by publication from GitHub Actions under selection ㉘A. Tag/VERSION/commit/package must agree; choosing this policy does not authorize an actual release or decide the distribution credential identity.
+通常のプッシュまたはプルリクエストの検証は Google Drive にアップロードしてはなりません。選択された E1 ゲートは、レビューされたタグのリリース イベントに加えて、メンテナによる明示的な手動承認を使用し、その後、選択 ㉘A で GitHub Actions から公開されます。タグ/バージョン/コミット/パッケージが一致する必要があります。このポリシーを選択しても、実際のリリースが承認されたり、配布認証情報の ID が決定されたりすることはありません。
 
-## 3. Package format and destination
+<a id="3-package-format-and-destination"></a>
+## 3. パッケージの形式と宛先
 
-Illustrative Drive layout (dummy names; configure the actual distribution folder privately):
+ドライブ レイアウトの例 (ダミー名。実際の配布フォルダーは非公開で構成します):
 
 ```text
 SharedLogs/_distribution/
@@ -43,17 +47,17 @@ SharedLogs/_distribution/
         └── SHA256SUMS.txt
 ```
 
-The package preserves repository-relative paths, such as `scripts/Example.ps1` and `Config/PC-A.example.json`.
+パッケージは、`scripts/Example.ps1` や `Config/PC-A.example.json` などのリポジトリ相対パスを保持します。
 
-- A release directory is immutable after publication; do not overwrite a previously published version.
-- `latest.json` is updated last and points only to a fully uploaded and verified release.
-- The repository-side builder and its tests live under `.github/scripts/` and `tests/`; they are not runtime package contents.
-- For development only, a non-deployable review artifact may include a generated `PACKAGE-STATUS.txt` marker. This is the only generated-file exception to the source allowlist. It must explicitly state that the artifact is not deployable and must not be applied to either PC. A production release must not contain this marker.
-- Retain all published release versions for rollback. No automatic cleanup, implicit expiry or default retained-version count is adopted. Changing this retention policy requires a new explicit decision.
-- `SHA256SUMS.txt` records the SHA-256 digest of `release.zip`. The consumer must verify the downloaded ZIP before extraction.
-- The package checksum proves integrity against the published checksum; it does not by itself prove that the source or release was trustworthy. Trust comes from repository review and release controls.
+- リリース ディレクトリは公開後は不変です。以前に公開されたバージョンを上書きしないでください。
+- `latest.json` は最後に更新され、完全な アップロード済み および 確認済み リリースのみを指します。
+- リポジトリ側のビルダーとそのテストは `.github/scripts/` および `tests/` の下に存在します。これらはランタイムパッケージの内容ではありません。
+- 開発のみの場合、デプロイ不可能なレビュー 成果物には、生成された `PACKAGE-STATUS.txt` マーカーが含まれる場合があります。これは、ソース許可リストに対する生成ファイルの唯一の例外です。成果物は展開できないこと、およびどちらの PC にも適用してはいけないことを明示的に示す必要があります。製品リリースにはこのマーカーを含めてはなりません。
+- 公開されたすべてのリリース バージョンをロールバック用に保持します。自動クリーンアップ、暗黙的な有効期限、またはデフォルトの保持バージョン数は採用されません。この保持ポリシーを変更するには、新たな明示的な決定が必要です。
+- `SHA256SUMS.txt` は、`release.zip` の SHA-256 ダイジェストを記録します。消費者は、ダウンロードした ZIP を解凍する前に検証する必要があります。
+- パッケージのチェックサムは、公開されたチェックサムに対して整合性を証明します。それ自体では、ソースまたはリリースが信頼できるものであることを証明するものではありません。信頼はリポジトリのレビューとリリースの制御から生まれます。
 
-Example `latest.json`:
+例 `latest.json`:
 
 ```json
 {
@@ -65,146 +69,155 @@ Example `latest.json`:
 }
 ```
 
-This is a schema example, not a currently published Drive file.
+これはスキーマの例であり、現在公開されているドライブ ファイルではありません。
 
-## 4. Distribution allowlist
+<a id="4-distribution-allowlist"></a>
+## 4. 配布許可リスト
 
-The selected final control model is an explicit PC-specific, version-specific file manifest. The table below remains the existing builder/design baseline, not the final approved runtime file list. Final required/optional dependencies and manifest serialization must be reviewed after official runtime entry points exist. Only reviewed allowlisted content may be included in `release.zip`.
+選択された最終制御モデルは、明示的な PC 固有、バージョン固有のファイル マニフェストです。以下の表は、最終的に承認されたランタイム ファイル リストではなく、既存のビルダー/設計ベースラインのままです。最終的な必須/オプションの依存関係とマニフェストのシリアル化は、公式のランタイム エントリ ポイントが存在した後に確認する必要があります。 `release.zip` には、レビュー済みの許可リストに登録されたコンテンツのみが含まれます。
 
-| Path / pattern | Include? | Purpose and constraints |
+|パス/パターン|含む？|目的と制約|
 |---|---|---|
-| `README.md` | Yes | Operator-facing overview and safety rules |
-| `CHANGELOG.md` | Yes | User-visible change history |
-| `VERSION` | Yes | Package version metadata |
-| `scripts/**/*.ps1` | Yes, when present | Runtime and local update scripts |
-| `scripts/README.md` | Yes | Script usage notes |
-| `Common/**/*.ps1` | Yes, when present | Shared runtime functions |
-| `Common/**/*.py` | Yes, when present | Implemented shared validation/publication helpers; final runtime scope still requires review |
-| `requirements-runtime.txt` | Yes | Runtime JSON Schema validation dependency |
-| `contracts/aggregation-report-v1.schema.json` | Yes | Implemented report contract |
-| `contracts/manifest-v1.schema.json` | Yes | Implemented manifest structural contract |
-| `contracts/run-input-evidence-v1.schema.json` | Yes | Implemented run-input evidence contract |
-| `contracts/private-recovery-evidence-v1.schema.json` | Yes | Static preservation metadata schema only; never private runtime evidence |
-| `Common/README.md` | Yes | Shared-function notes |
-| `Config/PC-A.example.json` | Yes | Example/template only; never use as an automatic overwrite of a real config |
-| `Config/PC-B.example.json` | Yes | Example/template only; never use as an automatic overwrite of a real config |
+| `README.md` |はい|オペレーター向けの概要と安全規則|
+| `CHANGELOG.md` |はい|ユーザーに表示される変更履歴|
+| `VERSION` |はい|パッケージバージョンのメタデータ|
+| `scripts/**/*.ps1` |はい、存在する場合|ランタイムおよびローカル更新スクリプト|
+| `scripts/README.md` |はい|スクリプトの使用上の注意|
+| `Common/**/*.ps1` |はい、存在する場合|共有ランタイム関数|
+| `Common/**/*.py` |はい、存在する場合|共有検証/公開ヘルパーを実装しました。最終的なランタイムスコープはまだレビューが必要です|
+| `requirements-runtime.txt` |はい|ランタイム JSON Schema 検証の依存関係|
+| `contracts/aggregation-report-v1.schema.json` |はい|レポート契約を実装しました|
+| `contracts/manifest-v1.schema.json` |はい|マニフェスト構造コントラクトを実装しました|
+| `contracts/run-input-evidence-v1.schema.json` |はい|実行入力証拠契約を実装しました|
+| `contracts/private-recovery-evidence-v1.schema.json` |はい|静的保存メタデータ スキーマのみ。実行時の証拠を非公開にすることはありません|
+| `Common/README.md` |はい|共有機能のメモ|
+| `Config/PC-A.example.json` |はい|例/テンプレートのみ。実際の設定の自動上書きとしては決して使用しないでください|
+| `Config/PC-B.example.json` |はい|例/テンプレートのみ。実際の設定の自動上書きとしては決して使用しないでください|
 
-Rules:
+ルール:
 
-- Build the package from this allowlist; do not ZIP the entire repository and then attempt to remove unwanted files.
-- A listed path that does not exist may be omitted only when it is explicitly optional above. Required root files must exist or the release build fails.
-- A usable runtime release must include `scripts/SyncLogs.ps1` and the PC-A-only `scripts/ArchiveLogs.ps1`. `ArchiveAndUploadLogs.ps1` is not an official entry point. The PC-B package must exclude `ArchiveLogs.ps1`.
-- If a new runtime dependency is needed, add it to this table through review before including it.
-- Preserve relative paths in the archive.
-- Do not include empty directories unless a future runtime requirement explicitly needs them.
+- この許可リストからパッケージをビルドします。リポジトリ全体を ZIP 圧縮してから不要なファイルを削除しないでください。
+- 存在しないリストされたパスは、上記で明示的にオプションである場合にのみ省略できます。必要なルート ファイルが存在する必要があります。存在しない場合、リリースのビルドは失敗します。
+- 使用可能なランタイム リリースには、`scripts/SyncLogs.ps1` と PC-A のみの `scripts/ArchiveLogs.ps1` が含まれている必要があります。 `ArchiveAndUploadLogs.ps1` は正式なエントリ ポイントではありません。 PC-B パッケージでは `ArchiveLogs.ps1` を除外する必要があります。
+- 新しいランタイム依存関係が必要な場合は、含める前にレビューを通じてこのテーブルに追加してください。
+- アーカイブ内の相対パスを保持します。
+- 将来のランタイム要件で明示的に必要になる場合を除き、空のディレクトリを含めないでください。
 
-## 5. Exclusion rules
+<a id="5-exclusion-rules"></a>
+## 5. 除外ルール
 
-The following items are excluded from every distribution package.
+次の項目はすべての配布パッケージから除外されます。
 
-| Path / pattern | Reason |
+|パス/パターン|理由|
 |---|---|
-| `docs/**` | Design and development documents; repository-only unless separately approved |
-| `.github/**` | CI workflows, pull-request templates, and repository automation are not runtime files |
-| `tests/**` | Test code and test plans are not deployed to the PCs |
-| `.git/**`, `.gitignore` | Git metadata and local repository rules |
-| `Config/PC-A.json`, `Config/PC-B.json` | Machine-specific active configuration; never distribute or overwrite |
-| Any other `Config/*.json` not explicitly allowlisted | Prevent accidental inclusion of local or sensitive configuration |
-| Runtime manifests, state files, locks, and generated reports | Machine/runtime state must not be copied as release content |
-| Log files and ElectronicObserver data | Operational data, not application distribution content |
-| Temporary, backup, cache, and editor files | Not part of a release |
-| Credentials, access tokens, private keys, OAuth files, service-account keys, and secrets | Must never be committed or packaged |
-| Local environment files (for example, `.env*`) | May contain secrets or machine-specific values |
-| Any file not listed in the allowlist | Deny by default |
+| `docs/**` |設計および開発ドキュメント。別途承認されない限りリポジトリのみ|
+| `.github/**` |CI ワークフロー、プルリクエスト テンプレート、およびリポジトリ オートメーションはランタイム ファイルではありません|
+| `tests/**` |テスト コードとテスト計画が PC に展開されていません|
+| `.git/**`, `.gitignore` |Git メタデータとローカル リポジトリ ルール|
+| `Config/PC-A.json`, `Config/PC-B.json` |マシン固有のアクティブな構成。決して配布したり上書きしたりしないでください|
+|明示的に許可リストに登録されていないその他の `Config/*.json`|ローカルまたは機密性の高い構成が誤って含まれることを防止します|
+|ランタイムマニフェスト、状態ファイル、ロック、生成されたレポート|マシン/ランタイム状態をリリース コンテンツとしてコピーしてはなりません|
+|ログ ファイルと ElectronicObserver データ|アプリケーション配布コンテンツではなく、運用データ|
+|一時ファイル、バックアップ ファイル、キャッシュ ファイル、エディタ ファイル|リリースの一部ではありません|
+|認証情報、アクセス トークン、秘密キー、OAuth ファイル、サービス アカウント キー、およびシークレット|決してコミットまたはパッケージ化してはなりません|
+|ローカル環境ファイル (`.env*` など)|シークレットまたはマシン固有の値が含まれる可能性があります|
+|ホワイトリストにリストされていないファイル|デフォルトで拒否|
 
-The exclusion rules are defense in depth. The package builder must enumerate the allowlist explicitly and should fail if a candidate path is outside it. It must not rely solely on `.gitignore`.
+除外ルールは多層防御です。パッケージ ビルダーはホワイトリストを明示的に列挙する必要があり、候補パスがリスト外にある場合は失敗します。 `.gitignore` のみに依存してはなりません。
 
-## 6. Configuration handling
+<a id="6-configuration-handling"></a>
+## 6. 構成の処理
 
-The example configuration files are reference templates only. They may contain example paths and safe default flags, but must not contain credentials.
+構成ファイルの例は参照テンプレートのみです。サンプル パスと安全なデフォルト フラグを含めることはできますが、認証情報を含めることはできません。
 
-- Do not replace `Config/PC-A.json` or `Config/PC-B.json` during package extraction or update.
-- Updating a template must not silently change the active runtime configuration.
-- The selected approach is a separate explicit migration procedure/command, with source/target version, backup, diff and explicit confirmation before execution. Normal updates preserve active configuration. Concrete migration mappings and any live migration require their own review/authorization; no automatic migration is implied.
-- PC-A example config retains `allowArchive: false`; operational archive requires explicit PC-A true plus current per-file checks. PC-B omits `allowArchive`. No generic `allowDelete` override is adopted. Under the [2026-10-27 move policy](../requirements/log-move-requirements.md), each PC may delete only its verified eligible local move sources, and only A may delete cloud sources after verified archival. Current templates/schema and package tests are unchanged; new runtime/interface/package acceptance remains pending.
+- パッケージの抽出または更新中に `Config/PC-A.json` または `Config/PC-B.json` を置き換えないでください。
+- テンプレートを更新するときに、アクティブなランタイム構成をサイレントに変更してはなりません。
+- 選択されたアプローチは、ソース/ターゲットのバージョン、バックアップ、差分、および実行前の明示的な確認を伴う、個別の明示的な移行手順/コマンドです。通常の更新では、アクティブな構成が保持されます。具体的な移行マッピングとライブ マイグレーションには、独自のレビュー/承認が必要です。自動移行は暗黙的に行われません。
+- PC-A の設定例は `allowArchive: false` を保持します。運用アーカイブには、明示的な PC-A true に加えて、現在のファイルごとのチェックが必要です。 PC-B は `allowArchive` を省略します。一般的な `allowDelete` オーバーライドは採用されていません。 [2026-10-27 移動ポリシー](../requirements/log-move-requirements.md) に基づき、各 PC は 確認済み 対象となるローカル移動ソースのみを削除でき、A のみが 確認済み アーカイブ後にクラウド ソースを削除できます。現在のテンプレート/スキーマおよびパッケージのテストは変更されていません。新しいランタイム/インターフェイス/パッケージの受け入れは 未確定 のままです。
 
-## 7. Validation and release gates
+<a id="7-validation-and-release-gates"></a>
+## 7. 検証ゲートとリリースゲート
 
-The release workflow must fail closed if any of these checks fails:
+次のチェックのいずれかが失敗した場合、リリース ワークフローは失敗して終了する必要があります。
 
-1. Existing repository validation succeeds.
-2. Required package files exist.
-3. JSON example configurations parse successfully.
-4. PowerShell files parse and pass the configured static analysis.
-5. Tests pass when test code is available; a missing test suite must not be represented as successful behavioral coverage.
-6. The package file list contains only allowlisted paths.
-7. No excluded file, active PC configuration, log, runtime manifest, or secret is included.
-8. The release version is valid and agrees with the repository's `VERSION` and release tag.
-9. The ZIP is created successfully and its SHA-256 is recorded.
+1. 既存のリポジトリの検証は成功しました。
+2. 必要なパッケージ ファイルが存在します。
+3. JSON 構成例は正常に解析されます。
+4. PowerShell ファイルは、構成された静的分析を解析して渡します。
+5. テスト コードが利用可能な場合、テストは合格します。欠落しているテスト スイートを成功した動作カバレッジとして表現してはなりません。
+6. パッケージ ファイル リストには、許可リストに登録されたパスのみが含まれています。
+7. 除外されたファイル、アクティブな PC 構成、ログ、ランタイム マニフェスト、またはシークレットは含まれません。
+8. リリース バージョンは有効で、リポジトリの `VERSION` およびリリース タグと一致します。
+9. ZIP は正常に作成され、その SHA-256 が記録されます。
 
-The repository has synthetic behavioral tests and isolated helpers, but no official runtime scripts or full runtime acceptance. Therefore, CI success alone must not be treated as permission to deploy. Test success does not authorize implementing or enabling deletion.
+リポジトリには合成動作テストと分離されたヘルパーがありますが、公式のランタイム スクリプトや完全なランタイムの受け入れはありません。したがって、CI 成功 だけをデプロイ許可として扱うことはできません。テスト 成功 は、削除の実装または有効化を許可しません。
 
-## 8. Google Drive upload safety
+<a id="8-google-drive-upload-safety"></a>
+## 8.  Google Drive アップロードの安全性
 
-- Use Google Drive API authentication stored as GitHub Actions secrets or an approved short-lived identity mechanism; never place credentials in the repository or package.
-- Grant the workflow only the Drive permissions needed for the distribution folder.
-- Do not expose secrets to pull-request jobs or print them to workflow logs.
-- Upload the versioned ZIP and checksum first; verify the resulting files before updating `latest.json`.
-- If upload or verification fails, leave the previous `latest.json` unchanged.
-- Never update or delete log data as part of the release workflow.
-- Google Drive for desktop's local file presence is not proof that the cloud upload has completed.
+- GitHub Actions シークレットとして保存された Google Drive API 認証、または承認された短期間の ID メカニズムを使用します。認証情報をリポジトリやパッケージに決して置かないでください。
+- 配布フォルダーに必要なドライブ権限のみをワークフローに付与します。
+- シークレットをプルリクエスト ジョブに公開したり、ワークフロー ログに出力したりしないでください。
+- まず、バージョン管理された ZIP とチェックサムをアップロードします。 `latest.json` を更新する前に、結果のファイルを確認してください。
+- アップロードまたは検証が失敗した場合は、前の `latest.json` を変更しないでください。
+- リリース ワークフローの一環としてログ データを更新または削除しないでください。
+- Google Drive は、クラウド アップロードが完了したことを証明するものではありません。
 
-The exact authentication method is still to be selected and tested against the existing My Drive folder. Do not assume a service account can write to that folder without validating ownership, sharing, and quota constraints.
+正確な認証方法はまだ選択されておらず、既存の [マイ ドライブ] フォルダーに対してテストされています。所有権、共有、およびクォータの制約を検証せずに、サービス アカウントがそのフォルダーに書き込むことができると想定しないでください。
 
-## 9. PC-side update and rollback policy
+<a id="9-pc-side-update-and-rollback-policy"></a>
+## 9.  PC 側のアップデートとロールバック ポリシー
 
-The distribution workflow does not automatically deploy files into either PC's runtime directory.
+配布ワークフローでは、どちらの PC のランタイム ディレクトリにもファイルが自動的に展開されません。
 
-For each PC:
+各 PC について:
 
-1. Retrieve a selected release.
-2. Verify `release.zip` against `SHA256SUMS.txt`.
-3. Extract to a staging directory, not directly over the active runtime.
-4. Show the file-level diff and preserve active machine-specific configuration.
-5. Require explicit operator approval before applying changes.
-6. Keep a recoverable copy of the previous runtime version until post-update verification succeeds.
+1. 選択したリリースを取得します。
+2. `release.zip` を `SHA256SUMS.txt` と照合します。
+3. アクティブなランタイム上ではなく、ステージング ディレクトリに抽出します。
+4. ファイルレベルの差分を表示し、アクティブなマシン固有の構成を保存します。
+5. 変更を適用する前にオペレーターの明示的な承認が必要です。
+6. 更新後の検証が成功するまで、以前のランタイム バージョンの回復可能なコピーを保持してください。
 
-PC-B must never archive or delete cloud sources. Initial completion includes each PC's own local-source deletion after verified cloud placement and source-unchanged confirmation, and PC-A cloud-source deletion after the corresponding archive checks. Package tests must prove permitted routes and forbidden roles/targets, not perpetual absence of all deletion. This policy revision does not change the current package contents, authorize implementation resumption, or permit production installation/deletion.
+PC-B はクラウド ソースをアーカイブまたは削除してはなりません。初期完了には、確認済み クラウド配置とソース未変更の確認後の各 PC 独自のローカル ソースの削除と、対応するアーカイブ チェック後の PC-A クラウド ソースの削除が含まれます。パッケージ テストでは、すべての削除が永久に存在しないことではなく、許可されたルートと禁止された役割/ターゲットを証明する必要があります。このポリシーの改訂では、現在のパッケージの内容が変更されたり、実装の再開が承認されたり、運用環境のインストール/削除が許可されたりするものではありません。
 
-## 10. Implementation sequence
+<a id="10-implementation-sequence"></a>
+## 10. 実装シーケンス
 
-1. Review and merge this design.
-2. Implement an allowlist-based package builder and tests for inclusion/exclusion rules.
-3. Add release-triggered GitHub Actions packaging and checksum generation.
-4. Configure and test Google Drive API authentication and upload to a versioned folder.
-5. Implement the final `latest.json` update only after successful upload verification.
-6. Implement PC-side retrieval, hash verification, diff display, and manually approved application.
-7. Consider README/CHANGELOG/VERSION generation separately; generated edits must not overwrite manually maintained documentation.
+1. この設計を確認して結合します。
+2. ホワイトリスト ベースのパッケージ ビルダーを実装し、包含/除外ルールをテストします。
+3. リリーストリガーの GitHub Actions パッケージ化とチェックサム生成を追加します。
+4. Google Drive API 認証を構成およびテストし、バージョン管理されたフォルダーにアップロードします。
+5. アップロードの検証が成功した後にのみ、最後の `latest.json` 更新を実装してください。
+6. PC側の取得、ハッシュ検証、差分表示、アプリケーションの手動承認を実装します。
+7. README/CHANGELOG/VERSION の生成を個別に検討してください。生成された編集は、手動で管理されたドキュメントを上書きしてはなりません。
 
-## 11. Decisions and open items
+<a id="11-decisions-and-open-items"></a>
+## 11. 決定事項と未解決の項目
 
-Decisions fixed by this design:
+この設計によって修正された決定:
 
-- GitHub is the canonical source.
-- Distribution is one-way: GitHub → Google Drive.
-- Releases are versioned and immutable.
-- Runtime application is manual approval only.
-- The package is allowlist-based and deny-by-default.
-- Active PC-specific configurations and operational data are excluded.
-- Distribution is isolated from log sync/archive operations and has no deletion capability for operational logs.
+- GitHub は正規のソースです。
+- 配布は一方向です: GitHub → Google Drive。
+- リリースはバージョン管理されており、不変です。
+- ランタイム アプリケーションは手動承認のみです。
+- パッケージは許可リストベースであり、デフォルトで拒否されます。
+- アクティブな PC 固有の構成と運用データは除外されます。
+- ディストリビューションはログの同期/アーカイブ操作から分離されており、操作ログの削除機能はありません。
 
-Open items before production distribution:
+実稼働配布前にアイテムをオープン:
 
-- Confirm the final Drive distribution folder ID/path and access model.
-- Choose and validate the Google authentication method.
-- Implement runtime scripts and meaningful tests before calling a package deployable.
-- Implement the selected E1 release-event/manual-approval gate and finalize distribution identity/provenance details; retain reviewed tag/VERSION/commit/package checks.
-- Preserve all release versions under the selected no-automatic-cleanup policy and verify rollback behavior.
+- 最終的なドライブ配布フォルダー ID/パスとアクセス モデルを確認します。
+- Google 認証方法を選択して検証します。
+- デプロイ可能なパッケージを呼び出す前に、ランタイム スクリプトと意味のあるテストを実装します。
+- 選択した E1 リリース イベント/手動承認ゲートを実装し、配布の同一性/来歴の詳細を最終決定します。レビュー済みのタグ/バージョン/コミット/パッケージのチェックを保持します。
+- 選択した自動クリーンアップなしポリシーの下ですべてのリリース バージョンを保存し、ロールバック動作を確認します。
 
-## 12. Observed implementation limits (2026-10-24)
+<a id="12-observed-implementation-limits-2026-10-24"></a>
+## 12. 観察された実装制限 (2026-10-24)
 
-- The builder uses role-specific official entrypoint presence, not a legacy sentinel. Its deployable status is a structural check, not proof that the scripts are operationally safe. Both official entrypoints are currently absent.
-- The tracked workflows are Validate and Package Validation; workflow_dispatch can build an explicitly non-deployable review artifact. No tracked production release or Drive upload workflow exists.
-- Generated metadata currently uses sourceRef=local-build; reviewed tag/commit provenance and immutable publication still need implementation and acceptance (OSD-06).
-- Drive request/response schemas are repository contracts but are not in the current package allowlist. Their role and any new adapter dependency must be reviewed before the adapter is distributed.
-- The selected OSD-07 policy retains all release versions and has no automatic cleanup. It is separate from private recovery-evidence retention; neither policy authorizes deletion of operational logs.
+- ビルダーは、従来のセンチネルではなく、ロール固有の公式エントリポイント プレゼンスを使用します。デプロイ可能ステータスは構造チェックであり、スクリプトが動作的に安全であることを証明するものではありません。現在、どちらの公式エントリポイントも存在しません。
+- 追跡されるワークフローは検証とパッケージ検証です。 workflow_dispatch は、明示的にデプロイ不可能なレビュー 成果物を構築できます。追跡された製品リリースやドライブのアップロード ワークフローは存在しません。
+- 生成されたメタデータは現在、sourceRef=local-build を使用します。タグ/コミットの出所を確認し、不変のパブリケーションはまだ実装と承認が必要です (OSD-06)。
+- ドライブのリクエスト/レスポンス スキーマはリポジトリ コントラクトですが、現在のパッケージの許可リストには含まれていません。アダプタを配布する前に、それらの役割と新しいアダプタの依存関係を確認する必要があります。
+- 選択した OSD-07 ポリシーはすべてのリリース バージョンを保持し、自動クリーンアップはありません。これは、個人的な回復証拠の保持とは別のものです。どちらのポリシーも操作ログの削除を許可しません。

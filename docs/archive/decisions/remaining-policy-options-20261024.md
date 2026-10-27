@@ -15,7 +15,7 @@
 
 選択は保存モデルまで。field集合・sequence/対応識別・永続確認予算・AC切断/停止境界・crash点ごとの期待値は契約表として後で提示する。atomicityと電源断耐久性は別に資格確認する。29Aで必要な遷移検査を満たせない場合は実装で省略せず判断へ戻す。
 
-根拠：[crash/concurrency](osd-02-crash-concurrency-options.md)、[状態遷移](../../design/manifest-state-transition-v1-proposal.md)。
+根拠：[クラッシュ/同時実行](osd-02-crash-concurrency-options.md)、[状態遷移](../../design/manifest-state-transition-v1-proposal.md)。
 
 ## ㉚ Drive adapterの通信契約
 
@@ -24,8 +24,8 @@
 | 判断 | A | B |
 | --- | --- | --- |
 | 30a 通信実装 | Google公式Python clientを使用。SDKの暗黙通信・retry/page挙動を調査/固定する | HTTP clientからRESTを明示呼出し。通信単位を管理しやすい一方、変換・エラー処理の自前実装が増える。OAuthを自作する意味ではない |
-| 30b upload | 初期はmultipart、5 MB以下に限定し超過はupload前に保留。容量制限を製品要件として明示する | resumableを設計し大きなfileも対象にする。開始・chunk・照会をPSが制御できるIPC/試行単位の追加契約が必要 |
-| 30c retryable | 固定codeごとの厳格な真偽表。TRANSIENTだけtrue、他はfalseを候補とし、upload結果不明時はtrueでも照合前の再送禁止 | 固定code＋closedな理由分類で真偽を決める。TRANSIENT内の再試行禁止等を細分化できるが、理由enumと対応表の追加契約が必要 |
+|30bのアップロード| 初期はmultipart、5 MB以下に限定し超過はupload前に保留。容量制限を製品要件として明示する | resumableを設計し大きなfileも対象にする。開始・chunk・照会をPSが制御できるIPC/試行単位の追加契約が必要 |
+|30c 再試行可能| 固定codeごとの厳格な真偽表。TRANSIENTだけtrue、他はfalseを候補とし、upload結果不明時はtrueでも照合前の再送禁止 | 固定code＋closedな理由分類で真偽を決める。TRANSIENT内の再試行禁止等を細分化できるが、理由enumと対応表の追加契約が必要 |
 
 30cの両案ともOPERATION_TIMEOUTは自動再送を許可せず、結果不明のまま失敗確定へ変更しない。unknown code/真偽矛盾は拒否。Bも既承認の認証・権限・不正request・検証失敗・競合の自動retry禁止を緩めない。Googleの一般的なbackoff例を採用する選択ではない。
 

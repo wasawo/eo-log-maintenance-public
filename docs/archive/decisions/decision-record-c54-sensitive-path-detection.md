@@ -1,84 +1,92 @@
-# C-54: Sensitive Path Detection Policy
+<a id="c-54-sensitive-path-detection-policy"></a>
+# C-54: 機密パス検出ポリシー
 
 > 履歴/検討資料。承認済みの選択・未決候補・当時の監査根拠を含み、この移動は撤回/失効を意味しない。現在の基準は[正式要件](../../requirements/log-move-requirements.md)と[現行決定台帳](../../decisions/decision-register-c18-c32.md)。当時の対象/証拠を現在のruntime受け入れへ拡張しない。
 
-- Status: **Approved**
-- Decision: **A — fixed patterns combined with sensitive path-segment checks**
-- Scope: diagnostic-record path sanitization; this decision supplements C-53 and does not change the diagnostic record's required fields or NULLability contract.
-- Approval: maintainer selection in the project conversation, 2026-10-21.
+- ステータス: **承認**
+- 決定: **A — 機密性の高いパスセグメントチェックと組み合わせた固定パターン**
+- 範囲: 診断レコードのパスのサニタイズ。この決定は C-53 を補足するものであり、診断レコードの必須フィールドや NULLability コントラクトは変更されません。
+- 承認: プロジェクト会話でのメンテナーの選択、2026-10-21。
 
-## Normative behavior
+<a id="normative-behavior"></a>
+## 規範的な行動
 
-After C-53 path syntax validation succeeds, inspect the entire path and each path segment using this version-controlled policy. If any rule matches, emit `null` for the complete path field. Do not emit a partially redacted path, replace only the matching segment, or echo the rejected value in diagnostics.
+C-53 パス構文検証が成功したら、このバージョン管理されたポリシーを使用してパス全体と各パス セグメントを検査します。いずれかのルールが一致する場合、完了 パス フィールドに対して `null` を出力します。部分的に編集されたパスを出力したり、一致するセグメントのみを置き換えたり、拒否された値を診断でエコーしたりしないでください。
 
-The processing order is:
+処理順序は次のとおりです。
 
-1. Validate path syntax according to C-53.
-2. Apply the sensitive-path policy below.
-3. Emit the original path only if both checks pass; otherwise emit `null`.
+1. C-53 に従ってパス構文を検証します。
+2. 以下の機密パス ポリシーを適用します。
+3. 両方のチェックに合格した場合にのみ、元のパスを出力します。それ以外の場合は `null` を発行します。
 
-A syntax-validation failure remains a rejection under C-53 and does not bypass this policy. A match in any rule has the same outcome; there is no rule that can override a match from another rule.
+構文検証 失敗 は C-53 に基づく拒否のままであり、このポリシーはバイパスされません。どのルールでも一致すると結果は同じになります。別のルールの一致をオーバーライドできるルールはありません。
 
-## Determinism and comparison
+<a id="determinism-and-comparison"></a>
+## 決定論と比較
 
-- Policy rules are explicit, version-controlled constants; no OS-specific secret stores, environment variables, locale-sensitive comparisons, or runtime heuristics may alter the result.
-- Compare ASCII policy tokens case-insensitively using ordinal/invariant semantics. Do not use the host OS's default path comparison.
-- Split segments only according to the separators recognized by C-53. Do not normalize, resolve, or rewrite the input to make it appear safe.
-- Apply token-boundary rules explicitly. For sensitive-name tokens, a token is bounded by the start/end of a segment or a non-alphanumeric character. Thus `api-token-prod.txt` matches, while `tokenizer.txt` does not match merely because it starts with the letters `token`.
-- If a future rule needs Unicode-aware matching, define its normalization and case-folding behavior explicitly before adoption; until then, policy keywords are ASCII.
+- ポリシー ルールは明示的なバージョン管理された定数です。 OS 固有のシークレット ストア、環境変数、ロケールに依存した比較、実行時ヒューリスティックによって結果が変更される可能性はありません。
+- 順序/不変セマンティクスを使用して、大文字と小文字を区別せずに ASCII ポリシー トークンを比較します。ホスト OS のデフォルトのパス比較は使用しないでください。
+- C-53 によって認識される区切り文字に従ってのみセグメントを分割します。安全であるように見せるために、入力を正規化、解決、または書き換えないでください。
+- トークン境界ルールを明示的に適用します。機密名トークンの場合、トークンはセグメントの開始/終了または英数字以外の文字によって制限されます。したがって、`api-token-prod.txt` は一致しますが、`tokenizer.txt` は文字 `token` で始まるという理由だけで一致しません。
+- 将来のルールで Unicode 対応のマッチングが必要な場合は、採用する前に正規化と大文字小文字の区別の動作を明示的に定義してください。それまでは、ポリシーのキーワードは ASCII です。
 
-## Rule groups
+<a id="rule-groups"></a>
+## ルールグループ
 
-Evaluate all groups against the path and its individual segments:
+パスとその個々のセグメントに対してすべてのグループを評価します。
 
-1. **Sensitive fixed names:** exact segment names including `.env`, `.npmrc`, `.pypirc`, `.netrc`, `.dockerconfigjson`, `.aws`, `.ssh`, `.gnupg`, `secrets`, `secret`, `credentials`, and `credential`. The list is illustrative of the initial fixed policy and must be represented as a maintained, testable constant in implementation.
-2. **Sensitive-name tokens:** any segment containing a bounded token from this case-insensitive set: `token`, `password`, `passwd`, `secret`, `credential`, `credentials`, `apikey`, `api-key`, `private-key`, `access-key`, `client-secret`, `authorization`, or `bearer`. Token separators and compound forms must be explicitly covered by tests; hyphenated forms listed above are literal alternatives, not a general substring heuristic.
-3. **Secret-value formats:** reject a path if it contains a recognizable credential-bearing form, including URI user-info (`scheme://user:password@`), bearer credential text, common provider-token prefixes (for example `ghp_`, `github_pat_`, `AKIA` followed by an access-key-like identifier), or PEM private-key header markers. Patterns must be anchored/bounded enough to avoid matching arbitrary ordinary words and must be tested with positive and negative fixtures.
+1. **機密固定名:** 正確なセグメント名 (`.env`、`.npmrc`、`.pypirc`、`.netrc`、`.dockerconfigjson`、`.aws`、`.ssh`、`.gnupg`、`secrets`、`secret`、 `credentials`、および`credential`。このリストは初期の固定ポリシーを示すものであり、実装では維持され、テスト可能な定数として表す必要があります。
+2. **機密名トークン:** この大文字と小文字を区別しないセットの制限付きトークンを含むセグメント: `token`、`password`、`passwd`、`secret`、`credential`、`credentials`、`apikey`、`api-key`、 `private-key`、`access-key`、`client-secret`、`authorization`、または `bearer`。トークン区切り文字と複合形式はテストで明示的にカバーする必要があります。上記のハイフンでつながれた形式は、リテラルの代替手段であり、一般的な部分文字列ヒューリスティックではありません。
+3. **秘密値の形式:** URI ユーザー情報 (`scheme://user:password@`)、ベアラー認証情報テキスト、一般的なプロバイダー トークン プレフィックス (たとえば、`ghp_`、`github_pat_`、`AKIA` の後にアクセスキーのような識別子）、または PEM 秘密キーヘッダーマーカー。パターンは、任意の通常の単語との一致を避けるために十分に固定/境界付けされている必要があり、正および負のフィクスチャを使用してテストする必要があります。
 
-The implementation must not log the matched token, secret value, or original path to explain a rejection. A safe fixed reason code may be recorded if the existing diagnostic contract allows it; do not add a new field or change existing NULL rules without a separate decision.
+実装では、拒否を説明するために、一致したトークン、シークレット値、または元のパスをログに記録してはなりません。既存の診断契約で許可されている場合は、安全な固定理由コードを記録できます。別途決定することなく、新しいフィールドを追加したり、既存の NULL ルールを変更したりしないでください。
 
-## Compatibility and change control
+<a id="compatibility-and-change-control"></a>
+## 互換性と変更管理
 
-- C-53 syntax rules remain authoritative for path structure; C-54 adds a confidentiality check after syntax validation.
-- Any addition, removal, or semantic change to a rule requires explicit review, an update to this decision record/policy version, and tests before acceptance.
-- Existing diagnostic-record required fields, NULLability, and sanitization guarantees remain unchanged.
-- This policy is not proof that all possible secrets can be recognized. Unknown secret formats must not be handled by heuristic rewriting; extend the reviewed fixed policy when a concrete format is identified.
+- C-53 構文規則は、パス構造に対して引き続き権威を持ちます。 C-54 は、構文検証後に機密性チェックを追加します。
+- ルールの追加、削除、またはセマンティックな変更には、明示的なレビュー、この決定記録/ポリシー バージョンの更新、および承認前のテストが必要です。
+- 既存の診断レコードの必須フィールド、NULL 可能性、およびサニタイズ保証は変更されません。
+- このポリシーは、考えられるすべての秘密が認識できることを証明するものではありません。未知のシークレット形式はヒューリスティック書き換えによって処理してはなりません。具体的な形式が特定されたら、レビューされた固定ポリシーを拡張します。
 
-## Required tests
+<a id="required-tests"></a>
+## 必要なテスト
 
-Add deterministic fixtures for:
-- Each fixed sensitive name, case variants, and ordinary similarly named files.
-- Sensitive tokens at segment boundaries and within compound names, including `api-token-prod.txt`; ensure `tokenizer.txt` is not rejected solely due to a substring.
-- Secret-value formats and near-miss negative cases.
-- Sensitive values in directory segments as well as final file names.
-- Every match producing a NULL path, never a partially redacted value.
-- Syntax rejection occurring before sensitive-pattern evaluation, with no rejected input echoed into diagnostic output.
-- Repeatability across Windows/Linux and locale settings where test infrastructure permits.
+以下の決定論的フィクスチャを追加します。
+- 機密性の高い名前、大文字と小文字の区別、および通常の同様の名前のファイルがそれぞれ修正されました。
+- セグメント境界および複合名内の機密トークン (`api-token-prod.txt` を含む)。部分文字列だけが原因で `tokenizer.txt` が拒否されないようにします。
+- 秘密値の形式とニアミスの否定的なケース。
+- ディレクトリ セグメントおよび最終ファイル名内の機密値。
+- すべての一致で NULL パスが生成され、値が部分的に編集されることはありません。
+- 機密パターンの評価前に構文拒否が発生しましたが、拒否された入力は診断出力にエコーされませんでした。
+- Windows/Linux およびテスト インフラストラクチャが許可するロケール設定全体にわたる再現性。
 
-## Related decisions
+<a id="related-decisions"></a>
+## 関連する決定
 
-- C-53: invalid/dangerous path handling — the entire path becomes `null`.
-- Existing diagnostic-record contract: required fields, NULLability, and sanitization remain unchanged.
+- C-53: 無効/危険なパスの処理 — パス全体が `null` になります。
+- 既存の診断レコード契約: 必須フィールド、NULL 可能性、およびサニタイズは変更されません。
 
 
-## C-54 approved secret-format grammars — P1–P6 (2026-10-21)
+<a id="c-54-approved-secret-format-grammars--p1p6-2026-10-21"></a>
+## C-54 承認されたシークレット形式の文法 — P1 ～ P6 (2026-10-21)
 
-The maintainer explicitly approved **Option A for each of P1–P6** on 2026-10-21. This section makes the concrete grammars normative. It does not claim that every possible secret format is detectable, and it does not implement the C-53/C-54 path sanitizer.
+メンテナは、2026-10-21 上の各 P1 ～ P6** の **オプション A を明示的に承認しました。このセクションでは、具体的な文法を規範とします。考えられるすべてのシークレット形式が検出可能であるとは主張しておらず、C-53/C-54 パス サニタイザーは実装されていません。
 
-All regexes are .NET-compatible and are applied to the complete C-53-validated candidate path as well as each validated segment where applicable. Any match rejects the entire optional path field as JSON `null`. Do not trim, normalize, rewrite, resolve against a filesystem, inspect symlinks, or emit matched input.
+すべての正規表現は .NET 互換で、完了 C-53 で検証された候補パスと、該当する場合は検証された各セグメントに適用されます。一致すると、オプションのパス フィールド全体が JSON `null` として拒否されます。ファイルシステムに対するトリミング、正規化、再書き込み、解決、シンボリックリンクの検査、または一致する入力の発行は行わないでください。
 
-| Decision | Normative rule |
+|決定|規範的なルール|
 |---|---|
-| P1 — URI user-info | `(?i)\b[A-Za-z][A-Za-z0-9+.-]*://[^:/@\s][^/@\s]*:[^/@\s]+@` — scheme starts with an ASCII letter and continues with ASCII letters/digits/`+`/`.`/`-`; username and password are non-empty; the first username character excludes colon, slash, at-sign, and whitespace, while later username characters exclude slash, at-sign, and whitespace (so a colon is permitted after the first character); password characters exclude slash, at-sign, and whitespace. Percent-encoded characters are allowed. |
-| P2 — Bearer | `(?i)(?<![A-Za-z0-9_-])Bearer[ \t]+[A-Za-z0-9._~+/-]+=*(?![A-Za-z0-9._~+/-])` — scheme matching is case-insensitive; token is non-empty and restricted to the listed ASCII alphabet with optional trailing equals padding. |
-| P3 — GitHub classic token-like values | `(?<![A-Za-z0-9_])ghp_[A-Za-z0-9]{20,}(?![A-Za-z0-9])` — case-sensitive prefix; suffix is ASCII alphanumeric and at least 20 characters; explicit ASCII boundaries as shown. |
-| P3 — GitHub fine-grained token-like values | `(?<![A-Za-z0-9_])github_pat_[A-Za-z0-9_]{20,}(?![A-Za-z0-9_])` — case-sensitive prefix; suffix is ASCII alphanumeric/underscore and at least 20 characters; explicit ASCII boundaries as shown. |
-| P4 — AWS access-key-ID-like values | `(?<![A-Za-z0-9])AKIA[A-Z0-9]{16}(?![A-Za-z0-9])` — exact uppercase `AKIA` plus 16 uppercase ASCII letters/digits. Other AWS access-key prefixes are **out of scope** for this approved grammar unless separately approved. This detects identifier-like material, not proof that the paired secret key is present. |
-| P5 — PEM private-key markers | Case-sensitive fixed marker list: `-----BEGIN PRIVATE KEY-----`, `-----BEGIN RSA PRIVATE KEY-----`, `-----BEGIN EC PRIVATE KEY-----`, `-----BEGIN DSA PRIVATE KEY-----`, `-----BEGIN OPENSSH PRIVATE KEY-----`. No general label grammar or other PEM labels are implied. |
-| P6 — boundaries/case | Use the ASCII boundaries embedded in the regexes exactly. URI and Bearer scheme matching is case-insensitive; `ghp_`, `github_pat_`, and `AKIA` patterns are case-sensitive; PEM markers are case-sensitive. Do not broaden to substring matching, Unicode boundary/case folding, trimming, or generic entropy heuristics. |
+|P1 — URI ユーザー情報|`(?i)\b[A-Za-z][A-Za-z0-9+.-]*://[^:/@\s][^/@\s]*:[^/@\s]+@` — スキームは ASCII 文字で始まり、ASCII 文字/数字/`+`/`.`/`-` で続きます。ユーザー名とパスワードは空ではありません。最初のユーザー名の文字にはコロン、スラッシュ、アットマーク、および空白が含まれませんが、それ以降のユーザー名の文字にはスラッシュ、アットマーク、および空白が含まれません (したがって、最初の文字の後にコロンが許可されます)。パスワード文字にはスラッシュ、アットマーク、空白は含まれません。パーセントエンコードされた文字を使用できます。|
+|P2 — ベアラー|`(?i)(?<![A-Za-z0-9_-])Bearer[ \t]+[A-Za-z0-9._~+/-]+=*(?![A-Za-z0-9._~+/-])` — スキームの一致では大文字と小文字が区別されません。トークンは空ではなく、リストされた ASCII アルファベットに制限されており、オプションで末尾に等しいパディングが付いています。|
+|P3 — GitHub 古典的なトークンのような値|`(?<![A-Za-z0-9_])ghp_[A-Za-z0-9]{20,}(?![A-Za-z0-9])` — 大文字と小文字を区別する接頭辞。接尾辞は ASCII 英数字と少なくとも 20 文字です。図に示すように、明示的な ASCII 境界。|
+|P3 — GitHub きめの細かいトークンのような値|`(?<![A-Za-z0-9_])github_pat_[A-Za-z0-9_]{20,}(?![A-Za-z0-9_])` — 大文字と小文字を区別する接頭辞。接尾辞は ASCII 英数字/アンダースコアと少なくとも 20 文字です。図に示すように、明示的な ASCII 境界。|
+|P4 — AWS アクセスキー ID のような値|`(?<![A-Za-z0-9])AKIA[A-Z0-9]{16}(?![A-Za-z0-9])` — 正確な大文字の `AKIA` と 16 の大文字の ASCII 文字/数字。他の AWS アクセス キー プレフィックスは、別途承認されない限り、この承認された文法の範囲外**** になります。これは、ペアになった秘密キーが存在するという証拠ではなく、識別子のようなマテリアルを検出します。|
+|P5 — PEM 秘密鍵マーカー|大文字と小文字を区別する固定マーカー リスト: `-----BEGIN PRIVATE KEY-----`、`-----BEGIN RSA PRIVATE KEY-----`、`-----BEGIN EC PRIVATE KEY-----`、`-----BEGIN DSA PRIVATE KEY-----`、`-----BEGIN OPENSSH PRIVATE KEY-----`。一般的なラベル文法やその他の PEM ラベルは含まれません。|
+|P6 — 境界/ケース|正規表現に埋め込まれた ASCII 境界を正確に使用してください。 URI とベアラー スキームの一致では大文字と小文字が区別されません。 `ghp_`、`github_pat_`、および `AKIA` パターンでは大文字と小文字が区別されます。 PEM マーカーでは大文字と小文字が区別されます。部分文字列のマッチング、Unicode の境界/大文字と小文字の折りたたみ、トリミング、または一般的なエントロピー ヒューリスティックに拡張しないでください。|
 
-**C-53 interaction:** path syntax validation remains first. A URI-like full path may be rejected by C-53 before the URI matcher is reached. A full-path integration test must assert the final safe outcome without claiming C-54 matched; test the URI regex directly in the pure pattern-contract test.
+**C-53 インタラクション:** パス構文の検証が最初に残ります。 URI のようなフル パスは、URI マッチャーに到達する前に C-53 によって拒否される場合があります。フルパス統合テストでは、C-54 が一致したと主張することなく、最終的な安全な結果をアサートする必要があります。純粋なパターン コントラクト テストで URI 正規表現を直接テストします。
 
-**Coverage limit:** these patterns are fixed reviewed detection rules, not a universal secret detector. New prefixes, alphabets, PEM labels, or boundary semantics require explicit approval, decision-record/specification updates, and tests.
+**カバレッジ制限:** これらのパターンは、普遍的な秘密検出器ではなく、修正されたレビュー済み検出ルールです。新しいプレフィックス、アルファベット、PEM ラベル、または境界セマンティクスには、明示的な承認、意思決定記録/仕様の更新、およびテストが必要です。
 
-**Executable test boundary:** `tests/Test-C54PatternContract.ps1` verifies the approved regex grammar and synthetic positive/negative/boundary fixtures directly. It is a pattern-contract test only; it does not prove that runtime path sanitization, full-field nulling, or diagnostic non-disclosure is implemented. Those runtime tests remain pending.
+**実行可能テスト境界:** `tests/Test-C54PatternContract.ps1` は、承認された正規表現文法と合成正/負/境界フィクスチャを直接検証します。これはパターン契約テストのみです。ランタイム パスのサニタイズ、フィールド全体のヌル化、または診断の非公開が実装されていることを証明するものではありません。これらのランタイム テストは 未確定 のままです。

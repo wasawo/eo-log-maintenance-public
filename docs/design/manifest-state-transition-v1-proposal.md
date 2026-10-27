@@ -1,201 +1,219 @@
-# Maintenance Manifest v1 — Adopted State-Transition Table
+<a id="maintenance-manifest-v1--adopted-state-transition-table"></a>
+# メンテナンス マニフェスト v1 — 採用された状態遷移テーブル
 
-> 2026-10-27 compatibility boundary: [Q1–Q10 and flattening](../requirements/log-move-requirements.md) require per-file movement through source deletion without both-PC period waiting. The existing v1 schema/helper behavior and dated evidence below are unchanged. A v1 `verified`/report/latest-manifest result is not proof of completed movement or permission to delete; both-PC selection/report completeness is not a new archive prerequisite. Deletion-state/IPC/persistence revisions remain detailed-design work. Do not alter old immutable artifacts or infer a schema upgrade from this policy note.
+> 2026-10-27 互換性境界: [Q1〜Q10 と平坦化](../requirements/log-move-requirements.md) では、両方の PC の期間を待たずにソース削除によるファイルごとの移動が必要です。既存の v1 スキーマ/ヘルパーの動作と以下の日付の証拠は変更されていません。 v1 `verified`/report/latest-manifest の結果は、移動の完了または削除の許可を証明するものではありません。両方の PC の選択/レポートの完全性は、新しいアーカイブの前提条件ではありません。削除状態/IPC/永続化のリビジョンは詳細設計作業のままです。古い不変の成果物を変更したり、このポリシー ノートからスキーマのアップグレードを推測したりしないでください。
 
-- Status: transition tables adopted by the maintainer on 2026-10-24, subject to existing approved aggregation, crash/concurrency, terminal-state and immutable-history rules. Unlisted transitions are rejected. Read-only snapshot/pair inspection and synthetic tests are implemented (2026-10-25); event evidence, persistence/writer and runtime acceptance remain incomplete. See [selection record](../archive/decisions/selected-policy-decisions-20261024.md).
-- Related decision: OSD-02 / C-26.
-- Approved field contract: `docs/design/manifest-schema-v1-proposal.md`.
-- Related aggregation decision: `docs/archive/decisions/osd-03-status-aggregation-options.md`.
-- Scope: adopted conditional transitions for per-file lifecycle state, Drive verification result, and run status. This document does not establish runtime acceptance.
+- ステータス: 2026-10-24 のメンテナによって採用された遷移テーブル。既存の承認された集計、クラッシュ/同時実行、終了状態および不変履歴ルールが適用されます。リストにないトランジションは拒否されます。読み取り専用のスナップショット/ペア検査および合成テストが実装されています (2026-10-25)。イベント証拠、永続性/ライター、およびランタイム受け入れは 未完了 のままです。 [選択レコード](../archive/decisions/selected-policy-decisions-20261024.md)を参照してください。
+- 関連する決定: OSD-02 / C-26。
+- 承認されたフィールド契約: `docs/design/manifest-schema-v1-proposal.md`。
+- 関連する集計決定: `docs/archive/decisions/osd-03-status-aggregation-options.md`。
+- 範囲: ファイルごとのライフサイクル状態、ドライブ検証結果、および実行ステータスの条件付き遷移を採用しました。この文書は実行時の受け入れを確立するものではありません。
 
-## 1. Rules already established by approved specifications
+<a id="1-rules-already-established-by-approved-specifications"></a>
+## 1. 承認された仕様によってすでにルールが確立されています
 
-- Run status enum: `running`, `success`, `partial_failure`, `failure`.
-- File status enum: `staging`, `ready`, `pending`, `uploaded`, `verified`, `failed`, `unknown`.
-- Verification status enum: `not_checked`, `verified`, `mismatch`, `unavailable`, `ambiguous`, `failed`.
-- Verification method enum: `not_performed`, `drive_sha256`, `download_sha256`.
-- A verified verification result requires actual content verification; metadata-only lookup is insufficient.
-- **Approved verification-object combinations (2026-10-21):** `not_checked` pairs with `not_performed` and null time/hash; `verified` and `mismatch` require an actually used hash method (`drive_sha256` or `download_sha256`), a non-null timestamp, and a valid observed hash; `unavailable`, `ambiguous`, or verification-operation `failed` with no observed hash pair with `not_performed`, a non-null attempt timestamp, and null hash. `method` describes the method that actually obtained the hash, not merely an attempted method. Detailed attempted-method/error/retry diagnostics belong in sanitized operational logs.
-- A cloud object ID does not establish content equality or provenance. Archive must independently re-query/re-verify current Drive state.
-- **Approved terminal-state rule (2026-10-21):** `verified` and `failed` are terminal within a run. Later archive-time verification may block archive and emit sanitized operational diagnostics, but must not rewrite the historical manifest or transition that file state. A later run uses a new `run_id`.
-- **Approved retry-exhaustion rule:** reaching the retry limit is not by itself evidence of success or failure. Use file `failed` only when reliable evidence establishes that the operation did not succeed and the failure is definitive (such as an explicit non-retryable rejection that guarantees no object was created, or a confirmed content mismatch). If the remote upload outcome cannot be established, retain `unknown`; verification `unavailable`, `ambiguous`, or verification-operation `failed` also maps to `unknown`.
-- A crash-left `running` manifest remains incomplete and must not be automatically rewritten to `failure`. A new execution gets a new `run_id`.
-- Existing source/staging rules require upload only from a verified staging copy, unknown upload outcomes to be reconciled before retry, and preservation of staging artifacts when success cannot be established.
-- An uncertain file is never success. Run-level aggregation remains subject to OSD-03.
-- This table must not add status or outcome enum values without explicit approval.
+- 実行ステータス列挙: `running`、`success`、`partial_failure`、`failure`。
+- ファイル ステータスの列挙型: `staging`、`ready`、`pending`、`uploaded`、`verified`、`failed`、`unknown`。
+- 検証ステータスの列挙型: `not_checked`、`verified`、`mismatch`、`unavailable`、`ambiguous`、`failed`。
+- 検証方法の列挙型: `not_performed`、`drive_sha256`、`download_sha256`。
+- 確認済み 検証結果には実際のコンテンツ検証が必要です。メタデータのみのルックアップでは不十分です。
+- **承認された検証オブジェクトの組み合わせ (2026-10-21):** `not_checked` と `not_performed` および null 時間/ハッシュのペア。 `verified` と `mismatch` には、実際に使用されるハッシュ メソッド (`drive_sha256` または `download_sha256`)、null 以外のタイムスタンプ、および有効な観測ハッシュが必要です。 `unavailable`、`ambiguous`、または検証操作 `failed` (`not_performed`、null 以外の試行タイムスタンプ、および null ハッシュを含むハッシュ ペアが確認されていない)。 `method` では、単に試行された方法ではなく、実際にハッシュを取得した方法について説明します。詳細な試行方法/エラー/再試行診断は、サニタイズされた操作ログに含まれます。
+- クラウド オブジェクト ID は、コンテンツの同等性や出所を確立しません。アーカイブは、現在のドライブの状態を個別に再クエリ/再検証する必要があります。
+- **承認された終了状態ルール (2026-10-21):** `verified` および `failed` は実行内の終了です。その後のアーカイブ時の検証では、アーカイブがブロックされ、サニタイズされた動作診断が発行されることがありますが、履歴マニフェストを書き換えたり、ファイルの状態を移行したりしてはなりません。後の実行では新しい `run_id` が使用されます。
+- **承認された再試行枯渇ルール:** が再試行制限に達すること自体は、成功 または 失敗 の証拠ではありません。ファイル `failed` は、操作が成功しなかったこと、および 失敗 が決定的であることが信頼できる証拠によって証明されている場合にのみ使用してください (オブジェクトが作成されていないことを保証する明示的な再試行不可能な拒否、または確認されたコンテンツ 不一致 など)。リモート アップロードの結果を確立できない場合は、`unknown` を保持します。検証 `unavailable`、`ambiguous`、または検証操作 `failed` も `unknown` にマップされます。
+- クラッシュした `running` マニフェストは 未完了 のままであり、自動的に `failure` に書き換えることはできません。新しい実行では、新しい `run_id` が取得されます。
+- 既存のソース/ステージング ルールでは、確認済み ステージング コピーからのみアップロードすること、不明 アップロード結果を再試行前に調整すること、成功 が確立できない場合の ステージング 成果物の保存が必要です。
+- 不確実なファイルが 成功 になることはありません。実行レベルの集計は引き続き OSD-03 の対象となります。
+- このテーブルには、明示的な承認なしにステータスまたは結果の列挙値を追加してはなりません。
 
-## 2. Adopted per-file state transitions (2026-10-24)
+<a id="2-adopted-per-file-state-transitions-2026-10-24"></a>
+## 2. ファイルごとの状態遷移を採用 (2026-10-24)
 
-The maintainer adopted the following rows with the conditions recorded above. Any transition not explicitly listed must be rejected unless a later explicit decision approves an additional row. This does not permit implementation to introduce new enum values or rewrite historical records.
+メンテナは、上記で記録された条件で次の行を採用しました。明示的にリストされていない遷移は、後の明示的な決定で追加行が承認されない限り、拒否する必要があります。これにより、実装で新しい列挙値を導入したり、履歴レコードを書き換えたりすることはできません。
 
-| From | To | Trigger / required evidence | Prohibitions / notes |
+|から|宛|トリガー/必要な証拠|禁止事項・注意事項|
 |---|---|---|---|
-| `pending` | `staging` | Staging metadata is durably written before creating the staging copy. | Do not overwrite an existing staging file; do not upload yet. |
-| `staging` | `ready` | Staging copy exists and its size and SHA-256 match the frozen inventory. | No upload if copy creation or verification fails. |
-| `staging` | `failed` | A confirmed staging/copy/verification failure is recorded. | Cleanup is limited to incomplete artifacts created by the current operation; failed cleanup retains artifacts and warns. |
-| `ready` | `pending` | Upload is about to be attempted and the attempt is recorded. | Upload input must be the verified staging copy, not a mutable source file. |
-| `pending` | `uploaded` | Upload API explicitly reports success. | This is not cloud-content verification and is not archive authorization. |
-| `pending` | `unknown` | Upload outcome cannot reliably be determined. | Must inspect Drive state before retry; do not assume absence or success. |
-| `pending` | `failed` | Evidence confirms the upload did not succeed (for example, an explicit non-retryable rejection that means no object was created), and the error is classified as non-retryable or retry policy is exhausted. | Retry exhaustion alone is insufficient. If the remote outcome is uncertain, use `unknown`. |
-| `uploaded` | `verified` | Cloud content is verified by trustworthy Drive SHA-256 or by download-and-local-hash comparison. | Metadata-only matching is insufficient. |
-| `uploaded` | `unknown` | Verification cannot establish current content or upload outcome remains uncertain. | Preserve staging artifacts; no success/archive. |
-| `uploaded` | `failed` | Content verification establishes a mismatch between expected and observed bytes. | Only `mismatch → failed`. Verification unavailable/ambiguous/operation failure maps to `unknown`, not `failed`. |
-| `unknown` | `verified` | Reconciliation finds exactly one trusted same-content candidate and verifies its content under OSD-01. | Must not bypass full enumeration, source trust, or hash requirements. |
-| `unknown` | `pending` | Reconciliation confirms the upload target is absent and a retry is permitted by the retry policy. | Retry only after the absence determination is complete and trustworthy. |
-| `unknown` | `failed` | Reconciliation establishes with reliable evidence that the upload did not succeed and the failure is confirmed (for example, a definitive rejection plus confirmed target absence). | Retry exhaustion alone, incomplete enumeration, timeout, or uncertain cloud state must remain `unknown`. |
+| `pending` | `staging` |ステージング メタデータは、ステージング コピーを作成する前に永続的に書き込まれます。|既存のステージング ファイルを上書きしないでください。まだアップロードしないでください。|
+| `staging` | `ready` |ステージング コピーが存在し、そのサイズと SHA-256 が凍結されたインベントリと一致します。|コピーの作成または検証が失敗した場合はアップロードできません。|
+| `staging` | `failed` |確認されたステージング/コピー/検証の失敗が記録されます。|後片付けは、今回の操作で作成した未完了の成果物だけに限定する。後片付けに失敗した場合は成果物を残し、警告する。|
+| `ready` | `pending` |アップロードが試行され、その試行が記録されます。|アップロード入力は、変更可能なソース ファイルではなく、確認済み ステージング コピーである必要があります。|
+| `pending` | `uploaded` |API をアップロードすると、成功 が明示的に報告されます。|これはクラウド コンテンツの検証ではなく、アーカイブの承認でもありません。|
+| `pending` | `unknown` |アップロードの結果を確実に判断できません。|再試行する前にドライブの状態を検査する必要があります。不在または成功を仮定しないでください。|
+| `pending` | `failed` |アップロードが成功しなかったことを示す証拠 (たとえば、オブジェクトが作成されなかったことを意味する明示的な再試行不可の拒否)、エラーは再試行不可として分類されるか、再試行ポリシーが使い果たされたことを示します。|リトライ枯渇だけでは不十分です。リモート結果が不確実な場合は、`unknown` を使用します。|
+| `uploaded` | `verified` |クラウド コンテンツは、信頼できるドライブ SHA-256 またはダウンロードとローカル ハッシュの比較によって検証されます。|メタデータのみのマッチングでは不十分です。|
+| `uploaded` | `unknown` |検証で現在のコンテンツを確立できないか、アップロードの結果が不確実なままです。|ステージング成果物を保存します。成功/アーカイブなし。|
+| `uploaded` | `failed` |コンテンツ検証により、予想されるバイトと観察されたバイトの間の不一致が確立されます。|`mismatch → failed`のみ。検証不可/曖昧/操作失敗は、`failed` ではなく `unknown` にマップされます。|
+| `unknown` | `verified` |調整では、信頼できる同じコンテンツの候補を 1 つだけ見つけ、そのコンテンツを OSD-01 で検証します。|完全な列挙、ソースの信頼、またはハッシュの要件をバイパスしてはなりません。|
+| `unknown` | `pending` |調整により、アップロード ターゲットが存在せず、再試行ポリシーによって再試行が許可されることが確認されます。|不在の判定が完了し、信頼できるようになってから再試行してください。|
+| `unknown` | `failed` |調整により、アップロードが成功しなかったことの信頼できる証拠が確立され、失敗が確認されます (たとえば、決定的な拒否とターゲットの不在の確認)。|再試行のみの場合、不完全な列挙、タイムアウト、または不確実なクラウド状態は `unknown` のままでなければなりません。|
 
-### Open transition questions
+<a id="open-transition-questions"></a>
+### 移行に関する未解決の質問
 
-1. **Initial per-file state — decided:** the maintainer selected option A on 2026-10-21. A new run begins with `pending` as a planning/target-registered state; before creating a staging copy, metadata-first processing transitions `pending → staging → ready`; immediately before upload attempt, it transitions `ready → pending`. The two `pending` occurrences represent distinct lifecycle points, disambiguated by the preceding state and event history. This decision resolves only the initial-state ambiguity; at that individual approval point the full table was not normative; later conditional adoption is recorded in §5.
-2. **Verification result mapping — mapping approved:** `verified → verified`; `mismatch → failed`; `unavailable → unknown`; `ambiguous → unknown`; `failed → unknown`; `not_checked` leaves the current file state unchanged. This mapping does not approve every method/time/hash combination or the full transition table.
-3. **Retry exhaustion — policy approved:** exhausting the retry budget does not itself determine file state. Use `failed` only when evidence confirms the operation did not succeed and the failure is definitive; use `unknown` whenever the cloud outcome remains uncertain. A verification result of `unavailable`, `ambiguous`, or verification-operation `failed` maps to `unknown`; a confirmed content `mismatch` maps to file `failed`.
-4. **Post-verification state — decided 2026-10-21:** `verified` and `failed` are terminal file states within one run. A later archive-time verification does not rewrite that run's file status or historical manifest. If current verification fails, is unavailable, or is ambiguous, block the archive and record the current result in sanitized operational logs (or other separately approved operational diagnostics). A later execution uses a new `run_id` and its own manifest.
-5. **Terminal file states — decided 2026-10-21:** no transition out of `verified` or `failed` is permitted within the same run. This does not make a stored `verified` status a permanent archive authorization; archive must independently re-query and verify current Drive content.
-6. **Run-level status/time constraint — decided 2026-10-21:** `started_at_utc` is required for every status; `running` requires null `finished_at_utc`; terminal statuses (`success`, `partial_failure`, `failure`) require non-null `finished_at_utc`. Ordering/freshness/clock-skew and crash recovery remain separate.
-7. **Verification object combinations — decided 2026-10-21:** approve and enforce the exhaustive combinations in §4; `method` means the method that actually obtained the observed hash. Failed attempts with no hash use `not_performed`, an attempt timestamp, and null hash; detailed attempt diagnostics go to sanitized operational logs.
-7. **Aggregation boundary:** Use the approved OSD-03 file-to-run/period aggregation and outcome rules, including zero-work and unclassifiable filenames. Adoption of this table does not replace those conditions.
+1. **ファイル単位の初期状態 — 決定済み:** 保守者は 2026-10-21 に案Aを選択した。新しい実行は、計画・対象登録状態の `pending` から開始する。ステージングコピー作成前にメタデータを先に処理して `pending → staging → ready` へ遷移し、アップロード試行直前に `ready → pending` へ遷移する。2回現れる `pending` は異なる段階を表し、直前の状態とイベント履歴で区別する。この決定は初期状態の曖昧さだけを解消する。当該承認時点では表全体は規範ではなく、その後の条件付き採用は§5 に記録する。
+2. **検証結果マッピング — マッピングが承認されました:** `verified → verified`; `mismatch → failed`; `unavailable → unknown`; `ambiguous → unknown`; `failed → unknown`; `not_checked` は、現在のファイルの状態を変更しません。このマッピングは、すべてのメソッド/時間/ハッシュの組み合わせや完全な遷移テーブルを承認するわけではありません。
+3. **再試行の枯渇 — ポリシーが承認されました:** 再試行予算を使い果たすこと自体は、ファイルの状態を決定しません。 `failed` は、操作が成功しなかったことが証拠によって確認され、失敗 が決定的である場合にのみ使用してください。クラウドの結果が不確実な場合は常に `unknown` を使用してください。 `unavailable`、`ambiguous`、または検証操作 `failed` の検証結果は `unknown` にマップされます。確認されたコンテンツ `mismatch` はファイル `failed` にマップされます。
+4. **検証後の状態 — 決定された 2026-10-21:** `verified` および `failed` は 1 回の実行内の端末ファイルの状態です。その後のアーカイブ時の検証では、その実行のファイル ステータスや履歴マニフェストは書き換えられません。現在の検証が失敗した場合、利用不能、または 曖昧 の場合は、アーカイブをブロックし、現在の結果をサニタイズされた操作ログ (またはその他の別途承認された操作診断) に記録します。後の実行では、新しい `run_id` と独自のマニフェストが使用されます。
+5. **ターミナル ファイルの状態 - 決定 2026-10-21:** 同一実行内で `verified` または `failed` からの遷移は許可されません。これは、保存された `verified` ステータスを永続的なアーカイブ許可にするものではありません。アーカイブは、現在のドライブのコンテンツを個別に再クエリして検証する必要があります。
+6. **実行レベルのステータス/時間制約 - 決定 2026-10-21:** `started_at_utc` はすべてのステータスに必要です。 `running` には null `finished_at_utc` が必要です。端末ステータス (`success`、`partial_failure`、`failure`) には、null 以外の `finished_at_utc` が必要です。順序付け/鮮度/クロックスキューとクラッシュリカバリは分離されたままになります。
+7. **検証オブジェクトの組み合わせ - 決定された 2026-10-21:** は、§4 の完全な組み合わせを承認および施行します。 `method` は、観測されたハッシュを実際に取得したメソッドを意味します。ハッシュなしで失敗した試行では、`not_performed`、試行タイムスタンプ、および null ハッシュが使用されます。詳細な試行診断は、サニタイズされた操作ログに記録されます。
+7. **集計境界:** 承認された OSD-03 ファイルから実行/期間の集計および結果ルール (ゼロ作業ファイル名や分類不可能なファイル名を含む) を使用します。この表の採用はこれらの条件に代わるものではありません。
 
-## 3. Adopted run-level transitions (2026-10-24)
+<a id="3-adopted-run-level-transitions-2026-10-24"></a>
+## 3. ランレベル遷移の採用 (2026-10-24)
 
-| From | To | Trigger / required evidence | Prohibitions / notes |
+|から|宛|トリガー/必要な証拠|禁止事項・注意事項|
 |---|---|---|---|
-| (new manifest) | `running` | Lock acquired; manifest written and validated before file processing. | Must have unique `run_id`; no processing before the running manifest is safely recorded. |
-| `running` | `success` | All required work is accounted for, all required file outcomes are verified, no relevant validation/processing error remains, and final manifest validates. | Exact aggregation and `outcome` must follow the approved OSD-03 rules. |
-| `running` | `partial_failure` | Some work was verified but at least one relevant item remains unresolved or failed under the approved aggregation rule. | Exact mapping must follow the approved OSD-03 rules. |
-| `running` | `failure` | Run cannot safely complete or no verified work exists after a confirmed overall failure, as determined by the approved aggregation rule. | Exact mapping must follow the approved OSD-03 rules. |
-| `running` | `running` | Same run is continuing and its manifest is updated atomically after validation. | Do not change `run_id`; enforce the approved status/time consistency and crash/concurrency/single-owner rules. Persistence and writer integration remain unimplemented. |
-| terminal status | any different status | **Forbidden by default.** | A later execution must create a new manifest with a new `run_id`; older manifests are not rewritten to represent a later run. |
+|(新しいマニフェスト)| `running` |ロックを取得しました。マニフェストはファイル処理前に作成され検証されます。|一意の `run_id` が必要です。実行中のマニフェストが安全に記録される前に処理は行われません。|
+| `running` | `success` |必要なすべての作業が考慮され、必要なファイルの結果がすべて検証され、関連する検証/処理エラーが残らず、最終的なマニフェストが検証されます。|正確な集計と `outcome` は、承認された OSD-03 ルールに従う必要があります。|
+| `running` | `partial_failure` |一部の作業は検証されましたが、少なくとも 1 つの関連項目が未解決のままであるか、承認された集計ルールに基づいて失敗しています。|正確なマッピングは、承認された OSD-03 ルールに従う必要があります。|
+| `running` | `failure` |承認された集計ルールによって決定されるように、全体的な失敗が確認された後、実行を安全に完了できないか、検証済みの作業が存在しません。|正確なマッピングは、承認された OSD-03 ルールに従う必要があります。|
+| `running` | `running` |同じ実行が継続され、検証後にマニフェストがアトミックに更新されます。|`run_id` は変更しないでください。承認されたステータス/時間の一貫性とクラッシュ/同時実行/単一所有者のルールを強制します。永続化とライターの統合は未実装のままです。|
+|端末ステータス|さまざまなステータス|**デフォルトでは禁止されています。**|後の実行では、新しい `run_id` を使用して新しいマニフェストを作成する必要があります。古いマニフェストは、後の実行を表すように書き換えられません。|
 
-Crash recovery is not a transition: if the process crashes, leave the last valid manifest as `running`; do not automatically rewrite it to a terminal state.
+クラッシュ回復は移行ではありません。プロセスがクラッシュした場合は、最後の有効なマニフェストを `running` として残します。自動的に終了状態に書き換えないでください。
 
-## 5. Approved run status and finish-time consistency — 2026-10-21
+<a id="5-approved-run-status-and-finish-time-consistency--2026-10-21"></a>
+## 5. 承認された実行ステータスと終了時間の一貫性 — 2026-10-21
 
-- **Approving authority:** project maintainer (explicit approval in conversation on 2026-10-21; option A).
-- `started_at_utc` is required for every run status.
-- `status: running` requires `finished_at_utc: null`.
-- Terminal run statuses `success`, `partial_failure`, and `failure` each require a non-null `finished_at_utc`.
-- Any status/time combination outside these rules is invalid and must be rejected by manifest validation.
-- This decision does not define whether finish time is chronologically after start time, acceptable future timestamps, timestamp freshness, clock-skew tolerances, crash recovery, or run/period aggregation under OSD-03.
-- A crash-left `running` manifest is not automatically rewritten to `failure`; recovery behavior remains governed by the approved crash/concurrency policy and its independent qualification gates.
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話での明示的な承認、オプション A)。
+- `started_at_utc` は、すべての実行ステータスに必要です。
+- `status: running` には `finished_at_utc: null` が必要です。
+- 端末実行ステータス `success`、`partial_failure`、および `failure` には、それぞれ非 null `finished_at_utc` が必要です。
+- これらのルール外のステータスと時間の組み合わせは無効であるため、マニフェスト検証によって拒否する必要があります。
+- この決定では、終了時刻が開始時刻より時系列的に後であるかどうか、許容可能な将来のタイムスタンプ、タイムスタンプの鮮度、クロック スキュー許容値、クラッシュ リカバリ、または OSD-03 での実行/期間の集計は定義されません。
+- クラッシュしたままの `running` マニフェストは、自動的には `failure` に書き換えられません。回復動作は、承認されたクラッシュ/同時実行ポリシーとその独立した資格ゲートによって引き続き管理されます。
 
-## 4. Approved verification object combinations — 2026-10-21
+<a id="4-approved-verification-object-combinations--2026-10-21"></a>
+## 4. 承認された検証オブジェクトの組み合わせ — 2026-10-21
 
-The maintainer selected option A. These combinations are normative policy decisions for the v1 verification object; every combination not listed below is invalid and must be rejected by the validator.
+管理者はオプション A を選択しました。これらの組み合わせは、v1 検証オブジェクトの規範的なポリシー決定です。以下にリストされていない組み合わせはすべて無効であり、バリデーターによって拒否される必要があります。
 
-| `verification.status` | `verification.method` | `checked_at_utc` | `observed_sha256` | Required interpretation |
+| `verification.status` | `verification.method` | `checked_at_utc` | `observed_sha256` |必要な解釈|
 |---|---|---|---|---|
-| `not_checked` | `not_performed` | null | null | No verification attempt recorded |
-| `verified` | `drive_sha256` or `download_sha256` | non-null UTC timestamp | valid 64-hex hash | Actual observed hash matches expected source hash |
-| `mismatch` | `drive_sha256` or `download_sha256` | non-null UTC timestamp | valid 64-hex hash | Actual observed hash differs from expected source hash |
-| `unavailable`, `ambiguous`, or `failed` when no observed hash was obtained | `not_performed` | non-null UTC attempt timestamp | null | Attempt occurred, but no observed content hash was obtained |
+| `not_checked` | `not_performed` | null | null |検証試行は記録されませんでした|
+| `verified` |`drive_sha256` または `download_sha256`|非 null UTC タイムスタンプ|有効な 64 16 進ハッシュ|実際に観察されたハッシュは、予想されるソース ハッシュと一致します|
+| `mismatch` |`drive_sha256` または `download_sha256`|非 null UTC タイムスタンプ|有効な 64 16 進ハッシュ|実際に観察されたハッシュは、予想されるソース ハッシュと異なります|
+|`unavailable`、`ambiguous`、または `failed` (観測されたハッシュが取得されなかった場合)| `not_performed` |非 null UTC 試行タイムスタンプ| null |試行が行われましたが、観測されたコンテンツ ハッシュは取得されませんでした|
 
-- `method` records the method that actually obtained an observed hash, not a method merely attempted. If an attempted verification fails before obtaining a hash, use `not_performed`.
-- For `unavailable`, `ambiguous`, or verification-operation `failed` without a hash, `checked_at_utc` records when the attempt occurred. Record the attempted method, sanitized error details, and retry history in sanitized operational logs.
-- If multiple candidates make identity ambiguous, do not place an arbitrary candidate's hash in the single `observed_sha256` field. Without one established observed hash, use `not_performed` and null hash.
-- `mismatch` requires an actual observed hash that differs from the expected hash; no hash means the result cannot be `mismatch`.
-- The verification-result-to-file-status mapping remains: `verified → verified`; `mismatch → failed`; `unavailable`, `ambiguous`, or verification-operation `failed` → `unknown`; `not_checked` leaves the current file status unchanged.
-- These field-combination rules do not decide run-level aggregation, archive authorization, timestamp freshness/clock skew, or crash/concurrency behavior. Archive must independently re-query and re-verify current Drive content.
-## 5. Table adoption and remaining implementation work (2026-10-24)
+- `method` は、単に試行されたメソッドではなく、観察されたハッシュを実際に取得したメソッドを記録します。ハッシュを取得する前に試行した検証が失敗した場合は、`not_performed` を使用します。
+- `unavailable`、`ambiguous`、またはハッシュなしの検証操作 `failed` の場合、`checked_at_utc` は試行がいつ行われたかを記録します。試行されたメソッド、サニタイズされたエラーの詳細、および再試行履歴をサニタイズされた操作ログに記録します。
+- 複数の候補が ID 曖昧 を作成する場合、任意の候補のハッシュを単一の `observed_sha256` フィールドに配置しないでください。確立された観測ハッシュが 1 つもない場合は、`not_performed` ハッシュと null ハッシュを使用します。
+- `mismatch` には、予想されるハッシュとは異なる実際に観察されたハッシュが必要です。ハッシュがないということは、結果が `mismatch` になるはずがないことを意味します。
+- 検証結果とファイルのステータスのマッピングは残ります: `verified → verified`; `mismatch → failed`; `unavailable`、`ambiguous`、または検証操作 `failed` → `unknown`; `not_checked` は、現在のファイルのステータスを変更しません。
+- これらのフィールドの組み合わせルールは、実行レベルの集計、アーカイブ承認、タイムスタンプの鮮度/クロック スキュー、またはクラッシュ/同時実行動作を決定しません。アーカイブは、現在のドライブのコンテンツを個別に再クエリして再検証する必要があります。
+<a id="5-table-adoption-and-remaining-implementation-work-2026-10-24"></a>
+## 5. テーブルの採用と残りの実装作業 (2026-10-24)
 
-The maintainer adopted the candidate tables subject to the already-approved conditions and rejection of unlisted transitions. Keep the historical individual decisions below within their original scope; this later adoption does not add new enum values, permit historical rewrites, or prove implementation. Remaining work includes lifecycle/traceability alignment, persistence/source contracts, executable transition tests and independent runtime evidence.
+メンテナは、すでに承認された条件とリストにない遷移の拒否を条件として、候補テーブルを採用しました。以下の歴史的な個別の決定は、本来の範囲内に留めてください。この後の採用では、新しい列挙値の追加、履歴の書き換えの許可、または実装の証明は行われません。残りの作業には、ライフサイクル/トレーサビリティの調整、永続性/ソース契約、実行可能移行テスト、および独立した実行時の証拠が含まれます。
 
-The read-only snapshot/pair implementation is described in [transition inspection](reference/manifest-transition-inspection.md). Its synthetic tests do not prove the event prerequisites, persistence or runtime acceptance.
+読み取り専用スナップショット/ペアの実装については、[移行検査](reference/manifest-transition-inspection.md) で説明されています。その合成テストは、イベントの前提条件、永続性、または実行時の受け入れを証明しません。
 
 
-## 6. Approved retry-exhaustion exception cases — 2026-10-21
+<a id="6-approved-retry-exhaustion-exception-cases--2026-10-21"></a>
+## 6. 承認された再試行枯渇例外ケース — 2026-10-21
 
-The maintainer approved the exception-case policy in conversation on 2026-10-21. These rules clarify retry and reconciliation behavior; they do **not** make the full transition table normative or authorize runtime implementation.
+メンテナは、2026-10-21 での会話で例外ケースのポリシーを承認しました。これらのルールは、再試行と調整の動作を明確にします。彼らは**not**を行い、完全な遷移テーブルを標準にするか、ランタイム実装を承認します。
 
-| ID | Exception case | Required disposition | Guard / rationale |
+|ID|例外ケース|必要な処理|ガード / 根拠|
 |---|---|---|---|
-| EX-01 | Explicit HTTP 4xx or other rejection | failed only if the operation contract reliably guarantees that no remote object was created; otherwise unknown when outcome remains uncertain | HTTP status alone is insufficient; classify using operation semantics and evidence |
-| EX-02 | HTTP 5xx, timeout, or communication loss during upload | unknown unless independent reliable evidence establishes definitive non-success | The remote operation may have completed despite the lost response |
-| EX-03 | Retry budget exhausted and target is not found by Drive search | Keep unknown until target absence is established by complete, trustworthy reconciliation; only then may retry policy permit unknown → pending | Retry exhaustion and an unproven absence do not establish failure |
-| EX-04 | Drive listing pagination fails, access is insufficient, or query scope is uncertain | unknown; do not interpret the result as zero or one candidate | Incomplete enumeration cannot prove target absence or uniqueness |
-| EX-05 | Multiple same-name or otherwise ambiguous candidates | unknown; hold for safe reconciliation | Do not choose arbitrarily, overwrite, or declare success |
-| EX-06 | Upload API reports success but content verification follows | mismatch → failed; unavailable, ambiguous, or verification-operation failed → unknown | Upload acknowledgement is not content verification |
-| EX-07 | A previously verified object fails a later verification | Block archive based on the current failed verification; record sanitized operational diagnostics without rewriting the historical manifest | Archive must independently re-query and verify current Drive state; `verified` remains terminal within the original run, per the approved 2026-10-21 decision |
-| EX-08 | Process crashes while a manifest is running | Leave the last valid manifest running; do not automatically rewrite it to failure | A new execution uses a new run_id; crash recovery/concurrency policy remains an open OSD-02 item |
-| EX-09 | Reconciliation after an unknown upload finds one same-content candidate | Transition to verified only after OSD-01 trust, complete enumeration, uniqueness, and actual content verification requirements are met | Matching metadata or object ID alone is insufficient |
-| EX-10 | Verification operation throws, returns malformed data, or cannot produce a reliable result | unknown; no success or archive authorization | Failure of the verifier is not proof of remote content mismatch |
+| EX-01 |明示的な HTTP 4xx またはその他の拒否|失敗した 操作コントラクトによって、リモート オブジェクトが作成されていないことが確実に保証されている場合のみ。それ以外の場合、結果が不確実な場合は 不明|HTTP ステータスだけでは不十分です。操作セマンティクスと証拠を使用して分類する|
+| EX-02 |HTTP 5xx、タイムアウト、またはアップロード中の通信損失|不明 独立した信頼できる証拠によって決定的な非successが確立されない限り|応答が失われたにもかかわらず、リモート操作が完了した可能性があります|
+| EX-03 |再試行予算が使い果たされ、ドライブ検索でターゲットが見つかりません|完全かつ信頼できる調整によってターゲットの不在が確立されるまでは不明のままにしておきます。その場合にのみポリシーを再試行できます 許可が不明→保留中|再試行の枯渇や証明されていない不在は失敗とはみなされません|
+| EX-04 |ドライブ リストのページネーションが失敗するか、アクセスが不十分であるか、クエリの範囲が不確かです|不明;結果をゼロまたは 1 つの候補として解釈しないでください|不完全な列挙ではターゲットの不在または一意性を証明できません|
+| EX-05 |複数の同名候補、または曖昧な対象候補|不明;安全な和解のために保留する|任意に選択したり、上書きしたり、成功を宣言したりしないでください|
+| EX-06 |API をアップロードすると 成功 がレポートされますが、コンテンツの検証が続きます|不一致 → 失敗した; 利用不能、曖昧、または検証操作 失敗した → 不明|アップロード確認はコンテンツ検証ではありません|
+| EX-07 |以前に検証されたオブジェクトがその後の検証に失敗する|現在失敗した検証に基づいてアーカイブをブロックします。履歴マニフェストを書き換えることなく、サニタイズされた運用診断を記録します。|アーカイブは、現在のドライブの状態を個別に再クエリして確認する必要があります。 `verified` は、承認された 2026-10-21 決定に従って、元の実行内のターミナルのままになります|
+| EX-08 |マニフェストの実行中にプロセスがクラッシュする|最後の有効なマニフェストは実行したままにしておきます。自動的に失敗に書き換えないでください|新しい実行では新しい run_id が使用されます。クラッシュ回復/同時実行ポリシーは未解決の OSD-02 項目のままです|
+| EX-09 |不明なアップロードで同じコンテンツの候補が 1 つ見つかった後の調整|OSD-01 信頼、完了 列挙、一意性、および実際のコンテンツ検証要件が満たされた場合にのみ、確認済み に移行します|一致するメタデータまたはオブジェクト ID だけでは不十分です|
+| EX-10 |検証操作がスローされるか、不正な形式のデータを返すか、信頼できる結果を生成できません|不明; 成功 またはアーカイブ権限がありません|ベリファイアの失敗はリモートコンテンツの不一致の証明にはなりません|
 
-### Cross-cutting rules
+<a id="cross-cutting-rules"></a>
+### 横断的なルール
 
-1. HTTP status codes alone do not determine file status. failed requires reliable evidence of definitive non-success; when remote state remains uncertain, use unknown.
-2. unknown → pending is allowed only after complete, trustworthy reconciliation establishes target absence and the retry policy permits another attempt. Incomplete listing, pagination failure, insufficient access, or uncertain scope blocks the retry.
-3. A previous verified result does not independently authorize a later archive. Archive must re-query and re-verify the current Drive object. If that later check fails, is unavailable, or is ambiguous, block archive and record sanitized diagnostics; do not rewrite the historical manifest or change the terminal file status within that run.
-4. Preserve staging artifacts whenever success cannot be established. Do not overwrite or delete source/Drive objects as a recovery shortcut.
-5. Keep detailed attempt/error diagnostics in sanitized operational logs. Do not add manifest fields or enum values without explicit approval.
-6. These exception cases are approved policy clarifications, not runtime evidence. Executable schema/transition tests and runtime reconciliation tests remain required.
+1. HTTP ステータス コードだけではファイルのステータスを判断できません。 失敗した には、決定的な非 成功 の信頼できる証拠が必要です。リモート状態が不確実な場合は、不明 を使用してください。
+2. 不明 → 未確定 は 完了 の後にのみ許可され、信頼できる調整によりターゲットの不在が確立され、再試行ポリシーにより別の試行が許可されます。不完全なリスト、ページネーション 失敗、不十分なアクセス、または不確実な範囲により、再試行がブロックされます。
+3. 以前の 確認済み の結果は、それ以降のアーカイブを独立して承認しません。アーカイブは、現在のドライブ オブジェクトを再クエリして再検証する必要があります。その後のチェックが失敗した場合、利用不能、または 曖昧 の場合は、アーカイブをブロックし、サニタイズされた診断を記録します。その実行中に履歴マニフェストを書き換えたり、端末ファイルのステータスを変更したりしないでください。
+4. 成功 を確立できない場合は、ステージング 成果物を保存します。回復ショートカットとしてソース/ドライブ オブジェクトを上書きしたり、削除したりしないでください。
+5. 詳細な試行/エラー診断をサニタイズされた操作ログに保存します。明示的な承認なしにマニフェスト フィールドや列挙値を追加しないでください。
+6. これらの例外ケースは、承認されたポリシーの明確化であり、実行時の証拠ではありません。実行可能なスキーマ/遷移テストと実行時調整テストは引き続き必要です。
 
-### Remaining decisions unaffected by this approval
+<a id="remaining-decisions-unaffected-by-this-approval"></a>
+### 残りの決定はこの承認の影響を受けません
 
-Historical open-items statement: these choices were unresolved at that earlier approval point. Later OSD-03, timestamp and crash/concurrency decisions apply, and table adoption is recorded in §5. Their runtime implementation and acceptance remain incomplete.
-
-
-## 6. Approved timestamp validation policy shape — 2026-10-21
-
-- **Approving authority:** project maintainer (explicit approval in conversation on 2026-10-21; option A).
-- Timestamp fields must use UTC ISO 8601 representation with a `Z` UTC designator. Invalid format or an unparseable value is rejected; the validator must not silently normalize or repair it.
-- Where both `started_at_utc` and `finished_at_utc` are present, reject the manifest if `finished_at_utc` is earlier than `started_at_utc`.
-- Future-time validation must account for an explicitly configured tolerance for clock skew. Reject timestamps beyond that configured tolerance; do not silently rewrite them.
-- Timestamp freshness thresholds must be configuration-driven and applied in the relevant operational context. Do not hard-code an unapproved numeric threshold or treat every historical manifest as invalid merely because it is old.
-- **Still open:** numeric tolerance/freshness values, the exact operational contexts in which freshness applies, and clock synchronization/monitoring expectations. These are configuration/operations decisions under EOLM-MAN-011, not part of this policy-shape approval.
-- If timestamp validation fails, fail closed: reject the manifest for the operation that depends on it; do not repair timestamps or treat invalid metadata as valid.
-## 7. Approved terminal file-state policy — 2026-10-21
-
-- **Approving authority:** project maintainer (explicit approval in conversation on 2026-10-21; option A).
-- **Chosen rule:** `verified` and `failed` are terminal file states within a single `run_id`; no transition out of either state is permitted in that run.
-- **Later archive-time verification:** archive must still independently re-query and verify the current Drive object. If that check reports mismatch, unavailable, ambiguous, or verifier failure, block archive and write sanitized operational diagnostics. Do not rewrite the prior manifest or alter that run's terminal file status to reflect the later check.
-- **Run separation:** a subsequent processing attempt or new evidence requiring a new lifecycle record must use a new `run_id` and a new manifest; it must not mutate the historical run's result.
-- **Scope boundary:** this decision resolves terminal file-state and post-verification mutation semantics only. It does not decide run-level terminal status transitions, OSD-03 aggregation, verification method/time/hash combinations, timestamp freshness/clock-skew, crash/concurrency/latest-manifest selection, or implementation/test evidence. At the time of that individual decision the complete table was not normative; later adoption is recorded in §5.
-
-## 8. Approved crash, concurrency, and latest-manifest policy shape — 2026-10-21
-
-- **Manifest eligibility:** validate the manifest and cross-check its filename identity against the identity encoded in the JSON before treating it as a candidate for current state.
-- **Ambiguous latest selection:** timestamps alone do not break ties. If candidates cannot be uniquely ordered using approved identity/ordering rules, mark the selection ambiguous and stop the dependent operation; never choose arbitrarily.
-- **Concurrent updates:** detect conflicting updates for the same target. A stale read must not overwrite newer state; re-read and re-validate or fail safely.
-- **Crash handling:** preserve a crash-left `running` manifest as unfinished. Do not silently convert it to `success` or `failure`.
-- **Destructive-action gate:** do not archive or delete until current remote state has been re-established and verified.
-- **Still open:** concrete locking/atomic-write strategy, the exact identity fields and filename convention, stale-run recovery, and executable concurrency/crash/ambiguity tests. This decision does not assert implementation or test evidence.
+過去の未解決項目ステートメント: これらの選択は、以前の承認時点では未解決でした。 OSD-03 以降、タイムスタンプとクラッシュ/同時実行の決定が適用され、テーブルの採用は §5 に記録されます。それらのランタイム実装と受け入れは 未完了 のままです。
 
 
-## 9. Approved OSD-03 run/period aggregation policy — 2026-10-21
+<a id="6-approved-timestamp-validation-policy-shape--2026-10-21"></a>
+## 6. 承認されたタイムスタンプ検証ポリシーの形状 — 2026-10-21
 
-- **Run-level `success`:** every eligible target is `verified`, with no relevant validation/processing error. A successful enumeration and validation with zero eligible targets is `success` and `outcome: no_work`.
-- **Run-level `partial_failure`:** at least one eligible target is verified and at least one relevant eligible target remains `failed` or `unknown`, or an unclassifiable run-scope validation error exists. Verified independent progress does not erase errors.
-- **Run-level `failure`:** no eligible target is verified and a processing/validation failure exists, or the system cannot establish a valid no-work result. Enumeration/access failure is not no-work.
-- **Period completion:** every eligible target assigned to that period must be `verified`, and no relevant validation/processing error may affect the period. Any `failed` or `unknown` assigned to the period prevents completion.
-- **Unclassifiable filename:** retain as run-scope error; never infer a period from `LastWriteTime`. It prevents run-level success but does not automatically invalidate an independently complete known period whose inventory is established.
-- **No enum expansion:** use existing run statuses and `outcome: no_work`; do not introduce `skipped` or other values.
-- **Approved representation (2026-10-21):** keep the approved manifest v1 field set unchanged. Store period summaries and unassigned run-scope validation errors in a separate durable derived aggregation report linked to the run by `run_id`. The report must be checked against the frozen eligible inventory; missing, malformed, stale, or inconsistent report data cannot certify period completion. Report schema, atomic publication/recovery rules, runtime implementation, and executable aggregation tests remain pending.
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話での明示的な承認、オプション A)。
+- タイムスタンプ フィールドでは、`Z` UTC 指定子を備えた UTC ISO 8601 表現を使用する必要があります。無効な形式または解析できない値は拒否されます。バリデーターは、黙って正規化または修復してはなりません。
+- `started_at_utc` と `finished_at_utc` の両方が存在する場合、`finished_at_utc` が `started_at_utc` より前の場合はマニフェストを拒否します。
+- 将来の検証では、明示的に設定されたクロック スキューの許容値を考慮する必要があります。設定された許容値を超えるタイムスタンプを拒否します。黙って書き換えないでください。
+- タイムスタンプの鮮度のしきい値は構成に基づいて設定し、関連する運用コンテキストに適用する必要があります。未承認の数値しきい値をハードコーディングしたり、古いという理由だけですべての履歴マニフェストを無効として扱ったりしないでください。
+- **まだオープン中:** 数値許容値/鮮度値、鮮度が適用される正確な動作コンテキスト、およびクロック同期/監視の期待値。これらは EOLM-MAN-011 に基づく構成/運用の決定であり、このポリシー形状の承認の一部ではありません。
+- タイムスタンプの検証が失敗した場合は、フェールクローズします。マニフェストに依存する操作のマニフェストを拒否します。タイムスタンプを修復したり、無効なメタデータを有効なものとして扱ったりしないでください。
+<a id="7-approved-terminal-file-state-policy--2026-10-21"></a>
+## 7. 承認された端末ファイル状態ポリシー — 2026-10-21
+
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話での明示的な承認、オプション A)。
+- **選択されたルール:** `verified` および `failed` は、単一の `run_id` 内の端末ファイルの状態です。その実行では、どちらの状態からの遷移も許可されません。
+- **後のアーカイブ時の検証:** アーカイブでは、現在のドライブ オブジェクトを個別に再クエリして検証する必要があります。このチェックで 不一致、利用不能、曖昧、またはベリファイアー 失敗 が報告された場合は、アーカイブをブロックし、サニタイズされた運用診断を書き込みます。以前のマニフェストを書き換えたり、後のチェックを反映するためにその実行のターミナル ファイルのステータスを変更したりしないでください。
+- **実行分離:** 後続の処理試行または新しいライフサイクル レコードを必要とする新しい証拠では、新しい `run_id` と新しいマニフェストを使用する必要があります。過去の実行結果を変更してはなりません。
+- **スコープ境界:** この決定は、端末のファイル状態と検証後の変更セマンティクスのみを解決します。実行レベルの端末ステータスの遷移、OSD-03 集計、検証方法/時間/ハッシュの組み合わせ、タイムスタンプの鮮度/クロック スキュー、クラッシュ/同時実行性/最新マニフェストの選択、実装/テストの証拠は決定されません。その個別の決定の時点では、完了 表は規範的ではありませんでした。その後の採用は§5 に記録されています。
+
+<a id="8-approved-crash-concurrency-and-latest-manifest-policy-shape--2026-10-21"></a>
+## 8. 承認されたクラッシュ、同時実行性、および最新のマニフェスト ポリシー形式 — 2026-10-21
+
+- **マニフェストの適格性:** マニフェストを検証し、現在の状態の候補として扱う前に、そのファイル名の同一性を JSON にエンコードされた同一性と照合します。
+- **曖昧な最新の選択:** タイムスタンプだけでは関係が切れません。承認された同一性/順序付けルールを使用して候補を一意に順序付けできない場合は、選択 曖昧 をマークし、依存する操作を停止します。決して恣意的に選択しないでください。
+- **同時更新:** 同じターゲットの競合する更新を検出します。古い読み取りによって新しい状態が上書きされてはなりません。再読み込みして再検証するか、安全に失敗します。
+- **クラッシュ処理:** クラッシュしたままの `running` マニフェストを未完了として保存します。黙って `success` または `failure` に変換しないでください。
+- **破壊的アクション ゲート:** 現在のリモート状態が再確立されるまで、および 確認済み はアーカイブまたは削除されません。
+- **まだオープン中:** 具体的なロック/アトミック書き込み戦略、正確な ID フィールドとファイル名規則、古い実行の回復、および実行可能同時実行性/クラッシュ/曖昧さテスト。この決定は、実装またはテストの証拠を主張するものではありません。
 
 
-## 9. Approved timestamp, future-skew, freshness, and clock policy — 2026-10-21
+<a id="9-approved-osd-03-runperiod-aggregation-policy--2026-10-21"></a>
+## 9. 承認された OSD-03 実行/期間集計ポリシー — 2026-10-21
 
-- **Approving authority:** project maintainer (explicit approval in conversation on 2026-10-21).
-- Every timestamp field must be a parseable UTC ISO 8601 timestamp ending in uppercase `Z`. Reject offset-form timestamps, timezone-less timestamps, malformed strings, and unparseable values.
-- `finished_at_utc` must be greater than or equal to `started_at_utc`; reject any terminal manifest with an earlier finish time. Do not rewrite or repair invalid timestamps.
-- Maximum future-time tolerance is 5 minutes relative to the runtime's current UTC clock. Reject timestamps more than 5 minutes ahead for the operation that depends on them.
-- Freshness threshold is 24 hours, configurable. Apply freshness checks only to timestamps generated or updated during the current execution (run start/finish and verification-attempt timestamps). Do not reject historical manifests solely because they are older than 24 hours.
-- Assume host OS time synchronization is configured. Detect unavailable or clearly invalid clock readings when the platform exposes this information. If current UTC time cannot be obtained reliably, fail closed for time-dependent operations. No separate external monitoring/alerting service is required by this decision.
-- The 5-minute and 24-hour values are approved initial defaults and must remain configurable. Reject invalid, negative, non-finite, or unparseable configuration values; do not silently fall back to defaults.
-- Required tests: fixed-clock boundaries at exactly 5 minutes and just beyond; fresh timestamp at exactly 24 hours and just beyond; malformed/offset/timezone-less timestamp rejection; end-before-start rejection; invalid configuration rejection; unavailable clock fail-closed; historical-manifest age alone does not invalidate history.
-- **Scope boundary:** this approval does not resolve crash recovery, concurrency, latest-manifest tie-breaking, OSD-03 aggregation, or runtime archive authorization. Archive must independently re-query and verify current Drive state. At the time of that individual approval the full table was not normative; later adoption is recorded in §5; no runtime implementation or passing executable tests are claimed.
-
-
-## OSD-02 approved crash/concurrency/latest-manifest policy (2026-10-21)
-
-Maintainer approved C1-A/C2-C/C3-B/C4-A. C1-A requires validated same-directory temporary writes, atomic create-if-absent, compare-before-replace, and fail-closed behavior when guarantees are unavailable. C2-C requires a per-scope OS named mutex plus exclusive ownership-token lock record; stale lock recovery is explicit and must verify the owner is gone. C3-B preserves crash-left `running` history and creates a new `run_id` only after recovery checks, with a fresh inventory and reconciliation of uncertain uploads. C4-A selects only a unique maximum validated `started_at_utc` for the exact PC/log-type/period scope; ties, malformed/conflicting candidates, read errors, or incomplete enumeration block operation, and there is no fallback to an older success. Timestamp freshness/future tolerance are not lock or retry timeouts.
-
-Synthetic tests for crash points, concurrent create/update, lock ownership/recovery, interrupted runs, uncertain uploads, and resolver ambiguity are required but **not yet executed/evidenced**. These decisions do not claim runtime implementation or close P0-008/P0-010/P0-012.
+- **実行レベル `success`:** 対象となるすべてのターゲットは `verified` であり、関連する検証/処理エラーはありません。適格なターゲットがゼロの場合の列挙と検証が成功すると、`success` と `outcome: no_work` になります。
+- **実行レベル `partial_failure`:** 少なくとも 1 つの適格なターゲットが 確認済み であり、少なくとも 1 つの関連する適格なターゲットが `failed` または `unknown` のままであるか、分類できない実行スコープの検証エラーが存在します。独立した進行状況ではエラーが消去されないことを確認しました。
+- **実行レベル `failure`:** 確認済み に適格なターゲットがなく、処理/検証 失敗 が存在するか、システムは有効な非作業結果を確立できません。列挙/アクセス 失敗 は無駄ではありません。
+- **期間完了:** その期間に割り当てられたすべての対象ターゲットは `verified` である必要があり、関連する検証/処理エラーが期間に影響を与えることはありません。期間に割り当てられた `failed` または `unknown` は完了を妨げます。
+- **分類できないファイル名:** は実行範囲エラーとして保持されます。 `LastWriteTime` から期間を推測しないでください。これは実行レベル 成功 を防止しますが、一覧が確立されている独立した 完了 既知の期間を自動的に無効にすることはありません。
+- **列挙型拡張なし:** 既存の実行ステータスと `outcome: no_work` を使用します。 `skipped` や他の値を導入しないでください。
+- **承認された表現 (2026-10-21):** 承認されたマニフェスト v1 フィールド セットを変更しないでください。期間の概要と割り当てられていない実行範囲の検証エラーを、`run_id` による実行にリンクされた別の永続的な派生集計レポートに保存します。レポートは凍結された適格一覧と照合する必要があります。レポート データが欠落している、形式が間違っている、古い、または一貫性がない場合は、期間の完了を証明できません。レポート スキーマ、アトミック パブリケーション/リカバリ ルール、ランタイム実装、および実行可能な集計テストは 未確定 のままです。
 
 
-## OSD-02 crash/concurrency test requirements — pending execution
+<a id="9-approved-timestamp-future-skew-freshness-and-clock-policy--2026-10-21"></a>
+## 9. 承認されたタイムスタンプ、将来のスキュー、鮮度、およびクロック ポリシー — 2026-10-21
 
-- Inject crashes before/during temporary write, after flush/validation, before publication, and after publication; prove incomplete temp files are never authoritative and failed publication leaves prior content unchanged.
-- Race concurrent first publishers and concurrent updates; prove create-if-absent and compare-before-replace prevent overwrite.
-- Test named-mutex contention/failure, process termination, lock ownership-token mismatch, and stale-lock recovery. Age/PID alone must not authorize lock removal.
-- Preserve crash-left `running` manifest byte-for-byte; after verified owner recovery, create a new `run_id` with a fresh inventory; reconcile uncertain uploads before retry.
-- Test unique latest timestamp, equal maxima, malformed or identity-mismatched candidates, read/enumeration failure, and latest non-success blocking fallback to older success.
-- Use synthetic fixtures and temporary directories only. Evidence status: **not run / not yet evidenced**; no runtime acceptance is implied.
+- **承認権限:** プロジェクト管理者 (2026-10-21 の会話で明示的に承認)。
+- すべてのタイムスタンプ フィールドは、大文字の `Z` で終わる解析可能な UTC ISO 8601 タイムスタンプである必要があります。オフセット形式のタイムスタンプ、タイムゾーンのないタイムスタンプ、不正な形式の文字列、および解析不可能な値を拒否します。
+- `finished_at_utc` は `started_at_utc` 以上である必要があります。終了時間が早い端末マニフェストは拒否します。無効なタイムスタンプを書き換えたり修復したりしないでください。
+- 将来の最大許容誤差は、ランタイムの現在の UTC クロックを基準にして 5 分です。 5 分を超えるタイムスタンプを、タイムスタンプに依存する操作に対して拒否します。
+- 鮮度のしきい値は 24 時間で、構成可能です。現在の実行中に生成または更新されたタイムスタンプ (実行の開始/終了および検証試行のタイムスタンプ) にのみ鮮度チェックを適用します。 24 時間より古いという理由だけで履歴マニフェストを拒否しないでください。
+- ホスト OS の時刻同期が構成されていると仮定します。プラットフォームがこの情報を公開する場合、利用不能 または明らかに無効なクロック読み取り値を検出します。現在の UTC 時刻を確実に取得できない場合は、時間依存の操作に対してフェールクローズします。この決定により、別個の外部監視/警告サービスは必要ありません。
+- 5 分と 24 時間の値は承認された初期デフォルト値であり、構成可能なままにしておく必要があります。無効な、負の、非有限、または解析不可能な構成値を拒否します。黙ってデフォルトに戻さないでください。
+- 必要なテスト: ちょうど 5 分以降の固定クロック境界。正確に 24 時間以降の新しいタイムスタンプ。不正な形式/オフセット/タイムゾーンのないタイムスタンプの拒否。開始前終了の拒否。無効な構成の拒否。 利用不能 クロックがフェールクローズされました。歴史的に明らかな経過時間だけで歴史が無効になるわけではありません。
+- **スコープ境界:** この承認は、クラッシュ回復、同時実行性、最新マニフェストのタイブレーク、OSD-03 集計、またはランタイム アーカイブの承認を解決しません。アーカイブは、独立して再クエリを実行し、現在のドライブの状態を確認する必要があります。その個別の承認の時点では、完全な表は規範的ではありませんでした。その後の採用は§5 に記録されています。ランタイム実装や実行可能テストの合格は要求されません。
+
+
+<a id="osd-02-approved-crashconcurrencylatest-manifest-policy-2026-10-21"></a>
+## OSD-02 がクラッシュ/同時実行/最新マニフェスト ポリシーを承認しました (2026-10-21)
+
+メンテナは C1-A/C2-C/C3-B/C4-A を承認しました。 C1-A では、保証が 利用不能 の場合、検証済みの同じディレクトリへの一時書き込み、アトミックな存在しない場合の作成、置換前の比較、およびフェールクローズ動作が必要です。 C2-C には、mutex という名前のスコープごとの OS と排他的所有権トークン ロック レコードが必要です。古いロックの回復は明示的であり、所有者がいなくなっていることを確認する必要があります。 C3-B は、クラッシュ時に残された `running` 履歴を保存し、回復チェック後にのみ、新しいインベントリと不確実なアップロードの調整を使用して、新しい `run_id` を作成します。 C4-A は、正確な PC/ログタイプ/期間スコープに対して、検証された一意の最大値 `started_at_utc` のみを選択します。同点、不正な形式/競合する候補、読み取りエラー、または 未完了 列挙ブロック操作が発生し、古い 成功 へのフォールバックはありません。タイムスタンプの鮮度/将来の許容範囲は、ロックまたは再試行タイムアウトではありません。
+
+クラッシュ ポイント、同時作成/更新、ロックの所有権/回復、中断された実行、不確実なアップロード、およびリゾルバーの曖昧さに関する総合テストが必要ですが、**まだ実行も証拠化もされていません** です。これらの決定は、ランタイム実装を要求したり、P0-008/P0-010/P0-012 を終了したりするものではありません。
+
+
+<a id="osd-02-crashconcurrency-test-requirements--pending-execution"></a>
+## OSD-02 クラッシュ/同時実行テストの要件 — 未確定 の実行
+
+- インジェクトは一時書き込み前/一時書き込み中、フラッシュ/検証後、公開前、および公開後にクラッシュします。 未完了 一時ファイルが決して信頼できるものではなく、失敗した 公開では以前のコンテンツが変更されないことが証明されます。
+- 同時の最初のパブリッシャーと同時の更新を競合します。 未作成時だけ作成 と 置換前に比較 が上書きを防止することを証明します。
+- 名前付きミューテックス競合/失敗、プロセス終了、ロック所有権トークン 不一致、および古いロックの回復をテストします。経過時間/PID だけでロックの削除を許可してはなりません。
+- クラッシュレフト `running` マニフェストをバイト単位で保存します。 確認済み 所有者の回復後、新しいインベントリで新しい `run_id` を作成します。再試行する前に、不確実なアップロードを調整してください。
+- 固有の最新タイムスタンプ、等しい最大値、不正な形式または ID の不一致の候補、読み取り/列挙 失敗、および古い 成功 へのフォールバックをブロックする最新の非 成功 をテストします。
+- 合成フィクスチャと一時ディレクトリのみを使用してください。証拠ステータス: **未実行 / まだ証拠がありません**;実行時の受け入れは暗黙的には行われません。

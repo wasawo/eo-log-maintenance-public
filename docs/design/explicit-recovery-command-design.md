@@ -62,7 +62,7 @@ lockなし・manifestなしを推測で回復可能とせず、通常実行の�
 
 ## 5. 実装前の合成試験表
 
-| ID | 条件 | 要求する観測・不変条件 |
+|ID| 条件 | 要求する観測・不変条件 |
 |---|---|---|
 | DIAG-01 | モード省略/Diagnose | record、manifest、staging、source、Drive、archive、実設定を作成/変更しない。出力に秘匿値を含めない |
 | DIAG-02 | 不正引数/設定・未知変更mode | root/対象列挙・mutex取得・API呼出しの前に拒否する |
@@ -84,18 +84,22 @@ lockなし・manifestなしを推測で回復可能とせず、通常実行の�
 その後にroot/終了証拠/時計と実read接続のゲートを満たす。未確定のdispositionはその前に実装しない。
 P0-010/P0-012、Tier B全体、正式復旧・本番導入は未完了のまま維持する。
 
-## 7. Implemented result-model slice
+<a id="7-implemented-result-model-slice"></a>
+## 7. 実装された結果モデルのスライス
 
-Common/RecoveryDiagnostic.py now implements only the pure supplied-observation result model. Eight explicit gates (configuration/root/mutex/lock_record/clock/latest_manifest/owner_termination/drive_reconciliation) each require satisfied/missing/unknown/failed. Missing or unknown keys and free text are rejected. Deficiencies produce fixed ordered reasons and blocked; all-satisfied produces review_required. Public projection has schema_version 1, exact requested scope, classification, reason_codes and may_change_state=false. Direct construction and export validate fixed fields. No raw record, path, PID, host or token is accepted. This is an internal helper model, not the final command JSON/exit-code or persistent disposition schema. Twelve synthetic tests cover this boundary only; full DIAG-01 through DIAG-10 remain pending.
+Common/RecoveryDiagnostic.py は、渡された観測だけから結果を作る副作用のないモデルのみを実装する。8つの明示条件（configuration/root/mutex/lock_record/clock/latest_manifest/owner_termination/drive_reconciliation）にはそれぞれsatisfied/missing/unknown/failedが必要である。欠落・不明なキーや自由文を拒否する。不足時は固定順序の理由とblockedを返し、全条件が満たされた場合は review_required を返す。公開用の投影には schema_version の 1、要求範囲の厳密な値、分類、reason_codes、may_change_state=falseを含める。直接構築・出力時も固定項目を検証する。生の記録、パス、PID、ホスト、トークンは受け付けない。内部ヘルパーのモデルであり、最終コマンドの JSON・終了コードや永続処分スキーマではない。12件の合成試験はこの境界だけを扱い、DIAG-01〜DIAG-10 全体は未完了である。
 
-## 8. Implemented record-free lease slice
+<a id="8-implemented-record-free-lease-slice"></a>
+## 8. レコードフリーのリーススライスを実装
 
-Common/RecoveryDiagnosticMutex.py adds an isolated lease using the same global mutex name as normal ownership. It waits at most 60 seconds, does not create/read/modify a lock record or token, yields abandonment evidence with may_change_state=false, and attempts release/close on exception/interruption. Timeout/OS/cleanup failures use fixed reasons; errors raised by the caller inside the lease must be sanitized by that caller. Thirteen tests include actual Windows contention, abandonment consumption, repeated diagnosis and a different-process probe proving release after a body failure. This is partial DIAG-03/04/05 evidence only. Root/clock/owner proof, live command/output, the full DIAG matrix, protected disposition and runtime acceptance remain incomplete.
+Common/RecoveryDiagnosticMutex.py は、通常の所有権と同じグローバル ミューテックス名を使用して分離リースを追加します。最長 60 秒待機し、ロック レコードまたはトークンの作成/読み取り/変更は行わず、may_change_state=false で放棄の証拠を生成し、例外/割り込みで解放/クローズを試みます。タイムアウト/OS/クリーンアップの失敗には固定の理由があります。リース内の呼び出し元によって発生したエラーは、その呼び出し元によってサニタイズする必要があります。 13 のテストには、実際の Windows 競合、放棄された消費、繰り返しの診断、本体 失敗 後のリリースを証明する別のプロセス プローブが含まれます。これは部分的な DIAG-03/04/05 の証拠にすぎません。ルート/クロック/所有者の証明、ライブ コマンド/出力、完全な DIAG マトリックス、保護された配置、およびランタイムの受け入れは 未完了 のままです。
 
-## 9. Approved owner-evidence compatibility direction
+<a id="9-approved-owner-evidence-compatibility-direction"></a>
+## 9. 承認された所有者証拠の互換性の方向性
 
-Maintainer approved v1 diagnosis/preservation and v2-only future recovery design. The [logical owner-evidence contract](recovery-owner-evidence-v2-contract.md) keeps unknown PID/boot/query cases blocked and distinguishes same-handle termination observation from recovery authorization. It does not add a v2 schema, provider, writer or runtime connection. [Private evidence preservation policy](../archive/decisions/recovery-private-evidence-policy-proposal.md) is approved for private maintenanceLocal preservation without automatic deletion; actual persistence, ACL changes and recovery operations remain unimplemented and unauthorized by that policy alone.
+メンテナは、v1 の診断/保存および v2 のみの将来のリカバリ設計を承認しました。 [論理所有者証拠契約](recovery-owner-evidence-v2-contract.md) は、不明 PID/ブート/クエリのケースをブロックし、同一ハンドル終了の監視と回復の承認を区別します。 v2 スキーマ、プロバイダー、ライター、またはランタイム接続は追加されません。 [私的証拠保全ポリシー](../archive/decisions/recovery-private-evidence-policy-proposal.md) はプライベート メンテナンスとして承認されています。自動削除なしのローカル保存。実際の永続性、ACL の変更、および回復操作は未実装のままであり、そのポリシーだけでは許可されていません。
 
-## 10. Approved private evidence direction
+<a id="10-approved-private-evidence-direction"></a>
+## 10. 承認された私的証拠の指示
 
-Private maintenanceLocal preservation without automatic deletion is approved. [Storage/validation contract](recovery-private-evidence-contract.md) separates in-memory metadata/raw-byte binding from unimplemented ACL-protected persistence and disposition. Diagnosis remains non-persistent. The [execution-account policy](../archive/decisions/recovery-execution-account-policy-proposal.md) is also approved for the same Windows account within each PC for manual execution and future tasks; task registration, live identity/ACL qualification and runtime integration remain pending.
+プライベートメンテナンス自動削除なしのローカル保存が承認されています。 [ストレージ/検証契約](recovery-private-evidence-contract.md) は、メモリ内メタデータ/生バイトのバインディングを、実装されていない ACL で保護された永続性および性質から分離します。診断は持続しないままです。 [実行アカウントポリシー](../archive/decisions/recovery-execution-account-policy-proposal.md) は、手動実行および今後のタスクのために、各 PC 内の同じ Windows アカウントに対しても承認されます。タスク登録、ライブ ID/ACL 認定、およびランタイム統合は 未確定 のままです。

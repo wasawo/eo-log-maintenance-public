@@ -11,8 +11,8 @@
 | 根拠 | 現在の規則・証拠 | 本書で判断する不足 |
 | --- | --- | --- |
 | [PS/Python契約](../../design/powershell-python-contract.md) §2–5 | PSはrole/path/allow-root/後続安全判断、Pythonは入力構文検査と限定API操作。schemaが規範で、例は説明用 | パス構文の対応範囲とschemaへの表現、操作別resultの最小形 |
-| [request schema](../../../contracts/drive-request.schema.json) | 4操作のみ。uploadの `local_path` とdownloadの `staging_path` は採用L1のdrive-rooted file path。listには `page_token` / `page_size` がある | schema/PS/Python字句追従済み。root・指定先・使用点の資格は別途必須 |
-| [response schema](../../../contracts/drive-response.schema.json) | `schema_version: "1.0"`。成功はresult object/error null、失敗はresult null/error object。result内部はopen | 操作別の必須・任意・null・欠落、未知field |
+| [リクエストスキーマ](../../../contracts/drive-request.schema.json) | 4操作のみ。uploadの `local_path` とdownloadの `staging_path` は採用L1のdrive-rooted file path。listには `page_token` / `page_size` がある | schema/PS/Python字句追従済み。root・指定先・使用点の資格は別途必須 |
+| [応答スキーマ](../../../contracts/drive-response.schema.json) | `schema_version: "1.0"`。成功はresult object/error null、失敗はresult null/error object。result内部はopen | 操作別の必須・任意・null・欠落、未知field |
 | [既存schema tests](../../../tests/test_contract_schemas.py) | drive-rooted例を受理。metadata成功の `result: {"file_id":"file-123"}` も受理 | 共通path正負fixtureは専用試験へ反映済み。操作別resultとruntime意味論は未完 |
 | [設定/root設計](../../design/configuration-local-root.md)、[設定parser](../../../Common/MachineConfiguration.ps1) | 現在の設定はdrive-rooted Windows pathのみ。構造検証は実root認可・物理的分離の証明ではない | UNCをIPCで許す場合の設定側との整合と独立したroot資格 |
 | [Dry Run A設計](../../design/dry-run-execution-design.md) §2–4 | root/排他資格未完なら停止。bytes取得・書込み・live接続・認証refresh/storeは解禁しない | result契約を選んでもこれらのゲートは残る |
@@ -34,7 +34,7 @@ Google公式一次資料で確認したREST APIの返却条件は§7にまとめ
 
 ### 2.2 schema・PS・Pythonの責務
 
-| 選択 | schema | PowerShell | Python | tradeoff |
+| 選択 |スキーマ| PowerShell | Python |トレードオフ|
 | --- | --- | --- | --- | --- |
 | V1: 採用・schemaにも構文制約 | P1/L1の字句形と不正形を拒否する方向 | 信頼済み設定、role、操作別allow-root、物理identity/分離、使用点再検証 | schema再検証と独立した構文/指定先検証。使用直前のpath資格を確認 | 正規表現と両言語の判定差をfixtureで管理する必要。追従は未実装 |
 | V2: 未採用・構文はruntime検査に委ねる | 現行の型/最小長に留め、構文保証なしを明記する比較案 | 選んだ構文範囲とruntime資格の検査が必要 | 独立した構文/指定先検証を必須にする比較案 | schema単独でrelative等を受理する限界が残る |
@@ -43,10 +43,10 @@ Google公式一次資料で確認したREST APIの返却条件は§7にまとめ
 
 ### 2.3 二つのpathの用途と拒否境界
 
-| request field | 用途とallow-rootの役割 | そこから得られない権限 |
+|リクエストフィールド| 用途とallow-rootの役割 | そこから得られない権限 |
 | --- | --- | --- |
-| upload `local_path` | アップロードする既存入力を読む。対象PC/操作で許されたコピー元root内かをPSが検証し、Pythonも使用対象を検証する。直前に `expected_sha256` と照合 | 任意rootの読取り、別ファイルの代用、変更・削除・上書き |
-| download `staging_path` | 指定されたステージング先への限定書込み。コピー元と最終archive先から分離された許可root・対象identity・新規/空の再試行先を検証 | 最終配置、既存運用物の上書き、archive、削除。Dry Run Aでのbytes取得・保存 |
+|`local_path` をアップロード| アップロードする既存入力を読む。対象PC/操作で許されたコピー元root内かをPSが検証し、Pythonも使用対象を検証する。直前に `expected_sha256` と照合 | 任意rootの読取り、別ファイルの代用、変更・削除・上書き |
+|ダウンロード `staging_path`| 指定されたステージング先への限定書込み。コピー元と最終archive先から分離された許可root・対象identity・新規/空の再試行先を検証 | 最終配置、既存運用物の上書き、archive、削除。Dry Run Aでのbytes取得・保存 |
 
 具体的なallow-rootの設定キー、追加許可値、root一覧は本書では決めない。両fieldに同一rootを無条件で許すこともしない。
 
@@ -73,11 +73,11 @@ R1を選択しても、具体形が未確定な操作はadapter接続を保留�
 
 ### 3.2 必須・任意・nullable・missingの比較候補
 
-N1は、対象metadata/tokenを必須nullableにし、未取得値はnull、field欠落は拒否する方針として採用した。必須非nullのID等をnullで代用してはならない。対象とする具体的field集合・型・最大値/serializationは未確定で、以下の候補名・個別required条件は一括採用ではない。`必須` は成功resultで欠落不可、`任意` は欠落可、`nullable` は明示null可を意味する。数値sizeはadapterによる非負整数への正規化候補であり、API生値ではない。RESTの `size` はstring形式のint64で、folder/shortcut等には未設定となる。checksumは実際に取得した値だけとし、ローカル値をクラウド値として補完しない。[File resource](https://developers.google.com/workspace/drive/api/reference/rest/v3/files)
+N1は、対象metadata/tokenを必須nullableにし、未取得値はnull、field欠落は拒否する方針として採用した。必須非nullのID等をnullで代用してはならない。対象とする具体的field集合・型・最大値/serializationは未確定で、以下の候補名・個別required条件は一括採用ではない。`必須` は成功resultで欠落不可、`任意` は欠落可、`nullable` は明示null可を意味する。数値sizeはadapterによる非負整数への正規化候補であり、API生値ではない。RESTの `size` はstring形式のint64で、folder/shortcut等には未設定となる。checksumは実際に取得した値だけとし、ローカル値をクラウド値として補完しない。[ファイルリソース](https://developers.google.com/workspace/drive/api/reference/rest/v3/files)
 
-型の候補は `file_id` / `name` / `mime_type` が非空文字列、`modified_time` がタイムゾーンを伴う日時文字列、`parent_ids` が非空文字列の配列、`sha256` / `staging_sha256` が64桁hex、tokenが非空文字列。nullableを選ぶfieldだけnullを追加許容する。日時の正規化とAPI値の変換、checksumの出所を示す表現も承認前に確定し、APIがこの型で返すとは仮定しない。list/getの既定fieldは一部だけであり、ID/name等を必須にするには明示的な `fields` 要求と欠落時停止を検証する必要がある。fieldを要求しても、そのresourceで値が利用可能になるとは限らない。[fields parameter](https://developers.google.com/workspace/drive/api/guides/fields-parameter)
+型の候補は `file_id` / `name` / `mime_type` が非空文字列、`modified_time` がタイムゾーンを伴う日時文字列、`parent_ids` が非空文字列の配列、`sha256` / `staging_sha256` が64桁hex、tokenが非空文字列。nullableを選ぶfieldだけnullを追加許容する。日時の正規化とAPI値の変換、checksumの出所を示す表現も承認前に確定し、APIがこの型で返すとは仮定しない。list/getの既定fieldは一部だけであり、ID/name等を必須にするには明示的な `fields` 要求と欠落時停止を検証する必要がある。fieldを要求しても、そのresourceで値が利用可能になるとは限らない。[フィールドパラメータ](https://developers.google.com/workspace/drive/api/guides/fields-parameter)
 
-| operation | 必須・非nullの最小候補 | 必須nullableのfield候補（N1方針採用） | 未採用N2の比較履歴 | missing/nullを安全判断でどう扱うか |
+|オペレーション| 必須・非nullの最小候補 | 必須nullableのfield候補（N1方針採用） | 未採用N2の比較履歴 | missing/nullを安全判断でどう扱うか |
 | --- | --- | --- | --- | --- |
 | `list_files` | `files` 配列（0件可）、各要素 `file_id`、`name`。ページの不完全性を示す `incomplete_listing` 真偽値候補 | `next_page_token`（文字列/null）。各要素の `mime_type`、`size`、`modified_time`、`parent_ids`、`sha256` は取得不能時null候補 | 同じmetadata群は取得時のみ出す。末尾ページのtoken欠落を許す場合はその意味を明文化 | token null/欠落だけで全体完了にしない。incompleteが不明・true、ページ失敗、identity不足なら不在証明不可 |
 | `get_file_metadata` | `file_id`、`name`、`cloud_content_verified`（metadataだけならfalse） | `mime_type`、`size`、`modified_time`、`parent_ids`、`sha256` | 同じmetadata群を取得時のみ出す | hash欠落/nullは未検証。必要なidentity/sizeがなければ後続安全判断を停止。resource不在とhash欠落は別 |
@@ -86,13 +86,13 @@ N1は、対象metadata/tokenを必須nullableにし、未取得値はnull、fiel
 
 採用N1では「fieldは既知だが値なし」をnullで明示する。取得不能/未要求/未検証の区別が必要な場合の表現は具体形で確定する。N2の省略やN1/N2混用は採用していない。null・欠落を0/空配列/falseへ黙って変換せず、`parent_ids: []` を親情報不明の代用にしない。必須非nullの不足による停止と、nullable値が未検証であることの扱いも分ける。
 
-`incomplete_listing` はRESTの `incompleteSearch` をどう変換するかという提案で、同名のAPI fieldではない。`incompleteSearch: true` は検索結果が欠け得ることを示す。[files.list](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list) `bytes_received` もAPI metadata fieldではなくclientが受信bytesを観測する提案である。`alt=media` の応答bodyはmetadataではなく内容bytesとなる。[files.get](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/get) SDKからの正しい導出は未確認で、不能なら「false」や「0」を仮置きせず、nullable/別の状態表現を選ぶか停止する。必要な追加APIが1回試行原則に抵触する場合、暗黙に呼ばず契約設計へ戻す。download結果にローカル絶対pathをechoする必然性は未確定であり、上表では必須にしていない。
+`incomplete_listing` はRESTの `incompleteSearch` をどう変換するかという提案で、同名のAPI fieldではない。`incompleteSearch: true` は検索結果が欠け得ることを示す。[ファイル.リスト](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list) `bytes_received` もAPI metadata fieldではなくclientが受信bytesを観測する提案である。`alt=media` の応答bodyはmetadataではなく内容bytesとなる。[ファイル.get](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/get) SDKからの正しい導出は未確認で、不能なら「false」や「0」を仮置きせず、nullable/別の状態表現を選ぶか停止する。必要な追加APIが1回試行原則に抵触する場合、暗黙に呼ばず契約設計へ戻す。download結果にローカル絶対pathをechoする必然性は未確定であり、上表では必須にしていない。
 
 ### 3.3 ページ成功、全一覧完了、検証成功を区別する
 
 requestには `page_token` があるため、候補は**1 request＝1ページの1 API試行**。全ページをPython内部で取得して1回試行と数える案ではない。PSが次ページを要求し、それぞれの相関・exit・errorを検証する。再試行の所有者もPSのまま。ページ列のidentity/検索条件/継続tokenの整合、循環token、途中失敗、不完全listingを検査し、終端まで成功し必要な完全性を確認できた場合だけ全一覧の完了候補とする。pagination中の外部変更に対する整合保証は別途設計が必要で、終端tokenだけでsnapshotを証明しない。
 
-RESTの `pageSize` は返却件数の上限であり、指定件数より少なく返ることがある。`nextPageToken` は追加ページを示し、終端では欠落する。token失効や列挙中の外部変更を無視して一覧完全性を保持したと解釈しない。[files.list](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list) `files: []` とtokenありは保守的な合成fixture候補であり、この組合せの具体的発生を保証する主張ではない。その入力を受けても不在証明にしない。1ページのREST応答とSDK内部の複数呼出しは区別して計測する。
+RESTの `pageSize` は返却件数の上限であり、指定件数より少なく返ることがある。`nextPageToken` は追加ページを示し、終端では欠落する。token失効や列挙中の外部変更を無視して一覧完全性を保持したと解釈しない。[ファイル.リスト](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list) `files: []` とtokenありは保守的な合成fixture候補であり、この組合せの具体的発生を保証する主張ではない。その入力を受けても不在証明にしない。1ページのREST応答とSDK内部の複数呼出しは区別して計測する。
 
 終端でも不完全listingなら再uploadの許可にはならない。metadata取得成功、upload API成功、download bytes取得成功も、それぞれクラウド内容検証、両PC完了、archive認可を意味しない。内容検証の方法・根拠がない `cloud_content_verified: true` は拒否する。
 
@@ -148,11 +148,11 @@ R2は未採用であり、現open schemaから採用R1へ追従する具体的re
 
 | 公式資料の事実 | 判断資料への影響・残る確認 |
 | --- | --- |
-| Fileの `size` はstring(int64)。`sha256Checksum` は利用可能な場合に提供され、通常のcontentを持つ対象と、Docs/shortcut等で可用性が異なる。[File resource](https://developers.google.com/workspace/drive/api/reference/rest/v3/files) | size整数化はadapter候補。hashがないことを取得失敗・内容一致・0値へ変換しない。対象種別と利用可能fieldのfixtureが必要 |
-| `fields` は応答のfield集合を選ぶ。既定応答は全fieldではない。[fields parameter](https://developers.google.com/workspace/drive/api/guides/fields-parameter) | list/getの必要fieldを明示要求しても、resource固有の可用性条件を超えない。SDK変換後の欠落/nullと必須field検査は未確認 |
-| listはpageSizeより少ない件数を返し得る。継続token、token失効、`incompleteSearch` を扱う必要がある。[files.list](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list) | ページ成功だけで全一覧完了としない。SDKの自動ページ取得・1 API試行との対応は未確認 |
-| create成功時のFile応答はfield maskで部分応答となる。[files.create](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/create) multipartは1 HTTP request、resumableは開始時の空応答と完了後のFile応答を含む複数request方式。[manage uploads](https://developers.google.com/workspace/drive/api/guides/manage-uploads) | 成功/IDだけで独立content hash検証にはならない。既存の「1 API試行」が各方式で何を数えるかは未決で、本書だけで方式や試行単位を選ばない |
-| `alt=media` は内容bytesを返す。[files.get](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/get) Docs等のexportは別方式で説明される。[manage downloads](https://developers.google.com/workspace/drive/api/guides/manage-downloads) | metadata形とbytes取得結果を混同しない。export用operationを本書で追加しない。受信bytes計測、staging検証、client内部通信の確認は別途必要。Dry Run Aではbytes取得なし |
-| 一般的なエラー対処としてbackoffが説明される。[handle errors](https://developers.google.com/workspace/drive/api/guides/handle-errors) | 本プロジェクトのPS-only retry契約を変更する根拠ではない。公式Python clientを選択済みだが具体版/設定は未確定で、暗黙retryやpage動作は未確認。実装時に設定と呼出し履歴を検証する |
+| Fileの `size` はstring(int64)。`sha256Checksum` は利用可能な場合に提供され、通常のcontentを持つ対象と、Docs/shortcut等で可用性が異なる。[ファイルリソース](https://developers.google.com/workspace/drive/api/reference/rest/v3/files) | size整数化はadapter候補。hashがないことを取得失敗・内容一致・0値へ変換しない。対象種別と利用可能fieldのfixtureが必要 |
+| `fields` は応答のfield集合を選ぶ。既定応答は全fieldではない。[フィールドパラメータ](https://developers.google.com/workspace/drive/api/guides/fields-parameter) | list/getの必要fieldを明示要求しても、resource固有の可用性条件を超えない。SDK変換後の欠落/nullと必須field検査は未確認 |
+| listはpageSizeより少ない件数を返し得る。継続token、token失効、`incompleteSearch` を扱う必要がある。[ファイル.リスト](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list) | ページ成功だけで全一覧完了としない。SDKの自動ページ取得・1 API試行との対応は未確認 |
+| create成功時のFile応答はfield maskで部分応答となる。[ファイル.作成](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/create) multipartは1 HTTP request、resumableは開始時の空応答と完了後のFile応答を含む複数request方式。[アップロードを管理する](https://developers.google.com/workspace/drive/api/guides/manage-uploads) | 成功/IDだけで独立content hash検証にはならない。既存の「1 API試行」が各方式で何を数えるかは未決で、本書だけで方式や試行単位を選ばない |
+| `alt=media` は内容bytesを返す。[ファイル.get](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/get) Docs等のexportは別方式で説明される。[ダウンロードを管理する](https://developers.google.com/workspace/drive/api/guides/manage-downloads) | metadata形とbytes取得結果を混同しない。export用operationを本書で追加しない。受信bytes計測、staging検証、client内部通信の確認は別途必要。Dry Run Aではbytes取得なし |
+| 一般的なエラー対処としてbackoffが説明される。[エラーを処理します](https://developers.google.com/workspace/drive/api/guides/handle-errors) | 本プロジェクトのPS-only retry契約を変更する根拠ではない。公式Python clientを選択済みだが具体版/設定は未確定で、暗黙retryやpage動作は未確認。実装時に設定と呼出し履歴を検証する |
 
 C-01のP1/検査V1/L1全体/現1.0改訂と、C-02のR1/N1/D1方針は確定済み。具体field集合・型・値域・plan形と実装/実施の未了を維持する。上表をもって規範契約、schema、adapter、IPC全体レビューが完成したとは扱わない。

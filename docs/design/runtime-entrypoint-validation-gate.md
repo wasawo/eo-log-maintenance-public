@@ -1,83 +1,91 @@
-# Runtime Entry-Point Validation Gate
+<a id="runtime-entry-point-validation-gate"></a>
+# ランタイム エントリ ポイント検証ゲート
 
-- Status: implementation gate proposal; not a runtime implementation or authorization to archive/delete.
-- Last updated: 2026-10-22
+- ステータス: 実装ゲート提案。実行時の実装やアーカイブ/削除の承認ではありません。
+- 最終更新日: 2026-10-22
 
-2026-10-27 policy revision: [Q1–Q10 and flattening](../requirements/log-move-requirements.md) govern the two move routes. Requirements below are aligned with that policy; the new source-deletion IPC/persistence/verification contracts are not yet specified or implemented. Existing v1 validators remain copy/verification helpers, not proof of completed movement.
-- Related: `docs/development/implementation-workflow.md`, `docs/validation/runtime-safety-test-scenarios.md`, `docs/archive/validation/p0-runtime-entrypoint-safety-audit.md`, `docs/design/manifest-state-transition-v1-proposal.md`
-- Current validation helpers: `Common/AggregationReportValidation.ps1`, `Common/AggregationReferencedArtifacts.ps1`, `Common/validate_aggregation_artifacts.py`, `Common/RunInputEvidenceIntegrity.py`
+2026-10-27 ポリシー リビジョン: [Q1〜Q10 と平坦化](../requirements/log-move-requirements.md) は 2 つの移動ルートを管理します。以下の要件はそのポリシーに準拠しています。新しいソース削除 IPC/永続化/検証コントラクトはまだ指定されておらず、実装されていません。既存の v1 バリデーターはコピー/検証ヘルパーのままであり、完了した移動の証明ではありません。
+- 関連: `docs/development/implementation-workflow.md`、`docs/validation/runtime-safety-test-scenarios.md`、`docs/archive/validation/p0-runtime-entrypoint-safety-audit.md`、`docs/design/manifest-state-transition-v1-proposal.md`
+- 現在の検証ヘルパー: `Common/AggregationReportValidation.ps1`、`Common/AggregationReferencedArtifacts.ps1`、`Common/validate_aggregation_artifacts.py`、`Common/RunInputEvidenceIntegrity.py`
 
-## 1. Purpose
+<a id="1-purpose"></a>
+## 1. 目的
 
-Define the minimum fail-closed integration contract before official `scripts/SyncLogs.ps1` and PC-A-only `scripts/ArchiveLogs.ps1` are implemented. The repository currently has validation helpers but no official sync/archive entry-point scripts. Passing helper tests must not be interpreted as runtime integration or production readiness.
+公式 `scripts/SyncLogs.ps1` および PC-A のみの `scripts/ArchiveLogs.ps1` が実装される前に、最小のフェールクローズ統合コントラクトを定義します。現在、リポジトリには検証ヘルパーがありますが、公式の同期/アーカイブ エントリ ポイント スクリプトはありません。ヘルパー テストに合格したことを、ランタイム統合または運用準備が整っていると解釈してはなりません。
 
-## 2. Entry-point separation
+<a id="2-entry-point-separation"></a>
+## 2. エントリポイントの分離
 
-- Sync entry point: each PC moves its own eligible local sources to the shared cloud log-type folders, flattening subfolders. Delete only an individually identified local source after destination-content equality and source unchanged since copying are verified. It cannot delete cloud sources.
-- Archive entry point: PC-A only. Process current eligible cloud files independently of either PC's period-completion manifests. Verify the archive destination and cloud source unchanged since copying before deleting only that cloud source; late arrivals are processed later.
-- PC-B must not receive or expose an archive entry point in its runtime package.
-- Package distribution (GitHub to Drive) is a separate workflow and must not be called from either log-maintenance entry point.
+- 同期の入口: 各PCが自分の対象ログを、クラウドのログ種別ごとの共通フォルダへ移動する。サブフォルダ構成は保持しない。保存先の内容一致と、元がコピー時から変わっていないことを確認してから、個別に識別したローカルの元ファイルだけを削除する。クラウド上の元は削除できない。
+- アーカイブの入口: PC-Aのみ。両PCの期間完了マニフェストとは独立して、現在クラウドにある対象ファイルを処理する。アーカイブ先の内容と、クラウドの元がコピー時から変わっていないことを確認し、その元ファイルだけを削除する。遅れて到着したファイルは次回以降に処理する。
+- PC-B は、ランタイム パッケージ内のアーカイブ エントリ ポイントを受信または公開してはなりません。
+- パッケージの配布 (ドライブへの GitHub) は別個のワークフローであり、どちらのログ メンテナンス エントリ ポイントからも呼び出されてはなりません。
 
-## 3. Required pre-side-effect validation sequence
+<a id="3-required-pre-side-effect-validation-sequence"></a>
+## 3. 必要な副作用前の検証シーケンス
 
-The eventual implementation must perform these gates in order. Any failure, exception, timeout, unsupported schema/version, ambiguous result, or incomplete enumeration blocks the operation that depends on it.
+最終的な実装では、これらのゲートを順番に実行する必要があります。 失敗、例外、タイムアウト、サポートされていないスキーマ/バージョン、曖昧 結果、または 未完了 列挙は、それに依存する操作をブロックします。
 
-1. Validate the invocation mode, PC identity, log type, configured roots, and configuration schema. Reject unknown modes and unknown fields; never infer PC identity from a path.
-2. Acquire an exclusive run lock before mutable run state is created. Record ownership with a unique run identity. A process that cannot prove lock ownership must not release another process's lock.
-3. For a new sync run, enumerate the complete configured source scope and record traversal errors. A partial/failed enumeration cannot produce `completed` evidence. Freeze a deterministic inventory before upload/sync decisions.
-4. For the existing source/manifest/evidence pipeline, recompute A2 inventory SHA-256 and B2 canonical evidence digest; validate strict schemas and cross-field count/order invariants. Archive needs its own current cloud-target binding; do not impose both PCs' local B2 sets as an archive eligibility prerequisite.
-5. Verify that B2 embedded targets exactly match the manifest's frozen file set by relative path, filename, size, and SHA-256. Verify report identity and inventory count/digest against the validated evidence.
-6. For every referenced artifact, validate the canonical relative path beneath the explicitly trusted maintenance root, reject reparse/symlink components, read the exact bytes, verify raw-byte SHA-256, and validate the corresponding strict schema. Never use a report-provided absolute path or an untrusted root.
-7. Reconcile prior run state conservatively. A crash-left `running` manifest remains incomplete; do not rewrite historical state to manufacture success. Unknown remote outcomes must be reconciled before retry.
-8. Before each archive move, query current Drive state, bind the selected cloud source to the destination, and verify actual content; metadata-only identity is insufficient. Validate records needed for that file, without waiting for both PCs' period completion. Prior success is not current verification.
-9. Before deleting any source in either route, confirm destination-content equality and source unchanged since copying for that exact source. Failure/uncertainty retains it. Record copy/verification/deletion results separately; a copy-only verified state is not completed movement. Verification methods, deletion response/unknown-outcome handling and persistence contracts require further design. During document review no deletion code/schema or real-data operation is added.
+1. 呼び出しモード、PC ID、ログ タイプ、構成されたルート、および構成スキーマを検証します。 不明 モードと 不明 フィールドを拒否します。パスから PC ID を推測しないでください。
+2. 可変実行状態が作成される前に、排他的実行ロックを取得します。一意の実行 ID を使用して所有権を記録します。ロックの所有権を証明できないプロセスは、別のプロセスのロックを解放してはなりません。
+3. 新しい同期実行では、設定した元データの全範囲を列挙し、走査エラーを記録する。部分的な列挙や列挙の失敗から、`completed` の証拠を作ってはならない。アップロード・同期の判断前に、再現可能な対象一覧を確定する。
+4. 既存のソース/マニフェスト/証拠パイプラインの場合、A2 インベントリ SHA-256 と B2 正規証拠ダイジェストを再計算します。厳密なスキーマとフィールド間のカウント/順序不変条件を検証します。アーカイブには、独自の現在のクラウド ターゲット バインディングが必要です。両方の PC のローカル B2 セットをアーカイブ対象条件の前提条件として課さないでください。
+5. B2 埋め込みターゲットが、相対パス、ファイル名、サイズ、SHA-256 によって設定されたマニフェストの凍結ファイルと正確に一致することを確認します。レポートの同一性と一覧数/ダイジェストを検証済みの証拠と照合して検証します。
+6. 参照されているすべての成果物について、明示的に信頼されたメンテナンス ルートの下の正規相対パスを検証し、再解析/シンボリックリンク コンポーネントを拒否し、正確なバイトを読み取り、生バイト SHA-256 を検証し、対応する厳密なスキーマを検証します。レポートが提供する絶対パスや信頼できないルートは決して使用しないでください。
+7. 以前の実行状態を保守的に調整します。クラッシュしたままの `running` マニフェストは 未完了 のままです。過去の状態を 成功 を製造するように書き換えないでください。不明なリモート結果は、再試行する前に調整する必要があります。
+8. 各ファイルのアーカイブ移動前に、現在のDrive状態を照会し、選択したクラウドの元と保存先を結び付け、実際の内容を確認する。メタデータによる識別だけでは不十分である。両PCの期間完了を待たず、そのファイルに必要な記録を検証する。過去の成功は現在の確認の代わりにならない。
+9. 両経路とも、元の削除前に、その正確な元について保存先の内容一致とコピー時からの不変を確認する。失敗・確認不能なら元を残す。コピー・確認・削除の結果を別々に記録し、コピーの確認だけを移動完了としない。確認方式、削除応答・結果不明時の扱い、永続化の契約は詳細設計が必要である。文書見直し中は削除コード・スキーマや実データ操作を追加しない。
 
-The validators cover parts of steps 4–6. Separate source-inventory, lock, publication and recovery helpers now also exist; they are not an integrated official runtime. Current Drive verification and archive authorization remain absent. See [current inventory](../development/implementation-workflow.md#9-既存の実装資産と不足) for implemented scope and remaining environment qualification.
+バリデータは、ステップ 4 ～ 6 の一部をカバーします。個別のソースインベントリ、ロック、パブリケーション、およびリカバリヘルパーも存在するようになりました。これらは統合された公式ランタイムではありません。現在のドライブの検証とアーカイブの承認は行われないままです。実装される範囲と残りの環境認定については、[現在の実装資産](../development/implementation-workflow.md#9-既存の実装資産と不足) を参照してください。
 
-## 4. Publication and recovery requirements
+<a id="4-publication-and-recovery-requirements"></a>
+## 4. 公開と回復の要件
 
-- Write artifacts to uniquely named temporary files in the destination directory; flush/close before publication and use a platform-supported atomic create/replace primitive whose guarantees are tested.
-- Do not overwrite an existing run artifact. A byte-identical retry may be treated as idempotent only after exact identity and digest comparison; conflicting content must fail closed.
-- A crash between artifact writes must leave an explicitly incomplete run, not a fabricated complete result. Orphan cleanup must be ownership-based, not age-only.
-- Preserve evidence needed to diagnose failure. Do not rewrite prior manifests to reflect later archive-time observations.
-- Lock stale-recovery must prove the previous owner is no longer active before takeover. Age alone is insufficient.
-- Path checks must be repeated at the point of use; the existing symlink/reparse checks are defense-in-depth and are not a complete defense against hostile concurrent filesystem mutation.
+- 宛先ディレクトリ内の固有の名前が付いた一時ファイルに成果物を書き込みます。発行前にフラッシュ/クローズし、保証がテストされているプラ​​ットフォームでサポートされているアトミック作成/置換プリミティブを使用します。
+- 既存の実行成果物を上書きしないでください。バイト同一の再試行は、正確な同一性とダイジェストの比較後にのみ冪等として扱われる場合があります。競合するコンテンツはフェールクローズする必要があります。
+- 成果物書き込み間のクラッシュでは、捏造された 完了 結果ではなく、明示的に 未完了 実行が残される必要があります。孤立ファイルのクリーンアップは、経過時間のみではなく、所有権に基づいて行う必要があります。
+- 失敗 の診断に必要な証拠を保存します。後のアーカイブ時の観察を反映するために以前のマニフェストを書き換えないでください。
+- ロックの失効回復では、引き継ぎ前に前の所有者がアクティブではなくなっていることを証明する必要があります。経過時間だけでは不十分です。
+- パスチェックは使用時に繰り返す必要があります。既存のシンボリックリンク/再解析チェックは多層防御であり、敵対的な同時ファイルシステム変更に対する 完了 防御ではありません。
 
-## 5. Failure contract
+<a id="5-failure-contract"></a>
+## 5. 失敗契約
 
-- Return a stable, sanitized reason code and nonzero process exit for rejected/incomplete operations.
-- Never print secrets, file contents, raw exception text, user-specific absolute paths, or untrusted server responses to standard output/error.
-- Distinguish confirmed failure from unknown outcome. Timeout, network loss, inaccessible remote state, and exhausted retries without definitive evidence remain unknown.
-- Failure to validate a manifest, evidence, report, inventory, lock, or current Drive state blocks the dependent side effect.
-- Validation failure must not trigger local-source deletion, Drive deletion, overwrite, archive, or fallback to weaker metadata-only verification.
+- 拒否された/未完了 操作に対して、安定したサニタイズされた理由コードとゼロ以外のプロセス終了を返します。
+- シークレット、ファイルの内容、生の例外テキスト、ユーザー固有の絶対パス、または信頼できないサーバーの応答を標準出力/エラーに出力しないでください。
+- 確認された 失敗 と 不明 の結果を区別します。タイムアウト、ネットワーク損失、アクセス不能なリモート状態、および決定的な証拠のない使い果たされた再試行は、不明 のままです。
+- マニフェスト、証拠、レポート、インベントリ、ロック、または現在のドライブ状態を検証できないと、依存する副作用がブロックされます。
+- 検証 失敗 は、ローカル ソースの削除、ドライブの削除、上書き、アーカイブ、または弱いメタデータのみの検証へのフォールバックをトリガーしてはなりません。
 
-## 6. Required synthetic acceptance tests before enabling runtime effects
+<a id="6-required-synthetic-acceptance-tests-before-enabling-runtime-effects"></a>
+## 6. ランタイム効果を有効にする前に必要な合成受け入れテスト
 
-At minimum, tests must cover:
+テストでは少なくとも以下をカバーする必要があります。
 
-- incomplete source traversal and enumeration errors;
-- source changes during enumeration and deterministic frozen inventory;
-- manifest/evidence identity and target-set mismatch;
-- A2/B2 digest mismatch, duplicate/unsorted targets, count reconciliation failures;
-- malformed JSON, duplicate keys, unsupported schema versions, unknown fields, path traversal, symlink/reparse points, and referenced-byte replacement;
-- missing/stale/mismatched evidence required for the affected file, and independent current-file archive while PC-B has no successful period manifest;
-- Drive object missing, ambiguous, metadata-only match, hash mismatch, inaccessible API, timeout, and transient failure;
-- lock contention, stale-lock takeover, owner mismatch, crash at each publication boundary, idempotent retry, and conflicting retry;
-- package exclusion of `ArchiveLogs.ps1` from PC-B and absence of active configuration/secrets;
-- per-file verification failures retain that source and do not overwrite destinations; independent valid files can complete while a different file fails;
-- verified source deletion, changed-source refusal, identical-content reuse, differing-content hold without suffix renaming, and uncertain-outcome reconciliation in isolated synthetic fixtures.
+- 未完了 ソース トラバーサルおよび列挙エラー。
+- 列挙中にソースが変更され、確定的な凍結インベントリが発生します。
+- マニフェスト/証拠の同一性とターゲットセット 不一致;
+- A2/B2 ダイジェスト 不一致、重複/未ソートのターゲット、カウント調整失敗。
+- 不正な形式の JSON、重複キー、サポートされていないスキーマ バージョン、不明 フィールド、パス トラバーサル、シンボリックリンク/再解析ポイント、および参照バイトの置換。
+- 影響を受けるファイルに必要な証拠が欠落している/古い/不一致、および独立した現在のファイル アーカイブがある一方、PC-B には成功した期間のマニフェストがありません。
+- ドライブ オブジェクトが見つかりません、曖昧、メタデータのみの一致、ハッシュ 不一致、アクセス不能 API、タイムアウト、および一時的な 失敗。
+- ロック競合、古いロックの引き継ぎ、所有者 不一致、各パブリケーション境界でのクラッシュ、冪等な再試行、および競合する再試行。
+- パッケージでは PC-B から `ArchiveLogs.ps1` が除外されており、アクティブな構成/シークレットが存在しません。
+- ファイルごとの検証が失敗した場合、そのソースは保持され、宛先は上書きされません。別のファイルが失敗している間、独立した有効なファイルは 完了 される可能性があります。
+- 確認済み ソースの削除、変更されたソースの拒否、同一コンテンツの再利用、サフィックス名の変更なしの異なるコンテンツの保持、および分離された合成フィクスチャにおける不確実な結果の調整。
 
-Tests must use synthetic fixtures, temporary directories and mock Drive. Future move tests must check permitted deletion of synthetic sources and refusal outside the two routes/Q5 conditions. No production logs, real credentials, production Drive writes/deletion or deployment is permitted. Existing helper tests are not changed into runtime evidence by this revision.
+テストでは、合成フィクスチャ、一時ディレクトリ、および模擬ドライブを使用する必要があります。今後の移動テストでは、合成ソースの削除の許可と 2 つのルート/Q5 条件外の拒否を確認する必要があります。運用ログ、実際の認証情報、運用ドライブの書き込み/削除、または展開は許可されません。既存のヘルパー テストは、このリビジョンによって実行時証拠に変更されません。
 
-## 7. Exit criteria for runtime integration
+<a id="7-exit-criteria-for-runtime-integration"></a>
+## 7. ランタイム統合の終了基準
 
-Runtime integration is not complete until:
+ランタイム統合は、次の場合まで 完了 ではありません。
 
-1. Official entry-point scripts exist and call the validators in the required order.
-2. Lock, atomic publication, recovery, and Drive revalidation behavior are implemented and tested.
-3. The runtime package allowlist and PC-specific package exclusions are tested against the actual entry points.
-4. End-to-end synthetic acceptance tests demonstrate correct per-source completion, retention on failed/unknown verification, normal rerun, and no operation outside the permitted routes/roles. Failure of one file does not prohibit completion of another independent verified file.
-5. CI passes on the exact PR head and post-merge main commit.
-6. Operator-facing configuration, deployment, recovery, and rollback instructions are updated.
+1. 公式のエントリポイント スクリプトが存在し、必要な順序でバリデータを呼び出します。
+2. ロック、アトミック公開、リカバリ、およびドライブの再検証動作が実装され、テストされています。
+3. ランタイム パッケージの許可リストと PC 固有のパッケージの除外が、実際のエントリ ポイントに対してテストされます。
+4. エンドツーエンドの合成受け入れテストは、ソースごとの正しい完了、失敗した/不明 検証での保持、通常の再実行、および許可されたルート/ロール以外の操作がないことを示します。 1 つのファイルが失敗しても、別の独立した 確認済み ファイルの完了が妨げられることはありません。
+5. 正確なPR HEADとマージ後のmainコミットに対するCIが成功する。
+6. オペレーター向けの構成、展開、回復、およびロールバックの手順が更新されました。
 
-Until then, P0 remains open and no release is deployable for real log maintenance.
+それまでは、P0 は開いたままとなり、実際のログ メンテナンスのために展開できるリリースはありません。

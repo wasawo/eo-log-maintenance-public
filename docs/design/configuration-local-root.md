@@ -1,145 +1,68 @@
-# Local maintenance artifact root
+<a id="local-maintenance-artifact-root"></a>
+# ローカル メンテナンス 成果物 ルート
 
-- Approved by the operator: 2026-10-23.
-- Scope: required `maintenanceLocal` in both PC configurations; no production deployment authorization.
-- Related: EOLM-CFG-001/006/007, approved local-authoritative/verified-Drive-copy storage direction, P0-006/P0-009/P0-010/P0-012.
+- オペレーターによって承認されました: 2026-10-23。
+- 範囲: 両方の PC 構成で `maintenanceLocal` が必要です。運用環境へのデプロイメントの承認がありません。
+- 関連: EOLM-CFG-001/006/007、承認済みローカル権限/確認済み-ドライブ コピー ストレージ方向、P0-006/P0-009/P0-010/P0-012。
 
-## Meaning and separation
+<a id="meaning-and-separation"></a>
+## 意味と分離
 
-`maintenanceLocal` is the local authoritative root for the current PC's manifests,
-frozen inventories/evidence and aggregation reports (including associated
-publication markers/lock records where separately specified). It is not the
-other PC's original storage and is not the Drive copy. PC-A and PC-B each
-configure their own root; actual values stay in their untracked configuration.
+`maintenanceLocal` は、現在のPCのマニフェスト、確定した一覧・証拠、集計レポートのローカル正本ルートである。別途定める場合は、関連する公開マーカー・ロック記録も含む。他方のPCの元保管場所やDrive上のコピーではない。PC-A と PC-B はそれぞれ自分のルートを設定し、実値は追跡対象外の設定に保持する。
 
-Both examples require a non-empty absolute Windows drive path. Public defaults
-are `C:\Example\PCA\Maintenance` and `C:\Example\PCB\Maintenance`.
-The root must be distinct from, and neither contain nor be contained by,
-runtimeRoot, local log roots, Drive roots, and PC-A archive roots.
+両方の例とも、空でない Windows の絶対ドライブパスが必要である。公開例の既定値は `C:\Example\PCA\Maintenance` と `C:\Example\PCB\Maintenance`。このルートはruntimeRoot、ローカルログのルート、Driveのルート、PC-A のアーカイブルートと同一であってはならず、どちら向きの包含関係も禁止する。
 
-The package builder validates required fields, path type/syntax and lexical
-non-overlap after Windows full-path normalization, ignoring case and trailing
-directory separators. A common string prefix without a directory boundary
-is not containment. Errors do not echo configured path values.
+パッケージビルダーは、Windows による絶対パス正規化後に、必須項目、パスの型・構文、字句上の非重複を検証する。大文字・小文字と末尾のディレクトリ区切りは無視する。ディレクトリ境界のない共通文字列接頭辞は包含としない。エラーで設定パスを再表示しない。
 
-## Evidence boundary
+<a id="evidence-boundary"></a>
+## 証拠の境界
 
-Package validation operates on public example strings, including paths that do
-not exist. It does not create the root, read an active config, inspect actual
-volumes/reparse aliases, prove physical separation or authorize an archive.
-A runtime loader/path gate must perform its own strict validation and repeat
-identity/reparse checks before side effects. Current approval does not resolve
-all remaining OSD-09 deployment/migration decisions.
+パッケージ検証は、存在しないパスも含む公開例の文字列を対象とする。ルート作成、実設定の読み取り、実ボリューム・再解析別名の検査、物理分離の証明、アーカイブの認可は行わない。実行時の設定読み取り・パス判定は独自の厳密な検証を行い、副作用の前に識別・再解析の検査を繰り返す必要がある。現在の承認では、残る OSD-09 の導入・移行判断をすべて解決していない。
 
-Deployment must create the target PC's active config from the example only when
-absent; the operator only edits actual paths. Existing active configs are
-preserved on updates. An older config missing maintenanceLocal must be upgraded
-explicitly; do not infer a root from current directory, runtimeRoot or Drive.
-This change does not implement that deployment flow yet.
+導入時は、対象PCの実設定がない場合だけ公開例から作成し、利用者は実パスだけを編集する。更新時は既存の実設定を保全する。maintenanceLocalを持たない旧設定は明示的に更新し、現在のディレクトリ、runtimeRoot、Driveからルートを推測しない。この変更では、まだその導入フローを実装していない。
 
-## Regression evidence
+<a id="regression-evidence"></a>
+## 回帰の証拠
 
-The package tests cover both PCs: missing/wrong-type/relative maintenanceLocal,
-equality with every other configured root, ancestor/descendant overlap,
-case/trailing separators, normalized parent traversal, and a permitted sibling
-with a shared string prefix. PC-A safe allowArchive default and PC-B archive
-exclusion remain unchanged.
+両PCについて、maintenanceLocalの欠落・誤型・相対パス、他の全設定ルートとの一致、祖先・子孫の包含、大文字・小文字と末尾区切り、正規化した親遡及、共通接頭辞を持つ許可された兄弟ルートを試験する。PC-A の安全なallowArchive既定値と PC-B のアーカイブ除外は維持する。
 
 
-## Read-only configuration structure loader
+<a id="read-only-configuration-structure-loader"></a>
+## 読み取り専用構成構造ローダー
 
-`Common/MachineConfiguration.ps1` provides
-`ConvertFrom-EoMachineConfigurationJson` and `Read-EoMachineConfiguration`.
-The reader accepts strict UTF-8 (optional BOM), returns a fresh validated object,
-and never creates configuration, root directories, manifests or other artifacts.
+`Common/MachineConfiguration.ps1` は `ConvertFrom-EoMachineConfigurationJson` と `Read-EoMachineConfiguration` を提供する。読み取り処理は厳密な UTF-8（BOMは任意）を受け付け、新しい検証済みオブジェクトを返す。設定、ルートディレクトリ、マニフェスト、その他の成果物は作成しない。
 
-The parser rejects non-object/malformed JSON, duplicate/unknown/missing keys,
-wrong primitive types, role mismatch, non-drive-qualified/ambiguous path syntax,
-and maintenanceLocal equality/ancestor/descendant overlap after normalization.
-PC-B must omit allowArchive; PC-A may explicitly set a boolean true or false.
-A true value is configuration data only, never archive authorization.
+解析器は、オブジェクトでない・不正な JSON、重複・不明・欠落キー、基本型の誤り、役割不一致、ドライブ指定のない・曖昧なパス構文、正規化後のmaintenanceLocalの同一・祖先・子孫の重複を拒否する。PC-B はallowArchiveを省略し、PC-A はbooleanのtrueまたはfalseを明示できる。trueは設定データにすぎず、アーカイブの認可ではない。
 
-Errors are fixed reason codes without rejected values, file contents or private
-paths. The package builder shares this structural parser and additionally
-requires safe template defaults (PC-A allowArchive false).
+エラーは固定理由コードとし、拒否した値、ファイル内容、個人のパスを含めない。パッケージビルダーはこの構造解析器を共用し、加えて安全な公開例の既定値（PC-A のallowArchiveはfalse）を要求する。
 
-This is structural/lexical evidence, not an approved-root filesystem gate.
-It does not inspect actual target volumes, resolve short-name/reparse aliases,
-prove cross-root physical separation, acquire a runtime lock, contact Drive,
-or integrate official entry points. Those checks remain mandatory before effects.
-The create-only bootstrap helper below is implemented; formal deployment/migration remains pending.
+構造・字句上の証拠であり、承認ルートのファイルシステム判定ではない。実対象ボリュームの検査、短い名前・再解析別名の解決、ルート間の物理分離の証明、実行ロックの取得、Drive接続、正式入口の統合は行わない。副作用の前には引き続きこれらが必須である。後述の未作成時だけ生成する初期設定ヘルパーは実装済みだが、正式な導入・移行は未完了である。
 
-## Create-only configuration bootstrap helper
+<a id="create-only-configuration-bootstrap-helper"></a>
+## 作成専用構成ブートストラップ ヘルパー
 
-Common/MachineConfigurationBootstrap.ps1 provides Initialize-EoMachineConfiguration
-with explicit ConfigDirectory and MachineId. It operates only on an existing,
-trusted extracted-package configuration directory, never by dot-sourcing alone.
-It preserves any existing active entry without interpreting or changing its bytes.
-A new configuration is validated from the matching safe example (PC-A
-allowArchive must be false), staged in an exclusively created sibling temporary
-file, flushed, and published with a non-overwriting same-directory move.
+Common/MachineConfigurationBootstrap.ps1 は、ConfigDirectoryとMachineIdを明示指定するInitialize-EoMachineConfigurationを提供する。信頼された展開済みパッケージの既存設定ディレクトリだけを扱い、ドットソースしただけでは動作しない。既存の実設定エントリは、そのバイトを解釈・変更せず保全する。新設定は対応する安全な公開例から検証し（PC-A のallowArchiveはfalse必須）、排他的に作成した兄弟の一時ファイルへ書き、フラッシュ後、同一ディレクトリ内の上書きしない移動で公開する。
 
-The helper creates no log/maintenance/Drive/archive directories and performs no
-synchronization or archive. The operator edits actual paths only in the generated
-untracked PC-A.json or PC-B.json. A preserved result does not validate old settings;
-use the read-only loader separately. Missing maintenanceLocal requires an explicit
-operator edit, never automatic migration. Do not run this helper in the source
-checkout: the package builder intentionally rejects active configurations there.
+このヘルパーはログ・保守・Drive・アーカイブのディレクトリを作らず、同期・アーカイブを行わない。利用者は生成された追跡対象外の PC-A.json または PC-B.json に実パスだけを入力する。保全されたという結果は旧設定の妥当性を示さないため、別途読み取り専用ローダーを使う。maintenanceLocalの欠落は利用者の明示編集を要し、自動移行しない。ソースのチェックアウト内では実行しない。パッケージビルダーはそこに実設定がある場合に意図的に拒否する。
 
-Normal completion/failure cleans up only its own temporary file. Abrupt process
-termination may leave a private .configuration-*.tmp containing configuration:
-do not publish/package such leftovers, and do not infer permission to delete
-unknown files. Flush/move does not establish power-loss durability. Reparse
-ancestors/template are rejected at inspection time; this does not defend against
-concurrent hostile directory replacement. Trusted package-directory ownership is
-a prerequisite, and a physical runtime path gate remains separate. Concurrent
-publication uses the non-overwrite API but adversarial race/crash acceptance is
-not claimed by the basic bootstrap tests.
+通常の完了・失敗では、自分の一時ファイルだけを後片付けする。突然のプロセス終了では、設定を含む非公開の .configuration-*.tmp が残ることがある。これを公開・配布に含めず、不明なファイルの削除許可を推定しない。フラッシュ・移動は電源断耐久性を保証しない。検査時に再解析ポイントの祖先・テンプレートを拒否するが、敵対的な同時ディレクトリ置換には対抗できない。パッケージディレクトリの所有権の信頼が前提であり、物理的な実行パスの判定は別途必要である。同時公開には上書きしない API を使うが、基本的な初期設定試験だけで敵対的競合・クラッシュの受け入れを主張しない。
 
-This is an opt-in helper with synthetic tests, not an installer invocation,
-production deployment approval, final OSD-09 allowlist/migration decision or P0
-closure. Active config remains excluded from source control and distribution.
+明示実行するヘルパーと合成試験であり、インストーラーの実行、本番展開の承認、OSD-09 の最終的な許可リスト・移行判断、P0完了ではない。実設定は引き続きソース管理・配布から除外する。
 
-## Read-only existing-root metadata inspection
+<a id="read-only-existing-root-metadata-inspection"></a>
+## 読み取り専用の既存ルートメタデータ検査
 
-Common/MachineConfigurationRootInspection.ps1 provides
-Test-EoMachineConfigurationRoots -Json ... -ExpectedMachineId PC-A/PC-B.
-It first runs the existing strict structure parser. Invoking it explicitly then
-inspects every configured root as an existing directory; missing, non-directory,
-unreadable, reparse/symlink or unsupported-provider roots fail closed. Nothing
-happens by dot-sourcing except loading definitions and the existing version guard.
+Common/MachineConfigurationRootInspection.ps1 はTest-EoMachineConfigurationRoots -Json ... -ExpectedMachineId PC-A/PC-B を提供する。最初に既存の厳密な構造解析器を実行する。明示呼び出し時に、設定した全ルートを既存ディレクトリとして検査する。不在、非ディレクトリ、読み取り不能、再解析・シンボリックリンク、未対応プロバイダーは安全側で拒否する。ドットソース時は定義の読み込みと既存の版チェック以外を行わない。
 
-Components are checked before and after metadata lookup. Windows OPEN_EXISTING
-directory handles request zero data access, inspect directory/reparse attributes,
-and obtain normalized paths in the volume-GUID namespace. The helper compares
-maintenanceLocal against each other root for equality or containment in either
-direction, without exposing paths or metadata in its result. It does not impose
-different physical disks or prove all other root pairs disjoint.
+メタデータ取得の前後に構成要素を検査する。Windows の OPEN_EXISTING ディレクトリハンドルではデータアクセスを要求せず、ディレクトリ・再解析属性を調べ、ボリュームGUID名前空間の正規化パスを取得する。maintenanceLocalと各ルートについて、同一性と双方向の包含を比較し、結果にはパスやメタデータを出さない。別の物理ディスクであることや、他のルート同士がすべて分離していることは保証しない。
 
-Success returns only Status=existing_roots_separated, MachineId and RootCount.
-Structural errors retain their fixed codes; inspection errors use the fixed
-configuration_root_inspection_failed code. Non-Windows invocation is unsupported.
-No files/directories/configuration are created or changed, no contents are read,
-and no lock, Drive, synchronization or archive operation is performed.
+成功時はStatus=existing_roots_separated、MachineId、RootCountだけを返す。構造エラーは従来の固定コードを維持し、検査エラーは固定の configuration_root_inspection_failed を使う。Windows 以外の呼び出しは未対応。ファイル・ディレクトリ・設定を作成・変更せず、内容を読まず、ロック・Drive・同期・アーカイブの操作も行わない。
 
-This is a partial metadata gate for existing directories, not an approved-root
-authority, filesystem/provider allowlist, production installer or runtime
-authorization. Handle lifetimes end during inspection; snapshots do not protect
-later uses. Rechecking components is not proof against arbitrary concurrent
-namespace/ABA changes. Unsupported volume-GUID lookup fails without a weaker
-fallback. Real Drive/network targets, other alias mechanisms and PC-A/intended
-volume qualification remain separate; do not infer cloud visibility or upload.
+既存ディレクトリに対する部分的なメタデータ判定であり、承認ルートの権限、ファイルシステム・プロバイダーの許可リスト、本番インストーラー、実行認可ではない。ハンドルは検査中に閉じるため、スナップショットは後続利用を保護しない。構成要素の再検査は、任意の同時名前空間変更・ABAへの防御の証明ではない。ボリュームGUID取得が未対応なら、弱い方式へ戻らず失敗する。実際のDrive・ネットワーク対象、他の別名機構、PC-A・予定ボリュームの保証確認は別途必要であり、クラウド可視性やアップロードを推定しない。
 
-Tests use private fresh OS-temp fixtures for both PCs: all root fields,
-missing/file roots without creation, actual junction roots/ancestors,
-preserved sentinel bytes, path-free results, actual 8.3 canonical equality and
-combined lexical/metadata overlap rejection when short aliases are available.
-Three injected canonical-overlap observations and an injected metadata failure
-per PC cover later-layer rejection independently of lexical normalization.
-Unavailable 8.3 fixtures are explicitly counted as skips. These tests do not
-expand the earlier PC-B intended-volume Tier B evidence.
+両PCについて、OSの一時領域内に新しい非公開の合成データを用意する。全ルート項目、未作成のままの不在ルート・ファイルを指すルート、実際のジャンクションルート・祖先、目印バイトの保全、パスを含まない結果、短い別名が使える場合の実際の 8.3 の正規同一性と字句・メタデータを組み合わせた重複拒否を検証する。各PCで3件の正規重複観測とメタデータ失敗を注入し、字句正規化とは独立した後段の拒否を確認する。8.3 の試験条件が使えない場合はスキップとして明記する。以前の PC-B の予定ボリュームにおける Tier B の証拠範囲は広げない。
 
-API references:
+API の参照:
 - [CreateFileW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew)
 - [GetFinalPathNameByHandleW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew)
-- [Handle information](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/ns-fileapi-by_handle_file_information)
+- [ハンドル情報](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/ns-fileapi-by_handle_file_information)

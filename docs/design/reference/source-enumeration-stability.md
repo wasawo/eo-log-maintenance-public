@@ -1,6 +1,6 @@
 # Source列挙の完了前再確認
 
-2026-10-25。[source builder](../../../Common/SourceInventoryEvidenceBuilder.py)のB2 coverage判定を強化する。[runtime gate](../runtime-entrypoint-validation-gate.md)の完全列挙条件を支える観測であり、atomic snapshotや後続利用の認可ではない。
+2026-10-25。[ソースビルダー](../../../Common/SourceInventoryEvidenceBuilder.py)のB2 coverage判定を強化する。[ランタイム ゲート](../runtime-entrypoint-validation-gate.md)の完全列挙条件を支える観測であり、atomic snapshotや後続利用の認可ではない。
 
 各directoryを列挙する時点でroot/祖先のidentity、child名集合と各entryのidentity/type/size/mtime/reparse属性/link数を保持する。全hash・分類後、各directoryを再列挙して同じ観測と比較する。root/祖先の変更、追加/削除/rename、既にhashしたfileの属性変化、directory差替え、再確認不能を検出したらenumeration_errorsを増やし、enumeration/validation coverageをincompleteにする。観測済みtarget/hash/errorは消さず、0件やno_workへ置き換えない。
 

@@ -1,60 +1,69 @@
-# OSD-02 — Crash, concurrency, and latest-manifest options
+<a id="osd-02--crash-concurrency-and-latest-manifest-options"></a>
+# OSD-02 — クラッシュ、同時実行、最新マニフェストのオプション
 
 > 履歴/検討資料。承認済みの選択・未決候補・当時の監査根拠を含み、この移動は撤回/失効を意味しない。現在の基準は[正式要件](../../requirements/log-move-requirements.md)と[現行決定台帳](../../decisions/decision-register-c18-c32.md)。当時の対象/証拠を現在のruntime受け入れへ拡張しない。
 
-- Status: C1–C4 policy approved by maintainer on 2026-10-21; runtime implementation and executable acceptance remain pending.
-- Related records: `docs/requirements/p0-open-specification-decisions.md`, `docs/design/manifest-state-transition-v1-proposal.md`, `docs/design/manifest-schema-v1-proposal.md`, `docs/design/staging-file-lifecycle.md`.
-- Scope: local manifest publication, concurrent writers on one PC, crash-left `running` manifests, and selection of the current manifest for a PC/log type/period.
-- Safety boundary: synthetic/design-only. This proposal does not authorize real log access, Google Drive operations, archive enablement, deletion, or runtime implementation.
+- ステータス: C1 ～ C4 ポリシーが 2026-10-21 のメンテナによって承認されました。ランタイム実装と実行可能ファイルの受け入れは 未確定 のままです。
+- 関連レコード: `docs/requirements/p0-open-specification-decisions.md`、`docs/design/manifest-state-transition-v1-proposal.md`、`docs/design/manifest-schema-v1-proposal.md`、`docs/design/staging-file-lifecycle.md`。
+- 範囲: ローカル マニフェストの発行、1 台の PC 上の同時書き込み、クラッシュ放置された `running` マニフェスト、および PC/ログ タイプ/期間の現在のマニフェストの選択。
+- 安全境界: 合成/設計のみ。この提案では、実際のログへのアクセス、Google Drive 操作、アーカイブの有効化、削除、またはランタイム実装は許可されません。
 
-## 1. Invariants
+<a id="1-invariants"></a>
+## 1. 不変条件
 
-1. Validate each candidate's schema and exact agreement between filename identity and JSON identity (`pc_id`, `log_type`, `target_period`, `run_id`).
-2. Historical manifests are immutable. A later run uses a new `run_id`.
-3. A crash-left `running` manifest remains `running`; never rewrite it automatically to `failure` or `success`.
-4. A newer unresolved/running/partial/failed run never permits fallback to an older `success` for an operation requiring current completion.
-5. Ties and ambiguous candidates are not resolved by filesystem order, `LastWriteTime`, or unapproved lexical tie-breaks.
-6. Stale reads must not overwrite newer state. Re-read and revalidate before commit, or fail closed.
-7. Lock, atomicity, identity, read, or enumeration failure blocks dependent operations.
-8. The approved 5-minute future tolerance and 24-hour freshness threshold are not lock leases, crash-detection windows, or retry authorization.
+1. 各候補のスキーマと、ファイル名の ID と JSON ID (`pc_id`、`log_type`、`target_period`、`run_id`) の間の正確な一致を検証します。
+2. 履歴マニフェストは不変です。後の実行では新しい `run_id` が使用されます。
+3. クラッシュ後に残された `running` マニフェストは `running` のままです。決して自動的に `failure` または `success` に書き換えないでください。
+4. 新しい未解決/実行中/部分/失敗した の実行では、現在の完了を必要とする操作について古い `success` へのフォールバックは許可されません。
+5. タイおよび 曖昧 候補は、ファイル システムの順序、`LastWriteTime`、または未承認の字句タイブレークによって解決されません。
+6. 古い読み取りによって新しい状態が上書きされてはなりません。コミットする前に再読み込みして再検証するか、フェールクローズします。
+7. ロック、アトミック性、同一性、読み取り、または列挙 失敗 は、依存する操作をブロックします。
+8. 承認された 5 分の将来許容範囲および 24 時間の鮮度しきい値は、ロック リース、クラッシュ検出ウィンドウ、または再試行認証ではありません。
 
-## 2. C1 — manifest publication (approved A)
+<a id="2-c1--manifest-publication-approved-a"></a>
+## 2.  C1 — マニフェストの公開 (承認済み A)
 
-Write to a unique temporary file in the destination directory; flush and close it; re-read and validate the complete bytes; then publish atomically. First publication uses create-if-absent. Updates compare the expected prior identity/version and re-read immediately before atomic replacement. If the filesystem/API cannot guarantee atomicity or compare-before-write, stop without publishing. Direct writes to the final path and unconditional replacement are rejected.
+宛先ディレクトリ内の固有の一時ファイルに書き込みます。洗い流して閉じます。 完了 バイトを再読み取りして検証します。その後、アトミックに公開します。最初のパブリケーションでは、存在しない場合に作成を使用します。更新では、予期される以前の ID/バージョンを比較し、アトミック置換の直前に再読み取りします。ファイルシステム/API がアトミック性または書き込み前比較を保証できない場合は、パブリッシュせずに停止します。最終パスへの直接書き込みと無条件置換は拒否されます。
 
-## 3. C2 — same-PC writer exclusion (approved C)
+<a id="3-c2--same-pc-writer-exclusion-approved-c"></a>
+## 3.  C2 — 同一 PC ライターの除外 (承認済み C)
 
-Require both a per-PC/per-maintenance-scope OS named mutex and an exclusive lock record. The record carries a unique ownership token and sanitized process/run identity. Acquire the mutex before creating the record. Release the record only if the token still matches; never delete another owner's lock. A stale record blocks work until explicit recovery verifies the previous owner is gone and records a sanitized disposition. PID alone or age alone is insufficient proof. Lock acquisition failure blocks processing before manifest/source mutation.
+mutex という名前の PC ごと/メンテナンス スコープごとの OS と排他的ロック レコードの両方が必要です。レコードには、一意の所有権トークンとサニタイズされたプロセス/実行 ID が含まれます。レコードを作成する前にミューテックスを取得します。トークンがまだ一致する場合にのみレコードを解放します。他の所有者のロックを決して削除しないでください。古いレコードは、明示的なリカバリによって以前の所有者がいなくなったことを確認し、サニタイズされた性質を記録するまで、作業をブロックします。 PID だけ、または経過時間だけでは証拠として不十分です。ロック取得 失敗 は、マニフェスト/ソースの変更前の処理をブロックします。
 
-## 4. C3 — crash-left running manifest (approved B)
+<a id="4-c3--crash-left-running-manifest-approved-b"></a>
+## 4.  C3 — クラッシュレフト 実行中 マニフェスト (承認済み B)
 
-Keep the old `running` manifest immutable and incomplete. After verifying that no previous process/lock owner remains, record recovery disposition separately and start a new run with a new `run_id`. Re-enumerate and rebuild the inventory. Reconcile any uncertain remote upload before retry. Do not convert the old manifest to a terminal state. No timeout automatically changes status or authorizes retry.
+古い `running` マニフェストと 未完了 を不変のままにします。以前のプロセス/ロック所有者が残っていないことを確認した後、回復処理を個別に記録し、新しい `run_id` で新しい実行を開始します。インベントリを再列挙して再構築します。再試行する前に、不確実なリモート アップロードを調整してください。古いマニフェストを最終状態に変換しないでください。タイムアウトがない場合は、ステータスが自動的に変更されたり、再試行が許可されたりします。
 
-## 5. C4 — latest-manifest resolution (approved A)
+<a id="5-c4--latest-manifest-resolution-approved-a"></a>
+## 5.  C4 — 最新のマニフェスト解像度 (承認済み A)
 
-Resolve candidates within the exact `(pc_id, log_type, target_period)` tuple. Validate every candidate and filename/payload identity agreement. Select only a unique maximum validated `started_at_utc`. A tie at the maximum, malformed/conflicting candidate, incomplete enumeration, or read error is ambiguous and blocks the operation. Do not use `run_id`, filesystem enumeration order, creation time, or `LastWriteTime` as a tie-break. If the unique latest manifest is not acceptable for the requested operation, never fall back to an older success.
+正確な `(pc_id, log_type, target_period)` タプル内の候補を解決します。すべての候補とファイル名/ペイロード ID の合意を検証します。検証済みの一意の最大値 `started_at_utc` のみを選択してください。最大値での同点、不正な形式/競合する候補、未完了 列挙、または読み取りエラーは 曖昧 であり、操作がブロックされます。 `run_id`、ファイルシステムの列挙順序、作成時間、または `LastWriteTime` をタイブレークとして使用しないでください。固有の最新マニフェストが要求された操作に受け入れられない場合は、決して古い 成功 にフォールバックしないでください。
 
-## 6. Required synthetic acceptance tests — pending execution
+<a id="6-required-synthetic-acceptance-tests--pending-execution"></a>
+## 6. 必要な合成受け入れテスト — 未確定 の実行
 
-1. Crash before temp creation, during write, after flush, after validation, before publish, and after publish. A failed pre-publish operation leaves an existing authoritative manifest byte-identical; temp files are never authoritative.
-2. Concurrent first publication: exactly one create-if-absent succeeds; the other reports conflict without overwrite.
-3. Concurrent update: a stale expected version cannot replace newer content.
-4. Unsupported atomic primitive: fail closed without publishing.
-5. Mutex contention/acquisition failure, abnormal termination, and ownership-token mismatch: no processing or mutation without required locks; one owner cannot release another's lock.
-6. Stale-lock recovery: age/PID alone cannot authorize removal; live/ambiguous owner or unknown state blocks.
-7. Crash-left `running`: old manifest remains byte-identical; recovery uses a new `run_id` and freshly enumerated inventory.
-8. Uncertain upload outcome: reconcile remote state before retry; age/timeout alone never authorizes retry.
-9. Resolver cases: no candidate, one candidate, unique latest, equal maximum timestamps, malformed filename, filename/payload mismatch, unreadable candidate, incomplete enumeration, and mismatched scope.
-10. Latest `running`, `partial_failure`, `failure`, or incomplete state blocks current-completion-dependent operations and never falls back to older `success`.
-11. Malformed timestamps fail closed; filesystem timestamps and lexical run IDs are never tie-breakers.
-12. All tests use synthetic fixtures and temporary directories only. No real logs, credentials, production paths, Drive operations, archive enablement, or deletion.
+1. 一時作成前、書き込み中、フラッシュ後、検証後、公開前、および公開後にクラッシュします。 失敗した 事前公開操作では、既存の正式なマニフェストのバイトが同一のままになります。一時ファイルには決して権限がありません。
+2. 最初の同時パブリケーション: 存在しない場合の作成が 1 つだけ成功します。他のレポートは上書きされずに競合します。
+3. 同時更新: 予期されるバージョンが古いと、新しいコンテンツを置き換えることができません。
+4. サポートされていないアトミック プリミティブ: 公開せずにフェール クローズされました。
+5. ミューテックスの競合/取得 失敗、異常終了、および所有権トークン 不一致: 必要なロックがなければ処理または変更はありません。ある所有者が別の所有者のロックを解除することはできません。
+6. 古いロックの回復: 経過時間/PID だけでは削除を承認できません。 live/曖昧 所有者または 不明 状態ブロック。
+7. クラッシュ左 `running`: 古いマニフェストはバイト同一のままです。リカバリでは、新しい `run_id` と新しく列挙されたインベントリが使用されます。
+8. アップロード結果が不確実です: 再試行する前にリモート状態を調整してください。経過時間/タイムアウトだけでは再試行は許可されません。
+9. リゾルバーのケース: 候補なし、1 つの候補、一意の最新、等しい最大タイムスタンプ、不正な形式のファイル名、ファイル名/ペイロード 不一致、読み取り不可能な候補、未完了 列挙、および不一致のスコープ。
+10. 最新の `running`、`partial_failure`、`failure`、または 未完了 状態は、現在の完了に依存する操作をブロックし、古い `success` にフォールバックすることはありません。
+11. 不正な形式のタイムスタンプはフェールクローズされます。ファイルシステムのタイムスタンプと語彙実行 ID がタイブレーカーになることはありません。
+12. すべてのテストは合成フィクスチャと一時ディレクトリのみを使用します。実際のログ、認証情報、運用パス、ドライブ操作、アーカイブの有効化、または削除はありません。
 
-Evidence status: **not run / not yet evidenced**. Documentation approval is not executable acceptance.
+証拠ステータス: **未実行 / まだ証拠がありません**。文書の承認は実行可能な承認ではありません。
 
-## 7. Acceptance boundary
+<a id="7-acceptance-boundary"></a>
+## 7. 許容境界
 
-This document records approved design choices, not implementation, executable test results, or operational evidence. The complete transition table remains non-normative where other decisions remain open. OSD-02 runtime enforcement, OSD-03, P0-008, P0-010, and P0-012 remain open as applicable.
+この文書には、実装、実行可能なテスト結果、または運用上の証拠ではなく、承認された設計の選択が記録されます。 完了 遷移テーブルは非規範的なままであり、他の決定は未解決のままです。 OSD-02 ランタイム強制、OSD-03、P0-008、P0-010、および P0-012 は、該当する場合はオープンのままです。
 
-## C4 selection implementation slice (2026-10-23)
+<a id="c4-selection-implementation-slice-2026-10-23"></a>
+## C4 選択実装スライス (2026-10-23)
 
-[Latest selection core](../../design/reference/latest-manifest-selection.md) implements the existing EOLM-MAN-002 basename parser, strict candidate/identity checks and unique latest started_at_utc selection over supplied observations. Thirty-two synthetic tests cover ambiguity, malformed/read uncertainty, no fallback and run-time boundaries. Runtime directory enumeration/read binding, actual clock reliability, full semantic/Drive validation, recovery and P0 acceptance remain pending. This implements only the documented C4 subset; it does not close the full acceptance matrix above.
+[最新の選択コア](../../design/reference/latest-manifest-selection.md) は、既存の EOLM-MAN-002 ベース名パーサー、厳密な候補/同一性 チェック、および提供された観察に対する一意の最新の started_at_utc 選択を実装します。 32 の総合テストは、曖昧さ、不正な形式/読み取りの不確実性、フォールバックなし、および実行時の境界をカバーします。ランタイム ディレクトリの列挙/読み取りバインディング、実際のクロックの信頼性、完全なセマンティック/ドライブの検証、リカバリおよび P0 の受け入れは 未確定 のままです。これは文書化された C4 サブセットのみを実装します。上記の完全な許容マトリックスを閉じるわけではありません。

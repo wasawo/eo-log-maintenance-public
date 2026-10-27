@@ -273,7 +273,7 @@
 
 ### source inventoryのcaller指定資源予算（2026-10-27）
 
-- 利用者の次実装指示を受け、GitHub mainとlocal/origin mainの`0d4945260067a86aaf8beb5ae792a4108b0091f9`を照合。PR #45はsquash merge済みで、mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40347516491) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40347516412)両成功・PR本文への結果記録済み。cleanな最新mainからupstreamなしの新branch `codex/source-inventory-budgets`を作成した。
+- 利用者の次実装指示を受け、GitHub mainとlocal/origin mainの`0d4945260067a86aaf8beb5ae792a4108b0091f9`を照合。PR #45はsquash merge済みで、mainの[検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40347516491) / [パッケージの検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40347516412)両成功・PR本文への結果記録済み。cleanな最新mainからupstreamなしの新branch `codex/source-inventory-budgets`を作成した。
 - [source inventory予算仕様](../../design/reference/source-inventory-revalidation.md#caller-selected-source-inventory-budgets-2026-10-27)に従い、B2 builderへoptional `maximum_entries` / `maximum_file_bytes` / `maximum_total_hash_bytes`を追加。不正値はroot I/O前に拒否。件数は再帰全体・最終再scanで各pass共有、hashは試行sizeを先に予約し失敗でも消費を戻さない。予算超過で走査/hashを停止し、既存target/errorを保全してincompleteとする。bytes予算時はexpected sizeをhash helperへ渡し、直前増大をopen前に拒否する。固定本番値・schema/PS/package file集合の変更なし。
 - Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_source_inventory_evidence_builder test_source_enumeration_stability test_source_hash_identity test_source_inventory_reparse test_initial_source_integration test_initial_source_usepoint test_source_inventory_revalidation test_comparison_source_revalidation test_comparison_source_batch test_initial_inventory_observation test_staging_residual_observation test_aggregation_report_builder test_manifest_transition_inspection`の145件全成功・skipなし。新規10件は既存CI登録済みsuiteに追加し、境界/不正値/再帰共有/最終scan増大/失敗試行予約/直前size増大と、両PC・両logでinitial planがrunning/outcome null・全許可falseを維持することを検証した。変更2文書の相対リンク109件欠落0、git diff --check成功。root自己点検のみ、独立レビューなし。新CI・全suite・無関係なpackage/PS検証は未実行。
 - EOLM-FIL-005/007の列挙・不完全coverage保全を補助する変更で、要件全体やP0-010の閉鎖ではない。予算指定はbuilder入口だけで再観測/比較wrapperへの伝播・保存は未実装。初期size+1の増大probeを許すため厳密な実I/O/時間/全memory制限ではなく、root/FS/provider真正性・同時snapshot/ABA・Drive/runtime・電源断/Tier B/C受け入れも未実証。実ログ/本番Driveは使わない。
@@ -330,7 +330,7 @@
 
 ### manifest/成果物集合readerのexact同名重複拒否（2026-10-26）
 
-- 利用者の次実装指示を受け、基準`dc00404`、クリーンな同branch `codex/manifest-entry-bounds`で[manifest scan](../../design/reference/latest-manifest-selection.md#duplicate-entries-in-directory-observations-2026-10-26)と[成果物集合scan](../../validation/lock-recovery-acceptance-gate.md#duplicate-artifact-directory-entries-2026-10-26)の重複拒否を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
+- 利用者の次実装指示を受け、基準`dc00404`、クリーンな同branch `codex/manifest-entry-bounds`で[マニフェスト スキャン](../../design/reference/latest-manifest-selection.md#duplicate-entries-in-directory-observations-2026-10-26)と[成果物集合scan](../../validation/lock-recovery-acceptance-gate.md#duplicate-artifact-directory-entries-2026-10-26)の重複拒否を追加。公開基準mainは前確認の`6e9ad82`（PR #44）で、今回GitHub状態の再取得は行っていない。branch切替・push/PRなし。
 - 両readerのscanでexact同名をsignature辞書へ上書きする前に既存directory-changed固定理由で拒否。manifestの前後2scan、集合の初回/再分類後/再読取後の3scanすべてに適用する。dedupやcasefold/新しいalias方針は採用せず、既存件数/bytes上限・文法/内容/marker/非fallback検査は維持する。
 - Python 3.11.9（CI 3.12）で`$env:PYTHONPATH='tests;.'`後、`python -B -m unittest test_manifest_directory_reader test_manifest_reader_bounds test_manifest_report_selection test_manifest_recovery_integration test_artifact_set_directory_verification test_artifact_directory_reparse test_terminal_bundle_integration test_owned_publication_integration`の計102件中101成功・既存symlink作成不可1skip。新規3件を既存CI登録済みsuiteへ追加。自作tempのentryをscandir/iterdir adapterで重複供給し、全scan段階の拒否/bytes保全、両PC相当のbundle/prior保全・owner解放を確認。schema/PS/配布file集合50件は不変で無関係な検証は再実行しない。文書リンク/差分確認、root自己点検のみ・独立レビュー/新CIなし。この記録を含むローカルコミットで区切り次の指示を待つ。未push・新PRなし。
 - 検出可能な曖昧列挙を拒否するもので、native列挙真正性/同時snapshot/ABA・root/FS/provider資格・runtime受け入れやcleanup/Upload/retry/Archive/状態変更の認可は追加しない。次は同branchで既承認の独立範囲を選び、未決仕様を推測しない。
@@ -697,7 +697,7 @@
 
 ## 直前の実装単位（download stream観測・148fe6f）
 
-- main`ccd4ffaf2d785828a700afe8a294f35ef308df43`は[PR #43](https://github.com/wasawo/eo-log-maintenance-public/pull/43)マージ済み。mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40174574117) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40174574154)とも成功確認済み。再開指示を受け、最新取得mainから新branch`codex/drive-download-observation`を作成した。
+- main`ccd4ffaf2d785828a700afe8a294f35ef308df43`は[PR #43](https://github.com/wasawo/eo-log-maintenance-public/pull/43)マージ済み。mainの[検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40174574117) / [パッケージの検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40174574154)とも成功確認済み。再開指示を受け、最新取得mainから新branch`codex/drive-download-observation`を作成した。
 - 既存比較moduleへ[download chunkの実bytes/hash観測](../../design/reference/drive-content-comparison.md)を追加。独立期待sizeと明示完了・file IDを要求し、非空exact bytes chunkをstream処理して既存DownloadHashObservationへ結び付ける。size超過時は残りを読まず停止し、不足/途中例外/不正chunkで観測を返さない。raw例外は固定reasonへ置き換える。
 - bytes蓄積・自動retry/close・temp保存は行わない。stream所有権/解放とfile ID・完了の真正なbindingはcaller/providerに残る。合成chunk/hashからOSD-01比較fallbackまで接続する。Python 3.11.9（CI 3.12）で追加stream観測＋既存比較の計17件成功（skipなし）。配布file集合49件/PS/schema契約は不変のためpackage/PS/schema検査は再実行しない。文書相対リンク欠落0・差分検査成功。root自己点検のみ、独立レビュー・新CI・実Drive/runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
 - 未完：実SDK/IPC C-02/credential、全page取得と信頼済みsource/folder/metadata・download完了/ID binding、timeout/resource管理、C1/C2 writer、実root/ACL/FS/owner/clock、両PC/Drive/archive gateとruntime受け入れ。次は確定済みの独立作業か未決provider境界の候補整理。
@@ -762,7 +762,7 @@
 
 ## 直前の実装単位（B2初期plan・efc6733）
 
-- 最新mainは`1036b304aaac13d60dfae5d5e8ed51a3354edf1d`。[PR #42](https://github.com/wasawo/eo-log-maintenance-public/pull/42)はマージ済み、mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40163423575) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40163423523)も成功確認済み。再開指示を受け、最新取得mainから新branch`codex/initial-manifest-plan`を作成した。
+- 最新mainは`1036b304aaac13d60dfae5d5e8ed51a3354edf1d`。[PR #42](https://github.com/wasawo/eo-log-maintenance-public/pull/42)はマージ済み、mainの[検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40163423575) / [パッケージの検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40163423523)も成功確認済み。再開指示を受け、最新取得mainから新branch`codex/initial-manifest-plan`を作成した。
 - 既存遷移moduleへ`prepare_initial_manifest`を追加。独立したPC/log/target period/run ID/開始UTCと信頼できる現在UTC、exact B2 bytes、static schemaから、running・全pending・未検証metadataの初期候補を構築する。B2 digest/count/scope/inventoryを既存validatorで照合し、開始→列挙開始→列挙完了の順序と現在+5分上限を検査する。
 - immutable planはproposed/evidence bytesを保持し、may_publish/may_upload/may_archiveはfalse。空/failed/incomplete/error B2を成功/no_workへ昇格せず、識別子/時刻/欠落入力を補完しない。B2の出所・実際のfresh inventory・保存先不在・実clock/owner/FS資格を認証しない。
 - 両PC/log、欠落/改変/scope不一致、Unicode/開始表記/元bytes、時間境界、I/Oなしと、初期→掲載中間ペア→終端reportの合成接続を追加。関連initial/snapshot/terminal planだけを一括検証する。配布file集合47件/PS/schema契約は不変。Python 3.11.9（CI 3.12）で追加initial plan＋既存snapshot/terminal planの計28件成功（skipなし）。両PC/logとB2状態・時刻境界は試験内subcaseとして扱う。変更のないsource builder/report/保存・package/PS/schema検査は再実行しない。root自己点検のみ、独立レビュー・新CI・runtime受け入れは未実施。root単独、ローカルコミット後は指示待ち、push/PRなし。
@@ -776,7 +776,7 @@
 - 今回の承認はこの累積PR作成・CI成功後マージまで。マージ後は次実装へ進まず指示待ち。次変更は最新mainから新branchを切り、マージ済みbranchへ追記しない。
 
 - [PR #42](https://github.com/wasawo/eo-log-maintenance-public/pull/42)作成済み。初回HEAD`efdda2f`はPackage Validation成功・Validate失敗。Windows Python 3.12でstat/fstatのctimeが異なる意味になる比較を含んでいたため、4moduleで明示birthtime_ns（未対応版は従来ctime）を使うよう整合した。POSIXのctime比較、identity/size/mtime/bytes検査は維持。CPython 3.12一次実装を確認し、模擬回帰を追加した。
-- ローカルPython 3.11.9で修正影響の62件中60件成功・既存symlink不可2件skip。新HEADの両CI成功を確認するまでマージしない。初回失敗は[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40162859743)の記録として保持する。
+- ローカルPython 3.11.9で修正影響の62件中60件成功・既存symlink不可2件skip。新HEADの両CI成功を確認するまでマージしない。初回失敗は[検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40162859743)の記録として保持する。
 
 ## 直前の実装単位（単一公開readback/cleanup・a206e4e）
 
@@ -828,7 +828,7 @@
 
 ## 直前の実装単位（終端plan・eb3f6c5）
 
-- 最新mainは`42221e36886773b7efbb4e3d58658890690f55b6`。[PR #41](https://github.com/wasawo/eo-log-maintenance-public/pull/41)はマージ済み、mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40159576258) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40159576256)も成功確認済み。利用者の再開指示を受け、新branch`codex/manifest-evidence-integration`を最新取得mainから作成した。
+- 最新mainは`42221e36886773b7efbb4e3d58658890690f55b6`。[PR #41](https://github.com/wasawo/eo-log-maintenance-public/pull/41)はマージ済み、mainの[検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40159576258) / [パッケージの検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40159576256)も成功確認済み。利用者の再開指示を受け、新branch`codex/manifest-evidence-integration`を最新取得mainから作成した。
 - 既存moduleに`prepare_terminal_manifest_transition`を追加。exact prior/proposed manifestの掲載遷移・凍結inventory・終端不変を検査した後、B2 digest/scope/target一致とOSD-03集約/G1 report生成を既存builderへ接続する。immutable planは元/提案/B2/report bytesを保持し、全may_*はfalse。欠落prior・不正遷移・未終端file・偽成功を修正せず拒否する。
 - reportは提案bytesの派生物で、保存済み/commitの証拠ではない。B2の真正性・固定性・最新性、実event履歴、root/ACL/所有権・C1/C2比較更新・一回限りreadback・実Drive内容は未実装gateのまま。PC-Bも検査できるがarchive権限は与えない。
 - 既存配布module内の拡張でfile集合は47件のまま。追加接続試験と既存snapshot/report builderを一括で対象検証する。Python 3.11.9（CI 3.12）で追加接続9件＋既存snapshot/report builderの計42件成功（skipなし）。両log種別のT01〜T12相当は追加試験内の24 subcaseとして確認し、独立した24試験とは数えない。配布file集合/PSコードが不変のためpackage/PS検査は再実行しない。root自己点検のみ、独立レビュー・新CI・実保存/受け入れは未実施。root単独、ローカルコミット後は指示待ち。今回はpush/PR/マージを行わない。
@@ -898,12 +898,12 @@
 ## 直前の規則追加（b4d4600）
 
 - 2026-10-25の追加規則をAGENTS.md・現行手順・Git/PR skillへ反映：mainへの直接push禁止。マージ後は最新mainから新規作業ブランチを作り、次のPR作成指示までの変更・コミットを同じブランチに蓄積する。今回の`codex/work-branch-policy`はmain `fea8753`から新規作成し、mainをupstreamに設定していない。
-- [PR #40](https://github.com/wasawo/eo-log-maintenance-public/pull/40)は`fea8753a84fe5ca7c9a64b7ec43a3b4686e546b0`でマージ済み。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40109038116) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40109038171) 成功を前作業で確認済み。今回は規則追加の文書変更のみをローカルコミットし、実装の一時中断と次の指示待ちを維持する。
+- [PR #40](https://github.com/wasawo/eo-log-maintenance-public/pull/40)は`fea8753a84fe5ca7c9a64b7ec43a3b4686e546b0`でマージ済み。mainの [検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40109038116) / [パッケージの検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40109038171) 成功を前作業で確認済み。今回は規則追加の文書変更のみをローカルコミットし、実装の一時中断と次の指示待ちを維持する。
 
 ## 前作業の反映記録（PR #40作成前の状態）
 
 - 最新確認main：`51c5e221366fbc2d6e74e4c3190a134993adf904`。2026-10-25のPR作成依頼時、remote mainはすでに`985c90a`（retryable表）→`ff69e3b`（B2 V1/G1）→`51c5e22`（C-01字句）まで直接push済みだった。3コミットとmainの差分はなく、GitHubの関連PR照会でも対象PRは存在しなかった。この3件をPRでマージしたとは記録しない。
-- このmainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40108634766) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40108634789) は成功済み。ローカルの各単位の検証と、この累積main CIを区別する。正式runtime/実Drive/FS耐久性の受け入れは未完。
+- このmainの [検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40108634766) / [パッケージの検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40108634789) は成功済み。ローカルの各単位の検証と、この累積main CIを区別する。正式runtime/実Drive/FS耐久性の受け入れは未完。
 - 利用者は実反映状態の説明を受け、「反映記録・中断状態の文書PRを作成してマージ」を明示選択した。今回の文書branchは`codex/record-main-integration-pause`で、この記録時点はPR作成前。文書PRの最新HEADで両CI成功を確認してからマージする。
 - **一時中断指示**：利用量上限が近いため、今回の文書PRマージ後は作業を中断する。次候補には着手せず、新たな利用者の再開指示を待つ。通常運用は引き続き「関連範囲の実装→対象検査を一括→ローカルコミット→指示待ち」で、PR作成/マージは任意のタイミングの明示指示に従う。
 
@@ -927,7 +927,7 @@
 ## 直前の実装単位（retryable表・985c90a）
 
 - 現行運用（2026-10-25利用者指示）：1作業単位は実装単位の選択→実装・検証・root自己点検→関連文書更新→ローカルコミット→次の指示待ち。PRは実装単位ごとに作らず、利用者が任意のタイミングで指示した範囲をまとめる。今回の直前指示「PR作成→マージまで1単位」と旧「1PR後に中断」はこの運用に置き換える。push/PR/マージは今回は実施しない。古い目標はサブエージェント再利用・残量までの自動継続も含めて再開しない。
-- 最新確認main：`fd9cc8a931496d31601f062bf66448ea295eec65`（[PR #39](https://github.com/wasawo/eo-log-maintenance-public/pull/39)）。PRのValidate/Package Validation成功後にsquash merge済み。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40105135888) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40105134099)成功も前作業で確認済み。今回のbranchはこのmainから作成した`codex/drive-retryable-contract`。
+- 最新確認main：`fd9cc8a931496d31601f062bf66448ea295eec65`（[PR #39](https://github.com/wasawo/eo-log-maintenance-public/pull/39)）。PRのValidate/Package Validation成功後にsquash merge済み。mainの [検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40105135888) / [パッケージの検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40105134099)成功も前作業で確認済み。今回のbranchはこのmainから作成した`codex/drive-retryable-contract`。
 - 今回の実装単位：固定code別retryable表を現1.0 response schemaと`Common/DriveResponseSemantics.ps1`へ反映。`DRIVE_TRANSIENT_FAILURE`のみtrue、他8codeはfalseを必須とし、矛盾は固定理由`retryable_error_code_mismatch`で拒否する。旧schema-validな矛盾boolが不適合になる互換性の厳格化を契約へ記録。外部consumer不在は未確認。
 - 検証：Python 3.11.9（CIは3.12）の`test_contract_schemas.py`39件、PowerShell 7.6.7の`Test-DriveResponseSemantics.ps1`171件成功。PATH上のPS 7.6.5による初回実行後、CIと同じ公式archive/hashで7.6.7を一時領域へ用意して再確認した。4操作×9codeの正常/矛盾、型/欠落、exit対応、入力不変・秘密非echo・操作副作用なしを確認。PS 7.6.7で変更2ファイルの構文解析・PSScriptAnalyzer Error検査も成功。変更文書の相対リンク欠落0、`git diff --check`成功。今回のroot自己点検であり独立レビューではない。CI・実API・正式retry orchestration・runtime受け入れは未実施。配布file集合は変更せず、package回帰は再実行していない。この記録を含むローカルコミットで区切り、次の指示を待つ。
 - 次の候補：C-01 P1/V1/L1のschema/PS/Python検査、またはB2 V1/G1のproducer/builder追従。継続指示後に1単位を選ぶ。C-02の4操作別fieldとowner-v2/provider等は未決のままで、推測して実装しない。
@@ -942,7 +942,7 @@
 - 第9回回答：㉙A、㉚aA/bA/cA、㉛aA/bA、㉜aA/bAを採用し、[決定記録](../../archive/decisions/selected-policy-decisions-20261024.md)と[比較資料](../../archive/decisions/remaining-policy-options-20261024.md)を更新。manifest正本＋補助checkpoint、Google公式Python client、multipart/5 MB以下・超過保留、固定code別retryable表、strict JSON＋Schemaのpackage manifest、専用PS移行、Windows App SDK通知、初回/状態変化時のみ再通知の方向が確定。具体field、SDK版/flow、正確なbyte境界、保護API/ACL、owner provider、CI配布identity、通知登録/重複抑制等は残る。①〜㉜の提示済み選択は回答済みで、詳細契約/実装/受け入れの完了ではない。
 - 第8回回答：㉒A（PC-A同期に続けてarchive可否判定）/㉓A（両PC AC接続時のみ）/㉔A（wakeなし）/㉕A（4操作全体のresult契約を提示して確定）/㉖A（user-bound保護API＋専用暗号化file）/㉗A（owner field契約/providerを段階確定）/㉘A（E1承認後ActionsからDrive公開）を決定記録へ追記。具体API・field・配布identity等は未確定。文書のみのローカル差分で、実装/実task/認証/Drive/PR/マージは行っていない。直前記録コミットは8169eb7。
 - 第9回反映後の追加5文書のroot自己点検：相対リンク30件の欠落0、git diff --check成功。コード/schema/runtime変更がないため機能/package検査は再実行せず、独立レビュー・新CIは未実施。追加分は未コミット。
-- 最新mainは `179787f62ad0e07d58e139d7059ea84de149ed05`（[PR #38](https://github.com/wasawo/eo-log-maintenance-public/pull/38) マージ済み）。PRの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40084689827) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40084689833)、mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40085003755) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40085003841) 成功後の停止記録は `54f1418`。runtime実装の継続ではなく、利用者の未決事項選択・記録と指示文書改訂だけをbranch `docs/selected-policy-decisions` で進めている。未push・新規PRなし。
+- 最新mainは `179787f62ad0e07d58e139d7059ea84de149ed05`（[PR #38](https://github.com/wasawo/eo-log-maintenance-public/pull/38) マージ済み）。PRの [検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40084689827) / [パッケージの検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40084689833)、mainの [検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40085003755) / [パッケージの検証](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40085003841) 成功後の停止記録は `54f1418`。runtime実装の継続ではなく、利用者の未決事項選択・記録と指示文書改訂だけをbranch `docs/selected-policy-decisions` で進めている。未push・新規PRなし。
 - [仕様決定記録](../../archive/decisions/selected-policy-decisions-20261024.md)へ①〜㉑の回答を反映。C-01 P1/検査V1/L1全体/現1.0改訂、B2 V1、report G1、C-02 R1/N1/D1、Drive I1/A1/S1/T1、owner F1/B1、条件付き状態遷移表採用、release E1、全version保持・自動cleanupなし、PC別version別file manifest、明示的設定移行、ローカル画面通知＋状態ログの方向が確定した。質問と回答の範囲を越えてfield集合・provider・実施を確定しない。
 - **2026-10-24の最新利用者指示によりサブエージェント利用を中止。root単独運用。** 新規作成・既存再利用・組込み/カスタム担当・別AIタスクへの委譲を行わない。中止時の確認では稼働中担当はなく、既存担当は完了または終了状態だった。旧目標の「既存3担当のみ再利用」は撤回済みで、過去記録・環境の担当一覧から再開しない。
 - AGENTS.md、[現行手順](../../development/agent-workflow.md)、両skill・索引をroot単独へ更新し、project .codex/config.tomlをagents.enabled=falseとした。旧3役割TOMLと旧分担手順は [失効した履歴](../../development/archive/README.md) に保全。役割TOMLは移動前後hash一致、Git改行正規化後の本文一致とparseを確認。旧手順は失効banner/相対リンク以外の本文一致を確認。個人/global設定・主モデル/思考量は変更していない。project設定の信頼/読込と現会話への即時tool反映は未検証で、以後の不使用は利用者指示と現行手順で徹底する。

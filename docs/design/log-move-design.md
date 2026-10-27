@@ -93,7 +93,7 @@ Bはここまでの自端末元だけを担当し、cloud元削除やarchiveは�
 
 | 資料 | 確認できた事実 | 本設計への含意・未確認 |
 | --- | --- | --- |
-| [Google Drive files resource](https://developers.google.com/workspace/drive/api/reference/rest/v3/files) | `version`はサーバー上の変更に伴い増える番号。`sha256Checksum`は取得可能な場合の保存内容hashで、Docs/shortcutには設定されない | ID/親/名前とともに取得前後・削除直前の版/内容を比較する候補。実対象での取得可否、versionとdownload bytesの対応付けは未実証 |
+| [Google Drive ファイル リソース](https://developers.google.com/workspace/drive/api/reference/rest/v3/files) | `version`はサーバー上の変更に伴い増える番号。`sha256Checksum`は取得可能な場合の保存内容hashで、Docs/shortcutには設定されない | ID/親/名前とともに取得前後・削除直前の版/内容を比較する候補。実対象での取得可否、versionとdownload bytesの対応付けは未実証 |
 | [Google Drive files.delete](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/delete) | `fileId`で指定し、ごみ箱を経由しない永久削除。公開されたpath/queryパラメーターには期待version指定を確認できない | Q12で直接削除の要件は確認済み。ただし条件付き削除が非対応とは断定せず、同じ版に限る保証も得ていない。HTTP条件/SDK動作・権限・対象結合を確認してから具体契約を閉じる |
 | [Microsoft SetFileInformationByHandle](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfileinformationbyhandle) | ハンドルを対象に情報を設定でき、削除指定には適切なアクセス権が必要 | 同じ実体を確認して削除する方式の候補。適切な共有/排他指定、link/reparse/対象FS、完了確認を検証してから採用する |
 
@@ -108,7 +108,7 @@ Bはここまでの自端末元だけを担当し、cloud元削除やarchiveは�
 5. コピー済み元削除未了の通常再実行で、現在の同内容を再利用し今回のQ5条件から進める。
 6. 確認と削除の間の変更、削除応答途絶、記録失敗を注入し、採用する方式の保証範囲/検出できない限界を記録する。
 
-既存資産: [source再観測](reference/source-inventory-revalidation.md)、[Drive内容比較](reference/drive-content-comparison.md)、[staging](staging-file-lifecycle.md)。これらは一部の観測/比較を支えるが、現在のhelperの`may_* = false`を変更せず、削除認可や正式runtimeとして流用しない。
+既存資産: [source再観測](reference/source-inventory-revalidation.md)、[Drive内容比較](reference/drive-content-comparison.md)、[ステージング](staging-file-lifecycle.md)。これらは一部の観測/比較を支えるが、現在のhelperの`may_* = false`を変更せず、削除認可や正式runtimeとして流用しない。
 
 ## 9. 削除前後の必要記録（案、2026-10-27）
 

@@ -1,82 +1,92 @@
-# C-45 event identity conflict handling options
+<a id="c-45-event-identity-conflict-handling-options"></a>
+# C-45 イベント ID の競合処理オプション
 
 > 履歴/検討資料。承認済みの選択・未決候補・当時の監査根拠を含み、この移動は撤回/失効を意味しない。現在の基準は[正式要件](../../requirements/log-move-requirements.md)と[現行決定台帳](../../decisions/decision-register-c18-c32.md)。当時の対象/証拠を現在のruntime受け入れへ拡張しない。
 
-**Status:** Approved decision (Option A) as of 2026-10-21. This document records the selected C-45 conflict disposition; runtime behavior remains unimplemented until the event pipeline is implemented and tested.
+**ステータス:** 2026-10-21 時点で承認済みの決定 (オプション A)。この文書は、選択された C-45 競合の処理を記録します。ランタイム動作は、イベント パイプラインが実装されテストされるまで実装されないままになります。
 
-## Problem statement
+<a id="problem-statement"></a>
+## 問題ステートメント
 
-C-45 already requires one stable `error_id` per distinct failure event, preservation of that ID through wrappers, one count for repeated observations of the same event, distinct IDs for independent events, and treatment of conflicting core attributes under one ID as an internal consistency error. C-46 fixes the per-run ID format and prohibits reuse.
+C-45 では、個別の 失敗 イベントごとに 1 つの安定した `error_id`、ラッパーによるその ID の保存、同じイベントの繰り返し観測に対する 1 つのカウント、独立したイベントに対する個別の ID、および 1 つの ID での競合するコア属性の内部一貫性エラーとしての処理がすでに必要です。 C-46 は実行ごとの ID 形式を修正し、再利用を禁止します。
 
-The remaining policy question is how an implementation must disposition an observed conflict: the same `error_id` arrives again with a different core attribute (at minimum `error_code`, `phase`, `operation`, or the event's immutable identity). Runtime event propagation is not implemented, so this proposal compares fail-closed dispositions only.
+残りのポリシーの問題は、観察された競合を実装がどのように処理する必要があるかです。同じ `error_id` が、異なるコア属性 (少なくとも `error_code`、`phase`、`operation`、またはイベントの不変 ID) とともに再び到着します。ランタイム イベントの伝播は実装されていないため、この提案ではフェールクローズ処理のみを比較します。
 
-## Invariants for every option
+<a id="invariants-for-every-option"></a>
+## すべてのオプションの不変条件
 
-- Never overwrite the first event silently or treat conflicting observations as two valid events.
-- Never deduplicate by path or error code alone.
-- Do not expose raw exception data or conflicting values in logs/messages.
-- Do not count the conflicting observation as an independent valid event merely to avoid resolving identity.
-- Do not mutate historical or already-published evidence in place.
-- A conflict must prevent the run from being certified as complete/successful.
-- No real logs, credentials, Drive operations, production paths, or deletion behavior are involved.
+- 最初のイベントをサイレントに上書きしたり、矛盾する観測を 2 つの有効なイベントとして扱ったりしないでください。
+- パスやエラー コードだけで重複排除を行わないでください。
+- 生の例外データや矛盾する値をログ/メッセージに公開しないでください。
+- ID の解決を避けるためだけに、矛盾する観測を独立した有効なイベントとしてカウントしないでください。
+- 過去の証拠やすでに公開されている証拠を変更しないでください。
+- 競合により、実行が 完了/成功として認定されることが妨げられる必要があります。
+- 実際のログ、認証情報、ドライブ操作、運用パス、削除動作は関係ありません。
 
-## Options
+<a id="options"></a>
+## オプション
 
-### Option A — Fail closed for the diagnostic evidence artifact (recommended)
+<a id="option-a--fail-closed-for-the-diagnostic-evidence-artifact-recommended"></a>
+### オプション A — 診断証拠成果物のフェールクローズ (推奨)
 
-When a repeated `error_id` has any conflicting immutable/core attribute, raise a fixed, non-disclosing internal-consistency failure and reject finalization/publication of the affected diagnostic evidence artifact. Preserve the first observation only as in-memory diagnostic context if safe; do not serialize either conflicting variant as a valid completed record. Do not increment the distinct-event count for the conflicting observation. The run/evidence must remain incomplete or failed according to the separately approved run-state contract; this proposal does not choose a new manifest status.
+繰り返される `error_id` に矛盾する不変/コア属性がある場合、固定の非公開内部一貫性 失敗 を生成し、影響を受ける診断証拠成果物の最終化/公開を拒否します。安全な場合は、最初の観察結果をメモリ内診断コンテキストとしてのみ保存します。競合するバリアントを有効な完了レコードとしてシリアル化しないでください。競合する観測の個別イベント数を増やさないでください。実行/証拠は、別途承認された実行状態契約に従って、未完了 または 失敗した のままでなければなりません。この提案は新しいマニフェストステータスを選択しません。
 
-**Advantages**
-- Strongest integrity guarantee: no ambiguous identity is published as valid evidence.
-- Simple and deterministic; no new schema field or `error_code` value is needed.
-- Avoids recursive diagnostic creation while the diagnostic pipeline itself is inconsistent.
+**利点**
+- 最強の完全性保証: 曖昧 ID は有効な証拠として公開されません。
+- シンプルかつ決定的。新しいスキーマ フィールドや `error_code` 値は必要ありません。
+- 診断パイプライン自体に一貫性がない場合の再帰的な診断作成を回避します。
 
-**Costs**
-- One conflict can prevent publication of an otherwise useful evidence artifact.
-- The conflict itself may be visible only through a fixed process-level failure signal unless a separately approved reporting mechanism exists.
+**コスト**
+- 競合が 1 つあると、本来は有用な証拠成果物の公開が妨げられる可能性があります。
+- 競合自体は、別途承認された報告メカニズムが存在しない限り、固定プロセス レベルの 失敗 信号を通じてのみ表示される場合があります。
 
-### Option B — Preserve the first observation and emit a separate conflict diagnostic
+<a id="option-b--preserve-the-first-observation-and-emit-a-separate-conflict-diagnostic"></a>
+### オプション B — 最初の観察を保存し、別の競合診断を発行します
 
-Keep the first event as canonical, reject the later conflicting observation, and create a new diagnostic event with a fresh ID and a fixed message indicating an internal identity conflict. The evidence/run is still non-successful and must not claim completeness.
+最初のイベントを正規として保持し、その後の競合する観察を拒否し、新しい ID と内部 ID の競合を示す固定メッセージを使用して新しい診断イベントを作成します。証拠/実行はまだ成功していないため、完全性を主張してはなりません。
 
-**Advantages**
-- Can leave a sanitized indication of the conflict in the resulting report.
-- Preserves the original event record for investigation.
+**利点**
+- 結果のレポートに競合のサニタイズされた表示を残すことができます。
+- 調査のために元のイベント レコードを保存します。
 
-**Costs**
-- Requires a safe, non-recursive path for allocating and finalizing a second diagnostic while the diagnostic subsystem is already inconsistent.
-- Needs an explicit choice of existing `error_code`, `phase`, and `operation` values; adding a new code is out of scope.
-- Risks making partial evidence look more complete than it is unless the artifact status is independently enforced.
+**コスト**
+- 診断サブシステムがすでに矛盾しているときに、2 番目の診断を割り当てて終了するための安全な非再帰パスが必要です。
+- 既存の `error_code`、`phase`、および `operation` 値を明示的に選択する必要があります。新しいコードの追加は範囲外です。
+- 成果物のステータスが個別に強制されない限り、部分的な証拠が実際よりも 完了 に見えるリスクがあります。
 
-### Option C — Invalidate the ID and retain a conflict marker
+<a id="option-c--invalidate-the-id-and-retain-a-conflict-marker"></a>
+### オプション C — ID を無効にし、競合マーカーを保持します
 
-Reject all observations for the conflicted ID, record a separate conflict marker in the evidence envelope, and fail validation of the diagnostic evidence. The marker would not be a schema-v1 diagnostic record and would require a separately specified envelope field or error channel.
+競合する ID のすべての観察を拒否し、証拠エンベロープに別の競合マーカーを記録し、診断証拠の検証に失敗します。マーカーは schema-v1 診断レコードではないため、個別に指定されたエンベロープ フィールドまたはエラー チャネルが必要になります。
 
-**Advantages**
-- Explicitly represents that neither variant is trustworthy.
-- Avoids privileging the first observation.
+**利点**
+- どちらのバリアントも信頼できないことを明示的に表します。
+- 最初の監視に対する特権の付与を回避します。
 
-**Costs**
-- Requires an additional evidence-envelope contract and versioning review because schema v1 rejects unknown fields.
-- Increases implementation complexity and is incompatible with current schema-v1 output unless separately versioned.
+**コスト**
+- スキーマ v1 が 不明 フィールドを拒否するため、追加の証拠エンベロープ契約とバージョン管理のレビューが必要です。
+- 実装が複雑になり、個別にバージョン管理しない限り、現在の schema-v1 出力と互換性がありません。
 
-## Comparison
+<a id="comparison"></a>
+## 比較
 
-| Criterion | Option A | Option B | Option C |
+|基準|オプション A|オプション B|オプション C|
 |---|---|---|---|
-| Fail closed on ambiguity | Yes | Yes, if status gate is enforced | Yes |
-| Adds schema fields / new error code | No | No new field, but needs code/context selection | Requires envelope contract/version review |
-| Avoids recursive diagnostic creation | Yes | No, requires explicit safe path | Usually, but adds envelope mechanism |
-| Keeps partial report for investigation | Limited | Yes | Potentially, with new envelope contract |
-| Implementation complexity | Lowest | Medium | Highest |
+|あいまいさによるフェールクローズ|はい|はい、ステータスゲートが強制されている場合|はい|
+|スキーマフィールド/新しいエラーコードを追加します|いいえ|新しいフィールドはありませんが、コード/コンテキストの選択が必要です|エンベロープ契約/バージョンのレビューが必要です|
+|再帰的な診断作成を回避します|はい|いいえ、明示的な安全なパスが必要です|通常は、エンベロープ メカニズムを追加します|
+|調査のために部分的なレポートを保存します|限定|はい|新しいエンベロープ契約の可能性あり|
+|実装の複雑さ|最低|中|最高|
 
-## Decision record
+<a id="decision-record"></a>
+## 決定記録
 
-- **Selected: Option A**, approved by the maintainer on 2026-10-21.
-- Any conflict blocks successful/complete evidence.
-- No new `error_code`, schema-v1 field, manifest status, or reporting channel is introduced by this decision.
-- Runtime event handling is not implemented by this document; helper/schema tests are not runtime acceptance evidence.
+- **選択: オプション A**、2026-10-21 のメンテナによって承認されました。
+- 競合があると成功/完了 の証拠がブロックされます。
+- この決定により、新しい `error_code`、スキーマ v1 フィールド、マニフェスト ステータス、レポート チャネルは導入されません。
+- ランタイム イベント処理はこのドキュメントでは実装されていません。ヘルパー/スキーマ テストは実行時の受け入れの証拠ではありません。
 
-## Acceptance boundary
+<a id="acceptance-boundary"></a>
+## 許容境界
 
-This is an approved policy decision, not a runtime implementation. It does not implement event creation, propagation, deduplication, concurrency handling, raw JSON duplicate-key rejection, runtime sink non-disclosure, or end-to-end evidence finalization. C-45/C-46 helper tests remain helper-level evidence only. P0-008, P0-010, and P0-012 remain open.
+これは承認されたポリシーの決定であり、実行時の実装ではありません。イベントの作成、伝播、重複排除、同時実行処理、生の JSON 重複キーの拒否、ランタイム シンクの非公開、またはエンドツーエンドの証拠の確定は実装されていません。 C-45/C-46 ヘルパー テストは、ヘルパー レベルの証拠のみとして残ります。 P0-008、P0-010、および P0-012 は開いたままになります。

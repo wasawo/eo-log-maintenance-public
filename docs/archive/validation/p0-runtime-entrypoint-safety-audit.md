@@ -1,23 +1,26 @@
-# P0 Runtime Entrypoint and Deletion-Surface Audit
+<a id="p0-runtime-entrypoint-and-deletion-surface-audit"></a>
+# P0 ランタイム エントリポイントと削除面の監査
 
 > 履歴/検討資料。承認済みの選択・未決候補・当時の監査根拠を含み、この移動は撤回/失効を意味しない。現在の基準は[正式要件](../../requirements/log-move-requirements.md)と[現行決定台帳](../../decisions/decision-register-c18-c32.md)。当時の対象/証拠を現在のruntime受け入れへ拡張しない。
 
 > 2026-10-27追記: 以下の監査結果は記載された当時の対象/基準の証拠として保持する。[現行要件台帳](../../requirements/requirements-traceability.md)はQ1〜Q10と平坦化を反映済みで、全面削除禁止・両PC期間待ち・自動suffixの旧基準を現在へ復活させない。新しい移動契約に対するsource→要件→実装→試験→証拠の再照合は未完で、本履歴だけでは受け入れを満たさない。
 
-- Audit type: static tracked-file inspection
-- Repository baseline: `main` at `7f293686a340d84a2c64023f3722805dda49bf3f` (PR #92 merge, 2026-10-20; static review refreshed after PRs #91–#92)
-- Scope: tracked file inventory, operational entry-point presence, PowerShell launch references, and deletion-related commands in PowerShell scripts, schemas, config examples, tests, and CI workflows
-- Limitation: this is not a runtime test, package-content test for a production release, or proof about untracked files on operator machines.
+- 監査タイプ: 静的な追跡ファイル検査
+- リポジトリ ベースライン: `main` `7f293686a340d84a2c64023f3722805dda49bf3f` (PR #92 マージ、2026-10-20; PR #91–#92 後に静的レビューが更新されました)
+- 範囲: 追跡されたファイル インベントリ、運用エントリ ポイントの存在、PowerShell 起動参照、および PowerShell スクリプト、スキーマ、構成例、テスト、および CI ワークフローの削除関連コマンド
+- 制限事項: これは、ランタイム テスト、製品リリースのパッケージ コンテンツ テスト、またはオペレーター マシン上の追跡されていないファイルに関する証明ではありません。
 
-## 1. Entrypoint inventory
+<a id="1-entrypoint-inventory"></a>
+## 1. エントリポイントインベントリ
 
-The current tracked tree contains no `.bat` or `.cmd` files and no operational `scripts/SyncLogs.ps1` or `scripts/ArchiveLogs.ps1` entry point. `scripts/README.md` describes future maintenance utilities only. The package builder now requires the official entry-point paths for a deployable role package (both `SyncLogs.ps1` and `ArchiveLogs.ps1` for PC-A; `SyncLogs.ps1` only for PC-B) and excludes the legacy `scripts/ArchiveAndUploadLogs.ps1` from deployable content. The legacy file is absent from the tracked tree; package tests use a fixture with that name to verify legacy-only packages are rejected.
+現在追跡されているツリーには、`.bat` または `.cmd` ファイルも、動作可能な `scripts/SyncLogs.ps1` または `scripts/ArchiveLogs.ps1` エントリ ポイントも含まれていません。 `scripts/README.md` では、将来のメンテナンス ユーティリティについてのみ説明します。パッケージ ビルダーは、展開可能な役割パッケージの公式エントリ ポイント パス (PC-A の場合は `SyncLogs.ps1` と `ArchiveLogs.ps1` の両方、PC-B の場合のみ `SyncLogs.ps1`) を必要とし、従来の `scripts/ArchiveAndUploadLogs.ps1` を展開可能なコンテンツから除外します。レガシー ファイルは追跡されるツリーに存在しません。パッケージ テストでは、その名前のフィクスチャを使用して、レガシーのみのパッケージが拒否されることを確認します。
 
-CI workflows invoke PowerShell through the GitHub Actions PowerShell 7.6.7 executable. A static scan of tracked executable/config/schema/test/workflow files at this baseline found no `powershell.exe` references. This does not prove how a future Task Scheduler job or locally created batch file will launch the scripts.
+CI ワークフローは、GitHub Actions PowerShell 7.6.7 実行可能ファイルを通じて PowerShell を呼び出します。このベースラインで追跡された実行可能ファイル/構成/スキーマ/テスト/ワークフロー ファイルの静的スキャンでは、`powershell.exe` 参照は見つかりませんでした。これは、将来のタスク スケジューラ ジョブまたはローカルで作成されたバッチ ファイルがどのようにスクリプトを起動するかを証明するものではありません。
 
-## 2. Deletion-related command inspection
+<a id="2-deletion-related-command-inspection"></a>
+## 2. 削除関連のコマンド検査
 
-Tracked paths inspected for this refresh (PR #92 merge baseline):
+この更新で検査された追跡パス (PR #92 マージ ベースライン):
 
 - `Common/LogFunctions.ps1`
 - `.github/scripts/Build-ReleasePackage.ps1`
@@ -30,176 +33,177 @@ Tracked paths inspected for this refresh (PR #92 merge baseline):
 - `Config/PC-A.example.json`
 - `Config/PC-B.example.json`
 
-The file-level review also confirmed that the tracked tree contains no operational PowerShell entry points or Python Drive adapter. This is a bounded static review of the listed paths, not a repository-wide proof over future/untracked files.
+ファイル レベルのレビューでは、追跡されたツリーに動作可能な PowerShell エントリ ポイントまたは Python ドライブ アダプターが含まれていないことも確認されました。これは、リストされたパスの限定された静的レビューであり、将来の/追跡されていないファイルに対するリポジトリ全体の証明ではありません。
 
-Findings:
+調査結果:
 
-- `Common/LogFunctions.ps1` and `tests/Test-LogFunctions.ps1` contain no `Remove-Item` command and no Drive delete operation.
-- `.github/scripts/Build-ReleasePackage.ps1` uses `Remove-Item` only for the prior generated ZIP at the configured output path and for its own temporary staging directory in `finally`. It does not target log-source roots or invoke a Drive deletion API.
-- `tests/Test-ReleasePackage.ps1` uses `Remove-Item` to clean up test fixtures created under a unique temporary test directory, including an active-config fixture and the legacy runtime-script fixture.
-- The request schema allows only `list_files`, `get_file_metadata`, `upload_file`, and `download_file`; delete operations are not in its enum. Schema tests explicitly reject `delete_file`, `delete`, and unknown operations.
-- The tracked tree at the PR #92 baseline contains `tests/test_contract_schemas.py` but no Python Drive adapter implementation, so runtime behavior of any future adapter cannot yet be audited. PR #78 adds package-builder negative tests rejecting `allowDelete` in both example configs, plus PC-A/PC-B role-specific template checks; these validate templates during package building, not an active-config runtime loader or a complete source/config/package/runtime negative-capability proof. The tracked-tree inventory contains no `.bat`/`.cmd` launchers and no official `SyncLogs.ps1` or `ArchiveLogs.ps1` entry points.
+- `Common/LogFunctions.ps1` および `tests/Test-LogFunctions.ps1` には、`Remove-Item` コマンドとドライブ削除操作が含まれていません。
+- `.github/scripts/Build-ReleasePackage.ps1` は、構成された出力パスで以前に生成された ZIP と、`finally` 内の独自の一時 ステージング ディレクトリにのみ `Remove-Item` を使用します。ログソースのルートをターゲットにしたり、ドライブの削除 API を呼び出したりすることはありません。
+- `tests/Test-ReleasePackage.ps1` は、`Remove-Item` を使用して、アクティブ構成フィクスチャやレガシー ランタイム スクリプト フィクスチャなど、一意の一時テスト ディレクトリの下に作成されたテスト フィクスチャをクリーンアップします。
+- リクエスト スキーマでは、`list_files`、`get_file_metadata`、`upload_file`、および `download_file` のみが許可されます。削除操作はその列挙型に含まれていません。スキーマ テストは、`delete_file`、`delete`、および 不明 操作を明示的に拒否します。
+- PR #92 ベースラインの追跡ツリーには `tests/test_contract_schemas.py` が含まれていますが、Python ドライブ アダプター実装は含まれていないため、将来のアダプターの実行時の動作はまだ監査できません。 PR #78 は、両方の構成例で `allowDelete` を拒否するパッケージ ビルダーのネガティブ テストと、PC-A/PC-B ロール固有のテンプレート チェックを追加します。これらはパッケージの構築中にテンプレートを検証するものであり、active-config ランタイム ローダーや 完了 ソース/config/package/runtime のネガティブ ケイパビリティ証明ではありません。追跡ツリー インベントリには、`.bat`/`.cmd` ランチャーや、公式の `SyncLogs.ps1` または `ArchiveLogs.ps1` エントリ ポイントは含まれません。
 
-## 3. P0 disposition
+<a id="3-p0-disposition"></a>
+## 3.  P0 の性質
 
-- Baseline refresh for this audit: PR #92 merge commit `7f293686a340d84a2c64023f3722805dda49bf3f`; source-clause baseline remains PR #25 merge `097e962a1636419ceb428182da2a6a91f6380273`. PRs #91–#92 changed documentation/traceability only; the bounded operational-source/config/schema/test paths below were rechecked.
-- The tracked tree at PR #92 still contains no `.bat`/`.cmd`, official `scripts/SyncLogs.ps1` or `scripts/ArchiveLogs.ps1`, or Python Drive adapter.
-- Static scan results: `Remove-Item` is used by the package builder to remove its generated ZIP and temporary staging directory, and by package tests to clean temporary fixtures. These are build/test cleanup paths; no operational source-log or Drive-log deletion implementation was found in the inspected tracked files.
-- The request schema allows only `list_files`, `get_file_metadata`, `upload_file`, and `download_file`; schema tests reject delete operations. This is not proof about future runtime code.
+- この監査のベースライン更新: PR #92 merge commit `7f293686a340d84a2c64023f3722805dda49bf3f`;ソース句のベースラインは PR #25 のままで `097e962a1636419ceb428182da2a6a91f6380273` をマージします。 PR #91–#92 はドキュメント/トレーサビリティのみを変更しました。以下の制限されたoperational-source/config/schema/testパスが再チェックされました。
+- PR #92 の追跡ツリーには、`.bat`/`.cmd`、公式の `scripts/SyncLogs.ps1` または `scripts/ArchiveLogs.ps1`、または Python ドライブ アダプターがまだ含まれていません。
+- 静的スキャン結果: `Remove-Item` は、生成された ZIP および一時 ステージング ディレクトリを削除するためにパッケージ ビルダーによって使用され、一時フィクスチャをクリーンアップするためにパッケージ テストによって使用されます。これらはビルド/テストのクリーンアップ パスです。検査された追跡ファイルには、操作可能なソース ログまたはドライブ ログの削除実装が見つかりませんでした。
+- リクエスト スキーマでは、`list_files`、`get_file_metadata`、`upload_file`、および `download_file` のみが許可されます。スキーマ テストは削除操作を拒否します。これは、将来の実行時コードに関する証拠ではありません。
 
-| Gap | Static audit result | Status after this audit |
+|ギャップ|静的監査結果|この監査後のステータス|
 |---|---|---|
-| P0-001 | Shared module guard exists, but formal runtime entry points do not exist, so the guard cannot yet be proven on all operational paths. | Open |
-| P0-003 | No tracked `.bat`/`.cmd` launchers exist to validate; no tracked `powershell.exe` reference was found in the inspected executable/config files. | Open; re-audit when launchers are added |
-| P0-006 / P0-009 | The package builder now requires the official role-specific entry-point paths (`SyncLogs.ps1`; PC-A also requires `ArchiveLogs.ps1`, PC-B excludes it), but the official runtime files are still absent from the tracked tree and the final role allowlists/deployment decisions remain open. | Open |
-| P0-012 | No source-log deletion or Drive deletion path was found in the inspected tracked runtime-related source. Build/test cleanup commands are limited to generated output/staging/test fixtures. | Partial static evidence only; runtime/package acceptance remains open |
+| P0-001 |共有モジュール ガードは存在しますが、正式なランタイム エントリ ポイントは存在しないため、すべての運用パスでガードがまだ証明されていません。|オープン|
+| P0-003 |検証できる追跡済みの `.bat`/`.cmd` ランチャーは存在しません。検査された実行可能ファイル/構成ファイル内に追跡された `powershell.exe` 参照は見つかりませんでした。|開ける;ランチャーが追加されたときに再監査する|
+| P0-006 / P0-009 |パッケージ ビルダーには、公式のロール固有のエントリ ポイント パスが必要になりました (`SyncLogs.ps1`、PC-A には `ArchiveLogs.ps1` も必要ですが、PC-B にはそれが除外されます)。ただし、公式のランタイム ファイルは追跡ツリーにまだ存在せず、最終的なロールのホワイトリスト/展開の決定は未解決のままです。|オープン|
+| P0-012 |検査された追跡されたランタイム関連のソースには、ソース ログの削除またはドライブの削除パスが見つかりませんでした。ビルド/テストのクリーンアップ コマンドは、生成された出力/ステージング/テスト フィクスチャに限定されます。|部分的な静的証拠のみ。ランタイム/パッケージの受け入れは引き続きオープンです|
 
-## 4. Required follow-up controls
+<a id="4-required-follow-up-controls"></a>
+## 4. 必要なフォローアップ管理
 
-1. Do not add a batch launcher until the final entry-point names, runtime guard, and command-line flags are agreed.
-2. When launchers are added, add CI assertions that all `.bat`/`.cmd` files use `pwsh.exe -NoLogo -NoProfile -NonInteractive` and cannot continue after version-guard failure.
-3. When the Python adapter is implemented, add an allowlist test for its operation names and a source scan/test proving that no Drive deletion API is called.
-4. Keep package-builder cleanup separate from operational log lifecycle code. Add tests asserting that cleanup paths remain inside generated output/staging/test roots.
-5. Re-run this audit against the exact source and package artifacts before any deployable release is approved.
+1. 最終的なエントリ ポイント名、ランタイム ガード、およびコマンド ライン フラグが合意されるまでは、バッチ ランチャーを追加しないでください。
+2. ランチャーを追加するときは、すべての `.bat`/`.cmd` ファイルが `pwsh.exe -NoLogo -NoProfile -NonInteractive` を使用し、バージョン ガード 失敗 の後は続行できないという CI アサーションを追加します。
+3. Python アダプターが実装されている場合は、その操作名の許可リスト テストと、ドライブの削除 API が呼び出されないことを証明するソース スキャン/テストを追加します。
+4. パッケージ ビルダーのクリーンアップを運用ログのライフサイクル コードとは別にしてください。クリーンアップ パスが生成された出力/ステージング/テスト ルート内に残ることをアサートするテストを追加します。
+5. デプロイ可能なリリースが承認される前に、正確なソースおよびパッケージ 成果物に対してこの監査を再実行します。
 
-## 5. Current evidence boundary (PR #92 baseline)
+<a id="5-current-evidence-boundary-pr-92-baseline"></a>
+## 5. 現在の証拠境界 (PR #92 ベースライン)
 
-- `.github/scripts/Build-ReleasePackage.ps1` uses `Remove-Item` only to replace the generated ZIP at the configured package output path and to remove its own temporary staging directory in `finally`; these are package-generation outputs, not log-source or Drive objects.
-- `tests/Test-ReleasePackage.ps1` removes only temporary test fixtures created by the test. This includes fixture copies and the active-config fixture; it is test cleanup, not runtime log cleanup.
-- `contracts/drive-request.schema.json` exposes only `list_files`, `get_file_metadata`, `upload_file`, and `download_file`; `tests/test_contract_schemas.py` explicitly rejects `delete_file`, `delete`, and unknown operations. This limits the declared adapter contract, but cannot constrain an adapter that does not yet exist.
-- The package builder rejects `allowDelete` in both example configuration templates and validates role semantics for the example configs. The PC-A example has `allowArchive: false`; the PC-B example omits `allowArchive`. PR #91's archive-gate crosswalk and PR #92's P0 traceability refresh document these same boundaries; they do not add runtime enforcement. These remain package-build checks on example files, not active configuration enforcement.
-- PRs #91–#92 update the C-28 archive-gate evidence matrix, P0 gap register, source/test inventory, and traceability register; they do not add runtime code or expand the audited executable paths. This audit did not execute operational scripts or generated packages and did not inspect untracked files on operator machines. It therefore supports only a partial static disposition for P0-012.
+- `.github/scripts/Build-ReleasePackage.ps1` は、構成されたパッケージ出力パスで生成された ZIP を置き換え、`finally` 内の独自の一時 ステージング ディレクトリを削除するためにのみ `Remove-Item` を使用します。これらはパッケージ生成の出力であり、ログソースやドライブ オブジェクトではありません。
+- `tests/Test-ReleasePackage.ps1` は、テストによって作成された一時的なテスト フィクスチャのみを削除します。これには、フィクスチャのコピーとアクティブ構成フィクスチャが含まれます。これはテストのクリーンアップであり、実行時ログのクリーンアップではありません。
+- `contracts/drive-request.schema.json` は、`list_files`、`get_file_metadata`、`upload_file`、および `download_file` のみを公開します。 `tests/test_contract_schemas.py` は、`delete_file`、`delete`、および 不明 操作を明示的に拒否します。これにより、宣言されたアダプター コントラクトが制限されますが、まだ存在しないアダプターを制約することはできません。
+- パッケージ ビルダーは、両方の構成テンプレート例で `allowDelete` を拒否し、構成例のロール セマンティクスを検証します。 PC-A の例には `allowArchive: false` があります。 PC-B の例では `allowArchive` が省略されています。 PR #91 のアーカイブ ゲート対応表と PR #92 の P0 トレーサビリティ リフレッシュは、これらと同じ境界を文書化しています。実行時の強制は追加されません。これらはサンプル ファイルに対するパッケージのビルド チェックであり、アクティブな構成の強制ではありません。
+- PR #91–#92 は、C-28 アーカイブ ゲート証拠マトリックス、P0 ギャップ レジスタ、ソース/テスト インベントリ、およびトレーサビリティ レジスタを更新します。ランタイム コードを追加したり、監査対象の実行可能パスを拡張したりすることはありません。この監査では、操作スクリプトや生成されたパッケージは実行されず、オペレーター マシン上の追跡されていないファイルも検査されませんでした。したがって、P0-012 の部分的な静的配置のみがサポートされます。
 
-## 6. Safety statement
+<a id="6-safety-statement"></a>
+## 6. 安全性に関する声明
 
-This audit does not certify the system as deployable or operationally safe. It records only the static evidence available in the current tracked repository. No local source-log deletion or Google Drive deletion capability is added by this change.
+この監査は、システムが展開可能または運用上安全であると認定するものではありません。現在追跡されているリポジトリで利用可能な静的な証拠のみが記録されます。この変更により、ローカル ソース ログの削除機能や Google Drive 削除機能は追加されません。
 
-## OSD-03 approved report-contract compatibility note (2026-10-21)
+<a id="osd-03-approved-report-contract-compatibility-note-2026-10-21"></a>
+## OSD-03 はレポートと契約の互換性に関するメモ (2026-10-21) を承認しました
 
-R1-B/R2-A/R3-B/R4-A/R5-A/R6-A/R7-A are approved. The report contains period summaries only and references the exact manifest and B2 evidence by canonical relative path, schema version, and SHA-256 of exact bytes. Report identity is (pc_id, log_type, run_id, report_schema_version), with no report_id field. Deterministic regeneration uses only immutable validated inputs; it must not re-enumerate mutable source directories. Period completion is complete/incomplete/indeterminate and remains report-only, not a manifest v1 enum. Local publication is authoritative; Drive replication is separate and must be content-verified before cross-PC use. These decisions do not alter manifest v1, B2 evidence structure, A2 inventory digest, or exhaustive count reconciliation. Executable schema, runtime implementation, and tests remain pending.
+R1-B/R2-A/R3-B/R4-A/R5-A/R6-A/R7-A は承認されています。レポートには期間の概要のみが含まれており、正規の相対パス、スキーマ バージョン、正確なバイト数の SHA-256 によって正確なマニフェストと B2 証拠が参照されます。レポート ID は (pc_id、log_type、run_id、report_schema_version) で、report_id フィールドはありません。決定論的再生成では、不変の検証済み入力のみが使用されます。変更可能なソース ディレクトリを再列挙してはなりません。期間の完了は 完了/未完了/確定不能 であり、マニフェスト v1 列挙型ではなくレポートのみのままです。ローカルの公開済み成果物を正本とします。ドライブのレプリケーションは個別に行われるため、PC 間で使用する前に 内容確認済み にする必要があります。これらの決定は、マニフェスト v1、B2 証拠構造、A2 一覧ダイジェスト、または徹底的なカウント調整を変更しません。実行可能スキーマ、ランタイム実装、およびテストは 未確定 のままです。
 
-No runtime entrypoint was implemented or executed as part of this documentation decision. No deletion capability or production operation is authorized.
+このドキュメント決定の一部として、ランタイム エントリポイントは実装または実行されませんでした。削除機能や運用操作は許可されません。
 
 
-## OSD-03 executable schema implementation slice — PR #150 (2026-10-21)
+<a id="osd-03-executable-schema-implementation-slice--pr-150-2026-10-21"></a>
+## OSD-03 実行可能スキーマ実装スライス — PR #150 (2026-10-21)
 
-- Added `contracts/aggregation-report-v1.schema.json` as a strict Draft 2020-12 structural schema candidate for the approved R1–R7 report shape. It rejects unknown properties, `report_id`, unsupported/non-integer report schema versions, invalid enums/count types, non-UTC-Z timestamps, malformed lowercase SHA-256 values, and non-canonical relative paths.
-- Added schema-definition and synthetic structural-contract tests in `tests/test_contract_schemas.py`. They cover partial-failure and zero-work examples, all three period completion values, strict versioning, unknown fields, reference path/hash validation, timestamp form, enums/counts, and run-scope error shape.
-- These tests are authored but **not yet executed/evidenced** in this PR. CI must pass on the exact latest PR HEAD before merge. No runtime report reader/writer, cross-artifact digest verification, tuple/path binding, count recomputation, deterministic regeneration, atomic publication, lock integration, or Drive replication implementation is included in this slice.
-- The JSON Schema validates structure only. Cross-field and cross-artifact invariants remain mandatory fail-closed runtime checks; schema acceptance alone is not proof of report correctness or authorization for any side effect.
-- No manifest v1 fields, B2 evidence contract, A2 digest contract, or OSD-02 safety boundaries are changed. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion.
+- 承認された R1 ～ R7 レポート形式の厳密なドラフト 2020-12 構造スキーマ候補として `contracts/aggregation-report-v1.schema.json` を追加しました。 不明 プロパティ、`report_id`、サポートされていない/非整数のレポート スキーマ バージョン、無効な列挙型/カウント タイプ、非 UTC-Z タイムスタンプ、不正な形式の小文字 SHA-256 値、および非正規相対パスは拒否されます。
+- `tests/test_contract_schemas.py` にスキーマ定義と合成構造契約テストを追加しました。部分的な 失敗 およびゼロ作業の例、3 つの期間完了値すべて、厳密なバージョン管理、不明 フィールド、参照パス/ハッシュ検証、タイムスタンプ形式、列挙型/カウント、および実行スコープのエラー形状をカバーしています。
+- これらのテストは作成されていますが、この PR では **まだ実行も証拠化もされていません** が証明されています。 CI は、マージ前に正確な最新の PR HEAD を渡す必要があります。このスライスには、ランタイム レポート リーダー/ライター、クロス 成果物 ダイジェスト検証、タプル/パス バインディング、カウント再計算、確定的再生成、アトミック パブリケーション、ロック統合、またはドライブ レプリケーションの実装は含まれません。
+- JSON Schema は構造のみを検証します。クロスフィールドおよびクロス成果物の不変条件は引き続き必須のフェールクローズ実行時チェックです。スキーマの受け入れだけでは、レポートの正確性や副作用の承認の証拠にはなりません。
+- マニフェスト v1 フィールド、B2 証拠コントラクト、A2 ダイジェスト コントラクト、または OSD-02 安全境界は変更されません。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。
 
 
-## PR #151 status note — OSD-03 internal consistency slice (2026-10-22)
+<a id="pr-151-status-note--osd-03-internal-consistency-slice-2026-10-22"></a>
+## PR #151 ステータスメモ — OSD-03 内部整合性スライス (2026-10-22)
 
-PR #150 merged the structural aggregation-report v1 JSON Schema and its synthetic schema tests; PR-head and post-merge CI passed. PR #151 adds a report-local PowerShell consistency validator and synthetic tests for period uniqueness, safe reference paths/digest shape, summary count reconciliation, completion consistency, run-scope error count, and zero-work/success consistency. Until PR #151 CI passes on its exact latest HEAD, these tests are authored but not yet verified. This slice does not validate exact referenced manifest/evidence bytes, B2/A2 integrity, full target-set completeness, cross-artifact identity, deterministic regeneration, atomic publication, lock ownership, or Drive replication. P0 acceptance remains open.
+PR #150 は、構造集約レポート v1 JSON Schema とその合成スキーマ テストをマージしました。 PR ヘッドとマージ後の CI が合格しました。 PR #151 は、レポートローカルの PowerShell 一貫性検証機能と、期間の一意性、安全な参照パス/ダイジェスト形状、要約数の調整、完了の一貫性、実行スコープのエラー数、およびゼロ作業/成功 の一貫性についての合成テストを追加します。 PR #151 CI がその正確な最新の HEAD を渡すまで、これらのテストは作成されますが、まだ 確認済み は作成されていません。このスライスは、正確に参照されるマニフェスト/証拠バイト、B2/A2 整合性、完全なターゲット セットの完全性、クロス成果物 ID、決定論的再生成、アトミック パブリケーション、ロック所有権、またはドライブ レプリケーションを検証しません。 P0 の受付は引き続き受け付けております。
 
-## OSD-03 status correction — 2026-10-22
+<a id="osd-03-status-correction--2026-10-22"></a>
+## OSD-03 ステータス修正 — 2026-10-22
 
-PR #151 is merged at `e93f0ea552496831c69efb1e8dd2818ac86f4e5b`. Validate and Package Validation passed on exact PR HEAD `846cfdbb1ce76f3ec1363460c4f0576b7c10a2b6` (runs `39635268289`, `39635268115`) and on the post-merge commit (runs `39636402422`, `39636402408`). The report-local consistency validator is now implemented and CI-verified within its stated scope. PR #152 adds a narrow exact-byte reference verifier; its tests are not yet CI-verified. Neither PR implements full manifest/B2 schema validation, identity binding, A2 digest recomputation, exhaustive target/count reconciliation, deterministic report regeneration, atomic publication, lock recovery, or Drive replication. P0 acceptance remains open.
+PR #151 は `e93f0ea552496831c69efb1e8dd2818ac86f4e5b` にマージされます。検証およびパッケージ検証は、正確な PR HEAD `846cfdbb1ce76f3ec1363460c4f0576b7c10a2b6` (`39635268289`、`39635268115` を実行) およびマージ後のコミット (`39636402422`、`39636402408` を実行) に渡されます。レポートローカル整合性検証機能が実装され、CI ～ 確認済み はその指定された範囲内に収まります。 PR #152 は、狭い正確なバイト参照検証機能を追加します。そのテストはまだ CI-確認済み ではありません。どちらの PR も、完全なマニフェスト/B2 スキーマ検証、ID バインディング、A2 ダイジェスト再計算、徹底的なターゲット/カウント調整、決定論的レポート再生成、アトミック パブリケーション、ロック回復、またはドライブ レプリケーションを実装していません。 P0 の受付は引き続き受け付けております。
 
-## Supplemental review — referenced-artifact validator (PR #155, 2026-10-22)
+<a id="supplemental-review--referenced-artifact-validator-pr-155-2026-10-22"></a>
+## 補足レビュー — 参照成果物検証ツール (PR #155、2026-10-22)
 
-The new `Common/AggregationReferencedArtifacts.ps1` and `Common/validate_aggregation_artifacts.py` are validation-only helpers. They read the report and its referenced JSON artifacts, calculate SHA-256 over raw artifact bytes, apply strict JSON Schema contracts, and compare run identity. They contain no source/Drive deletion, upload, archive, or Drive API operation. The Python helper rejects absolute/traversal/backslash paths and symlink components under the explicitly supplied trusted root, suppresses exception text and artifact contents, and returns stable rejection codes. These checks are defense-in-depth, not a race-free guarantee against concurrent hostile filesystem mutation. The helper is not yet connected to official runtime entry points, and this supplemental review does not supersede a future full entry-point audit or production acceptance test.
+新しい `Common/AggregationReferencedArtifacts.ps1` と `Common/validate_aggregation_artifacts.py` は検証専用のヘルパーです。彼らは、レポートとその参照先の JSON 成果物を読み取り、生の成果物 バイトに対して SHA-256 を計算し、厳密な JSON Schema コントラクトを適用して、実行 ID を比較します。これらには、ソース/ドライブの削除、アップロード、アーカイブ、またはドライブ API 操作は含まれません。 Python ヘルパーは、明示的に指定された信頼できるルートの下にある絶対/トラバーサル/バックスラッシュ パスとシンボリックリンク コンポーネントを拒否し、例外テキストと成果物の内容を抑制し、安定した拒否コードを返します。これらのチェックは多層防御であり、同時の敵対的なファイルシステムの変更に対する競合のない保証ではありません。ヘルパーはまだ公式のランタイム エントリ ポイントに接続されていないため、この補足レビューは将来の完全なエントリ ポイント監査や運用受け入れテストに優先するものではありません。
 
 
-## Supplemental review — A2/B2 integrity helper (PR #156, 2026-10-22)
+<a id="supplemental-review--a2b2-integrity-helper-pr-156-2026-10-22"></a>
+## 補足レビュー — A2/B2 整合性ヘルパー (PR #156、2026-10-22)
 
-`Common/RunInputEvidenceIntegrity.py` is a pure validation helper for already-constructed B2 evidence. It recomputes the versioned length-prefixed A2 inventory digest and the B2 canonical JSON digest, applies the strict evidence schema, checks embedded inventory/count invariants, rejects completed enumeration with enumeration errors, and enforces canonical ordering for inventory targets and validation errors. It performs no source enumeration, file writes, Drive calls, upload, archive, or deletion. Digest validation does not prove the evidence was honestly or completely generated; source traversal, frozen inventory-to-manifest reconciliation, immutable publication, runtime entry-point integration, lock/recovery, and live Drive verification remain separate requirements. Exact-head CI must pass before this slice is considered verified.
+`Common/RunInputEvidenceIntegrity.py` は、すでに構築された B2 証拠の純粋な検証ヘルパーです。バージョン管理された長さプレフィックス付きの A2 インベントリ ダイジェストと B2 正規 JSON ダイジェストを再計算し、厳密な証拠スキーマを適用し、埋め込まれた一覧/カウントの不変条件をチェックし、列挙エラーのある完了した列挙を拒否し、一覧ターゲットと検証エラーに対して正規の順序付けを強制します。ソースの列挙、ファイルの書き込み、ドライブの呼び出し、アップロード、アーカイブ、削除は実行されません。ダイジェスト検証は、証拠が正直にまたは完全に生成されたことを証明するものではありません。ソース トラバーサル、凍結されたインベントリとマニフェストの調整、不変のパブリケーション、ランタイム エントリ ポイントの統合、ロック/リカバリ、ライブ ドライブ検証は、引き続き別個の要件となります。このスライスが 確認済み とみなされる前に、正確なヘッド CI を通過する必要があります。
 
 
-## Supplemental review — manifest/B2 inventory binding (PR #157, 2026-10-22)
+<a id="supplemental-review--manifestb2-inventory-binding-pr-157-2026-10-22"></a>
+## 補足レビュー — マニフェスト/B2 インベントリ バインディング (PR #157、2026-10-22)
 
-The referenced-artifact verifier now calls the A2/B2 integrity validator and compares the embedded evidence inventory with the originating manifest's frozen `files` records using relative path, filename, size, and SHA-256. It also compares the report's inventory count/digest to the evidence. The tests use synthetic JSON and temporary directories. This rejects cross-artifact divergence but does not prove that either artifact was generated from a complete source traversal; official runtime entry-point integration, immutable publication, locking/recovery, and Drive revalidation remain unimplemented.
+参照成果物検証ツールは、A2/B2 整合性検証ツールを呼び出し、相対パス、ファイル名、サイズ、SHA-256 を使用して、埋め込まれた証拠インベントリと元のマニフェストの凍結された `files` レコードを比較します。また、レポートの一覧数/ダイジェストを証拠と比較します。テストでは、合成 JSON と一時ディレクトリを使用します。これは、成果物間の相違を拒否しますが、いずれかの成果物が 完了 ソース トラバーサルから生成されたことを証明するものではありません。公式のランタイム エントリ ポイントの統合、不変のパブリケーション、ロック/リカバリ、ドライブの再検証は未実装のままです。
 
 
-## Entry-point integration gate — PR #158 (2026-10-22)
+<a id="entry-point-integration-gate--pr-158-2026-10-22"></a>
+## エントリポイント統合ゲート — PR #158 (2026-10-22)
 
-The repository inventory confirms that official `scripts/SyncLogs.ps1` and `scripts/ArchiveLogs.ps1` are not yet present. Existing aggregation and evidence helpers validate supplied artifacts but do not enumerate sources, publish evidence, acquire locks, recover interrupted runs, revalidate live Drive content, or authorize archive/deletion. `docs/design/runtime-entrypoint-validation-gate.md` defines the required pre-side-effect validation sequence and synthetic acceptance conditions. This is a design gate only; it does not close the runtime safety audit. PR #157 is merged and exact-head CI passed; post-merge main CI must be confirmed independently.
+リポジトリ インベントリにより、公式の `scripts/SyncLogs.ps1` と `scripts/ArchiveLogs.ps1` がまだ存在していないことが確認されています。既存の集計および証拠ヘルパーは、提供された成果物を検証しますが、ソースの列挙、証拠の公開、ロックの取得、中断された実行の回復、ライブ ドライブ コンテンツの再検証、またはアーカイブ/削除の承認は行いません。 `docs/design/runtime-entrypoint-validation-gate.md` は、必要な副作用前の検証シーケンスと総合的な受け入れ条件を定義します。これはデザイン ゲートのみです。実行時の安全性監査は終了しません。 PR #157 がマージされ、exact-head CI が渡されます。マージ後のメイン CI は個別に確認する必要があります。
 
 
-## Supplemental review — source inventory builder (PR #159, 2026-10-22)
+<a id="supplemental-review--source-inventory-builder-pr-159-2026-10-22"></a>
+## 補足レビュー — ソース一覧ビルダー (PR #159、2026-10-22)
 
-`Common/SourceInventoryEvidenceBuilder.py` is a read-only helper that enumerates a supplied source root, hashes eligible files, and constructs an in-memory B2 evidence object. It does not publish artifacts, mutate source files, call Drive, or perform archive/delete operations. Enumeration/read/hash uncertainty produces an incomplete enumeration state; the serializer validates evidence contracts and returns deterministic JSON bytes without filesystem writes. Synthetic tests are added to CI, but their exact-head result must be verified before merge. This helper is not connected to official runtime entry points and does not itself provide atomic publication, lock/recovery, or a race-free guarantee against concurrent source mutation. P0 remains open.
+`Common/SourceInventoryEvidenceBuilder.py` は、指定されたソース ルートを列挙し、対象となるファイルをハッシュし、メモリ内の B2 証拠オブジェクトを構築する読み取り専用ヘルパーです。成果物の公開、ソース ファイルの変更、Drive の呼び出し、アーカイブ/削除操作の実行は行いません。列挙/読み取り/ハッシュの不確実性により、未完了 列挙状態が生成されます。シリアライザーは証拠コントラクトを検証し、ファイルシステムへの書き込みを行わずに確定的な JSON バイトを返します。合成テストは CI に追加されますが、マージ前にその正確な結果は 確認済み である必要があります。このヘルパーは、公式のランタイム エントリ ポイントに接続されておらず、それ自体はアトミック パブリケーション、ロック/リカバリ、または同時ソース変更に対する競合のない保証を提供しません。 P0 は開いたままになります。
 
 
-## Supplemental review — atomic artifact publication (PR #160, 2026-10-22)
+<a id="supplemental-review--atomic-artifact-publication-pr-160-2026-10-22"></a>
+## 補足レビュー — アトミック成果物の出版物 (PR #160、2026-10-22)
 
-The new helper publishes one byte sequence by creating a temporary file in the resolved destination parent, flushing and fsyncing the file, and using same-filesystem hard-link creation as an atomic no-overwrite publication primitive. Existing identical bytes are accepted as an idempotent retry; conflicting content or unsupported atomic-link behavior is rejected. The helper never replaces an existing artifact. Its limits are explicit: no lock ownership, multi-file commit protocol, stale recovery, guaranteed directory metadata durability, or protection from hostile concurrent parent-directory changes. Do not connect it to official runtime entry points until those remaining controls and their acceptance tests are complete.
+新しいヘルパーは、解決された宛先の親に一時ファイルを作成し、ファイルをフラッシュして fsync し、同じファイルシステムのハードリンク作成をアトミックな上書きなしのパブリケーション プリミティブとして使用することにより、1 バイト シーケンスをパブリッシュします。既存の同一バイトは冪等な再試行として受け入れられます。競合するコンテンツやサポートされていないアトミック リンクの動作は拒否されます。ヘルパーは既存の成果物を置き換えることはありません。その制限は明確です: ロック所有権なし、複数ファイルのコミット プロトコル、古いリカバリ、ディレクトリ メタデータの耐久性の保証、または敵対的な親ディレクトリの同時変更からの保護。残りのコントロールとその受け入れテストが 完了 になるまでは、公式のランタイム エントリ ポイントに接続しないでください。
 
 
-## Supplemental review — lock ownership and crash-recovery gate (PR #161, 2026-10-22)
+<a id="supplemental-review--lock-ownership-and-crash-recovery-gate-pr-161-2026-10-22"></a>
+## 補足レビュー — ロックの所有権とクラッシュ リカバリ ゲート (PR #161、2026-10-22)
 
-The new acceptance gate makes the approved OSD-02 safety constraints testable without claiming implementation. It explicitly prohibits stale-lock removal based only on age/PID, requires ownership-token matching before lock-record mutation, preserves crash-left `running` manifests, and blocks retry when Drive reconciliation is incomplete or ambiguous. The test matrix is synthetic and pending execution. No official entry-point integration, live Drive operation, archive, or deletion is authorized. P0 remains open.
+新しい受け入れゲートにより、承認された OSD-02 安全制約が、実装を主張することなくテスト可能になります。経過時間/PID のみに基づいて古いロックの削除を明示的に禁止し、ロック レコードの変更前に所有権トークンの照合を要求し、クラッシュレフト `running` マニフェストを保持し、ドライブ調整が 未完了 または 曖昧 の場合は再試行をブロックします。テスト マトリックスは合成および 未確定 実行です。公式のエントリ ポイントの統合、ライブ ドライブの操作、アーカイブ、削除は許可されていません。 P0 は開いたままになります。
 
 
-## Supplemental review — isolated owned-run lock primitive (PR #162; pending CI, 2026-10-22)
+<a id="supplemental-review--isolated-owned-run-lock-primitive-pr-162-pending-ci-2026-10-22"></a>
+## 補足レビュー — 分離された所有実行ロック プリミティブ (PR #162; 未確定 CI、2026-10-22)
 
-`Common/OwnedRunLock.py` introduces an isolated Windows named-mutex adapter and an exclusive create-only lock record containing a per-acquisition token and minimal identity fields. It caps waiting at 60 seconds, rejects malformed/mismatched records, and cleans up only when the current token still matches. Abandoned mutexes deliberately fail closed without adopting or removing an existing record; recovery remains unimplemented. Synthetic tests are authored and wired to Validate but have not yet been CI-verified. No manifest/source mutation, Drive calls, archive, deletion, or official entry-point integration is included. P0 remains open.
+`Common/OwnedRunLock.py` は、分離された Windows 名前付きミューテックス アダプターと、取得ごとのトークンと最小限の ID フィールドを含む排他的作成専用ロック レコードを導入します。待機時間を 60 秒に制限し、不正なレコードや不一致のレコードを拒否し、現在のトークンがまだ一致する場合にのみクリーンアップします。放棄されたミューテックスは、既存のレコードを採用または削除せずに、意図的にフェールクローズされます。回復は未実装のままです。合成テストは作成され、Validate に接続されていますが、まだ CI ～ 確認済み になっていません。マニフェスト/ソースの変更、ドライブの呼び出し、アーカイブ、削除、または公式のエントリポイントの統合は含まれません。 P0 は開いたままになります。
 
 
-## Supplemental review — crash-recovery decision gate (PR #163; pending CI, 2026-10-22)
+<a id="supplemental-review--crash-recovery-decision-gate-pr-163-pending-ci-2026-10-22"></a>
+## 補足レビュー — クラッシュ回復決定ゲート (PR #163; 未確定 CI, 2026-10-22)
 
-The pure recovery decision helper fails closed for non-abandoned mutexes, invalid/mismatched lock records, unconfirmed owner termination, non-unique latest candidates, invalid/non-running/schema-invalid manifests, identity mismatch, incomplete/ambiguous Drive reconciliation, or unresolved uploads. An eligible result requires a new run and fresh inventory while preserving the prior manifest. The helper performs no recovery mutation, manifest write, source enumeration, Drive call, archive, deletion, or official entry-point integration. Synthetic tests are authored but pending CI; P0 remains open.
+純粋なリカバリ デシジョン ヘルパーは、放棄されていないミューテックス、無効/不一致のロック レコード、未確認の所有者の終了、一意でない最新の候補、無効/非running/スキーマ無効のマニフェスト、ID 不一致、未完了/曖昧 ドライブ調整、または未解決のアップロードに対してフェールクローズされます。適格な結果を得るには、以前のマニフェストを保持しながら、新しい実行と新しいインベントリが必要です。ヘルパーは、回復の変更、マニフェストの書き込み、ソースの列挙、ドライブの呼び出し、アーカイブ、削除、または公式のエントリ ポイントの統合を実行しません。合成テストは作成されていますが、未確定 CI; P0 は開いたままになります。
 
 
-## Supplemental review — artifact-set recovery classifier (PR #164; pending CI, 2026-10-22)
+<a id="supplemental-review--artifact-set-recovery-classifier-pr-164-pending-ci-2026-10-22"></a>
+## 補足レビュー — 成果物セット回復分類子 (PR #164; 未確定 CI, 2026-10-22)
 
-The pure classifier treats a transaction as committed only when a schema-versioned marker with a valid transaction ID binds the exact expected SHA-256 map and every published artifact matches. Partial or marker-missing states are explicitly non-committed and require reconciliation; the classifier never authorizes overwriting or cleanup. Synthetic tests are authored but pending CI. This does not implement the multi-artifact protocol or perform file/Drive/archive/delete side effects. P0 remains open.
+純粋分類子は、有効なトランザクション ID を持つスキーマ バージョン管理マーカーが予期される正確な SHA-256 マップをバインドし、パブリッシュされたすべての成果物が一致する場合にのみ、トランザクションをコミットされたものとして扱います。部分的またはマーカーが欠落している状態は明示的にコミットされていないため、調整が必要です。分類子は上書きやクリーンアップを決して許可しません。合成テストは作成されていますが、未確定 CI です。これは、マルチ 成果物 プロトコルを実装したり、ファイル/ドライブ/アーカイブ/削除の副作用を実行したりすることはありません。 P0 は開いたままになります。
 
 
-## Supplemental review — marker-last artifact-set publication (PR #165; pending CI, 2026-10-22)
+<a id="supplemental-review--marker-last-artifact-set-publication-pr-165-pending-ci-2026-10-22"></a>
+## 補足レビュー — マーカー最後の成果物セットの公開 (PR #165; 未確定 CI, 2026-10-22)
 
-The isolated helper composes per-file atomic no-overwrite publication and publishes a commit marker last. A crash may leave a published subset; the absence of a marker prevents that subset from being treated as committed. Existing conflicting bytes fail closed, and no rollback/deletion is performed. This does not provide a filesystem-wide transaction or prove durability across every filesystem. Synthetic filesystem tests are pending CI. No official entry-point or Drive/archive/delete integration is included.
+分離ヘルパーは、ファイルごとにアトミックな上書きなしのパブリケーションを構成し、最後にコミット マーカーをパブリッシュします。クラッシュにより、公開されたサブセットが残る場合があります。マーカーがないと、そのサブセットはコミットされたものとして扱われなくなります。既存の競合するバイトはフェールクローズされ、ロールバック/削除は実行されません。これは、ファイルシステム全体のトランザクションを提供したり、すべてのファイルシステムにわたる耐久性を証明したりするものではありません。合成ファイルシステムのテストは 未確定 CI です。公式のエントリ ポイントやドライブ/アーカイブ/削除の統合は含まれていません。
 
 
-## PR #166 note — isolated artifact-set directory verification (2026-10-22)
+<a id="pr-166-note--isolated-artifact-set-directory-verification-2026-10-22"></a>
+## PR #166 注 — 分離された成果物 セット ディレクトリの検証 (2026-10-22)
 
-The new `Common/ArtifactSetDirectoryVerification.py` module performs read-only hashing and marker validation for one directory snapshot. It rejects duplicate marker JSON keys, unexpected entries, symlinks/non-regular files, invalid directories, and unreadable or malformed marker data. It neither modifies files nor invokes Drive. This does not change the audit finding that official `scripts/SyncLogs.ps1` and PC-A-only `scripts/ArchiveLogs.ps1` entry points are absent; no runtime deletion capability is added. Point-in-time verification is not a substitute for locking, revalidation at use, crash/concurrency acceptance, or end-to-end runtime evidence. P0 remains open.
+新しい `Common/ArtifactSetDirectoryVerification.py` モジュールは、1 つのディレクトリ スナップショットに対して読み取り専用のハッシュとマーカーの検証を実行します。重複したマーカー JSON キー、予期しないエントリ、シンボリックリンク/非正規ファイル、無効なディレクトリ、読み取り不可能または不正なマーカー データは拒否されます。ファイルを変更したり、Drive を呼び出したりすることはありません。これは、公式の `scripts/SyncLogs.ps1` および PC-A のみの `scripts/ArchiveLogs.ps1` エントリ ポイントが存在しないという監査結果を変更するものではありません。ランタイム削除機能は追加されません。ポイントインタイム検証は、ロック、使用時の再検証、クラッシュ/同時実行の受け入れ、またはエンドツーエンドの実行時の証拠に代わるものではありません。 P0 は開いたままになります。
 
 
-## Cross-process publication test boundary (PR #167; 2026-10-22)
+<a id="cross-process-publication-test-boundary-pr-167-2026-10-22"></a>
+## クロスプロセス パブリケーション テスト境界 (PR #167; 2026-10-22)
 
-The new synthetic test races two spawned publishers against a temporary directory with conflicting content for one artifact. Its intended assertion is one valid committed winner and one conflict, with marker hashes matching the observed winner. It does not test official entry points, Google Drive/network storage, power-loss recovery, lock ownership integration, or any archive/delete path. P0 remains open.
+新しい総合テストは、1 つの成果物について競合するコンテンツを持つ一時ディレクトリに対して、生成された 2 つのパブリッシャーを競合させます。その意図されたアサーションは、1 つの有効なコミットされた勝者と 1 つの競合であり、マーカー ハッシュは観察された勝者と一致します。公式のエントリ ポイント、Google Drive/ネットワーク ストレージ、停電からの回復、ロック所有権の統合、またはアーカイブ/削除パスはテストされません。 P0 は開いたままになります。
 
 
-## Target-filesystem acceptance boundary (2026-10-22)
+<a id="target-filesystem-acceptance-boundary-2026-10-22"></a>
+## ターゲット ファイルシステムの許容境界 (2026-10-22)
 
-PR #167 post-merge Validate (`39702034526`) and Package Validation (`39702034521`) succeeded on `f979a5200d48a7ccccfed6ad31de07529bd340df`. This is hosted Windows CI evidence for synthetic temporary-directory behavior only. `docs/validation/target-filesystem-acceptance.md` separates CI, disposable local-volume qualification on PC-A/PC-B, and synchronized/network target qualification. Tier B and Tier C are not run; Google Drive/network semantics, remote visibility, power-loss durability, and verification-to-use stability remain unverified. This does not alter the finding that official sync/archive entrypoints are absent and does not authorize production logs, Drive operations, archive, or deletion. P0 remains open.
+PR #167 マージ後の検証 (`39702034526`) とパッケージ検証 (`39702034521`) が `f979a5200d48a7ccccfed6ad31de07529bd340df` で成功しました。これは、合成一時ディレクトリの動作のみを示す、ホストされた Windows CI の証拠です。 `docs/validation/target-filesystem-acceptance.md` は、CI、PC-A/PC-B の使い捨てローカル ボリューム認定、および同期/ネットワーク ターゲット認定を分離します。 Tier B と Tier C は実行されません。 Google Drive/ネットワーク セマンティクス、リモート可視性、電力損失耐久性、検証から使用までの安定性は未検証のままです。これは、公式の同期/アーカイブ エントリポイントが存在しないという結果を変えるものではなく、実稼働ログ、ドライブ操作、アーカイブ、または削除を許可するものではありません。 P0 は開いたままになります。
 
 
-## Owned publication/recovery integration evidence (2026-10-23)
+<a id="owned-publicationrecovery-integration-evidence-2026-10-23"></a>
+## 所有する出版物/リカバリ統合証拠 (2026-10-23)
 
-`tests/test_owned_publication_integration.py` uses real Windows machine-wide
-named mutexes and spawned processes in a fresh harness-owned temp root. It
-verifies competing-publisher timeout without artifact changes, normal token
-cleanup plus exact-byte retry, actual abandoned-mutex fail-closed behavior,
-ownership-token mismatch preservation, and revalidation after an external writer
-changes previously verified bytes. A parent handle keeps the mutex object alive
-so the abandonment assertion does not accidentally test a newly created mutex.
+`tests/test_owned_publication_integration.py` は、新しく作成したハーネス所有の一時ルートで、実際の Windows のマシン全体の名前付きmutexと起動したプロセスを使う。競合する公開側が成果物を変更せずタイムアウトすること、通常のトークン後片付けと同一バイトの再試行、実際の放棄mutexの安全側での拒否、所有権トークン不一致時の保全、外部書き込みで検証済みバイトが変わった後の再検証を確認する。親ハンドルがmutexオブジェクトを生存させ、放棄の検証が誤って新規mutexを試験しないようにする。
 
-A schema-valid synthetic crash-left running manifest and actual surviving lock
-record are supplied to the pure recovery classifier. Missing termination proof,
-ambiguous latest candidate, incomplete reconciliation, unresolved uploads and
-record-identity mismatch all block. A positive result still requires fresh
-inventory/new run identity and does not authorize stale-record deletion/adoption.
-The tests preserve that manifest, lock record and published bytes; operational
-recovery and lock-protected use of real source/Drive data remain unimplemented.
-This is hosted/local synthetic evidence, not Tier B/C or complete runtime
-integration. P0-010/P0-012 remain open.
+スキーマに適合する合成のクラッシュ後runningマニフェストと、実際に残存するロック記録を、副作用のない復旧分類器へ渡す。終了証明の欠落、最新候補の曖昧さ、照合の未完了、未解決アップロード、記録の識別不一致はいずれも実行を止める。肯定結果でも新しい一覧と実行IDが必要であり、古い記録の削除・採用は許可しない。試験はマニフェスト、ロック記録、公開済みバイトを保全する。実運用の復旧と、ロックの下で実ログ・Driveを扱う処理は未実装である。これはホスト上・ローカルの合成試験の証拠であり、Tier B/Cや正式ランタイム統合全体の証拠ではない。P0-010/P0-012 は未完のままである。
 
 
-## Windows junction rejection regression (2026-10-23)
+<a id="windows-junction-rejection-regression-2026-10-23"></a>
+## Windows 接合拒否回帰 (2026-10-23)
 
-The directory verifier now checks lstat-based symlink/reparse attributes on the
-requested directory, every lexical ancestor, and each observed entry before
-reading artifact bytes. This closes a reproduced Windows junction-root/ancestor
-gap where is_symlink alone did not detect junctions. Reparse uncertainty fails
-closed with sanitized reasons; no files are changed by verification.
-Checks are point-in-time defense-in-depth, not race-free path containment.
+ディレクトリ検証器は、成果物のバイトを読む前に、要求ディレクトリ、字句上の全祖先、観測した各エントリについて、lstatによるシンボリックリンク・再解析属性を確認する。is_symlink だけではジャンクションを検出できなかった、再現済みの Windows のルート・祖先の不足を補う。再解析の不確実性は匿名化した理由で安全側に拒否し、検証によってファイルを変更しない。各時点の多層防御であり、競合のないパス包含の保証ではない。
 
-The regression suite creates real junctions only inside fresh owned synthetic
-roots, asserts that root/ancestor rejection occurs before artifact read, rejects
-a junction under an expected artifact name, and injects a sanitized read failure
-without modifying existing bytes. CI runs this Windows suite; local-volume
-evidence now includes it. P0 and remaining Tier B/C gates stay open.
+回帰試験は、新しく所有する合成ルート内だけに実際のジャンクションを作る。成果物の読み取り前にルート・祖先を拒否し、予定成果物名の下のジャンクションを拒否し、既存バイトを変更せず匿名化した読み取り失敗を注入する。CI がこの Windows の試験群を実行し、ローカルボリュームの証拠にも含める。P0と残る Tier B/Cの実行条件は未完である。

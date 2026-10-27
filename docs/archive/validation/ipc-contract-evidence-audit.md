@@ -1,35 +1,39 @@
-# IPC Contract-to-Test Evidence Audit
+<a id="ipc-contract-to-test-evidence-audit"></a>
+# IPC 契約からテストまでの証拠監査
 
 > 履歴/検討資料。承認済みの選択・未決候補・当時の監査根拠を含み、この移動は撤回/失効を意味しない。現在の基準は[正式要件](../../requirements/log-move-requirements.md)と[現行決定台帳](../../decisions/decision-register-c18-c32.md)。当時の対象/証拠を現在のruntime受け入れへ拡張しない。
 
-- Historical origin: PR #48 merge `f689d020d1384d54260d87dd37c3bb208e3f7fd7`. Current review baseline: PR #123 merge `6b543930f9a9805f50693bd6333a8278c416fe05` (2026-10-21).
-- Scope: `IPC-01`–`IPC-06` in [runtime-safety-test-scenarios.md](../../validation/runtime-safety-test-scenarios.md), the PowerShell/Python contract, JSON schemas, schema tests, and CI workflow inventory.
-- Status: static audit only; the latest documentation-only reconciliations did not add runtime IPC implementation or tests. The PowerShell orchestrator and Python Drive adapter are not implemented; none of these IPC runtime scenarios is evidenced as executed.
-- Related requirements: `EOLM-DRV-001`–`EOLM-DRV-016`, `EOLM-TST-004`–`EOLM-TST-006`, `EOLM-SEC-001`, `EOLM-SAF-001`–`EOLM-SAF-006`.
+- 歴史的起源: PR #48 を `f689d020d1384d54260d87dd37c3bb208e3f7fd7` とマージします。現在のレビュー ベースライン: PR #123 を `6b543930f9a9805f50693bd6333a8278c416fe05` (2026-10-21) とマージします。
+- 範囲: [runtime-safety-test-scenarios.md](../../validation/runtime-safety-test-scenarios.md) の `IPC-01`–`IPC-06`、PowerShell/Python 契約、JSON スキーマ、スキーマ テスト、および CI ワークフロー インベントリ。
+- ステータス: 静的監査のみ。最新のドキュメントのみの調整では、ランタイム IPC の実装やテストは追加されませんでした。 PowerShell オーケストレーターと Python ドライブ アダプターは実装されていません。これらの IPC ランタイム シナリオはいずれも実行された形跡がありません。
+- 関連要件: `EOLM-DRV-001`–`EOLM-DRV-016`、`EOLM-TST-004`–`EOLM-TST-006`、`EOLM-SEC-001`、`EOLM-SAF-001`–`EOLM-SAF-006`。
 
-## Evidence matrix
+<a id="evidence-matrix"></a>
+## 証拠マトリックス
 
-| Scenario | Contract expectation | Existing artifact/test evidence | Status and remaining evidence |
+|シナリオ|契約の期待値|既存の成果物/テスト証拠|ステータスと残された証拠|
 |---|---|---|---|
-| IPC-01 non-zero process exit | A non-zero Python exit code must fail the call regardless of JSON content. | Contract describes checking exit code and response; response schema validates JSON shape only. | **Not implemented / not run.** Need a PowerShell process-boundary test with exit-code/response combinations. |
-| IPC-02 empty, malformed, multiple, or mixed stdout | Exactly one UTF-8 JSON response on stdout; diagnostics go to stderr. | Contract specifies one JSON object and stderr diagnostics. Schema tests validate parsed objects, not raw stdout streams. | **Not implemented / not run.** Need process-level tests for empty stdout, invalid JSON/UTF-8, multiple JSON values, and non-JSON text. |
-| IPC-03 request correlation | Response `request_id` and `operation` must match the originating request. | Request/response schemas constrain UUID and operation enum; schema tests cannot compare two separate messages. | **Not implemented / not run.** Need mismatch tests at the PowerShell/Python boundary. |
-| IPC-04 exit code versus `success` | Contradictory process exit code and response `success` must fail closed. | Response schema enforces internal `success/result/error` consistency, not consistency with a process exit code. | **Not implemented / not run.** Need a cross-product test of exit code and valid success/failure response. |
-| IPC-05 timeout | Timed-out child process is failure/unknown; no success inference or destructive follow-on action. | Contract states timeout/fail-closed expectations; no runtime orchestrator exists. | **Not implemented / not run.** Need deterministic timeout injection and assertions that no follow-on mutation occurs. |
-| IPC-06 secret redaction | Tokens and secret-bearing exception details must not leak to stdout, stderr, or operational logs. | Contract states redaction requirements; schema tests do not exercise process output or logs. | **Not implemented / not run.** Need synthetic-secret tests against all output channels and logs. |
+|IPC-01 ゼロ以外のプロセス終了|ゼロ以外の Python 終了コードは、JSON の内容に関係なく呼び出しを失敗する必要があります。|契約では、終了コードと応答のチェックについて説明します。応答スキーマは JSON 形状のみを検証します。|**実装されていない/実行されていません。** 終了コード/応答の組み合わせを使用した PowerShell プロセス境界テストが必要です。|
+|IPC-02 空、不正、複数、または混合の標準出力|標準出力上の UTF-8 JSON 応答は 1 つだけです。診断は標準エラー出力に送られます。|コントラクトでは 1 つの JSON オブジェクトと stderr 診断を指定します。スキーマ テストは、生の stdout ストリームではなく、解析されたオブジェクトを検証します。|**実装されていない/実行されていません。** 空の標準出力、無効な JSON/UTF-8、複数の JSON 値、および JSON 以外のテキストについてのプロセス レベルのテストが必要です。|
+|IPC-03 リクエスト相関|応答 `request_id` および `operation` は元の要求と一致する必要があります。|リクエスト/レスポンス スキーマは UUID と操作列挙型を制約します。スキーマ テストでは 2 つの別々のメッセージを比較できません。|**実装されていない/実行されていません。** PowerShell/Python 境界で 不一致 テストが必要です。|
+|IPC-04 終了コードと `success`|矛盾するプロセス終了コードと応答 `success` は失敗して終了する必要があります。|応答スキーマは、プロセス終了コードとの一貫性ではなく、内部の `success/result/error` 一貫性を強制します。|**実装されていない/実行されていません。** 終了コードと有効な 成功/失敗 応答の製品間テストが必要です。|
+|IPC-05 タイムアウト|タイムアウトした子プロセスは 失敗/不明 です。 成功 推論や破壊的な後続アクションはありません。|契約はタイムアウト/安全側で拒否する期待動作;ランタイム オーケストレーターは存在しません。|**実装されていない/実行されていません。** 決定的なタイムアウト挿入と、後続の突然変異が発生しないことを示すアサーションが必要です。|
+|IPC-06 シークレット編集|トークンと秘密を含む例外の詳細は、stdout、stderr、または操作ログに漏洩してはなりません。|契約には編集要件が記載されています。スキーマ テストでは、プロセスの出力やログは実行されません。|**実装されていない/実行されていません。** すべての出力チャネルとログに対する合成秘密テストが必要です。|
 
-## What current CI does and does not prove
+<a id="what-current-ci-does-and-does-not-prove"></a>
+## 現在の CI が証明していることと証明されていないこと
 
-- `contracts/drive-request.schema.json` and `contracts/drive-response.schema.json` describe structural JSON constraints. The request schema restricts the four allowed operations and rejects unknown fields; neither schema implements the process boundary.
-- `tests/test_contract_schemas.py` validates schema definitions and selected request/response examples. It does not launch the adapter or PowerShell, simulate OS process behavior, or test stdout/stderr, exit codes, timeout, correlation across messages, or log redaction.
-- Validate workflow success proves only the checks invoked by that workflow, including schema/helper checks and static PowerShell analysis. Package Validation is package-builder evidence, not IPC runtime evidence.
-- Relevant latest baseline runs from PR #48: [Validate](https://github.com/wasawo/eo-log-maintenance/actions/runs/39394695292) and [Package Validation](https://github.com/wasawo/eo-log-maintenance/actions/runs/39394695287). They do not change any IPC row to passed.
+- `contracts/drive-request.schema.json` および `contracts/drive-response.schema.json` は、構造的な JSON 制約を記述します。リクエスト スキーマは、許可される 4 つの操作を制限し、不明 フィールドを拒否します。どちらのスキーマもプロセス境界を実装しません。
+- `tests/test_contract_schemas.py` は、スキーマ定義と選択された要求/応答の例を検証します。アダプターまたは PowerShell の起動、OS プロセスの動作のシミュレート、stdout/stderr、終了コード、タイムアウト、メッセージ間の相関関係、またはログの編集のテストは行いません。
+- ワークフローの検証 成功 は、スキーマ/ヘルパー チェックや静的 PowerShell 分析など、そのワークフローによって呼び出されたチェックのみを証明します。パッケージの検証はパッケージ ビルダーの証拠であり、IPC 実行時の証拠ではありません。
+- 関連する最新のベースラインは PR #48 から実行されます: [検証](https://github.com/wasawo/eo-log-maintenance/actions/runs/39394695292) および [パッケージの検証](https://github.com/wasawo/eo-log-maintenance/actions/runs/39394695287)。渡される IPC 行は変更されません。
 
-## Required follow-up
+<a id="required-follow-up"></a>
+## フォローアップが必要です
 
-1. Keep IPC-01–06 marked not implemented/not run until a real, isolated process-boundary harness exists.
-2. Before implementing the adapter, reconcile contract details and schemas (including path allow-root checks, response/request correlation, and exit-code mapping) and obtain the required contract review.
-3. Use only synthetic payloads, temporary paths, mocked API behavior, and fixed/injected timeout behavior. Do not use real logs, production paths, real Google Drive data, or secrets.
-4. Do not add deletion capability. Keep OSD-02, OSD-03, and EOLM-MAN-011 blocked pending explicit decisions.
+1. 実際の分離されたプロセス境界ハーネスが存在するまで、IPC-01–06 を未実装/実行しないとマークしたままにしておきます。
+2. アダプターを実装する前に、コントラクトの詳細とスキーマ (パス許可ルート チェック、応答/要求の相関関係、終了コード マッピングを含む) を調整し、必要なコントラクト レビューを取得します。
+3. 合成ペイロード、一時パス、モック化された API 動作、および固定/挿入されたタイムアウト動作のみを使用します。実際のログ、運用パス、実際の Google Drive データ、またはシークレットは使用しないでください。
+4. 削除機能を追加しないでください。 OSD-02、OSD-03、および EOLM-MAN-011 はブロックされた 未確定 明示的な決定を維持します。
 
-This audit does not close P0-010 and does not authorize runtime implementation beyond the approved phase. PR #123 is the latest merged docs baseline; no MAN/IPC scenario has changed to implemented, run, or passed.
+この監査は P0-010 を終了せず、承認フェーズを超えたランタイム実装を承認しません。 PR #123 は最新のマージされたドキュメントのベースラインです。 MAN/IPC シナリオは実装、実行、または合格に変更されていません。

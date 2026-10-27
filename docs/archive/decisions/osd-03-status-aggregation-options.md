@@ -1,109 +1,122 @@
-# OSD-03: Run and Period Status Aggregation Options
+<a id="osd-03-run-and-period-status-aggregation-options"></a>
+# OSD-03: 実行および期間ステータス集計オプション
 
 > 履歴/検討資料。承認済みの選択・未決候補・当時の監査根拠を含み、この移動は撤回/失効を意味しない。現在の基準は[正式要件](../../requirements/log-move-requirements.md)と[現行決定台帳](../../decisions/decision-register-c18-c32.md)。当時の対象/証拠を現在のruntime受け入れへ拡張しない。
 
-- Status: **Aggregation policy and R1–R7 derived-report contract approved by maintainer on 2026-10-21; executable JSON Schema, runtime implementation, and test evidence pending**
-- Related decision: `docs/requirements/p0-open-specification-decisions.md` — OSD-03
-- Requirements: EOLM-FIL-004–005, EOLM-MAN-003–006, EOLM-MAN-009–012, EOLM-OPS-003, EOLM-TST-003, EOLM-TST-010
-- Scope: run-level and period-level reporting when a run contains verified, failed, unknown, unclassifiable, or zero-work outcomes.
+- ステータス: **集計ポリシーと R1 ～ R7 派生レポート契約が 2026-10-21 のメンテナによって承認されました。実行可能ファイル JSON Schema、ランタイム実装、およびテスト証拠 pending**
+- 関連する決定: `docs/requirements/p0-open-specification-decisions.md` — OSD-03
+- 要件: EOLM-FIL-004–005、EOLM-MAN-003–006、EOLM-MAN-009–012、EOLM-OPS-003、EOLM-TST-003、EOLM-TST-010
+- 範囲: 実行に 確認済み、失敗した、不明、分類できない結果、または作業量がゼロの結果が含まれる場合の実行レベルおよび期間レベルのレポート。
 
-## 1. Rules already fixed by existing specifications
+<a id="1-rules-already-fixed-by-existing-specifications"></a>
+## 1. 既存の仕様ですでに決まっているルール
 
-These are not open for reinterpretation in this proposal:
+これらは、この提案では再解釈の余地がありません。
 
-- A relevant unclassifiable or invalid filename is a validation error; `LastWriteTime` is never a fallback.
-- An affected run must not be reported as fully successful when a relevant validation error prevents verification.
-- A period is not fully successful if a relevant validation error prevents that period from being verified.
-- Valid independent files may be processed individually where safe, but processing them does not cancel an error.
-- `unknown` is not success. Under `docs/design/staging-file-lifecycle.md` §8, a remaining unknown file leads to `partial_failure` when other files were verified, or `failure` when the overall process did not succeed.
-- Run-level states already defined by the lifecycle are `running`, `success`, `partial_failure`, and `failure`. A verified zero-work run uses `status: success` and `outcome: no_work`; do not add a separate `skipped` run status.
-- The exact manifest schema and complete state-transition table remain subject to OSD-02. This document does not approve a schema or introduce new status enum values.
+- 関連する分類不可能または無効なファイル名は検証エラーです。 `LastWriteTime` は決してフォールバックではありません。
+- 関連する検証エラーによって検証が妨げられた場合、影響を受ける実行を完全に成功したと報告してはなりません。
+- 関連する検証エラーによりその期間が 確認済み にならない場合、その期間は完全には成功しません。
+- 有効な独立したファイルは安全な場所では個別に処理できますが、それらを処理してもエラーはキャンセルされません。
+- `unknown` は 成功 ではありません。 `docs/design/staging-file-lifecycle.md` §8 では、残りの 不明 ファイルは、他のファイルが 確認済み だった場合は `partial_failure` につながり、プロセス全体が成功しなかった場合は `failure` になります。
+- ライフサイクルによってすでに定義されている実行レベルの状態は、`running`、`success`、`partial_failure`、および `failure` です。 確認済み ゼロワーク実行では、`status: success` と `outcome: no_work` が使用されます。個別の `skipped` 実行ステータスを追加しないでください。
+- 正確なマニフェスト スキーマと 完了 状態遷移テーブルは、引き続き OSD-02 の対象となります。このドキュメントはスキーマを承認したり、新しいステータス列挙値を導入したりするものではありません。
 
-## 2. Approved aggregation policy (2026-10-21)
+<a id="2-approved-aggregation-policy-2026-10-21"></a>
+## 2. 承認された集約ポリシー (2026-10-21)
 
-The maintainer approved the combined policy: Option A (continue safe independent work; deny full-success certification when unresolved outcomes exist) with Option C's separation of known-period results from unclassifiable run-scope errors.
+メンテナは、オプション A (安全な独立した作業を継続し、未解決の結果が存在する場合に完全な 成功 認定を拒否する) と、オプション C の分類不可能な実行スコープ エラーからの既知の期間の結果の分離を組み合わせたポリシーを承認しました。
 
-### 2.1 Run-level status
+<a id="21-run-level-status"></a>
+### 2.1 実行レベルのステータス
 
-| Condition | Run status | Outcome / constraints |
+|条件|実行状態|結果/制約|
 |---|---|---|
-| Enumeration and validation succeed; every eligible target is verified | `success` | No extra outcome required by this decision. |
-| Enumeration and validation succeed; there are zero eligible targets | `success` | Set `outcome: no_work`. This includes a genuinely empty source or only valid, ineligible files. |
-| At least one eligible file is verified and at least one eligible file remains `failed` or `unknown`, or a relevant unclassifiable item exists | `partial_failure` | Never report full success. Preserve per-file and run-scope error details. |
-| No eligible file is verified and the run has a confirmed processing/validation failure or cannot establish a valid no-work result | `failure` | Do not use `outcome: no_work`. |
-| Enumeration fails or access is denied | `failure` | This is not a zero-work run. |
-| Relevant invalid/unclassifiable names exist and no eligible file is verified | `failure` | Invalid names prevent successful no-work classification. |
+|列挙と検証は成功します。すべての適格なターゲットが検証される| `success` |この決定によって追加の結果は必要ありません。|
+|列挙と検証は成功します。適格なターゲットはゼロです| `success` |`outcome: no_work`を設定します。これには、完全に空のソース、または有効な対象外なファイルのみが含まれます。|
+|少なくとも 1 つの適格なファイルが検証され、少なくとも 1 つの適格なファイルが `failed` または `unknown` のままであるか、関連する分類できないアイテムが存在します。| `partial_failure` |完全な成功を決して報告しないでください。ファイルごとおよび実行範囲のエラー詳細を保持します。|
+|適格なファイルが検証されず、実行で処理/検証の失敗が確認されたか、有効な非作業結果を確立できません| `failure` |`outcome: no_work` は使用しないでください。|
+|列挙が失敗したか、アクセスが拒否されました| `failure` |これは作業量ゼロの実行ではありません。|
+|関連する無効または分類できない名前が存在し、適格なファイルが検証されていません| `failure` |名前が無効であると、作業なしの分類が成功しません。|
 
-A run with verified work plus any unresolved relevant failure/unknown/unclassifiable item is `partial_failure`; confirmed failure is not a reason to discard verified independent progress. `unknown` never counts as verified. Do not introduce new status or outcome enum values.
+確認済み 作業と未解決の関連する 失敗/不明/分類不能項目を含む実行は `partial_failure` です。 失敗 は 確認済み の独立した進行状況を破棄する理由にはならないことを確認しました。 `unknown` は 確認済み としてカウントされません。新しいステータスまたは結果の列挙値を導入しないでください。
 
-### 2.2 Period-level completion and unclassifiable items
+<a id="22-period-level-completion-and-unclassifiable-items"></a>
+### 2.2 期間レベルの完了および分類できない項目
 
-- A known period is complete only when every eligible target assigned to that period is accounted for as `verified`, and no relevant validation or processing error is known to affect that period.
-- A `failed` or `unknown` file prevents its assigned period from being considered complete.
-- A filename that cannot be reliably classified remains an unassigned run-scope validation error. Never infer its period from `LastWriteTime` or another fallback.
-- A run-scope unclassifiable error prevents the overall run from being `success`, but does not by itself invalidate a different known period whose complete target set was independently established and verified.
-- Valid independent files may continue where safe; processing them never cancels or hides a validation error.
-- The manifest schema currently has no approved period-summary or unassigned-error collection. Do not add fields implicitly. OSD-02 must approve the representation before implementation; until then these are required aggregation semantics, not an approved new manifest shape.
+- 既知の期間が 完了 になるのは、その期間に割り当てられたすべての適格なターゲットが `verified` として考慮され、その期間に影響を与える関連する検証エラーや処理エラーが不明な場合のみです。
+- `failed` または `unknown` ファイルでは、割り当てられた期間が 完了 とみなされなくなります。
+- 確実に分類できないファイル名は、未割り当ての実行スコープ検証エラーのままになります。 `LastWriteTime` または別のフォールバックからその期間を推測しないでください。
+- 実行範囲の分類不可能なエラーにより、実行全体が `success` になることは防止されますが、完了 ターゲット セットが独立して確立された別の既知の期間と 確認済み がそれだけで無効になるわけではありません。
+- 有効な独立したファイルは安全な場所に継続することができます。それらを処理しても、検証エラーがキャンセルまたは非表示になることはありません。
+- マニフェスト スキーマには現在、承認された期間概要コレクションまたは未割り当てエラー コレクションがありません。フィールドを暗黙的に追加しないでください。 OSD-02 は実装前に表現を承認する必要があります。それまでは、これらは必要な集約セマンティクスであり、承認された新しいマニフェスト形状ではありません。
 
-### 2.3 No-work distinction
+<a id="23-no-work-distinction"></a>
+### 2.3 無作業の区別
 
-`success` with `outcome: no_work` is permitted only when enumeration completed successfully, validation found no relevant invalid/unclassifiable items, and there are no eligible targets. Enumeration failure and an input containing only invalid relevant filenames are never no-work.
+`success` と `outcome: no_work` は、列挙が正常に完了し、検証で関連する無効/分類不可能なアイテムが見つからず、適格なターゲットが存在しない場合にのみ許可されます。列挙 失敗 および無効な関連ファイル名のみを含む入力が無駄になることはありません。
 
-## 3. Remaining implementation and evidence decisions
+<a id="3-remaining-implementation-and-evidence-decisions"></a>
+## 3. 残りの実装と証拠に関する決定
 
-1. Specify and validate the approved derived aggregation report for period summaries and run-scope unclassifiable errors, without adding manifest v1 fields.
-2. Implement table-driven tests for the aggregation matrix, including mixed verified/failed/unknown outcomes, invalid names, zero-work distinctions, and period-local versus run-scope errors.
-3. Prove all-targets-accounted-for using a frozen eligible inventory and test assertions; do not infer completeness from the count of successful files.
+1. マニフェスト v1 フィールドを追加せずに、期間概要および実行範囲の分類不能エラーについて承認された派生集計レポートを指定して検証します。
+2. 確認済み/失敗した/不明 の混合結果、無効な名前、ゼロ作業の区別、および期間ローカル エラーと実行スコープ エラーを含む、集計行列のテーブル駆動テストを実装します。
+3. 凍結された適格なインベントリとテスト アサーションを使用して、すべてのターゲットが説明されていることを証明します。成功したファイルの数から完全性を推測しないでください。
 
-## 4. Historical alternatives (superseded by the approval above)
+<a id="4-historical-alternatives-superseded-by-the-approval-above"></a>
+## 4. 歴史的代替案 (上記の承認により置き換えられます)
 
-| Option | Aggregation rule | Advantages | Costs / risks |
+|オプション|集計ルール|利点|コスト/リスク|
 |---|---|---|---|
-| A — Continue safe independent work; fail full-success certification | Process valid independent files where safe. Any unresolved failed, unknown, or unclassifiable relevant item prevents full success. If some files were verified, use the existing `partial_failure` run state; if none were verified and the operation failed, use `failure`. A verified empty workload uses `success` with `outcome: no_work`. Keep unclassifiable items at run scope because no trustworthy period can be assigned. | Closest to the existing statement that valid files may be processed individually; preserves progress while making failures visible; aligns with the existing unknown-file rule. | Needs an approved rule for period-local versus run-level error scope, and for whether confirmed failures follow the same mapping as unknown. A mixed run must not hide unclassifiable items. |
-| B — Fail the entire affected log-type run on any validation/processing error | Stop further processing for that log type when a relevant invalid filename or file failure is encountered; report the run as not fully successful. | Simple to reason about; minimizes partial progress after input errors. | More conservative than the current allowance to process independent valid files where safe; may repeatedly block older valid backlog because of one malformed file. Does not remove the need to define period-level results. |
-| C — Strict per-period aggregation with separate run summary | Aggregate files into known periods; each period is fully verified only when every relevant file assigned to it is accounted for. Invalid names with no period affect the run summary and are recorded in a separate unassigned-validation-error collection. The overall run cannot be fully successful while such errors remain. | Gives useful per-period diagnostics and supports backlog retry without misattributing invalid files to a period. | Requires manifest/schema support for unassigned validation errors and explicit run-vs-period precedence. OSD-02 must approve the representation before implementation. |
+|A — 安全な独立した作業を継続します。完全成功認証に失敗する|有効な独立したファイルを安全な場所で処理します。未解決の失敗アイテム、不明アイテム、または分類不可能な関連アイテムがあると、完全な成功が妨げられます。一部のファイルが検証された場合は、既存の `partial_failure` 実行状態を使用します。何も検証されず操作が失敗した場合は、`failure` を使用します。検証された空のワークロードは、`success` と `outcome: no_work` を使用します。信頼できる期間を割り当てることができないため、分類できないアイテムは実行スコープに保持してください。|有効なファイルは個別に処理してよいという既存の記述に最も近い。進捗を保ちながら失敗を可視化し、不明なファイルに関する既存の規則とも整合する。|期間ローカルと実行レベルのエラーの範囲、および確認されたエラーが不明なエラーと同じマッピングに従うかどうかについて承認されたルールが必要です。混合実行では、分類できないアイテムを隠してはいけません。|
+|B — 検証/処理エラーが発生した場合、影響を受けるログタイプの実行全体が失敗します。|関連する無効なファイル名またはファイル障害が発生した場合は、そのログ タイプに対する以降の処理を停止します。実行が完全に成功しなかったことを報告します。|理由を説明するのは簡単です。入力エラー後の部分的な進行を最小限に抑えます。|独立した有効なファイルを安全な場所で処理するための現在の許可よりも保守的です。 1 つの不正なファイルが原因で、古い有効なバックログが繰り返しブロックされる可能性があります。期間レベルの結果を定義する必要性がなくなるわけではありません。|
+|C — 個別の実行サマリーを使用した厳密な期間ごとの集計|ファイルを既知の期間に集約します。各期間は、それに割り当てられたすべての関連ファイルが考慮された場合にのみ完全に検証されます。期間のない無効な名前は実行概要に影響し、別の未割り当て検証エラー コレクションに記録されます。このようなエラーが残っている間は、全体の実行を完全に成功させることはできません。|有用な期間ごとの診断を提供し、無効なファイルを期間に誤って割り当てることなくバックログの再試行をサポートします。|未割り当ての検証エラーおよび明示的な実行と期間の優先順位に対するマニフェスト/スキーマのサポートが必要です。 OSD-02 は実装前に表現を承認する必要があります。|
 
-## 5. Historical recommendation (superseded by the approval above)
+<a id="5-historical-recommendation-superseded-by-the-approval-above"></a>
+## 5. 歴史的な推奨事項 (上記の承認によって置き換えられます)
 
-Use Option A as the baseline for safe independent processing, combined with Option C's explicit distinction between known-period results and unclassifiable errors. This preserves the existing rule that valid independent files may proceed where safe while ensuring an unclassifiable filename cannot be silently assigned to a period or hidden by successful files.
+オプション A を安全な独立処理のベースラインとして使用し、オプション C の既知期間の結果と分類不可能なエラーの明示的な区別と組み合わせます。これにより、有効な独立したファイルが安全な場所に進むという既存のルールが維持されますが、分類できないファイル名がサイレントに期間に割り当てられたり、成功したファイルによって隠蔽されたりすることはありません。
 
-This recommendation does **not** settle whether an invalid item blocks one period, all periods for a log type, or only run-level full-success certification. That scope must be explicitly selected by the operator/maintainer before implementation. The schema representation also depends on OSD-02.
+この推奨事項は、無効な項目が 1 つの期間、ログ タイプのすべての期間、または実行レベルの完全な 成功 認定のみをブロックするかどうかを **not** で解決します。そのスコープは、実装前にオペレーター/保守者によって明示的に選択される必要があります。スキーマ表現も OSD-02 に依存します。
 
-## 6. Aggregation test matrix
+<a id="6-aggregation-test-matrix"></a>
+## 6. 集約テストマトリックス
 
-The expected outcomes below are normative policy expectations. Tests must also assert that no invalid/unknown file is counted as verified and that independent safe work does not erase recorded errors.
+以下の期待される結果は、規範的な方針の期待です。テストでは、無効な/不明 ファイルが 確認済み としてカウントされないこと、および独立した安全な作業によって記録されたエラーが消去されないことも主張する必要があります。
 
-| Case | Enumeration / inventory | Eligible file outcomes | Relevant unclassifiable names | Expected run status | Period expectation |
+|ケース|列挙/インベントリ|対象となるファイルの結果|関連する分類できない名前|予想される実行ステータス|期間の期待値|
 |---|---|---|---|---|---|
-| T-01 | Success; no eligible targets | None | None | `success`, `outcome: no_work` | No eligible period work; no period may be inferred |
-| T-02 | Failure or access denied | Not trustworthy | Any / unknown | `failure`; never `no_work` | No period may be certified from incomplete enumeration |
-| T-03 | Success; frozen inventory complete | All eligible files `verified` | None | `success` | Every period whose full eligible inventory is verified is complete |
-| T-04 | Success; frozen inventory complete | At least one `verified`, plus `failed` in a known period | None | `partial_failure` | Period containing `failed` is incomplete; independently complete periods may remain complete |
-| T-05 | Success; frozen inventory complete | At least one `verified`, plus `unknown` in a known period | None | `partial_failure` | Period containing `unknown` is incomplete |
-| T-06 | Success; frozen inventory complete | At least one `verified` | One or more | `partial_failure` | Known periods may be complete only if their inventory is independently established and no error affects them |
-| T-07 | Success; frozen inventory complete | No verified eligible file | One or more | `failure` | No period completion may be claimed for unverified eligible targets |
-| T-08 | Success; frozen inventory complete | No verified eligible file; processing/validation failure | None | `failure` | Any affected period is incomplete |
-| T-09 | Success; only valid but ineligible files | None | None | `success`, `outcome: no_work` | Ineligible files do not enter the eligible-target denominator |
-| T-10 | Success; only invalid relevant names | None | One or more | `failure`; never `no_work` | No period assignment via timestamp fallback |
-| T-11 | Success; eligible targets across periods | One period all `verified`; another has `failed`/`unknown` | None | `partial_failure` | First period may be complete; second is incomplete |
-| T-12 | Success; one eligible target `verified`; all other eligible targets accounted for as `verified` | All verified | None | `success` only if no other relevant error exists | Completeness must be proved from the frozen inventory, not by counting successful outcomes alone |
+| T-01 |成功;適格なターゲットがありません|なし|なし| `success`, `outcome: no_work` |対象となる期間労働はありません。期間は推測できません|
+| T-02 |失敗またはアクセスが拒否されました|信頼できません|任意 / 不明|`failure`。`no_work` としてはならない。|不完全な列挙から期間を認定することはできません|
+| T-03 |成功;冷凍一覧が完了しました|対象となるすべてのファイル `verified`|なし| `success` |完全な対象一覧が確認されるすべての期間が完了する|
+| T-04 |成功;冷凍一覧が完了しました|既知の期間に少なくとも 1 つの `verified` と `failed`|なし| `partial_failure` |`failed` を含む期間は不完全です。独立して完了した期間は完了したままになる場合があります|
+| T-05 |成功;冷凍一覧が完了しました|既知の期間に少なくとも 1 つの `verified` と `unknown`|なし| `partial_failure` |`unknown` を含む期間は不完全です|
+| T-06 |成功;冷凍一覧が完了しました|少なくとも 1 つの `verified`|1 つ以上| `partial_failure` |既知の期間は、その一覧が独立して確立され、エラーが影響しない場合にのみ完了する可能性があります。|
+| T-07 |成功;冷凍一覧が完了しました|検証済みの適格なファイルがありません|1 つ以上| `failure` |未検証の対象ターゲットについては期間完了を要求できません|
+| T-08 |成功;冷凍一覧が完了しました|検証済みの適格なファイルがありません。処理/検証の失敗|なし| `failure` |影響を受ける期間は不完全です|
+| T-09 |成功;有効だが対象外なファイルのみ|なし|なし| `success`, `outcome: no_work` |対象外なファイルは適格ターゲットの分母に入りません|
+| T-10 |成功;無効な関連名のみ|なし|1 つ以上|`failure`。`no_work` としてはならない。|タイムスタンプ フォールバックによる期間の割り当てはありません|
+| T-11 |成功;期間をまたがる対象となるターゲット|1 つの期間はすべて `verified`;もう 1 つは `failed`/`unknown` です|なし| `partial_failure` |最初の期間は完了する可能性があります。 2番目は不完全です|
+| T-12 |成功;対象となるターゲット `verified` が 1 つ。他のすべての適格なターゲットは `verified` として考慮されます|すべて確認済み|なし|`success` 他に関連するエラーが存在しない場合のみ|完全性は、成功した結果だけを数えることによってではなく、凍結された一覧から証明されなければなりません|
 
-A relevant unclassifiable name with at least one verified eligible file yields `partial_failure`, not `success`; with no verified eligible file it yields `failure`. A period is complete only if every eligible file assigned to it is verified and no relevant error affects that period. A run-scope unclassifiable error does not automatically invalidate an independently complete known period, but must remain visible in the run result.
+少なくとも 1 つの 確認済み 対象ファイルを持つ関連する分類不可能な名前は、`success` ではなく `partial_failure` になります。 確認済み 対象となるファイルがない場合は、`failure` が生成されます。期間が 完了 になるのは、それに割り当てられた対象となるすべてのファイルが 確認済み であり、関連するエラーがその期間に影響を与えない場合のみです。実行スコープの分類不可能なエラーは、独立した 完了 既知の期間を自動的に無効にしませんが、実行結果には表示されたままにする必要があります。
 
-## 7. Required test evidence
+<a id="7-required-test-evidence"></a>
+## 7. 必要な試験証拠
 
-- Table-driven tests for every approved row and cross-product of relevant file outcomes.
-- A mixed fixture with at least one verified eligible file and one invalid/unclassifiable file.
-- A fixture where filename date and `LastWriteTime` imply opposite eligibility outcomes.
-- Distinction between an empty source, only-ineligible valid files, only-invalid relevant files, and an enumeration/access failure.
-- Assertions for run status, period completion, manifest contents, source-file existence/hash preservation, and no delete operations.
-- Synthetic files and temporary directories only; no real ElectronicObserver logs, production paths, or real Drive data.
-- Runtime tests remain blocked until the official target-enumeration/orchestration entry point and approved manifest representation exist.
+- 承認されたすべての行と、関連するファイルの結果の外積に対するテーブル駆動のテスト。
+- 少なくとも 1 つの 確認済み 対象ファイルと 1 つの無効/分類不可能なファイルを含む混合フィクスチャ。
+- ファイル名の日付と `LastWriteTime` が反対の対象条件結果を暗示するフィクスチャ。
+- 空のソース、対象外のみ有効なファイル、無効のみ関連ファイル、および列挙/アクセス 失敗 の区別。
+- 実行ステータス、期間の完了、マニフェストの内容、ソースファイルの存在/ハッシュの保存、および削除操作なしのアサーション。
+- 合成ファイルと一時ディレクトリのみ。実際の ElectronicObserver ログ、運用パス、または実際のドライブ データはありません。
+- ランタイム テストは、正式なターゲット列挙/オーケストレーション エントリ ポイントと承認されたマニフェスト表現が存在するまでブロックされたままになります。
 
-## 8. Approval and acceptance gate
+<a id="8-approval-and-acceptance-gate"></a>
+## 8. 承認・受理ゲート
 
-The aggregation policy and derived-report representation are approved, but OSD-03 is not fully closed: `docs/design/reference/aggregation-report-v1-proposal.md` must be reviewed and approved, then implemented and covered by table-driven consistency tests. Do not mark P0-008/P0-010 complete based on this document alone.
+集計ポリシーと派生レポートの表現は承認されていますが、OSD-03 は完全にクローズされていません。`docs/design/reference/aggregation-report-v1-proposal.md` はレビューおよび承認されてから実装され、テーブル駆動の整合性テストでカバーされる必要があります。この文書のみに基づいて P0-008/P0-010 完了 をマークしないでください。
 
-## OSD-03 approved report-contract compatibility note (2026-10-21)
+<a id="osd-03-approved-report-contract-compatibility-note-2026-10-21"></a>
+## OSD-03 はレポートと契約の互換性に関するメモ (2026-10-21) を承認しました
 
-R1-B/R2-A/R3-B/R4-A/R5-A/R6-A/R7-A are approved. The report contains period summaries only and references the exact manifest and B2 evidence by canonical relative path, schema version, and SHA-256 of exact bytes. Report identity is (pc_id, log_type, run_id, report_schema_version), with no report_id field. Deterministic regeneration uses only immutable validated inputs; it must not re-enumerate mutable source directories. Period completion is complete/incomplete/indeterminate and remains report-only, not a manifest v1 enum. Local publication is authoritative; Drive replication is separate and must be content-verified before cross-PC use. These decisions do not alter manifest v1, B2 evidence structure, A2 inventory digest, or exhaustive count reconciliation. Executable schema, runtime implementation, and tests remain pending.
+R1-B/R2-A/R3-B/R4-A/R5-A/R6-A/R7-A は承認されています。レポートには期間の概要のみが含まれており、正規の相対パス、スキーマ バージョン、正確なバイト数の SHA-256 によって正確なマニフェストと B2 証拠が参照されます。レポート ID は (pc_id、log_type、run_id、report_schema_version) で、report_id フィールドはありません。決定論的再生成では、不変の検証済み入力のみが使用されます。変更可能なソース ディレクトリを再列挙してはなりません。期間の完了は 完了/未完了/確定不能 であり、マニフェスト v1 列挙型ではなくレポートのみのままです。ローカルの公開済み成果物を正本とします。ドライブのレプリケーションは個別に行われるため、PC 間で使用する前に 内容確認済み にする必要があります。これらの決定は、マニフェスト v1、B2 証拠構造、A2 一覧ダイジェスト、または徹底的なカウント調整を変更しません。実行可能スキーマ、ランタイム実装、およびテストは 未確定 のままです。

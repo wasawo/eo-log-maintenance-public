@@ -12,8 +12,8 @@
 
 | 根拠 | 確認した現況 | 決定と残る追従 |
 | --- | --- | --- |
-| [source builder](../../../Common/SourceInventoryEvidenceBuilder.py#L240-L246) | `validation` の生成で `"status": "completed" if not validation_errors else "incomplete"` とし、同じobjectに件数とerrorsを入れる | errorありという結果と、分類処理を全入力に尽くしたかというcoverageを分離していない |
-| [B2契約](../../design/run-input-evidence-v1-proposal.md) §3–4、[B2 schema](../../../contracts/run-input-evidence-v1.schema.json) | completed/incomplete/failedを区別し、completed列挙の全entry分類・件数照合を要求 | V1でcompletedは全入力の分類処理完了、error有無と独立と確定。producer/consumer追従は未実装。count/digest一致だけでは網羅性を証明できない |
+| [ソースビルダー](../../../Common/SourceInventoryEvidenceBuilder.py#L240-L246) | `validation` の生成で `"status": "completed" if not validation_errors else "incomplete"` とし、同じobjectに件数とerrorsを入れる | errorありという結果と、分類処理を全入力に尽くしたかというcoverageを分離していない |
+| [B2契約](../../design/run-input-evidence-v1-proposal.md) §3–4、[B2 スキーマ](../../../contracts/run-input-evidence-v1.schema.json) | completed/incomplete/failedを区別し、completed列挙の全entry分類・件数照合を要求 | V1でcompletedは全入力の分類処理完了、error有無と独立と確定。producer/consumer追従は未実装。count/digest一致だけでは網羅性を証明できない |
 | [OSD-03承認とT-06](osd-03-status-aggregation-options.md) §2/6 | relevant errorを保持しrun成功を禁止。一方で、全対象集合とerror scopeが独立に確立した既知期間はcompleteになり得る | coverage根拠不足を、関係のない期間のcompleteへ補完してはならない |
 | [report契約](../../design/reference/aggregation-report-v1-proposal.md) §4–7・R5-A、[現builder](../../../Common/AggregationReportBuilder.py) | exact manifest/B2 bytesとcaller指定生成UTC等から決定的bytesを返す実装 | G1で二入力の終了UTCをsourceとする規則が確定。導出・不一致拒否・正式再生成への追従は未実装 |
 
@@ -46,7 +46,7 @@ sourceの上記一行は実装の観察であり、V1へ追従した出力では
 
 | 論点 | 選択履歴 | 追従に必要な条件 |
 | --- | --- | --- |
-| validation coverage | V1採用（2026-10-24） | 既存field/status維持、error有無と分類完了を分離。旧incomplete保全、producer/consumer・合成試験追従 |
+|検証範囲| V1採用（2026-10-24） | 既存field/status維持、error有無と分類完了を分離。旧incomplete保全、producer/consumer・合成試験追従 |
 | report生成時刻 | G1採用（2026-10-24） | 二入力の終了UTCの遅い元文字列、同instantはmanifest表記。丸めなし、R5/identity/conflict維持、実装追従 |
 
 [第1回回答](selected-policy-decisions-20261024.md#第1回回答)の②V1/③G1が根拠で、C-01のP1とは独立した選択。資料mergeや純粋schema検証の成功を実OS/Drive資格・本番適用の認可にしない。v1 manifestやB2数値canonical規則、source/root/排他/現在cloud内容の独立ゲートは維持する。
@@ -57,12 +57,12 @@ V1/G1の意味の選択は記録済みで、producer/consumer・純粋builder・
 
 以下は**今回未実装・未実行の追加候補**であり、既存テストの成功を新しい意味の証拠として転用しない。
 
-| vector | 確認する期待値 |
+|ベクトル| 確認する期待値 |
 | --- | --- |
 | T-06とcoverage | relevant unclassifiable errorを消さずrun partialを維持。独立inventory/error scopeを証明できた期間だけcomplete、未証明ならindeterminate |
-| incomplete/failed | validation/列挙未完または失敗をno_work/completeへ昇格しない。既知の期間失敗はincompleteとして保持 |
+| 未完了/失敗した | validation/列挙未完または失敗をno_work/completeへ昇格しない。既知の期間失敗はincompleteとして保持 |
 | accounting矛盾 | count合計、invalid件数とerrors、error IDs重複/順序、inventory/digest/identity矛盾を拒否。数値floatのPR #36拒否は維持 |
-| deterministic time | G1のexact二入力から同じ元時刻表記/bytesを再現。同instantならmanifest表記、小数精度保持。不一致caller時刻・変更入力を拒否し同一identityを上書きしない |
+|確定的な時間| G1のexact二入力から同じ元時刻表記/bytesを再現。同instantならmanifest表記、小数精度保持。不一致caller時刻・変更入力を拒否し同一identityを上書きしない |
 | clock境界 | 未来許容ちょうど/直後、時刻不明・信頼不可、finish前の生成UTC・start/finish逆転、小数末尾差、古い正当なhistorical入力を区別 |
 
 今回の検証範囲は文書リンク・記述整合・diffのみ。V1/G1の承認記録と文書を整合する作業であり、実装追従・再生成受け入れの完了ではない。

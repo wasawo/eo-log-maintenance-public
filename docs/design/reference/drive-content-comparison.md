@@ -32,7 +32,8 @@ next_token=nullの終端pageがちょうど1件あり、その後にpageも例�
 
 collectorはfile/network APIを直接呼ばず、page提供側のI/O・timeout・件数/時間予算・resource解放はcaller/providerに残る。途中例外は固定reasonへ置換し、token/IDやraw例外を診断へ出さない。部分観測は返さず、callerの元pageを変更/closeしない。[合成page試験](../../../tests/test_drive_listing_observation.py)は空/複数/空中間page、token切断/循環、folder/成功不明、ID重複、終端後page/例外、実bytes hash fallbackと複数内容一致の保留までを接続する。
 
-## Caller-selected download byte bounds (2026-10-26)
+<a id="caller-selected-download-byte-bounds-2026-10-26"></a>
+## 呼び出し元が選択したダウンロード バイト境界 (2026-10-26)
 
 `hash_downloaded_content`はoptional `maximum_download_bytes` / `maximum_chunk_bytes`を受け取り、Noneまたは正のexact intのみ許す。不正値はiterator取得/hash生成前に`download_limit_invalid`、期待sizeがdownload上限を超える場合は同じく消費前に`download_limit_exceeded`で拒否する。Noneでは当該caller上限なし、固定本番値やschema/SDK方式は選ばない。空fileは従来どおり0 chunkで表す。
 
@@ -82,7 +83,8 @@ file上限は全pageのfile件数合計で、page header/token検査後、その
 
 ## 共通Drive観測による複数sourceの比較
 
-### Repeated comparison values within one call (2026-10-27)
+<a id="repeated-comparison-values-within-one-call-2026-10-27"></a>
+### 1 回の呼び出し内で繰り返される比較値 (2026-10-27)
 
 `compare_reobserved_drive_contents`と`compare_planned_drive_contents`は共通観測・download集合の検査後、同じfilename/size/SHA-256を持つsourceの比較結果を1呼出し内だけで再利用する。異なるfieldは別の比較条件とし、結果tupleは重複も含めcaller指定の全slot・順序を保持する。共有結果はimmutableな観測であり、local pathの同一性や出所・実行権限を示さない。
 
@@ -100,7 +102,8 @@ ContentComparisonBatchの`status=compared`は共通入力の検査と比較処�
 
 ## 不足hash観測のdownload対象計画
 
-### Repeated-source planning and budget preflight (2026-10-27)
+<a id="repeated-source-planning-and-budget-preflight-2026-10-27"></a>
+### 繰り返しソースの計画と予算のプリフライト (2026-10-27)
 
 `plan_content_downloads`は厳密なsource/列挙検査後、名前ごとの要求size集合を作り、同名sourceが何件あっても各Drive候補bucketを1回ずつ走査して必要件数と総bytesを計算する。hashの違いだけで同じIDを重複計上しない。0 bytesのfileも1件として数え、異なるsize条件も同じ名前の走査で扱う。
 
@@ -116,7 +119,8 @@ DownloadRequirementはfile IDと期待sizeを保持する内部データで、IP
 
 [計画試験](../../../tests/test_content_download_plan.py)はSHAの信頼/欠落、不要downloadの除外、不明metadataの保留、共有IDの一意化/安定順序、空sourceと全may_*false、計画→合成download bytes/hash→再列挙→一括比較を扱う。[source batch接続](../../../tests/test_comparison_source_batch.py)も実source再観測からrequirement計画を経由する。実SDK/認証・取得時のID/完了/size binding・使用点資格は未実装gateのまま。
 
-## Caller-selected download-plan output budgets (2026-10-26)
+<a id="caller-selected-download-plan-output-budgets-2026-10-26"></a>
+## 呼び出し元が選択したダウンロード プランの出力予算 (2026-10-26)
 
 `plan_content_downloads`と`compare_planned_drive_contents`はoptional `maximum_downloads` / `maximum_total_download_bytes`を受け取る。Noneまたは正のexact intのみ許し、不正値は既存のsource trust/type検査後、listing検査前に`comparison_download_limit_invalid`でheldとする。Noneでは当該caller上限なし、固定本番値・C-02/schema・実取得方針は採用しない。
 
@@ -138,7 +142,7 @@ requirement0件でも再導出/列挙/空download集合の整合を検査し、�
 
 ## Download新規stagingの隔離接続（tests専用）
 
-[fixture](../../../tests/download_staging_fixture.py)はcallerのroot/保存先/API clientを受けず、自分で作る所有marker付きOS-tempだけを使う。実Windows mutex/owner内で試行ごとに新しいdirectoryを確保し、固定合成名をxb/create-newで開く。既存fileへ上書きせず、部分fileが残った次試行も別の新規fileを使う。配置・filename・APIは正式download runtime契約へ採用しない。
+[治具](../../../tests/download_staging_fixture.py)はcallerのroot/保存先/API clientを受けず、自分で作る所有marker付きOS-tempだけを使う。実Windows mutex/owner内で試行ごとに新しいdirectoryを確保し、固定合成名をxb/create-newで開く。既存fileへ上書きせず、部分fileが残った次試行も別の新規fileを使う。配置・filename・APIは正式download runtime契約へ採用しない。
 
 合成chunkを書き、期待size超過/不正chunk/途中例外では観測を返さず部分fileを保全する。正常消費後はflush/fsync/closeし、directory/regular-file・1 link・path/handleのidentity/size/mtime等を検査して、実fileのchunk読戻しを既存hash_downloaded_contentへ接続する。未完了/短いfile・読戻し前の検出可能な変更は拒否する。所有mutexは失敗時も解放し、cleanupは自作rootのidentity/markerを再確認したテスト終了時だけ行う。元ログ/Drive fileや実設定の削除/回復コードを追加しない。
 

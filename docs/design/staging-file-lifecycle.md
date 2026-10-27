@@ -1,382 +1,409 @@
-# Staging File Lifecycle
+<a id="staging-file-lifecycle"></a>
+# ステージング ファイルのライフサイクル
 
-> 2026-10-27 compatibility boundary: [Q1–Q10 and flattening](../requirements/log-move-requirements.md) require per-file movement through source deletion without both-PC period waiting. The existing v1 schema/helper behavior and dated evidence below are unchanged. A v1 `verified`/report/latest-manifest result is not proof of completed movement or permission to delete; both-PC selection/report completeness is not a new archive prerequisite. Deletion-state/IPC/persistence revisions remain detailed-design work. Do not alter old immutable artifacts or infer a schema upgrade from this policy note.
+> 2026-10-27 互換性境界: [Q1〜Q10 と平坦化](../requirements/log-move-requirements.md) では、両方の PC の期間を待たずにソース削除によるファイルごとの移動が必要です。既存の v1 スキーマ/ヘルパーの動作と以下の日付の証拠は変更されていません。 v1 `verified`/report/latest-manifest の結果は、移動の完了または削除の許可を証明するものではありません。両方の PC の選択/レポートの完全性は、新しいアーカイブの前提条件ではありません。削除状態/IPC/永続化のリビジョンは詳細設計作業のままです。古い不変の成果物を変更したり、このポリシー ノートからスキーマのアップグレードを推測したりしないでください。
 
-## 1. Purpose and Scope
+<a id="1-purpose-and-scope"></a>
+## 1. 目的と範囲
 
-This document defines the immutable staging-copy lifecycle used before uploading ElectronicObserver log files to Google Drive.
+このドキュメントは、ElectronicObserver ログ ファイルを Google Drive にアップロードする前に使用される不変の ステージング-copy ライフサイクルを定義します。
 
-Read-only helper: `SourceInventoryRevalidation.observe_initial_staging_copy` reconstructs an exact frozen initial plan, then checks an explicitly selected existing staging copy's size/hash, single-link regular-file identity and ancestry before/after reading. It never reads source payloads or changes files/state. All permissions stay false; metadata-first history, allocated-copy identity binding, qualified/separate roots and actual Upload payload use remain unimplemented gates. See [observation boundaries](reference/source-inventory-revalidation.md#既存staging-copyの独立読取観測).
+読み取り専用ヘルパー: `SourceInventoryRevalidation.observe_initial_staging_copy` は、凍結された初期計画を正確に再構築し、明示的に選択された既存の ステージング コピーのサイズ/ハッシュ、単一リンクの通常ファイルの ID および読み取り前後の祖先をチェックします。ソース ペイロードを読み取ったり、ファイルや状態を変更したりすることはありません。すべての権限は false のままです。メタデータファーストの履歴、割り当てられたコピー ID バインディング、修飾された/別個のルート、および実際のアップロード ペイロードの使用は、未実装のゲートのままです。 [観測境界](reference/source-inventory-revalidation.md#既存staging-copyの独立読取観測)を参照してください。
 
-Implementation evidence: `tests/test_upload_staging_integration.py` connects a frozen initial plan/B2 and source use-point revalidation to an actual create-new copy in its own synthetic OS-temp root, under a synthetic owned mutex. Explicit sequence numbers preserve the approved basename pattern; an occupied name is retained and only an explicitly requested next sequence is attempted. Reads are bounded by frozen size plus one byte. Flush/fsync/close is followed by regular-file, allocated identity, single-link, size and SHA-256 checks, plus a final source hash comparison. The fixture retains partial/conflicting/changed files and releases ownership on failure; it does not retry automatically.
+実装の証拠: `tests/test_upload_staging_integration.py` は、凍結された初期プラン/B2 とソース ユースポイントの再検証を、合成所有ミューテックスの下にある独自の合成 OS-temp ルートにある実際の新規作成コピーに接続します。明示的なシーケンス番号により、承認されたベース名のパターンが保持されます。占有されている名前は保持され、明示的に要求された次のシーケンスのみが試行されます。読み取りは、凍結されたサイズに 1 バイトを加えたものによって制限されます。フラッシュ/fsync/close の後に、通常のファイル、割り当てられた ID、シングルリンク、サイズ、SHA-256 のチェックが行われ、さらに最終的なソース ハッシュの比較が行われます。フィクスチャは、部分的/競合/変更されたファイルを保持し、失敗 の所有権を解放します。自動的には再試行されません。
 
-Both PC/log combinations, empty/multiblock content, changed source, collision, injected partial disk-full, short write, post-close modification and source hardlink replacement are covered. This is tests-only copy evidence: no production copy function, metadata-first writer, ready-state publication, Upload adapter or cleanup is implemented. The returned candidate observation always denies Upload/state changes. No real disk exhaustion, crash/power-loss durability, root/FS qualification, atomic snapshot or protection against later replacement is established. The lifecycle requirements below remain binding for the eventual runtime.
+PC/ログの両方の組み合わせ、空/マルチブロック コンテンツ、変更されたソース、衝突、挿入された部分的なディスク フル、ショート ライト、クローズ後の変更、およびソース ハードリンクの置換がカバーされます。これはテストのみのコピー証拠です。本番コピー機能、メタデータ優先ライター、準備済み 状態パブリケーション、アップロード アダプターまたはクリーンアップは実装されていません。返された候補観察は常に、アップロード/状態の変更を拒否します。実際のディスクの枯渇、クラッシュ/電源損失の耐久性、ルート/FS 認定、アトミック スナップショット、または後の交換に対する保護は確立されません。以下のライフサイクル要件は、最終的な実行時まで拘束力を持ちます。
 
-The same lifecycle applies to both PC-A and PC-B and to both `BattleLog` and `ErrorReport` uploads. Only the PC identifier and local paths differ.
+同じライフサイクルが、PC-A と PC-B の両方、および `BattleLog` と `ErrorReport` の両方のアップロードに適用されます。 PC 識別子とローカル パスのみが異なります。
 
-This is a specification for the initial implementation. It defines staging creation, verification, upload gating, metadata updates, and normal-flow cleanup. Automatic recovery of leftovers from an interrupted run is deferred. The initial implementation must not delete local source logs or Google Drive source files.
+これは初期実装の仕様です。これは、ステージング の作成、検証、アップロード ゲーティング、メタデータの更新、および通常のフローのクリーンアップを定義します。中断された実行からの残りの部分の自動回復は延期されます。初期実装では、ローカル ソース ログまたは Google Drive ソース ファイルを削除してはなりません。
 
-Related specifications:
+関連仕様:
 - `docs/development/implementation-workflow.md`
 - `docs/design/powershell-python-contract.md`
 - `docs/validation/runtime-safety-test-scenarios.md`
 
-## 2. Runtime Requirements
+<a id="2-runtime-requirements"></a>
+## 2. 実行時の要件
 
-- PC-A and PC-B must run PowerShell **7.6.7**.
-- Windows PowerShell 5.1 compatibility is out of scope.
-- Batch entry points must invoke `pwsh.exe`, not `powershell.exe`.
-- At startup, validate that the running PowerShell version satisfies the required version. If validation fails, stop before processing files.
-- Python remains a Drive API adapter. It performs one API attempt per request and must not implement implicit retries. PowerShell owns retry and recovery decisions.
+- PC-A および PC-B は PowerShell **7.6.7** を実行する必要があります。
+- Windows PowerShell 5.1 の互換性は範囲外です。
+- バッチ エントリ ポイントは、`powershell.exe` ではなく、`pwsh.exe` を呼び出す必要があります。
+- 起動時に、実行中 PowerShell のバージョンが必要なバージョンを満たしていることを検証します。検証が失敗した場合は、ファイルを処理する前に停止します。
+- Python はドライブ API アダプターのままです。リクエストごとに API 試行を 1 回実行し、暗黙的な再試行を実装してはなりません。 PowerShell は、再試行とリカバリの決定を所有します。
 
-Example sync invocation (illustrative until the official batch entry point is implemented):
+同期呼び出しの例 (公式のバッチ エントリ ポイントが実装されるまでの例):
 
 ```bat
 pwsh.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0SyncLogs.ps1"
 ```
 
-The exact entry-point script can differ by operation, but all supported batch entry points must use the same PowerShell runtime policy.
+正確なエントリ ポイント スクリプトは操作によって異なる場合がありますが、サポートされているすべてのバッチ エントリ ポイントは同じ PowerShell ランタイム ポリシーを使用する必要があります。
 
-## 3. Staging Location and Naming
+<a id="3-staging-location-and-naming"></a>
+## 3. ステージングの場所と命名
 
-Staging is local to each PC and must not be synchronized to Google Drive.
+ステージングは各 PC に対してローカルであり、Google Drive と同期しないでください。
 
-Default directory:
+デフォルトのディレクトリ:
 
 ```text
 %LOCALAPPDATA%\eo-log-maintenance\staging
 ```
 
-Staging file name:
+ステージング ファイル名:
 
 ```text
 <run_id>_<sequence>_<original_filename>
 ```
 
-- `run_id` identifies one execution on one PC and is unique per execution.
-- `sequence` distinguishes files within a run and supports alternate names if a collision occurs.
-- `original_filename` preserves the source filename.
-- Never overwrite an existing staging file.
-- Use atomic create-new semantics (for example, .NET `FileMode.CreateNew`) at the time of creation. A pre-check alone is insufficient.
-- If a name is occupied, try another sequence number. If a free name cannot be allocated, mark that file `failed` and do not upload it.
+- `run_id` は 1 台の PC 上の 1 つの実行を識別し、実行ごとに一意です。
+- `sequence` は実行内のファイルを区別し、衝突が発生した場合の代替名をサポートします。
+- `original_filename` はソース ファイル名を保持します。
+- 既存の ステージング ファイルを上書きしないでください。
+- 作成時にアトミックな新規作成セマンティクス (.NET `FileMode.CreateNew` など) を使用します。事前チェックだけでは不十分です。
+- 名前が使用されている場合は、別のシーケンス番号を試してください。自由な名前を割り当てることができない場合は、そのファイルを `failed` としてマークし、アップロードしないでください。
 
-A JSON metadata file is stored alongside each staging file. It records at least:
+JSON メタデータ ファイルは、各 ステージング ファイルと一緒に保存されます。少なくとも以下を記録します。
 
 - `run_id`
-- original relative path
-- original filename
-- size in bytes
+- 元の相対パス
+- 元のファイル名
+- サイズ (バイト単位)
 - SHA-256
-- status
-- staging path
+- ステータス
+- ステージング パス
 
-Metadata must be written through a temporary file, re-read and validated as JSON, and then replace the official metadata file. Do not assume this local atomic-replacement guarantee applies to Google Drive.
+メタデータは一時ファイルを介して書き込まれ、JSON として再読み取りおよび検証されてから、公式のメタデータ ファイルと置き換えられる必要があります。このローカルのアトミック置換保証が Google Drive に適用されると想定しないでください。
 
-## 4. Target Inventory Freeze
+<a id="4-target-inventory-freeze"></a>
+## 4. 目標一覧凍結
 
-After the per-PC global maintenance lock has been acquired and residual staging inspection has completed, freeze the eligible upload target list for the run. Record the target list in the run manifest.
+PC ごとのグローバル メンテナンス ロックが取得され、残りの ステージング 検査が完了したら、実行に適格なアップロード ターゲット リストを凍結します。実行マニフェストにターゲット リストを記録します。
 
-Each target entry contains:
+各ターゲット エントリには次のものが含まれます。
 
-- filename
-- relative path
-- size in bytes
+- ファイル名
+- 相対パス
+- サイズ (バイト単位)
 - SHA-256
 
-Files added after the target list is frozen are deferred to the next run. A file that disappears after target-list creation is marked `failed`; processing may continue for other frozen targets. Files that were not part of the frozen list are not failures for the current run.
+ターゲット リストが凍結された後に追加されたファイルは、次回の実行まで延期されます。ターゲット リストの作成後に消えるファイルには `failed` というマークが付けられます。他の凍結されたターゲットについては処理が続行される可能性があります。凍結リストに含まれていないファイルは、現在の実行では失敗しません。
 
-Before staging each target, recompute the source file's size and SHA-256. If either differs from the frozen inventory, mark the file `failed` and do not upload it.
+各ターゲットの ステージング の前に、ソース ファイルのサイズと SHA-256 を再計算します。いずれかが凍結されたインベントリと異なる場合は、ファイル `failed` をマークし、アップロードしないでください。
 
-## 5. Capacity Checks
+<a id="5-capacity-checks"></a>
+## 5. 容量チェック
 
-Check available staging capacity:
-1. Once at the start, using the total size of the frozen target list.
-2. Again immediately before creating each staging copy.
-3. Handle a copy failure caused by capacity changing after a check.
+利用可能な ステージング 容量を確認してください:
+1. 最初に 1 回、凍結されたターゲット リストの合計サイズを使用します。
+2. 各 ステージング コピーを作成する直前に再度実行します。
+3. チェック後の容量変更により発生したコピー 失敗 を処理します。
 
-The initial safety reserve is:
+初期の安全予備量は次のとおりです。
 
 ```text
 required_free_bytes = remaining_target_bytes + ceil(remaining_target_bytes * 0.10) + 100000000
 ```
 
-The fixed reserve is exactly **100,000,000 bytes** (decimal MB, not 100 MiB). All internal calculations use bytes. Human-readable logs may additionally show decimal MB.
+固定予約は正確に **100、000、000 バイト** (100 MiB ではなく、10 進数の MB) です。すべての内部計算ではバイトが使用されます。人間が判読できるログには、さらに 10 進数の MB が表示される場合があります。
 
-If capacity is insufficient, mark the affected file `failed`, do not upload it, and continue processing other files where safe. If a copy fails, attempt to delete only the incomplete staging file created by the current operation. If that cleanup fails, retain the file and emit a warning.
+容量が不十分な場合は、影響を受けるファイルを `failed` としてマークし、アップロードせずに、安全な場所で他のファイルの処理を続行します。コピーが失敗した場合は、現在の操作で作成された 未完了 ステージング ファイルのみを削除してみてください。クリーンアップが失敗した場合は、ファイルを保持し、警告を発します。
 
-## 6. Per-File State Machine
+<a id="6-per-file-state-machine"></a>
+## 6. ファイルごとのステートマシン
 
-Allowed staging/upload states:
+許可された ステージング/アップロード状態:
 
-- `staging`: metadata has been written before the staging copy is created.
-- `ready`: staging copy exists and its size and SHA-256 match the frozen target.
-- `pending`: upload has not been confirmed as started/successful.
-- `uploaded`: the upload API reported success, but cloud content verification is not yet complete.
-- `verified`: the cloud object has been verified to contain the expected bytes.
-- `failed`: a failure is confirmed.
-- `unknown`: upload outcome cannot be determined reliably.
+- `staging`: ステージング コピーが作成される前にメタデータが書き込まれています。
+- `ready`: ステージング コピーが存在し、そのサイズと SHA-256 が凍結されたターゲットと一致します。
+- `pending`: アップロードの開始/成功が確認されていません。
+- `uploaded`: アップロード API は 成功 を報告しましたが、クラウド コンテンツの検証はまだ 完了 になっていません。
+- `verified`: クラウド オブジェクトは予期されたバイトを含むために 確認済み になりました。
+- `failed`: 失敗 が確認されました。
+- `unknown`: アップロードの結果を確実に判断できません。
 
-The metadata-first sequence is mandatory. The run manifest initially records each frozen target as `pending` to mean “registered for processing; staging has not begun.” When processing that target begins, the per-file state transitions to `staging` before the staging copy is created. After staging verification, `ready` means the copy is prepared; immediately before an upload attempt, transition `ready → pending` again. These two `pending` states are distinguished by their preceding state and recorded transition history; `pending` alone never proves that upload was attempted or succeeded.
+メタデータファーストのシーケンスは必須です。実行マニフェストでは、最初に各凍結ターゲットが `pending` として記録され、これは「処理のために登録されました。ステージング は開始されていません」を意味します。そのターゲットの処理が開始されると、ステージング コピーが作成される前に、ファイルごとの状態が `staging` に移行します。 ステージング 検証後、`ready` はコピーが準備されたことを意味します。アップロードを試行する直前に、`ready → pending` を再度トランジションします。これら 2 つの `pending` 状態は、前の状態と記録された遷移履歴によって区別されます。 `pending` だけでは、アップロードが試行されたか成功したかを証明することはできません。
 
-1. Write staging metadata with status `staging`.
-2. Create the staging copy without overwriting any existing file.
-3. Verify the copy's size and SHA-256 against the frozen target inventory.
-4. Update metadata to `ready`.
-5. Upload only the verified staging copy. Once ready, do not read the original source file for upload.
-6. Update the run manifest as the upload progresses and after cloud verification.
-7. Remove the staging copy and its metadata only after upload success, cloud content verification, and the required manifest update have all been confirmed.
+1. ステージング メタデータをステータス `staging` で書き込みます。
+2. 既存のファイルを上書きせずに ステージング コピーを作成します。
+3. コピーのサイズと SHA-256 を、凍結されたターゲット インベントリに対して検証します。
+4. メタデータを `ready` に更新します。
+5. 確認済み ステージング のコピーのみをアップロードします。 準備済み 後は、アップロードするために元のソース ファイルを読まないでください。
+6. アップロードの進行中およびクラウド検証後に実行マニフェストを更新します。
+7. ステージング のコピーとそのメタデータは、成功 のアップロード、クラウド コンテンツの検証、および必要なマニフェストの更新がすべて確認された後にのみ削除してください。
 
-If creation or verification fails, do not upload the copy. Attempt to remove only the incomplete staging file created by that operation; if deletion fails, retain it and warn.
+作成または検証が失敗した場合は、コピーをアップロードしないでください。その操作によって作成された 未完了 ステージング ファイルのみを削除してみます。削除に失敗した場合は、それを保持して警告します。
 
-## 7. Cloud Verification and Unknown Outcomes
+<a id="7-cloud-verification-and-unknown-outcomes"></a>
+## 7. クラウドの検証と未知の結果
 
-A successful upload API response is not by itself proof that cloud content is correct. Verify the Drive object using the strongest available method:
-- If Drive provides a trustworthy SHA-256, compare it to the expected hash.
-- Otherwise download the cloud object through the API and calculate SHA-256 locally.
-- Metadata-only retrieval is not content verification.
+アップロードの成功 API 応答自体は、クラウド コンテンツが正しいことを証明するものではありません。利用可能な最も強力な方法を使用してドライブ オブジェクトを検証します。
+- Drive が信頼できる SHA-256 を提供する場合は、それを予想されるハッシュと比較します。
+- それ以外の場合は、API を通じてクラウド オブジェクトをダウンロードし、ローカルで SHA-256 を計算します。
+- メタデータのみの取得はコンテンツ検証ではありません。
 
-If upload communication fails or times out and the result is uncertain, set the file state to `unknown`. Do not treat it as success or convert it to `failed` merely because the retry limit was reached. Set `failed` only when reliable evidence confirms that the operation did not succeed and the failure is definitive (for example, an explicit non-retryable rejection that guarantees no object was created, or a confirmed content mismatch). A timeout, communication failure, incomplete Drive enumeration, or exhausted retry budget alone is not enough. For verification results, use the approved mapping: `mismatch → failed`; `unavailable`, `ambiguous`, or verification-operation `failed` → `unknown`; `not_checked` leaves the current file state unchanged. A verification operation failure is not proof of a content mismatch.
+アップロード通信が失敗またはタイムアウトになり、結果が不確かな場合は、ファイルの状態を `unknown` に設定します。再試行制限に達したからといって、成功 として扱ったり、`failed` に変換したりしないでください。 `failed` は、操作が成功しなかったことが信頼できる証拠によって確認され、失敗 が決定的である場合にのみ設定します (たとえば、オブジェクトが作成されていないことを保証する明示的な再試行不可能な拒否、または確認されたコンテンツ 不一致)。タイムアウト、通信 失敗、未完了 ドライブの列挙、または再試行バジェットの使い果たしだけでは十分ではありません。検証結果については、承認されたマッピングを使用してください: `mismatch → failed`; `unavailable`、`ambiguous`、または検証操作 `failed` → `unknown`; `not_checked` は、現在のファイルの状態を変更しません。検証操作 失敗 は、コンテンツ 不一致 の証明ではありません。
 
-Before retrying an upload with an unknown outcome, PowerShell must inspect the current Drive state:
-- Object exists and content hash matches: transition to `verified`.
-- Object is confirmed absent: re-upload may proceed.
-- Object exists with a different hash, or its state/content cannot be confirmed: retain `unknown` and stop processing that file.
+不明 の結果でアップロードを再試行する前に、PowerShell は現在のドライブの状態を検査する必要があります。
+- オブジェクトが存在し、コンテンツのハッシュが一致します: `verified` に遷移します。
+- オブジェクトが存在しないことが確認されました。再アップロードを続行できます。
+- オブジェクトが異なるハッシュで存在するか、その状態/内容を確認できません。`unknown` を保持し、そのファイルの処理を停止します。
 
-Python performs one API attempt per request. PowerShell owns retry policy, with at most four total attempts and waits of 1, 5, and 15 minutes between attempts. Before a retry when the previous upload outcome is uncertain, inspect Drive state first. Reaching four attempts does not itself classify the file as `failed`: use `failed` only when reliable evidence establishes definitive non-success; otherwise retain `unknown`.
+Python は要求ごとに API を1回試行する。再試行は PowerShell が担当し、合計最大4回、試行間に 1、5、15 分待機する。前回アップロードの結果が不明な場合、再試行の前にDriveの状態を確認する。4回に達したことだけではファイルを `failed` と判定しない。信頼できる証拠で確定的な不成功を確認した場合だけ `failed` を使い、それ以外は `unknown` を維持する。
 
-If a staging file is `unknown`, cloud content is unverified/mismatched, or the required manifest update fails, retain the staging file and metadata. Do not delete them.
+ステージング ファイルが `unknown` である場合、クラウド コンテンツが未検証または不一致である場合、または必要なマニフェストの更新が失敗した場合は、ステージング ファイルとメタデータを保持します。削除しないでください。
 
-If staging deletion fails after the upload, cloud verification, and manifest update have succeeded, log a warning and continue. Do not change the successful upload outcome to `failed`; retain the remaining staging artifacts.
+アップロード、クラウド検証、マニフェストの更新が成功した後に ステージング の削除が失敗した場合は、警告を記録して続行します。アップロードの成功結果を `failed` に変更しないでください。残りの ステージング 成果物を保持します。
 
-## 8. Manifest and Run Status
+<a id="8-manifest-and-run-status"></a>
+## 8. マニフェストと実行ステータス
 
-### 8.1 Schema version and compatibility
+<a id="81-schema-version-and-compatibility"></a>
+### 8.1 スキーマのバージョンと互換性
 
-- Every operational maintenance manifest must include a required integer `schema_version` field. The initial schema version is `1`.
-- Reject a manifest when `schema_version` is missing, malformed, or unsupported. Stop the affected processing safely; never interpret the manifest as successful or archive-eligible.
-- Do not implicitly migrate, rewrite, or convert existing manifests. Any future schema migration requires an explicitly approved, versioned migration design and tests.
-- The field names, types, enums, nullability, verification object, and listed field-level constraints in `docs/design/manifest-schema-v1-proposal.md` were approved on 2026-10-21. Implementations must not infer missing fields or silently default invalid values.
-- The verification-result-to-file-state mapping was approved on 2026-10-21: `verified → verified`; `mismatch → failed`; `unavailable`, `ambiguous`, and verification-operation `failed` → `unknown`; `not_checked` leaves the current file status unchanged. The retry-exhaustion rule was also approved on 2026-10-21: retry exhaustion alone does not imply failure; `failed` requires reliable evidence of definitive non-success, otherwise retain `unknown`. These approvals do not settle every verification method/time/hash combination.
-- The exhaustive allowed/forbidden transition table is still pending OSD-02. `docs/design/manifest-state-transition-v1-proposal.md` remains a discussion proposal for all unapproved rows and rules; it is not wholly normative.
-- Run/period aggregation remains subject to OSD-03; timestamp freshness/clock skew remains subject to EOLM-MAN-011; crash/concurrency and latest-manifest tie-breaking remain unresolved. Approval of fields does not authorize runtime implementation or establish runtime evidence.
+- すべての運用保守マニフェストには、必須の整数 `schema_version` フィールドが含まれている必要があります。初期のスキーマ バージョンは `1` です。
+- `schema_version` が見つからない、形式が間違っている、またはサポートされていない場合、マニフェストを拒否します。影響を受ける処理を安全に停止します。マニフェストが成功した、またはアーカイブ適格であると解釈しないでください。
+- 既存のマニフェストを暗黙的に移行、書き換え、または変換しないでください。将来のスキーマ移行には、明示的に承認され、バージョン管理された移行設計とテストが必要です。
+- `docs/design/manifest-schema-v1-proposal.md` のフィールド名、型、列挙型、NULL 可能性、検証オブジェクト、およびリストされたフィールド レベルの制約は、2026-10-21 で承認されました。実装では、欠落しているフィールドを推測したり、無効な値を暗黙的にデフォルト設定したりしてはなりません。
+- 検証結果とファイル状態のマッピングは 2026-10-21: `verified → verified`; で承認されました。 `mismatch → failed`; `unavailable`、`ambiguous`、および検証操作 `failed` → `unknown`; `not_checked` は、現在のファイルのステータスを変更しません。再試行枯渇ルールも 2026-10-21 で承認されました。再試行枯渇だけでは 失敗 を意味しません。 `failed` には、決定的な非 成功 の信頼できる証拠が必要です。そうでない場合は、`unknown` を保持します。これらの承認は、すべての検証方法/時間/ハッシュの組み合わせを解決するものではありません。
+- 完全な許可/禁止遷移テーブルは依然として 未確定 OSD-02 です。 `docs/design/manifest-state-transition-v1-proposal.md` は、すべての未承認の行とルールに対するディスカッション提案のままです。それは完全に規範的なものではありません。
+- 実行/期間の集計は引き続き OSD-03 に従います。タイムスタンプの鮮度/クロック スキューは引き続き EOLM-MAN-011 の影響を受けます。クラッシュ/同時実行および最新マニフェストのタイブレークは未解決のままです。フィールドの承認は、実行時の実装を許可したり、実行時の証拠を確立したりするものではありません。
 
-Each maintenance execution creates a new manifest with a unique `run_id`. A run manifest is first written with status `running` after lock acquisition and before file processing, then updated to its final status using the same `run_id`.
+メンテナンスを実行するたびに、一意の `run_id` を持つ新しいマニフェストが作成されます。実行マニフェストは、ロック取得後ファイル処理前にステータス `running` で最初に書き込まれ、次に同じ `run_id` を使用して最終ステータスに更新されます。
 
-Run status values are:
+実行ステータスの値は次のとおりです。
 - `running`
 - `success`
 - `partial_failure`
 - `failure`
 
-A zero-work run uses `status: success` and `outcome: no_work`; do not add a separate `skipped` run status.
+ゼロワーク実行では `status: success` と `outcome: no_work` が使用されます。個別の `skipped` 実行ステータスを追加しないでください。
 
-File-level states are recorded separately from run status. If any file remains `unknown` after retry/reconciliation, the run is `partial_failure` when other files were verified, or `failure` when the overall process did not succeed. An uncertain file must never be counted as a success.
+ファイルレベルの状態は、実行ステータスとは別に記録されます。再試行/リコンシリエーション後にいずれかのファイルが `unknown` のままである場合、他のファイルが 確認済み だった場合は `partial_failure` が実行され、プロセス全体が成功しなかった場合は `failure` が実行されます。不確実なファイルを 成功 としてカウントしてはなりません。
 
-A new run uses a new `run_id` and fresh per-file states beginning at `pending` (target registered, staging not yet started); do not copy forward prior file states. On beginning staging for a target, transition `pending → staging`, then `staging → ready` after copy verification, and `ready → pending` immediately before upload. Older manifests remain unchanged. The latest run for a given PC, period, and log type takes precedence: if it is `running`, hold; if it is `partial_failure` or `failure`, do not fall back to an older success. Even with a successful latest manifest, archive decisions must re-verify the current Drive state.
+新しい実行では、新しい `run_id` を使い、ファイルごとの状態を `pending`（対象登録済み、ステージング は未開始）から開始する。前回のファイル状態を引き継がない。対象の ステージング を開始するときに `pending → staging` へ、コピー検証後に `staging → ready` へ、アップロード直前に `ready → pending` へ遷移する。過去のマニフェストは変更しない。同じPC・期間・ログ種別では最新の実行を優先する。最新が `running` なら保留し、`partial_failure` または `failure` なら過去の 成功 へ戻らない。最新のマニフェストが成功していても、アーカイブ判断では現在のDriveの状態を再検証する。
 
-Manifest location:
+マニフェストの場所:
 
 ```text
 _maintenance/manifests/PC-A/
 _maintenance/manifests/PC-B/
 ```
 
-Manifest file naming:
+マニフェスト ファイルの名前:
 
 ```text
 <PC-ID>_<LogType>_<TargetPeriod>_<run_id>.json
 ```
 
-Example: `PC-A_BattleLog_2026-09_<run_id>.json`
+例: `PC-A_BattleLog_2026-09_<run_id>.json`
 
-Validate that the filename identity matches the internal JSON identity. Keep manifests indefinitely in the initial implementation; no automatic retention/deletion is permitted.
+ファイル名の ID が内部の JSON ID と一致することを検証します。初期実装ではマニフェストを無期限に保持します。自動的な保存/削除は許可されません。
 
-For local manifest updates, write to a temporary file, re-read and validate the JSON, then replace the official manifest. If a crash leaves a manifest in `running`, leave it incomplete; do not automatically rewrite it to `failure`. The next execution uses a new `run_id`.
+ローカル マニフェストを更新するには、一時ファイルに書き込み、JSON を再読み取りして検証し、公式マニフェストを置き換えます。クラッシュによってマニフェストが `running` に残る場合は、未完了 のままにしておきます。自動的に `failure` に書き換えないでください。次回の実行では、新しい `run_id` が使用されます。
 
-## 9. Residual Staging Artifacts
+<a id="9-residual-staging-artifacts"></a>
+## 9. 残留ステージング成果物
 
-At every maintenance-run startup, after acquiring the global per-PC maintenance lock and before beginning uploads, inspect the staging directory.
+メンテナンス実行の起動ごとに、PC ごとのグローバル メンテナンス ロックを取得した後、アップロードを開始する前に、ステージング ディレクトリを検査します。
 
-If even one residual artifact exists, emit a warning. The initial implementation must not automatically upload, recover, or delete residual artifacts.
+残留成果物が 1 つでも存在する場合は、警告を発します。初期実装では、残りの成果物を自動的にアップロード、回復、または削除してはなりません。
 
-Cases that require warning and retention:
-- staging file without metadata
-- metadata without staging file
-- malformed JSON metadata
-- inconsistent metadata or file state
-- leftovers from an interrupted run
+警告と保持が必要なケース:
+- ステージング メタデータのないファイル
+- ステージング ファイルのないメタデータ
+- 不正な形式の JSON メタデータ
+- メタデータまたはファイルの状態が矛盾しています
+- 中断された実行の残り
 
-For malformed metadata, log the path and issue, and include `run_id` only if it can be parsed safely. Do not process affected artifacts automatically.
+不正なメタデータの場合は、パスと問題をログに記録し、安全に解析できる場合にのみ `run_id` を含めます。影響を受ける成果物を自動的に処理しないでください。
 
-Merely detecting residual artifacts is warning-only and does not by itself change the run status. If residual inspection cannot complete (for example, access denied or enumeration failure), do not start uploads; set run status to `failure` and preserve existing files and metadata.
+残留成果物を検出するだけでは警告のみであり、それ自体では実行ステータスは変更されません。残留検査で 完了 できない場合 (たとえば、アクセス拒否または列挙 失敗)、アップロードを開始しないでください。実行ステータスを `failure` に設定し、既存のファイルとメタデータを保持します。
 
-Automatic recovery of leftovers is deferred to a later phase. No time-based cleanup is allowed in the initial implementation.
+残り物の自動回復は後のフェーズに延期されます。初期実装では、時間ベースのクリーンアップは許可されません。
 
-## 10. Locking and Concurrency
+<a id="10-locking-and-concurrency"></a>
+## 10. ロックと同時実行性
 
-One global lock serializes all maintenance operations on each PC. PC-A and PC-B use independent locks.
+1 つのグローバル ロックにより、各 PC 上のすべてのメンテナンス操作がシリアル化されます。 PC-A と PC-B は独立したロックを使用します。
 
-Lock acquisition waits/retries for up to 60 seconds. If the lock remains unavailable, log that another process is running and exit; do not force-kill or steal the lock. This contention exit is not a business failure. If an abandoned mutex is detected after a process crash, log it and verify the prior state before continuing.
+ロックの取得は最大 60 秒間待機/再試行されます。ロックが 利用不能 のままの場合は、別のプロセスが 実行中 であることを記録して終了します。ロックを強制終了したり盗んだりしないでください。この競合出口はビジネス 失敗 ではありません。プロセスのクラッシュ後に放棄されたミューテックスが検出された場合は、それをログに記録し、続行する前に以前の状態を確認します。
 
-## 11. Explicit Non-Goals for the Initial Implementation
+<a id="11-explicit-non-goals-for-the-initial-implementation"></a>
+## 11. 初期実装の明示的な非目標
 
-The initial implementation must not:
-- delete local source logs
-- delete Google Drive source files
-- overwrite existing staging files
-- automatically recover, upload, or delete residual staging artifacts
-- automatically clean up staging artifacts based on age
-- treat metadata-only cloud retrieval as content verification
-- upload directly from a mutable source file instead of the verified staging copy
-- implement implicit retries in Python
+初期実装では次のことを行ってはなりません:
+- ローカル ソース ログを削除します
+- Google Drive ソース ファイルを削除
+- 既存の ステージング ファイルを上書きします
+- は、残りの ステージング 成果物を自動的に回復、アップロード、または削除します
+- は、経過時間に基づいて ステージング 成果物を自動的にクリーンアップします
+- メタデータのみのクラウド取得をコンテンツ検証として扱います
+- 確認済み ステージング コピーではなく、変更可能なソース ファイルから直接アップロードします
+- Python で暗黙的な再試行を実装します
 
-## 12. Acceptance Test Perspectives
+<a id="12-acceptance-test-perspectives"></a>
+## 12. 受け入れテストの観点
 
-Use `docs/validation/runtime-safety-test-scenarios.md` for the shared test catalog and add/trace test coverage for at least:
+共有テスト カタログに `docs/validation/runtime-safety-test-scenarios.md` を使用し、少なくとも次のテスト カバレッジを追加/トレースします。
 
-- PowerShell version mismatch blocks processing before any file operation.
-- Both PC-A and PC-B use `pwsh.exe` entry points.
-- Frozen inventory records filename, relative path, size, and SHA-256.
-- Source mutation after inventory freeze blocks upload.
-- Staging metadata is written before the copy and transitions from `staging` to `ready` only after size/hash verification.
-- A staging-name collision never overwrites an existing file and tries another sequence.
-- Insufficient capacity at initial or per-file checks prevents that file's upload.
-- Capacity loss during copy attempts cleanup only for the incomplete file created by the current operation.
-- Only the verified staging copy is used as upload input.
-- Unknown upload outcome triggers Drive-state inspection before retry.
-- Cloud verification or manifest-update failure retains staging file and metadata.
-- Normal successful flow removes staging file only after upload, cloud verification, and manifest update are confirmed.
-- Failed staging deletion after otherwise successful flow produces a warning without changing the upload result.
-- Any residual artifact triggers a warning and is retained.
-- Residual inspection failure blocks uploads and produces run status `failure`.
-- No local-source or Drive-source deletion path is introduced.
+- PowerShell バージョン 不一致 は、ファイル操作の前に処理をブロックします。
+- PC-A と PC-B は両方とも `pwsh.exe` エントリ ポイントを使用します。
+- 凍結されたインベントリ レコードのファイル名、相対パス、サイズ、および SHA-256。
+- インベントリ凍結後のソースの突然変異によりアップロードがブロックされました。
+- ステージング メタデータはコピーの前に書き込まれ、サイズ/ハッシュの検証後にのみ `staging` から `ready` に移行します。
+- ステージング 名の衝突によって既存のファイルが上書きされることはなく、別のシーケンスが試行されます。
+- 初期チェックまたはファイルごとのチェックで容量が不十分なため、そのファイルはアップロードできません。
+- 現在の操作で作成された 未完了 ファイルのみのクリーンアップ試行中に容量が失われます。
+- 確認済み ステージング コピーのみがアップロード入力として使用されます。
+- アップロード結果が不明なため、再試行する前にドライブ状態の検査がトリガーされます。
+- クラウド検証またはマニフェスト更新 失敗 は ステージング ファイルとメタデータを保持します。
+- 通常の正常なフローでは、アップロード、クラウド検証、マニフェストの更新が確認された後にのみ ステージング ファイルが削除されます。
+- ステージング の削除は、アップロード結果を変更せずに、フローが正常に完了した後に警告を生成した後に失敗しました。
+- 残留成果物は警告をトリガーし、保持されます。
+- 残留検査 失敗 によりアップロードがブロックされ、実行ステータス `failure` が生成されます。
+- ローカル ソースまたはドライブ ソースの削除パスは導入されていません。
 
-This document specifies behavior and acceptance perspectives; test implementation should reference the shared runtime test catalog rather than duplicate its full scenario descriptions.
+この文書では、動作と受け入れの観点を指定します。テスト実装では、シナリオの完全な説明を複製するのではなく、共有ランタイム テスト カタログを参照する必要があります。
 
 
-## 13. OSD-03 aggregation policy approved — 2026-10-21
+<a id="13-osd-03-aggregation-policy-approved--2026-10-21"></a>
+## 13.  OSD-03 集約ポリシーが承認されました — 2026-10-21
 
-- `success` requires every eligible target to be verified and no relevant validation/processing errors.
-- A zero-work run is `success` with `outcome: no_work` only when enumeration and validation completed successfully and there are no eligible targets. Enumeration failure/access denial or only-invalid relevant names must not be classified as no-work.
-- When verified work coexists with an eligible file in `failed`/`unknown` or a relevant unclassifiable filename, use `partial_failure`. If no eligible work is verified and a processing/validation failure exists, or valid no-work cannot be established, use `failure`.
-- Period completion requires every eligible file assigned to that period to be `verified`, with no relevant error affecting that period. A `failed` or `unknown` file blocks its period's completion.
-- Unclassifiable names remain run-scope validation errors; never infer a period from `LastWriteTime`. They block run-level success but do not automatically invalidate a separately complete known period with an established inventory.
-- Continue safe processing of independent valid files, but do not hide errors or count `unknown` as success. Do not add run status or outcome enum values.
-- **Representation approved on 2026-10-21:** keep the approved manifest v1 field set unchanged. Store period summaries and unassigned run-scope validation errors in a separate durable derived aggregation report linked by `run_id`. The report must be validated against the frozen eligible inventory; missing, malformed, stale, or inconsistent report data must not certify period completion. Review/approval of `docs/design/reference/aggregation-report-v1-proposal.md`, publication/recovery rules, implementation, and table-driven test evidence remain required.
+- `success` では、対象となるすべてのターゲットが 確認済み である必要があり、関連する検証/処理エラーがないことが必要です。
+- ゼロワーク実行は、列挙と検証が正常に完了し、適格なターゲットがない場合にのみ、`success` と `outcome: no_work` になります。列挙体 失敗/アクセス拒否または無効な関連名のみを非作業として分類してはなりません。
+- 確認済み 作品が、`failed`/`unknown` の対象ファイル、または関連する分類できないファイル名と共存する場合は、`partial_failure` を使用します。適格な作業が 確認済み で処理/検証 失敗 が存在する場合、または有効な作業なしが確立できない場合は、`failure` を使用します。
+- 期間を完了するには、その期間に割り当てられたすべての対象ファイルが `verified` である必要があり、その期間に影響を与える関連エラーは発生しません。 `failed` または `unknown` ファイルは、その期間の完了をブロックします。
+- 分類できない名前は実行スコープ検証エラーのままです。 `LastWriteTime` から期間を推測しないでください。これらは実行レベル 成功 をブロックしますが、確立された一覧を持つ個別の 完了 既知の期間を自動的に無効にすることはありません。
+- 独立した有効なファイルの安全な処理を続行しますが、エラーを隠したり、`unknown` を 成功 としてカウントしたりしないでください。実行ステータスまたは結果の列挙値を追加しないでください。
+- **2026-10-21:** で承認された表現は、承認されたマニフェスト v1 フィールド セットを変更しないでください。期間の概要と未割り当ての実行スコープ検証エラーを、`run_id` によってリンクされた別の耐久性のある派生集計レポートに保存します。レポートは、凍結された対象一覧に対して検証される必要があります。レポート データが欠落している、形式が間違っている、古い、または一貫性がない場合は、期間の完了を証明するものではありません。 `docs/design/reference/aggregation-report-v1-proposal.md`、公開/回復ルール、実装、およびテーブル駆動テストの証拠のレビュー/承認が引き続き必要です。
 
 
-## OSD-02 approved crash/concurrency/latest-manifest policy (2026-10-21)
+<a id="osd-02-approved-crashconcurrencylatest-manifest-policy-2026-10-21"></a>
+## OSD-02 がクラッシュ/同時実行/最新マニフェスト ポリシーを承認しました (2026-10-21)
 
-Maintainer approved C1-A/C2-C/C3-B/C4-A. C1-A requires validated same-directory temporary writes, atomic create-if-absent, compare-before-replace, and fail-closed behavior when guarantees are unavailable. C2-C requires a per-scope OS named mutex plus exclusive ownership-token lock record; stale lock recovery is explicit and must verify the owner is gone. C3-B preserves crash-left `running` history and creates a new `run_id` only after recovery checks, with a fresh inventory and reconciliation of uncertain uploads. C4-A selects only a unique maximum validated `started_at_utc` for the exact PC/log-type/period scope; ties, malformed/conflicting candidates, read errors, or incomplete enumeration block operation, and there is no fallback to an older success. Timestamp freshness/future tolerance are not lock or retry timeouts.
+メンテナは C1-A/C2-C/C3-B/C4-A を承認しました。 C1-A では、保証が 利用不能 の場合、検証済みの同じディレクトリへの一時書き込み、アトミックな存在しない場合の作成、置換前の比較、およびフェールクローズ動作が必要です。 C2-C には、mutex という名前のスコープごとの OS と排他的所有権トークン ロック レコードが必要です。古いロックの回復は明示的であり、所有者がいなくなっていることを確認する必要があります。 C3-B は、クラッシュ時に残された `running` 履歴を保存し、回復チェック後にのみ、新しいインベントリと不確実なアップロードの調整を使用して、新しい `run_id` を作成します。 C4-A は、正確な PC/ログタイプ/期間スコープに対して、検証された一意の最大値 `started_at_utc` のみを選択します。同点、不正な形式/競合する候補、読み取りエラー、または 未完了 列挙ブロック操作が発生し、古い 成功 へのフォールバックはありません。タイムスタンプの鮮度/将来の許容範囲は、ロックまたは再試行タイムアウトではありません。
 
-Synthetic tests for crash points, concurrent create/update, lock ownership/recovery, interrupted runs, uncertain uploads, and resolver ambiguity are required but **not yet executed/evidenced**. These decisions do not claim runtime implementation or close P0-008/P0-010/P0-012.
+クラッシュ ポイント、同時作成/更新、ロックの所有権/回復、中断された実行、不確実なアップロード、およびリゾルバーの曖昧さに関する総合テストが必要ですが、**まだ実行も証拠化もされていません** です。これらの決定は、ランタイム実装を要求したり、P0-008/P0-010/P0-012 を終了したりするものではありません。
 
 
-## OSD-02 crash/concurrency test requirements — pending execution
+<a id="osd-02-crashconcurrency-test-requirements--pending-execution"></a>
+## OSD-02 クラッシュ/同時実行テストの要件 — 未確定 の実行
 
-- Inject crashes before/during temporary write, after flush/validation, before publication, and after publication; prove incomplete temp files are never authoritative and failed publication leaves prior content unchanged.
-- Race concurrent first publishers and concurrent updates; prove create-if-absent and compare-before-replace prevent overwrite.
-- Test named-mutex contention/failure, process termination, lock ownership-token mismatch, and stale-lock recovery. Age/PID alone must not authorize lock removal.
-- Preserve crash-left `running` manifest byte-for-byte; after verified owner recovery, create a new `run_id` with a fresh inventory; reconcile uncertain uploads before retry.
-- Test unique latest timestamp, equal maxima, malformed or identity-mismatched candidates, read/enumeration failure, and latest non-success blocking fallback to older success.
-- Use synthetic fixtures and temporary directories only. Evidence status: **not run / not yet evidenced**; no runtime acceptance is implied.
+- インジェクトは一時書き込み前/一時書き込み中、フラッシュ/検証後、公開前、および公開後にクラッシュします。 未完了 一時ファイルが決して信頼できるものではなく、失敗した 公開では以前のコンテンツが変更されないことが証明されます。
+- 同時の最初のパブリッシャーと同時の更新を競合します。 未作成時だけ作成 と 置換前に比較 が上書きを防止することを証明します。
+- 名前付きミューテックス競合/失敗、プロセス終了、ロック所有権トークン 不一致、および古いロックの回復をテストします。経過時間/PID だけでロックの削除を許可してはなりません。
+- クラッシュレフト `running` マニフェストをバイト単位で保存します。 確認済み 所有者の回復後、新しいインベントリで新しい `run_id` を作成します。再試行する前に、不確実なアップロードを調整してください。
+- 固有の最新タイムスタンプ、等しい最大値、不正な形式または ID の不一致の候補、読み取り/列挙 失敗、および古い 成功 へのフォールバックをブロックする最新の非 成功 をテストします。
+- 合成フィクスチャと一時ディレクトリのみを使用してください。証拠ステータス: **未実行 / まだ証拠がありません**;実行時の受け入れは暗黙的には行われません。
 
 
-## Maintainer-approved OSD-03 report contract (2026-10-21)
+<a id="maintainer-approved-osd-03-report-contract-2026-10-21"></a>
+## メンテナ承認の OSD-03 レポート契約 (2026-10-21)
 
-The maintainer explicitly approved **R1-B, R2-A, R3-B, R4-A, R5-A, R6-A, R7-A**. This settles the report-contract options but does not constitute an executable JSON Schema, runtime implementation, or test evidence.
+メンテナは、**R1-B、R2-A、R3-B、R4-A、R5-A、R6-A、R7-A** を明示的に承認しました。これはレポート契約オプションを決定しますが、実行可能 JSON Schema、ランタイム実装、またはテスト証拠を構成するものではありません。
 
-- **R1-B — summaries only:** period entries contain counts and completion state, not duplicated per-target rows. Validate the eligible inventory and per-file outcomes against immutable run-input evidence and the originating manifest.
-- **R2-A — tuple identity:** report identity is exactly (pc_id, log_type, run_id, report_schema_version). Omit report_id; derive the canonical filename from that tuple. Do not add fields to manifest v1.
-- **R3-B — content-bound references:** manifest_ref and evidence_ref each include canonical relative path, schema version, and lowercase 64-character SHA-256 of exact validated bytes. Validate referenced artifact identity against the report tuple. Reject absolute paths, traversal, identity mismatch, malformed digest, or changed bytes.
-- **R4-A — reuse OSD-02 controls:** use unique same-directory temp files, flush/close, read-back validation, and atomic create-if-absent; reuse the existing per-PC maintenance lock during normal publication. Regeneration/recovery must acquire the same named mutex plus ownership-token lock record. Existing same-identity identical bytes are idempotent; different bytes are a conflict and are never overwritten. Remove a temp file only when ownership is proven; orphan temp files are non-authoritative and must not be removed based on age alone.
-- **R5-A — deterministic regeneration:** regenerate only from the exact validated manifest plus immutable B2 run-input evidence. Never re-scan mutable source directories to reconstruct historical inventory. Validate identity, inventory digest, all counts, and error scope. If inputs are incomplete/unavailable, remain unresolved. Identical output is idempotent; different content for the same identity is a conflict.
-- **R6-A — three-state period completion:** complete only if all eligible targets for the period are verified and no relevant error affects it; incomplete for known failed/unknown targets or known relevant errors; indeterminate if required evidence is missing, malformed, conflicting, or unverifiable. Never map indeterminate to complete. These are report-only values and must not be added to manifest run-status enums.
-- **R7-A — separate local/Drive states:** local validated publication is authoritative. Drive replication is a separate verified step; replication failure does not invalidate/delete the local artifact. Do not claim cross-PC availability until the Drive copy's identity and exact content are verified.
-- Recompute all summary counts from the referenced manifest and B2 evidence. Reject missing/duplicate period rows, target accounting mismatch, inventory digest/count mismatch, report/manifest/evidence identity mismatch, and inconsistent error scope. generated_at_utc uses UTC ISO 8601 uppercase Z and approved future-time validation; report age alone does not invalidate immutable historical evidence.
-- Required synthetic acceptance tests are specified but **not yet executed/evidenced**. Runtime implementation, executable schema, and operational evidence remain pending. No P0 item is closed by this documentation change.
+- **R1-B — 概要のみ:** 期間エントリには、ターゲットごとの重複した行ではなく、カウントと完了状態が含まれます。不変の実行入力証拠および元のマニフェストに対して、適格なインベントリとファイルごとの結果を検証します。
+- **R2-A — タプル ID:** レポート ID は正確に (pc_id、log_type、run_id、report_schema_version) です。 report_id を省略します。そのタプルから正規のファイル名を導出します。マニフェスト v1 にはフィールドを追加しないでください。
+- **R3-B — コンテンツ バインドされた参照:** manifest_ref および evidence_ref にはそれぞれ、正規の相対パス、スキーマ バージョン、および正確に検証されたバイトの小文字の 64 文字 SHA-256 が含まれます。参照された成果物の ID をレポート タプルに対して検証します。絶対パス、トラバーサル、同一性 不一致、不正な形式のダイジェスト、または変更されたバイトを拒否します。
+- **R4-A — OSD-02 コントロールを再利用します。** は、同じディレクトリにある一意の一時ファイル、フラッシュ/クローズ、リードバック検証、およびアトミックな存在しない場合の作成を使用します。通常の公開中に既存の PC ごとのメンテナンス ロックを再利用します。再生成/回復では、同じ名前のミューテックスと所有権トークンのロック レコードを取得する必要があります。既存の同一性の同一バイトは冪等です。異なるバイトは競合し、上書きされることはありません。一時ファイルは、所有権が証明された場合にのみ削除してください。孤立した一時ファイルには権限がないため、経過時間だけを理由に削除してはなりません。
+- **R5-A — 決定論的再生成:** 正確に検証されたマニフェストと不変の B2 実行入力証拠からのみ再生成します。過去のインベントリを再構築するために、変更可能なソース ディレクトリを再スキャンしないでください。 ID、インベントリダイジェスト、すべてのカウント、およびエラー範囲を検証します。入力が 未完了/利用不能 の場合は、未解決のままになります。同一の出力は冪等です。同じ同一性に対する異なるコンテンツは競合です。
+- **R6-A — 3 状態の期間完了:** 完了 期間のすべての適格なターゲットが 確認済み であり、それに影響する関連エラーがない場合のみ。既知の 失敗した/不明 ターゲットまたは既知の関連エラーの場合は 未完了。 確定不能 必要な証拠が欠落している、形式が間違っている、矛盾している、または検証できない場合。 確定不能 を 完了 にマップしないでください。これらはレポート専用の値であり、マニフェストの実行ステータス列挙型に追加しないでください。
+- **R7-A — ローカル/ドライブの個別の状態:** ローカルで検証されたパブリケーションが信頼可能です。ドライブのレプリケーションは別の 確認済み ステップです。レプリケーション 失敗 はローカル 成果物を無効化/削除しません。ドライブ コピーの ID と正確なコンテンツが 確認済み になるまで、PC 間での可用性を主張しないでください。
+- 参照されたマニフェストと B2 証拠からすべてのサマリー カウントを再計算します。欠落/重複した期間行、ターゲット会計 不一致、一覧ダイジェスト/カウント 不一致、レポート/マニフェスト/証拠 ID 不一致、および一貫性のないエラー範囲を拒否します。 generated_at_utc は UTC ISO 8601 大文字の Z と承認された将来の検証を使用します。報告の経過時間だけでは、不変の歴史的証拠が無効になるわけではありません。
+- 必要な合成受け入れテストが指定されていますが、**まだ実行/証明されていません**。ランタイム実装、実行可能スキーマ、および運用上の証拠は 未確定 のままです。このドキュメントの変更によって閉じられる P0 項目はありません。
 
 
-## OSD-03 report-contract acceptance tests — approved design, execution pending
+<a id="osd-03-report-contract-acceptance-tests--approved-design-execution-pending"></a>
+## OSD-03 レポート契約受諾テスト — 承認された設計、実行 未確定
 
-1. Required fields, strict integer schema version, unsupported versions, no implicit migration, and absence of report_id.
-2. Canonical report identity tuple and filename agreement for PC/log type/run/schema version.
-3. Canonical relative manifest_ref and evidence_ref; exact bytes SHA-256; malformed digest, absolute/traversal path, identity mismatch, and stable-path content replacement all fail closed.
-4. R1-B: report period rows contain summaries only; counts recompute from the referenced manifest and B2 evidence; no duplicated per-target inventory is trusted from the report.
-5. Inventory digest/count mismatch; missing, extra, duplicate, or multiply assigned target; missing/duplicate period row; report/manifest/evidence identity mismatch; inconsistent error scope.
-6. R6-A: complete, incomplete, and indeterminate boundaries; indeterminate never becomes complete and these values never enter manifest v1 run-status enums.
-7. R4-A publication crash points, concurrent create, identical idempotent retry, conflicting retry, unsupported atomic primitive, mutex/lock ownership, and temp-file ownership cleanup. Orphan cleanup cannot rely on age alone.
-8. R5-A regeneration only from exact immutable manifest and B2 evidence; refuse if evidence is missing, corrupt, incomplete, or inconsistent; never rescan mutable source.
-9. R7-A local publication succeeds independently of Drive replication; replication failure preserves local report; cross-PC use is blocked until identity and content verification succeeds.
-10. UTC timestamp format/future tolerance, historical age, zero-work versus failed enumeration versus only-invalid filenames, known-period completion with unrelated run-scope errors, and all approved OSD-03 aggregation cases.
-11. Synthetic fixtures and temporary directories only. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion. Evidence status: **not run / not yet evidenced**.
+1. 必須フィールド、厳密な整数スキーマのバージョン、サポートされていないバージョン、暗黙的な移行なし、report_id の欠如。
+2. PC/ログ タイプ/実行/スキーマ バージョンの正規レポート ID タプルとファイル名合意。
+3. 正規相対 manifest_ref および evidence_ref。正確なバイト SHA-256;不正な形式のダイジェスト、絶対パス/トラバーサル パス、同一性 不一致、および安定したパスのコンテンツ置換はすべてフェール クローズされます。
+4. R1-B: レポート期間の行には概要のみが含まれます。カウントは参照されたマニフェストと B2 証拠から再計算されます。ターゲットごとの重複したインベントリはレポートから信頼されません。
+5. 一覧ダイジェスト/カウント 不一致;割り当てられたターゲットが欠落している、余分である、重複している、または重複している。期間行が欠落または重複しています。レポート/マニフェスト/証拠の同一性 不一致;一貫性のないエラー範囲。
+6. R6-A: 完了、未完了、および 確定不能 の境界。 確定不能 が 完了 になることはなく、これらの値がマニフェスト v1 の実行ステータス列挙型に入力されることはありません。
+7. R4-A パブリケーションのクラッシュ ポイント、同時作成、同一冪等再試行、競合再試行、サポートされていないアトミック プリミティブ、ミューテックス/ロック所有権、および一時ファイル所有権のクリーンアップ。孤立ファイルの浄化は経過時間だけに頼ることはできません。
+8. R5-A 正確な不変マニフェストと B2 証拠からのみ再生成。証拠が欠落している、破損している、未完了、または矛盾している場合は拒否します。可変ソースを決して再スキャンしないでください。
+9. R7-A ローカル パブリケーションは、ドライブのレプリケーションとは関係なく成功します。レプリケーション 失敗 はローカル レポートを保存します。 ID とコンテンツの検証が成功するまで、PC 間での使用はブロックされます。
+10. UTC タイムスタンプ形式/将来の許容範囲、過去の経過期間、ゼロワーク対 失敗した 列挙と無効なファイル名のみ、無関係な実行スコープ エラーを伴う既知の期間の完了、およびすべての承認された OSD-03 集計ケース。
+11. 合成フィクスチャと一時ディレクトリのみ。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。証拠ステータス: **未実行 / まだ証拠がありません**。
 
-## Pure upload-staging capacity observation (2026-10-25)
+<a id="pure-upload-staging-capacity-observation-2026-10-25"></a>
+## 純粋なアップロード - ステージング 容量監視 (2026-10-25)
 
-`Get-EoStagingCapacityObservation` in [LogFunctions.ps1](../../Common/LogFunctions.ps1) implements section 5 arithmetic from supplied remaining-target bytes, available-free bytes and an explicit reliable observation flag. The two byte values accept nonnegative PowerShell Int32, Int64 or BigInteger only; null, bool, float/decimal, strings and negative values are rejected without conversion. The required value is BigInteger: `remaining + ceil(remaining / 10) + 100000000`, using integer division, never floating-point arithmetic. The fixed reserve is decimal bytes and also applies when remaining is zero; zero input is not a no-work decision.
+[LogFunctions.ps1](../../Common/LogFunctions.ps1) の `Get-EoStagingCapacityObservation` は、提供された残りのターゲット バイト、利用可能な空きバイト、および明示的な信頼できる監視フラグからセクション 5 演算を実装します。 2 バイト値は、負でない PowerShell Int32、Int64、または BigInteger のみを受け入れます。 null、ブール値、浮動小数点/10 進数、文字列および負の値は変換されずに拒否されます。必要な値は BigInteger: `remaining + ceil(remaining / 10) + 100000000` です。整数の除算を使用し、浮動小数点演算は使用しません。固定予約は 10 進数のバイトであり、残りがゼロの場合にも適用されます。ゼロインプットは仕事をしないという決定ではありません。
 
-Invalid numeric inputs return `rejected` with a fixed reason and null RequiredFreeBytes. Valid numbers with unconfirmed free space return `held`; confirmed insufficient space also returns `held`. A sufficient supplied observation returns `requires_runtime_evidence`. Every output has MayCreateStaging=false and MayUpload=false. The helper reads no volume metadata, creates no file, performs no reservation/wait/cleanup and never authenticates root, space, clock or provider.
+無効な数値入力は、固定理由付きの `rejected` と null RequiredFreeBytes を返します。未確認の空き領域を持つ有効な数値は `held` を返します。スペース不足が確認された場合も `held` が返されます。十分な観測結果が提供されると、`requires_runtime_evidence` が返されます。すべての出力には MayCreateStaging=false と MayUpload=false が含まれます。ヘルパーは、ボリューム メタデータの読み取り、ファイルの作成、予約/待機/クリーンアップを実行せず、ルート、スペース、クロック、またはプロバイダーを認証しません。
 
-The eventual uploader still needs an independently qualified initial observation and a fresh per-file observation, plus safe handling if capacity changes after a check. Reusing an earlier result is not a capacity reservation or write authorization. This implements the approved upload-staging formula only; it does not adopt a capacity policy for API downloads or qualify the download test fixture.
+最終的なアップローダーには、独立して認定された初期観察と新しいファイルごとの観察、さらにチェック後に容量が変更された場合の安全な処理が必要です。以前の結果を再利用することは、容量の予約や書き込み許可ではありません。これは、承認されたアップロード-ステージング 式のみを実装します。 API ダウンロードに対する容量ポリシーは採用されず、ダウンロード テスト フィクスチャの認定も行われません。
 
-[Tests](../../tests/Test-StagingCapacity.ps1) cover ceil boundaries, exact threshold and one-byte deficit, zero, numbers beyond Int64/IEEE-754 precision, type/reliability rejection, changing supplied capacity and non-authorizing flags. Formal staging/copy/runtime integration, real filesystem free-space observations and capacity-change failure acceptance remain pending.
+[テスト](../../tests/Test-StagingCapacity.ps1) は、セル境界、正確なしきい値と 1 バイト不足、ゼロ、Int64/IEEE-754 精度を超える数値、タイプ/信頼性の拒否、供給される容量の変更、および非許可フラグをカバーします。正式な ステージング/コピー/ランタイム統合、実際のファイルシステムの空き領域の観察、および容量変更の 失敗 の受け入れは 未確定 のままです。
 
-## Explicit remaining-target size aggregation (2026-10-25)
+<a id="explicit-remaining-target-size-aggregation-2026-10-25"></a>
+## 明示的な残りのターゲット サイズの集計 (2026-10-25)
 
-`Get-EoStagingCapacityFromSizes` accepts a one-dimensional array snapshot of explicitly selected remaining target sizes, validates every member as a nonnegative Int32/Int64/BigInteger, sums in BigInteger and calls the capacity observation helper. It preserves the input and returns RemainingTargetBytes/TargetCount plus the existing required-space observation. One invalid member rejects the entire set with no partial total. Scalar/string/null, nested members and multidimensional arrays are not coerced into size snapshots.
+`Get-EoStagingCapacityFromSizes` は、明示的に選択された残りのターゲット サイズの 1 次元配列スナップショットを受け入れ、すべてのメンバーを非負の Int32/Int64/BigInteger として検証し、BigInteger で合計し、容量監視ヘルパーを呼び出します。入力を保存し、RemainingTargetBytes/TargetCount と既存の必要なスペースの観測値を返します。 1 つの無効なメンバーが部分的な合計を持たずにセット全体を拒否します。スカラー/文字列/null、ネストされたメンバーおよび多次元配列は、スナップショットのサイズに強制されません。
 
-Selection is external: the helper does not inspect manifest states, subtract uploaded/unknown files, authenticate frozen inventory or decide which targets remain. Empty arrays yield total zero but still require the fixed reserve; they are not evidence of no work. Valid totals remain available for diagnostics when an independent free-space observation is invalid/unconfirmed, but every result retains MayCreateStaging=false and MayUpload=false. Fresh initial/per-file space, source/inventory qualification, safe copy and mid-copy capacity loss handling remain runtime gates.
+選択は外部です。ヘルパーはマニフェストの状態を検査したり、アップロード済み/不明 ファイルを減算したり、凍結されたインベントリを認証したり、どのターゲットが残っているかを決定したりしません。空の配列では合計がゼロになりますが、それでも固定の予約が必要です。それらは仕事をしていない証拠ではありません。独立した空き領域の観察が無効または未確認の場合でも、有効な合計は診断に利用できますが、すべての結果は MayCreateStaging=false および MayUpload=false を保持します。新しい初期/ファイルごとのスペース、ソース/インベントリの認定、安全なコピーとコピー中の容量損失の処理はランタイム ゲートのままです。
 
-The same [capacity test](../../tests/Test-StagingCapacity.ps1) covers empty/typed/mixed arrays, totals beyond Int64, ceil after summation, invalid members without partial totals, input preservation and independently supplied start/per-file selections. This does not set a download capacity policy or mark EOLM-STG-009 fully verified.
+同じ [容量テスト](../../tests/Test-StagingCapacity.ps1) は、空/型付き/混合配列、Int64 を超える合計、合計後のセル、部分合計のない無効なメンバー、入力の保持、および独立して提供される開始/ファイルごとの選択をカバーします。これは、ダウンロード容量ポリシーを設定したり、EOLM-STG-009 を完全に 確認済み としてマークしたりするものではありません。
 
-## Explicit sizes bound to exact manifest/B2 (2026-10-25)
+<a id="explicit-sizes-bound-to-exact-manifestb2-2026-10-25"></a>
+## 明示的なサイズが正確なマニフェスト/B2 にバインドされています (2026-10-25)
 
-`inspect_staging_target_sizes` in [ManifestTransitionInspection.py](../../Common/ManifestTransitionInspection.py) projects an explicit tuple of canonical relative paths from exact running-manifest/B2 bytes. It checks independent PC/log/target-period/run identity, strict schemas, B2 digest/counts/inventory equality, complete enumeration/classification coverage and `manifest start <= enumeration start <= finish <= reliable current UTC + 5 minutes`. Missing/duplicate/noncanonical selections and invalid selected filenames are rejected. Both PCs are supported without archive capabilities.
+[ManifestTransitionInspection.py](../../Common/ManifestTransitionInspection.py) の `inspect_staging_target_sizes` は、running状態のマニフェストと B2 の厳密なバイト列から、正規相対パスの明示的なタプルを作る。独立したPC・ログ種別・対象期間・実行の識別、厳密なスキーマ、B2 のダイジェスト・件数・一覧の一致、列挙・分類の完全な網羅性、`manifest start <= enumeration start <= finish <= reliable current UTC + 5 minutes` を検証する。欠落・重複・非正規な選択と、選択された無効なファイル名を拒否する。両PCに対応し、アーカイブの能力は提供しない。
 
-The immutable StagingSizeObservation binds the original bytes, explicit path order, integer target sizes and exact integer sum. Empty selection still validates the whole pair and yields zero without declaring no_work. Known validation errors remain in the original B2. Terminal manifests are not accepted as current planning inputs, but a running snapshot alone does not prove an active/new/fresh run, ownership or safe continuation.
+不変の StagingSizeObservation は、元のバイト、明示的なパス順序、整数のターゲット サイズ、および正確な整数の合計をバインドします。空の選択でもペア全体が検証され、no_work を宣言せずにゼロが返されます。既知の検証エラーは元の B2 に残ります。ターミナル マニフェストは現在の計画の入力として受け入れられませんが、実行中 スナップショットだけでは、アクティブ/新しい/新しい実行、所有権、または安全な継続を証明することはできません。
 
-The helper never determines remaining targets from pending/ready/other file states. In particular, pending occurs both before staging and before upload; only trusted event history can distinguish the lifecycle point. An explicitly selected ready/pending file's size is a numeric observation, not permission to recopy it. All may_create_staging/may_upload/may_archive flags are false, and the helper performs no I/O, state transition, publication or copy.
+ヘルパーは、未確定/準備済み/その他のファイルの状態から残りのターゲットを決定することはありません。特に、未確定 は ステージング の前とアップロード前の両方で発生します。信頼できるイベント履歴のみがライフサイクル ポイントを区別できます。明示的に選択された 準備済み/未確定 ファイルのサイズは数値的な観測値であり、再コピーの許可ではありません。すべての may_create_staging/may_upload/may_archive フラグは false であり、ヘルパーは I/O、状態遷移、パブリケーション、またはコピーを実行しません。
 
-These are internal Python observations, not a new IPC schema or implemented PS transport. Passing the size snapshot into the existing PS integer-capacity helpers, qualifying source/root/free space and enforcing event prerequisites at the actual use point remain runtime integration gates. [Tests](../../tests/test_staging_size_observation.py) cover both PCs/logs, order/huge integers/exact bytes, no implicit state selection, empty selection, invalid scope/clock/pair/coverage and preserved errors.
+これらは内部の Python 観察であり、新しい IPC スキーマや実装された PS トランスポートではありません。サイズ スナップショットを既存の PS 整数容量ヘルパーに渡し、ソース/ルート/空き領域を限定し、実際の使用ポイントでイベントの前提条件を強制することは、ランタイム統合ゲートのままです。 [テスト](../../tests/test_staging_size_observation.py) は、PC/ログ、順序/巨大な整数/正確なバイト、暗黙的な状態選択なし、空の選択、無効なスコープ/クロック/ペア/カバレッジ、および保存されたエラーの両方をカバーします。
 
-## Isolated Python-to-PowerShell capacity bridge (tests only, 2026-10-25)
+<a id="isolated-python-to-powershell-capacity-bridge-tests-only-2026-10-25"></a>
+## 絶縁型 Python-to-PowerShell 容量ブリッジ (テストのみ、2026-10-25)
 
-[Python integration tests](../../tests/test_staging_capacity_bridge.py) project explicit sizes from synthetic exact manifest/B2 and pass only size arrays, synthetic free bytes and reliability through stdin to a [fixed test driver](../../tests/staging_capacity_bridge.ps1). The driver loads the existing PS helper, enforces exact PowerShell 7.6.7 via its runtime guard, and returns numeric observations through stdout. No input is evaluated as code, no caller directory/destination is accepted, and no operational artifacts, capacity query or network calls are made.
+[Python 統合テスト](../../tests/test_staging_capacity_bridge.py) は、合成の正確なマニフェスト/B2 から明示的なサイズを投影し、サイズ配列、合成の空きバイト、および信頼性のみを標準入力経由で [テストドライバーを修正しました](../../tests/staging_capacity_bridge.ps1) に渡します。ドライバーは既存の PS ヘルパーをロードし、ランタイム ガードを介して正確な PowerShell 7.6.7 を強制し、標準出力を通じて数値観測を返します。入力はコードとして評価されず、発信者のディレクトリ/宛先は受け入れられず、操作上の成果物、容量のクエリ、またはネットワーク呼び出しは行われません。
 
-Tests cover both PCs/log types at exact threshold/one-byte deficit, values beyond Int64/IEEE-754 exact integers through JSON, empty selection/fixed reserve, unconfirmed space and invalid member types. Returned totals/reserves must remain JSON integers and all permission flags remain false. The test reports the actual PS version; local execution may select an executable with EOLM_TEST_PWSH, otherwise CI uses the pinned pwsh on PATH.
+テストは、正確なしきい値/1 バイト不足の PC/ログ タイプ、Int64 を超える値/IEEE-754 から JSON までの正確な整数、空の選択/固定予約、未確認のスペース、無効なメンバー タイプの両方をカバーします。返される合計/予備は JSON 整数のままでなければならず、すべての許可フラグは false のままでなければなりません。テストでは実際の PS バージョンが報告されます。ローカル実行では、EOLM_TEST_PWSH を使用して実行可能ファイルを選択できます。それ以外の場合、CI は PATH に固定された pwsh を使用します。
 
-This demonstrates numeric interoperability of the supplied synthetic data only. The stdin shape is not a runtime IPC/schema decision, does not qualify duplicate-key/encoding/timeout/security handling for a production transport, and does not adopt C-02 fields. Formal PS transport, trusted input provenance, target/event-history selection, real free-space/root/FS qualification and staging/copy integration remain unimplemented. Passing tests does not make a deployable runtime or weaken Dry Run A.
+これは、提供された合成データのみの数値相互運用性を示しています。標準入力の形状は実行時の IPC/スキーマの決定ではなく、運用トランスポートの重複キー/エンコーディング/タイムアウト/セキュリティ処理を認定せず、C-02 フィールドを採用しません。正式な PS トランスポート、信頼できる入力来歴、ターゲット/イベント履歴の選択、実際の空き領域/ルート/FS 認定、および ステージング/コピーの統合は未実装のままです。テストに合格しても、ランタイムがデプロイ可能になったり、Dry Run A が弱くなったりすることはありません。
 
-## Windows caller-available space metadata observation (2026-10-25)
+<a id="windows-caller-available-space-metadata-observation-2026-10-25"></a>
+## Windows 呼び出し元が利用可能なスペースのメタデータ監視 (2026-10-25)
 
-`Get-EoStagingFreeSpaceObservation` in [MachineConfigurationRootInspection.ps1](../../Common/MachineConfigurationRootInspection.ps1) observes an existing drive-rooted directory only. It rejects reparse components through the existing canonical directory inspector, obtains canonical volume/path observations before/after the query, and rejects detectable change or failure. The native [GetDiskFreeSpaceExW contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdiskfreespaceexw) distinguishes caller-available space from total volume free space (including per-user quota effects); this helper selects the caller-available UInt64 result and preserves it as BigInteger.
+[MachineConfigurationRootInspection.ps1](../../Common/MachineConfigurationRootInspection.ps1) の `Get-EoStagingFreeSpaceObservation` は、既存のドライブ ルート ディレクトリのみを監視します。既存の正規ディレクトリ インスペクターを介した再解析コンポーネントを拒否し、クエリの前後で正規のボリューム/パスの観察を取得し、検出可能な変更または 失敗 を拒否します。ネイティブ [GetDiskFreeSpaceExW コントラクト](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdiskfreespaceexw) は、呼び出し元が利用可能なスペースを総ボリューム空きスペース (ユーザーごとのクォータ効果を含む) から区別します。このヘルパーは、呼び出し元が利用可能な UInt64 結果を選択し、それを BigInteger として保存します。
 
-Success returns requires_runtime_evidence and AvailableFreeBytes only, with FreeSpaceReliable=false and MayCreateStaging/MayUpload=false. Failure returns held, a fixed reason and null bytes, without path/canonical name/raw exception output. No directory/file is created, repaired or cleaned by the helper. Dot-sourcing does not query space; calling it may initialize the existing Add-Type native metadata type. Dry Run A qualification of that initialization and runtime invocation remain absent.
+成功すると、FreeSpaceReliable=false および MayCreateStaging/MayUpload=false の場合、requires_runtime_evidence と AvailableFreeBytes のみが返されます。失敗すると、パス/正規名/生の例外出力なしで、保留、固定理由、および null バイトが返されます。ヘルパーによってディレクトリ/ファイルが作成、修復、または消去されることはありません。ドットソーシングはスペースをクエリしません。これを呼び出すと、既存の Add-Type ネイティブ メタデータ タイプが初期化される場合があります。 Dry Run 初期化とランタイム呼び出しの条件が欠落したままになります。
 
-The query does not authenticate the intended configured root, effective token/ACL, local/non-synced filesystem, metadata freshness, stable namespace across observations or capacity reservation. Canonical strings alone do not prove OS identity; the additional identity observations below remain non-authorizing and do not prove atomicity or ABA exclusion. Native/mapped/remote filesystem provider behavior and real operational roots are unqualified. Passing the result directly to the capacity helper with its false reliability flag must remain held. No external filesystem qualification is inferred from an API success.
+クエリは、意図した構成されたルート、有効なトークン/ACL、ローカル/非同期ファイルシステム、メタデータの鮮度、観測全体にわたる安定した名前空間、または容量予約を認証しません。正規文字列だけでは OS の同一性を証明できません。以下の追加の同一性観察は未承認のままであり、原子性や ABA の除外を証明するものではありません。ネイティブ/マップ/リモート ファイルシステム プロバイダーの動作と実際の運用ルートは修飾されていません。 false 信頼性フラグを使用して結果を容量ヘルパーに直接渡す場合は、保持されたままにする必要があります。 API 成功 からは外部ファイルシステム修飾子は推論されません。
 
-[Tests](../../tests/Test-StagingFreeSpace.ps1) use only a self-created marked OS-temp directory. They verify native metadata, exact mocked UInt64 maximum, missing/file/reparse/invalid paths, query failure/type mismatch, changed canonical observations, sanitized output, original bytes and unqualified-capacity hold. The existing root inspector regression remains applicable. This is a read observation, not accepted staging/copy/runtime integration or a download capacity policy.
+[テスト](../../tests/Test-StagingFreeSpace.ps1) は、自己作成のマーク付き OS-temp ディレクトリのみを使用します。これらは、ネイティブ メタデータ、正確なモックされた UInt64 最大値、欠落/ファイル/再解析/無効なパス、クエリ 失敗/タイプ 不一致、変更された正規の観察、サニタイズされた出力、元のバイト、および非修飾容量保持を検証します。既存のルート インスペクター回帰は引き続き適用されます。これは読み取り観察であり、ステージング/copy/runtime 統合またはダウンロード容量ポリシーは受け入れられません。
 
-## Handle-derived directory identity checks (2026-10-25)
+<a id="handle-derived-directory-identity-checks-2026-10-25"></a>
+## ハンドル由来のディレクトリ ID チェック (2026-10-25)
 
-The native root inspector now obtains canonical path plus volume serial and file-index high/low from the same opened directory handle. Its old CanonicalDirectory API delegates to the new observation and preserves its string result. The free-space wrapper compares all of these fields before/after the path-based query, rejecting a detected identity change even when the canonical name is unchanged. Identity/canonical metadata stays internal and is not added to the public capacity result or logs.
+ネイティブ ルート インスペクターは、開いている同じディレクトリ ハンドルから正規パスとボリューム シリアルおよびファイル インデックスの高/低を取得するようになりました。その古い CanonicalDirectory API は新しい監視に委任し、その文字列結果を保存します。空き領域ラッパーは、パスベースのクエリの前後でこれらすべてのフィールドを比較し、正規名が変更されていない場合でも、検出された ID の変更を拒否します。 ID/正規メタデータは内部に留まり、パブリック キャパシティの結果やログには追加されません。
 
-The [GetFileInformationByHandle documentation](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileinformationbyhandle) describes comparison of volume serial/file index. The [structure contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/ns-fileapi-by_handle_file_information) also warns of filesystem-specific support, file-ID reuse and non-unique 64-bit IDs on ReFS. These checks detect supplied/observable changes only: they do not select or qualify a filesystem, guarantee uniqueness/currentness, pin the directory throughout GetDiskFreeSpaceExW, exclude ABA, or prove an approved root. FreeSpaceReliable and all permission flags remain false.
+[GetFileInformationByHandle ドキュメント](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileinformationbyhandle) は、ボリュームシリアル/ファイルインデックスの比較を記述します。 [構造コントラクト](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/ns-fileapi-by_handle_file_information) は、ReFS 上のファイルシステム固有のサポート、ファイル ID の再利用、および一意でない 64 ビット ID についても警告します。これらのチェックは、提供された/監視可能な変更のみを検出します。ファイル システムの選択や修飾、一意性/最新性の保証、GetDiskFreeSpaceExW 全体でのディレクトリの固定、ABA の除外、または承認されたルートの証明は行いません。 FreeSpaceReliable であり、すべての許可フラグは false のままです。
 
-The free-space test adds changed serial/high/low with the same canonical string and actual same-path directory replacement during the query callback. Both move endpoints are verified inside its own synthetic OS-temp root; the original directory/bytes are preserved. Existing root canonical/alias/reparse regression remains unchanged. Formal root/provider/FS/token/Dry Run A and runtime acceptance remain open.
+空き領域テストでは、変更されたシリアル/高/低が同じ正規文字列で追加され、クエリ コールバック中に実際の同じパスのディレクトリが置換されます。両方の移動エンドポイントは、独自の合成 OS-temp ルート内の 確認済み です。元のディレクトリ/バイトは保持されます。既存のルート正規/エイリアス/再解析回帰は変更されません。正式な root/provider/FS/token/Dry Run A およびランタイムの受け入れはオープンのままです。
 
-## Extended file identity for free-space observations (2026-10-25)
+<a id="extended-file-identity-for-free-space-observations-2026-10-25"></a>
+## 空き領域観測用の拡張ファイル ID (2026-10-25)
 
-The free-space path now requires [GetFileInformationByHandleEx / FileIdInfo (0x12)](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getfileinformationbyhandleex) from the same opened directory handle. [FILE_ID_INFO](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_id_info) contains a 64-bit volume serial and 128 opaque file-ID bits. The internal immutable observation preserves the full volume value and both UInt64-sized ID portions; no float conversion, ID normalization or public-field serialization is performed.
+空きスペース パスには、同じ開かれたディレクトリ ハンドルからの [GetFileInformationByHandleEx / FileIdInfo (0x12)](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getfileinformationbyhandleex) が必要になります。 [FILE_ID_INFO](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_id_info) には、64 ビットのボリューム シリアルと 128 の不透明なファイル ID ビットが含まれます。内部の不変観察では、ボリューム全体の値と UInt64 サイズの ID 部分の両方が保存されます。浮動小数点数変換、ID 正規化、またはパブリックフィールドのシリアル化は実行されません。
 
-Both before/after observations must contain the extended identity, and every identity portion must match. Failure/unavailability or a legacy-only observation is held, with no fallback to 64-bit-only checks. A missing pre-query identity stops before reading free space. The old canonical-string/legacy observer APIs retain their existing behavior and do not require this extra provider capability; no configuration schema or owner-v2 identity format changes.
+前後の観測の両方に拡張 ID が含まれている必要があり、すべての ID 部分が一致する必要があります。障害/利用不能またはレガシーのみの監視は保持され、64 ビットのみのチェックへのフォールバックは行われません。クエリ前の ID が欠落していると、空き領域を読み取る前に停止します。古い正規文字列/レガシー オブザーバー API は既存の動作を保持しており、この追加のプロバイダー機能は必要ありません。構成スキーマや所有者 v2 ID 形式の変更はありません。
 
-Tests add native extended-identity acquisition, changes in all three UInt64 fields including adjacent values near UInt64 maximum, and missing pre/post identity/query failures. The native capability is demonstrated only on the synthetic test filesystem; this does not establish support or acceptance for other filesystems/providers. Wider IDs do not prevent reuse/ABA, pin the path through the space query, authenticate an intended root, or change FreeSpaceReliable/permission flags from false. Formal FS/token/root/runtime qualification remains open.
+テストでは、ネイティブ拡張 ID の取得、UInt64 の最大値に近い隣接する値を含む 3 つの UInt64 フィールドすべての変更、欠落している前後の ID/クエリの失敗が追加されます。ネイティブ機能は、合成テスト ファイルシステムでのみ実証されます。これは、他のファイルシステム/プロバイダーのサポートまたは受け入れを確立するものではありません。 ID を広くしても、再利用や ABA を妨げたり、スペース クエリを通じてパスを固定したり、意図したルートを認証したり、FreeSpaceReliable や許可フラグを false から変更したりすることはありません。正式な FS/トークン/ルート/ランタイム資格は未解決のままです。
 
-## Ancestor-chain identity observations (2026-10-25)
+<a id="ancestor-chain-identity-observations-2026-10-25"></a>
+## 祖先チェーンの同一性観測 (2026-10-25)
 
-The free-space wrapper now collects ordered directory observations from the selected leaf through its drive root, before and after the query. Each component is opened for the existing metadata-only canonical/extended-ID observation, with reparse-component checks around chain collection. Missing/empty/legacy identity observations, chain-length changes or any per-position canonical/identity difference cause held/null bytes. Component IDs and paths remain internal; the capacity output and all false permission/reliability flags are unchanged.
+空き領域ラッパーは、クエリの前後に、選択されたリーフからドライブ ルートを介して順序付けられたディレクトリの観察を収集するようになりました。各コンポーネントは、チェーン コレクションに関する再解析コンポーネント チェックを使用して、既存のメタデータのみの正規/拡張 ID 観察用に開かれます。欠落/空/レガシー ID 観測、チェーン長の変更、または位置ごとの正規/ID の違いにより、保持/null バイトが発生します。コンポーネント ID とパスは内部に残ります。容量出力とすべての false 許可/信頼性フラグは変更されません。
 
-This extends detection beyond replacement of the leaf itself. The synthetic test also moves a parent aside, creates a replacement under the old name, and moves the original leaf into it. It verifies that the leaf ID and bytes are unchanged, the parent ID changed, and the free-space wrapper holds. Both endpoints of each directory move are verified under its own marked OS-temp root. Synthetic empty/length-changed/parent-only-changed chains are also rejected.
+これにより、リーフ自体の交換を超えて検出が拡張されます。また、合成テストでは、親を脇に移動し、古い名前で代替を作成し、元のリーフをその中に移動します。リーフ ID とバイトが変更されていないこと、親 ID が変更されていること、および空き領域ラッパーが保持されていることを検証します。各ディレクトリ移動の両方のエンドポイントは、独自にマークされた OS-temp ルートの下の 確認済み になります。空の合成チェーン、長さが変更されたチェーン、親のみが変更されたチェーンも拒否されます。
 
-Collection is a sequence of metadata reads, not one atomic ancestry snapshot. Handles are closed before the path-based space query. It does not prevent changes during collection, ID reuse/ABA or later replacement, authenticate configured roots/ACL/token/FS, or reserve space. Formal operational root/provider and Dry Run A/runtime qualification remain pending. Existing canonical-string APIs and native metadata layout are unchanged.
+コレクションは、1 つのアトミック祖先スナップショットではなく、一連のメタデータ読み取りです。ハンドルは、パスベースの空間クエリの前に閉じられます。収集中の変更、ID の再利用/ABA またはその後の置換、設定されたルート/ACL/トークン/FS の認証、またはスペースの予約は妨げられません。正式な運用ルート/プロバイダーおよび Dry Run A/ランタイム資格は 未確定 のままです。既存の正規文字列 API とネイティブ メタデータ レイアウトは変更されません。

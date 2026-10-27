@@ -13,7 +13,7 @@
 | --- | --- | --- |
 | 各端末 | 当月 | 当年 |
 | クラウド | 当年のうち当月より前 | 前年 |
-| PC-A archive | 前年以前 | 前々年以前 |
+|PC-A アーカイブ| 前年以前 | 前々年以前 |
 
 2026年10月なら端末は10月BattleLog/2026年ErrorReport、クラウドは2026年1〜9月BattleLog/2025年ErrorReport、archiveは2025年以前BattleLog/2024年以前ErrorReportとなる。失敗・競合・処理途中の重複を配置完了とはしない。
 

@@ -1,6 +1,6 @@
 # Windows AC電源の読取専用観測
 
-2026-10-25。[承認㉓A](../../archive/decisions/selected-policy-decisions-20261024.md)の「両PCともAC接続時のみ」を支える[helper](../../../Common/PowerStatusObservation.py)。正式task/runtimeや実行許可は実装しない。
+2026-10-25。[承認㉓A](../../archive/decisions/selected-policy-decisions-20261024.md)の「両PCともAC接続時のみ」を支える[ヘルパー](../../../Common/PowerStatusObservation.py)。正式task/runtimeや実行許可は実装しない。
 
 ## APIと結果
 
@@ -10,11 +10,11 @@
 
 | 観測 | ac_connected | reason_code |
 | --- | --- | --- |
-| API成功、ACLineStatus=1 | True | power_ac_connected |
-| API成功、ACLineStatus=0 | False | power_ac_disconnected |
-| 255または未定義値 | None | power_status_unknown |
-| DLL load/照会失敗 | None | power_query_failed |
-| Windows以外 | None | power_platform_unsupported |
+| API成功、ACLineStatus=1 |真| power_ac_connected |
+| API成功、ACLineStatus=0 |偽| power_ac_disconnected |
+| 255または未定義値 |なし| power_status_unknown |
+| DLL load/照会失敗 |なし| power_query_failed |
+| Windows以外 |なし| power_platform_unsupported |
 
 電池の有無・充電flag・残量からACを推定しない。失敗時のzero初期化bufferをoffline/onlineと判定しない。結果はimmutableで、raw例外・OS error・電池情報を露出せず、may_start_run/may_check/may_archiveは常にfalse。結果object自体のtruthinessを資格判定にせず、利用側は`ac_connected is True`を要求する。
 

@@ -1,220 +1,243 @@
-# P0 Open Specification Decisions and Acceptance Blockers
+<a id="p0-open-specification-decisions-and-acceptance-blockers"></a>
+# P0 オープン仕様の決定と承認の阻害要因
 
-- Status: Policy choices for OSD-01–09 are recorded; detailed contracts, qualification and runtime acceptance remain open as shown in the current table.
-- Baseline: source repository at PR #25 merge `097e962a1636419ceb428182da2a6a91f6380273`; audit document updates include PR #28 merge `7f879b52d505ba120163528421f2839803d2b582`; the OSD-01–09 backlog was added in PR #29 merge `2cd9eba0dfe7ba7a43dae2e08952dbce576c03c8`.
-- Purpose: track selected policies and remaining specification, qualification and implementation blockers. Approval comes from the linked maintainer decision records; this ledger is not evidence that runtime behavior exists.
-- Rule: do not infer a value from implementation convenience. Each decision requires explicit operator/project approval or a documented not-applicable disposition before dependent runtime work is accepted.
-- Current policy selection: see [2026-10-24 answers](../archive/decisions/selected-policy-decisions-20261024.md) and [four implementation-grounded decisions](../archive/decisions/implementation-grounded-four-decisions-20261024.md). Older dated approval excerpts below describe their scope at that time; they are not the current unresolved list. The table below is the current status for this PR.
+- ステータス: OSD-01 ～ 09 のポリシーの選択が記録されています。現在の表に示されているように、詳細な契約、資格、実行時の受け入れは引き続きオープンです。
+- ベースライン: PR #25 のソース リポジトリが `097e962a1636419ceb428182da2a6a91f6380273` とマージされます。監査ドキュメントの更新には PR #28 マージ `7f879b52d505ba120163528421f2839803d2b582` が含まれます。 OSD-01–09 バックログが PR #29 マージ `2cd9eba0dfe7ba7a43dae2e08952dbce576c03c8` に追加されました。
+- 目的: 選択したポリシーと残りの仕様、認定、実装の阻害要因を追跡します。承認は、リンクされた管理者の決定記録から得られます。この台帳は、実行時の動作が存在することを示す証拠ではありません。
+- ルール: 実装の都合から値を推測しないでください。各決定には、依存するランタイム作業が受け入れられる前に、明示的なオペレーター/プロジェクトの承認、または文書化された適用外の処分が必要です。
+- 現在のポリシーの選択: [2026-10-24 の回答](../archive/decisions/selected-policy-decisions-20261024.md) および [実装に基づいた 4 つの決定](../archive/decisions/implementation-grounded-four-decisions-20261024.md) を参照してください。以下の古い日付の承認の抜粋は、当時の承認範囲を説明しています。それらは現在の未解決のリストではありません。以下の表は、この PR の現在のステータスです。
 
-| ID | Decision requiring resolution | Source / existing record | Related requirement IDs | Why it blocks acceptance | Required resolution/evidence | Status |
+|ID|解決が必要な決定|ソース/既存のレコード|関連する要件 ID|受け入れがブロックされる理由|必要な解決策/証拠|状態|
 |---|---|---|---|---|---|
-| OSD-01 | Define the trust criteria for attributing a pre-existing, unmarked Drive object to a PC/source file. | `docs/development/implementation-workflow.md` §2.4–2.5; `docs/design/staging-file-lifecycle.md` §7; `docs/decisions/decision-register-c18-c32.md` C-32; approved by maintainer in this conversation | EOLM-DRV-010, EOLM-SYN-006–009, EOLM-MAN-001–010, EOLM-TST-005, EOLM-TST-010 | Without an agreed trust predicate, an object with no trustworthy origin must not be treated as a verified duplicate or as archive-eligible. | Approved rule recorded below; integrate the pure comparison helper with qualified source/folder trust, all-page API listing and download hashing, then exercise unmarked provenance and runtime reconciliation without granting archive rights. | Resolved policy; pure content-comparison helper/synthetic fixtures implemented; trusted observations/API reconciliation/runtime pending |
-| OSD-02 | Approve manifest schema/version details and the complete allowed state-transition table, including required fields, per-file results, Drive identity, timestamps, crash/concurrency handling and schema compatibility. | `docs/decisions/decision-register-c18-c32.md` C-26; `docs/design/staging-file-lifecycle.md` §6–8; maintainer approvals on 2026-10-20 and 2026-10-21; `docs/design/manifest-schema-v1-proposal.md`; `docs/design/manifest-state-transition-v1-proposal.md`; `docs/archive/decisions/osd-02-crash-concurrency-options.md` | EOLM-MAN-001–012, EOLM-REQ-001, EOLM-STG-001–012, EOLM-TST-004–006, EOLM-TST-010 | Adopted transition tables, C1–C4 and manifest v1 field/timestamp policies are fixed. The PC-A wait checkpoint has a closed schema/pure reader, and snapshot/pair inspection now connects terminal proposals to B2/report construction in a pure plan. The manifest writer, event-prerequisite enforcement, checkpoint persistence/root/FS qualification and runtime evidence are absent. | Implement the approved manifest/lifecycle controls and checkpoint publication without changing manifest v1 fields; use synthetic crash/concurrency tests and separate qualified FS evidence. | Policy selected; persistence/integration/conformance/runtime evidence pending |
-| OSD-03 | Define deterministic run-level status aggregation for verified, failed, unknown, unclassifiable, and zero-work outcomes, including period completion. | `docs/design/filename-and-period-selection.md` §6–7; `docs/design/staging-file-lifecycle.md` §8; `docs/decisions/decision-register-c18-c32.md` C-25/C-26; `docs/archive/decisions/osd-03-status-aggregation-options.md`; `docs/design/reference/aggregation-report-v1-proposal.md`; `contracts/aggregation-report-v1.schema.json` | EOLM-FIL-004–005, EOLM-MAN-003–006, EOLM-MAN-009–012, EOLM-OPS-003, EOLM-TST-003, EOLM-TST-010 | Aggregation and report shape are approved. B2 V1 defines completed as classification coverage independently of errors; G1 derives report generated_at_utc from exact immutable input finish times. Source classification, report builder and referenced-artifact validator follow V1/G1; full report semantic re-derivation now checks counts/status/periods/errors against exact referenced inputs; trusted runtime publication remains absent. | Integrate the V1/G1 helpers into trusted runtime publication and test complete regeneration/crash behavior. Never upgrade historical incomplete records by inference. | V1/G1 helper alignment implemented; runtime publication/integration pending |
-| OSD-04 | Define exactly which local side effects Dry Run may perform, especially report output, manifest writes, lock state, temporary files and cleanup. | `docs/design/powershell-python-contract.md` §3/4/8/9; [A approval](../archive/decisions/dry-run-side-effect-policy-proposal.md); decision register OSD-04 (2026-10-24) | EOLM-DRV-016, EOLM-SAF-002, EOLM-SAF-006, EOLM-TST-005, EOLM-TST-007 | Maintainer selected A: no intentional application file writes, operational state changes, temp creation/cleanup or persistent diagnostics. B is not adopted. Implementation and runtime evidence remain absent; OSD-05 independently gates live metadata reads. | Apply A and the Dry Run exception in contract §3; design file-free IPC and dependency side-effect suppression, then implement and execute DRY fixtures. Do not re-ask A/B or treat policy approval as IPC/runtime acceptance. | Policy A approved — design/implementation/tests and runtime evidence pending |
-| OSD-05 | Select and validate the minimum Drive OAuth scope/authentication mechanism against the actual My Drive folder ownership, sharing and quota constraints. | `docs/decisions/decision-register-c18-c32.md` C-23/C-27; [authentication decision options](../archive/decisions/osd-05-drive-auth-identity-scope-options.md); `docs/design/powershell-python-contract.md` §2; `docs/release/distribution-design.md` §8/§11 | EOLM-DRV-007, EOLM-REL-010, EOLM-SEC-001, EOLM-TST-004–005 | I1 same Google principal, A1 Desktop OAuth, S1 drive.file, T1 Windows user-bound protected store, encrypted dedicated file and official Python client are selected. Concrete Windows API/ACL/lifecycle, SDK version/flow and actual My Drive visibility, ownership and quota remain unqualified. | Specify the store API and OAuth flow, then validate list/metadata/upload/download and both-PC file visibility under a separately authorized limited plan. No automatic scope expansion or production connection. | Partially resolved; store/API and real-folder qualification pending |
-| OSD-06 | Approve the release authorization and identity policy: protected release event/approval, tag/VERSION/package metadata consistency, source provenance and immutable version publication. | `docs/decisions/decision-register-c18-c32.md` C-27; `docs/release/distribution-design.md` §2–3/§7–8/§11 | EOLM-REL-004, EOLM-REL-006, EOLM-REL-010–014 | E1 reviewed release event plus explicit maintainer manual approval, followed by publication from GitHub Actions, is selected. Distribution principal, credential supply, provenance and release workflow remain unqualified. | Specify and validate CI distribution identity/provenance and tag/VERSION/commit/package checks; test that normal PR/push cannot publish and failures preserve the previous pointer. | Partially resolved; identity/provenance/workflow pending |
-| OSD-07 | Approve release retention duration and whether/when old package cleanup may be enabled. | `docs/decisions/decision-register-c18-c32.md` C-27; `docs/release/distribution-design.md` §3/§11 | EOLM-REL-005, EOLM-REL-007, EOLM-REL-015 | Automated cleanup could remove rollback artifacts without an approved retention rule. | Retain all release versions and keep automatic cleanup disabled under the 2026-10-24 selection; specify and verify rollback procedures without an implicit retention limit. | Resolved policy — retain all versions, no automatic cleanup; release/rollback implementation pending |
-| OSD-08 | Approve quiet/staggered scheduler times and the operational stale-lock/lease recovery policy before Task Scheduler rollout. | `docs/decisions/decision-register-c18-c32.md` C-24; `docs/development/implementation-workflow.md` Phase 8 | EOLM-OPS-001–006, EOLM-LCK-001–004, EOLM-TST-005, EOLM-TST-007–008 | Monthly day 1 PC-B 20:00 and PC-A 21:00 JST, logged-on/same-account-per-PC, AC-only, no wake, missed-run compensation and PC-A 24-hour/25-check budget are selected. The checkpoint schema/pure reader/attempt plan, fresh clock/AC/byte use-point inspection and mock publication tests are implemented; trusted read/write persistence, AC-loss behavior and task rollout remain incomplete. | Implement trusted checkpoint persistence and attempt-before-check accounting, then test monthly trigger, missed run, AC loss, holds, notification and manual recovery after initial manual runtime acceptance. | Policy selected; scheduler/persistence/qualification pending |
-| OSD-09 | Approve final per-PC package allowlists and deployment/migration behavior, including required versus optional paths and preservation of active config. | `docs/release/distribution-design.md` §3–6; P0-006/P0-009 | EOLM-CFG-001–007, EOLM-REL-001–003, EOLM-REL-007, EOLM-REL-013, EOLM-TST-006 | PC/version-specific explicit strict JSON plus JSON Schema file manifests and a separate confirmed PowerShell migration are selected. The 2026-10-24 review snapshot had 40 files; later C-01/transition/checkpoint helpers, AC observation, schema, pure content-comparison helper and residual-entry observer bring the review inventory to 50 files, but no official runtime entries or approved final release file list. | Review final required/optional dependencies after official runtime exists; implement exact file manifest, role exclusions, migration mapping/backup/diff/confirmation and unchanged active-config checks. | Partially resolved; final runtime lists/mappings/implementation pending |
+| OSD-01 |既存のマークされていないドライブ オブジェクトを PC/ソース ファイルに帰属するための信頼基準を定義します。|`docs/development/implementation-workflow.md` §2.4–2.5; `docs/design/staging-file-lifecycle.md` §7; `docs/decisions/decision-register-c18-c32.md` C-32;この会話でメンテナによって承認されました| EOLM-DRV-010, EOLM-SYN-006–009, EOLM-MAN-001–010, EOLM-TST-005, EOLM-TST-010 |合意された信頼述語がなければ、信頼できるオリジンを持たないオブジェクトを 確認済み 重複またはアーカイブ適格として扱ってはなりません。|承認されたルールは以下に記録されます。純粋な比較ヘルパーを修飾されたソース/フォルダーの信頼、全ページ API リスト、およびダウンロード ハッシュと統合し、アーカイブ権限を付与せずに、マークされていない来歴と実行時調整を実行します。|解決されたポリシー。純粋なコンテンツ比較ヘルパー/合成フィクスチャが実装されています。信頼できる観察/API 調整/ランタイム保留中|
+| OSD-02 |マニフェスト スキーマ/バージョンの詳細と、必須フィールド、ファイルごとの結果、ドライブ ID、タイムスタンプ、クラッシュ/同時実行処理、スキーマの互換性を含む完全な許可された状態遷移テーブルを承認します。|`docs/decisions/decision-register-c18-c32.md` C-26; `docs/design/staging-file-lifecycle.md` §6–8; 2026-10-20 および 2026-10-21 に関するメンテナの承認。 `docs/design/manifest-schema-v1-proposal.md`; `docs/design/manifest-state-transition-v1-proposal.md`; `docs/archive/decisions/osd-02-crash-concurrency-options.md`| EOLM-MAN-001–012, EOLM-REQ-001, EOLM-STG-001–012, EOLM-TST-004–006, EOLM-TST-010 |採用された遷移テーブル、C1–C4、およびマニフェスト v1 フィールド/タイムスタンプ ポリシーが修正されました。 PC-A 待機チェックポイントにはクローズド スキーマ/純粋リーダーがあり、スナップショット/ペア検査により、端末提案が純粋な計画の B2/レポート構築に接続されるようになりました。マニフェスト ライター、イベント前提条件の強制、チェックポイント永続性/ルート/FS 資格、および実行時の証拠がありません。|マニフェスト v1 フィールドを変更せずに、承認されたマニフェスト/ライフサイクル制御とチェックポイント公開を実装します。合成クラッシュ/同時実行テストと個別の適格な FS 証拠を使用します。|選択されたポリシー。永続性/統合/適合性/実行時の証拠は保留中|
+| OSD-03 |期間完了を含む、検証済み、失敗、不明、分類不能、作業ゼロの結果についての決定的な実行レベルのステータス集計を定義します。| `docs/design/filename-and-period-selection.md` §6–7; `docs/design/staging-file-lifecycle.md` §8; `docs/decisions/decision-register-c18-c32.md` C-25/C-26; `docs/archive/decisions/osd-03-status-aggregation-options.md`; `docs/design/reference/aggregation-report-v1-proposal.md`; `contracts/aggregation-report-v1.schema.json` | EOLM-FIL-004–005, EOLM-MAN-003–006, EOLM-MAN-009–012, EOLM-OPS-003, EOLM-TST-003, EOLM-TST-010 |集計とレポートの形式が承認されます。 B2 V1 では、エラーとは関係なく、完了を分類カバレッジとして定義しています。 G1 は、正確な不変入力終了時間からレポート generated_at_utc を派生します。ソース分類、レポート ビルダー、および参照成果物 バリデータは V1/G1 に準拠します。完全なレポート セマンティックの再導出では、正確な参照入力に対してカウント/ステータス/期間/エラーがチェックされるようになりました。信頼できるランタイム パブリケーションは存在しないままです。|V1/G1 ヘルパーを信頼できるランタイム パブリケーションに統合し、完全な再生成/クラッシュ動作をテストします。過去の不完全な記録を推測によってアップグレードしないでください。|V1/G1 ヘルパー アラインメントが実装されました。ランタイム公開/統合 未確定|
+| OSD-04 |Dry Run が実行する可能性のあるローカルの副作用、特にレポート出力、マニフェストの書き込み、ロック状態、一時ファイル、クリーンアップを正確に定義します。|`docs/design/powershell-python-contract.md` §3/4/8/9; [承認](../archive/decisions/dry-run-side-effect-policy-proposal.md);決定レジスタ OSD-04 (2026-10-24)| EOLM-DRV-016, EOLM-SAF-002, EOLM-SAF-006, EOLM-TST-005, EOLM-TST-007 |メンテナが選択した A: 意図的なアプリケーション ファイルの書き込み、動作状態の変更、一時的な作成/クリーンアップ、または永続的な診断はありません。 Bは採用されません。実装および実行時の証拠は依然として存在しない。 OSD-05 は、ライブ メタデータの読み取りを独立してゲートします。|契約 §3 に A と Dry Run 例外を適用します。ファイルフリーの IPC と依存関係の副作用抑制を設計し、DRY フィクスチャを実装して実行します。 A/B を再質問したり、ポリシーの承認を IPC/ランタイムの承認として扱ったりしないでください。|ポリシー A が承認されました — 設計/実装/テストおよび実行時の証拠は保留中です|
+| OSD-05 |実際のマイ ドライブ フォルダーの所有権、共有、およびクォータの制約に対して、最小のドライブ OAuth スコープ/認証メカニズムを選択して検証します。| `docs/decisions/decision-register-c18-c32.md` C-23/C-27; [認証決定オプション](../archive/decisions/osd-05-drive-auth-identity-scope-options.md); `docs/design/powershell-python-contract.md` §2; `docs/release/distribution-design.md` §8/§11 | EOLM-DRV-007, EOLM-REL-010, EOLM-SEC-001, EOLM-TST-004–005 |I1 同じ Google プリンシパル、A1 デスクトップ OAuth、S1 ドライブ.ファイル、T1 Windows ユーザーバインド保護ストア、暗号化された専用ファイル、および公式 Python クライアントが選択されています。具体的な Windows API/ACL/ライフサイクル、SDK バージョン/フロー、および実際のマイ ドライブの可視性、所有権、クォータは未修飾のままです。|ストア API および OAuth フローを指定し、個別に承認された制限付きプランに基づいて、リスト/メタデータ/アップロード/ダウンロード、および両方の PC ファイルの可視性を検証します。自動スコープ拡張や実稼働接続はありません。|部分的に解決されました。 store/API および実際のフォルダーの認定は保留中です|
+| OSD-06 |リリース承認および同一性 ポリシーを承認します。保護されたリリース イベント/承認、タグ/バージョン/パッケージのメタデータの一貫性、ソースの出所、および不変バージョンの公開。| `docs/decisions/decision-register-c18-c32.md` C-27; `docs/release/distribution-design.md` §2–3/§7–8/§11 | EOLM-REL-004, EOLM-REL-006, EOLM-REL-010–014 |E1 でレビューされたリリース イベントと明示的なメンテナーによる手動承認、それに続く GitHub Actions からの公開が選択されます。配布プリンシパル、認証情報の供給、来歴、およびリリースのワークフローは未認定のままです。|CI ディストリビューションの同一性/来歴とタグ/バージョン/コミット/パッケージのチェックを指定して検証します。通常の PR/プッシュが公開できず、失敗すると前のポインタが保持されることをテストします。|部分的に解決されました。身元/来歴/ワークフロー保留中|
+| OSD-07 |リリースの保持期間と、古いパッケージのクリーンアップを有効にするかどうか/いつ有効にするかを承認します。| `docs/decisions/decision-register-c18-c32.md` C-27; `docs/release/distribution-design.md` §3/§11 | EOLM-REL-005, EOLM-REL-007, EOLM-REL-015 |自動クリーンアップにより、承認された保持ルールがなければロールバック 成果物が削除される可能性があります。|すべてのリリース バージョンを保持し、2026-10-24 の選択で自動クリーンアップを無効のままにします。暗黙の保持制限を設けずにロールバック手順を指定および検証します。|解決済みポリシー — すべてのバージョンを保持し、自動クリーンアップは行いません。リリース/ロールバック実装保留中|
+| OSD-08 |タスク スケジューラをロールアウトする前に、静かな/時差のあるスケジューラ時間と運用上の古いロック/リースの回復ポリシーを承認します。|`docs/decisions/decision-register-c18-c32.md` C-24; `docs/development/implementation-workflow.md` フェーズ 8| EOLM-OPS-001–006, EOLM-LCK-001–004, EOLM-TST-005, EOLM-TST-007–008 |毎月の日 1 PC-B 20:00 および PC-A 21:00 JST、ログオン/PC ごとに同じアカウント、AC のみ、スリープ解除なし、実行ミスの補償および PC-A 24 時間/25 チェック予算が選択されます。チェックポイント スキーマ/純粋なリーダー/試行計画、フレッシュ クロック/AC/バイト ユースポイント検査、および模擬パブリケーション テストが実装されています。信頼できる読み取り/書き込み永続性、AC 損失動作、およびタスクのロールアウトは不完全なままです。|信頼できるチェックポイントの永続性とチェック前試行アカウンティングを実装し、月次トリガー、実行ミス、AC 損失、保留、通知、および最初の手動ランタイム受け入れ後の手動リカバリをテストします。|選択されたポリシー。スケジューラー/永続性/資格保留中|
+| OSD-09 |PC ごとの最終的なパッケージ許可リストと展開/移行動作 (必須パスとオプション パス、アクティブな構成の保存など) を承認します。| `docs/release/distribution-design.md` §3–6; P0-006/P0-009 | EOLM-CFG-001–007, EOLM-REL-001–003, EOLM-REL-007, EOLM-REL-013, EOLM-TST-006 |PC/バージョン固有の明示的な厳密な JSON プラス JSON Schema ファイル マニフェストと、個別に確認された PowerShell 移行が選択されます。 2026-10-24 レビュー スナップショットには 40 ファイルが含まれていました。その後、C-01/transition/checkpoint ヘルパー、AC 観察、スキーマ、純粋なコンテンツ比較ヘルパー、および残差エントリ オブザーバーによってレビュー インベントリが 50 ファイルに取り込まれますが、公式のランタイム エントリや承認された最終リリース ファイル リストはありません。|公式ランタイムが存在した後、最終的な必須/オプションの依存関係を確認します。正確なファイルマニフェスト、ロールの除外、移行マッピング/バックアップ/差分/確認、および未変更のアクティブ構成チェックを実装します。|部分的に解決されました。最終的なランタイム リスト/マッピング/実装保留中|
 
-## Approved decision record — OSD-01
+<a id="approved-decision-record--osd-01"></a>
+## 承認された決定記録 — OSD-01
 
-- **Approving authority:** project maintainer (explicit approval in conversation on 2026-10-20).
-- **Chosen rule:** A file is a same-content comparison candidate only when its name, size, and SHA-256 match the trusted comparison source and exactly one matching candidate exists in the fully enumerated target Drive folder. Candidate identification and archive authorization are separate decisions.
-- **Additional mandatory conditions:**
-  1. The comparison source must be a confirmed, trusted PC-A backup/source record. If its integrity or provenance is not established, hold the item; a matching hash does not establish the source's provenance by itself.
-  2. Drive candidate enumeration must complete successfully, including all pages and the intended target folder. API errors, incomplete pagination, insufficient access, or uncertain scope must not be interpreted as zero/one candidate; hold and fail closed.
-  3. A match establishes only a same-content comparison candidate. It does not by itself authorize restore, declare synchronization successful, prove trusted origin, or permit archive.
-  4. If a trustworthy Drive SHA-256 is unavailable, download the candidate through the Drive API and compute SHA-256 locally. Metadata-only name/size matching is insufficient. Download/hash failure or size/hash mismatch means hold and fail closed.
-- **Fail-closed outcomes:** zero matches, multiple matches, ambiguous identity, untrusted comparison source, incomplete/failed listing, inaccessible target, hash acquisition/verification failure, or any mismatch must not trigger automatic restore, sync-success classification, archive, overwrite, or deletion. Record the conflict/incomplete result and preserve originals.
-- **Rationale:** separates content identity from provenance and operational authorization; prevents incomplete searches or untrusted reference data from being treated as proof.
-- **Affected requirements:** EOLM-DRV-010, EOLM-SYN-006–009, EOLM-MAN-001–010, EOLM-ARC-001–005, EOLM-TST-005, EOLM-TST-010; implementation workflow §2.4–2.5.
-- **Disposition:** policy decision resolved. The [pure comparison helper](../design/reference/drive-content-comparison.md) and synthetic zero/one/multiple/unknown/hash-fallback fixtures are implemented. Trusted source/folder observations, actual pagination/download, API reconciliation and objective runtime evidence remain pending; this does not close P0-010 or mark affected requirements verified.
+- **承認権限:** プロジェクト管理者 (2026-10-20 の会話で明示的に承認)。
+- **選択されたルール:** ファイルは、その名前、サイズ、および SHA-256 が信頼できる比較ソースと一致し、完全に列挙されたターゲット ドライブ フォルダーに一致する候補が 1 つだけ存在する場合にのみ、同一内容の比較候補になります。対象候補の特定とアーカイブの承認は別個の決定です。
+- **追加の必須条件:**
+  1. 比較ソースは、確認済みの信頼できる PC-A バックアップ/ソース レコードである必要があります。その完全性または出所が確立されていない場合は、そのアイテムを保管してください。ハッシュの一致は、それ自体で情報源の出所を証明するものではありません。
+  2. ドライブ候補の列挙は、すべてのページと対象のターゲット フォルダーを含めて 完了 成功する必要があります。 API エラー、未完了 ページネーション、不十分なアクセス、または不確実な範囲を 0/1 の候補として解釈してはなりません。押し続けてフェールクローズします。
+  3. 一致では、同じ内容の比較候補のみが確立されます。それ自体では、復元を承認したり、同期が成功したことを宣言したり、信頼できる発信元を証明したり、アーカイブを許可したりすることはありません。
+  4. 信頼できるドライブ SHA-256 が 利用不能 の場合、ドライブ API を通じて候補をダウンロードし、ローカルで SHA-256 を計算します。メタデータのみの名前/サイズの一致では不十分です。ダウンロード/ハッシュ 失敗 またはサイズ/ハッシュ 不一致 は、ホールドとフェール クローズを意味します。
+- **フェイルクローズ結果:** ゼロ一致、複数一致、曖昧 ID、信頼できない比較ソース、未完了/失敗した リスト、アクセス不能ターゲット、ハッシュ取得/検証 失敗、または任意の 不一致 は自動復元、同期 成功 分類、アーカイブをトリガーしてはなりません。上書き、または削除します。競合/未完了 の結果を記録し、オリジナルを保存します。
+- **根拠:** は、コンテンツの同一性を出所および操作上の認可から分離します。 未完了 検索や信頼できない参照データが証拠として扱われないようにします。
+- **影響を受ける要件:** EOLM-DRV-010、EOLM-SYN-006–009、EOLM-MAN-001–010、EOLM-ARC-001–005、EOLM-TST-005、EOLM-TST-010。実装ワークフロー §2.4–2.5。
+- **Disposition:** ポリシー決定が解決されました。 [純粋な比較ヘルパー](../design/reference/drive-content-comparison.md) および合成ゼロ/ワン/マルチプル/不明/ハッシュ フォールバック フィクスチャが実装されています。信頼できるソース/フォルダーの観察、実際のページネーション/ダウンロード、API 調整および実行時の客観的な証拠は 未確定 のままです。これは P0-010 を閉じたり、影響を受ける要件 確認済み をマークしたりするものではありません。
 
-## Approved decision record — OSD-02 version compatibility
+<a id="approved-decision-record--osd-02-version-compatibility"></a>
+## 承認された決定レコード — OSD-02 バージョンの互換性
 
-- **Approving authority:** project maintainer (explicit approval in conversation on 2026-10-20).
-- **Chosen rule:** the maintenance manifest must carry a required schema-version field; the initial schema version is integer `1`.
-- **Invalid or unsupported input:** a missing, malformed, or unsupported schema version causes the manifest to be rejected and processing to stop safely. It must never be interpreted as success.
-- **Compatibility:** no implicit migration, rewrite, or in-place conversion of existing manifests. Any future migration requires an explicit versioned migration design and tests.
-- **State transitions:** allowed and forbidden transitions must be specified in a normative table and enforced by tests. This approval does not yet approve the transition table or all field-level schema details.
-- **Rationale:** explicit versioning prevents ambiguous interpretation of historical manifests and prevents silent data mutation.
-- **Affected requirements:** EOLM-MAN-001–009, EOLM-MAN-012, EOLM-REQ-001, EOLM-STG-001–012, EOLM-TST-004–006, EOLM-TST-010.
-- **Disposition:** version/compatibility policy approved; OSD-02 remains partially open pending field-level schema, transition, timestamp/freshness and crash/concurrency decisions, implementation, executable tests, and runtime evidence.
+- **承認権限:** プロジェクト管理者 (2026-10-20 の会話で明示的に承認)。
+- **選択されたルール:** メンテナンス マニフェストには必須のスキーマ バージョン フィールドが含まれている必要があります。初期のスキーマ バージョンは整数 `1` です。
+- **無効またはサポートされていない入力:** 欠落、不正、またはサポートされていないスキーマ バージョンにより、マニフェストが拒否され、処理が安全に停止します。決して 成功 として解釈してはなりません。
+- **互換性:** 既存のマニフェストの暗黙的な移行、書き換え、またはインプレース変換はありません。将来の移行には、明示的にバージョン管理された移行設計とテストが必要です。
+- **状態遷移:** 許可される遷移と禁止される遷移は、規範的なテーブルで指定され、テストによって強制される必要があります。この承認では、遷移テーブルまたはすべてのフィールド レベルのスキーマの詳細はまだ承認されていません。
+- **根拠:** 明示的なバージョニングにより、履歴マニフェストの 曖昧 解釈が防止され、サイレント データ変更が防止されます。
+- **影響を受ける要件:** EOLM-MAN-001–009、EOLM-MAN-012、EOLM-REQ-001、EOLM-STG-001–012、EOLM-TST-004–006、EOLM-TST-010。
+- **Disposition:** バージョン/互換性ポリシーが承認されました。 OSD-02 は部分的にオープンのままです 未確定 フィールドレベルのスキーマ、遷移、タイムスタンプ/鮮度、クラッシュ/同時実行性の決定、実装、実行可能テスト、および実行時の証拠。
 
-## Resolved rule that must not be reopened implicitly
+<a id="resolved-rule-that-must-not-be-reopened-implicitly"></a>
+## 暗黙的に再度開いてはいけない解決されたルール
 
-- Period eligibility is based on the date parsed from the filename only; `LastWriteTime` and verified metadata must not replace or override filename-derived eligibility. See C-25 and the implementation-workflow crosswalk. The remaining filename-date/metadata disagreement item is a test-coverage gap, not a request to change this rule.
+- 期間の対象条件は、ファイル名のみから解析された日付に基づきます。 `LastWriteTime` および 確認済み メタデータは、ファイル名由来の適格性を置き換えたり上書きしたりしてはなりません。 C-25 と実装ワークフローのクロスウォークを参照してください。残りのファイル名、日付、メタデータの不一致項目はテスト カバレッジのギャップであり、このルールの変更要求ではありません。
 
-## Acceptance and change-control rule
+<a id="acceptance-and-change-control-rule"></a>
+## 承認および変更管理ルール
 
-1. A decision is resolved only when the approving authority, chosen value/rule, rationale, and affected requirement IDs are recorded in the decision register or authoritative specification.
-2. Update traceability, implementation, tests and handoff together when a decision is approved.
-3. Do not mark a requirement `verified` based on this backlog or on documentation/schema CI alone.
-4. No local source-log deletion or Google Drive deletion may be introduced in P0–P2. PC-B must not gain an archive entry point.
-5. P0-010 remains open until every source clause is mapped or explicitly dispositioned and the required implementation/test/evidence status is accurate.
-
-
-## OSD-02 field specification approval — 2026-10-21
-
-- The maintainer approved the contents of `docs/design/manifest-schema-v1-proposal.md`: the required field set, names, types, enums, nullability, verification object, and field-level constraints. The document is now the approved field specification, but it is not an executable schema or runtime implementation.
-- The approved design keeps run identity/status, target files, and Drive content-verification evidence in one manifest. The approved version rule remains integer `schema_version: 1`; unsupported/malformed versions are rejected and no implicit migration is permitted.
-- Next review artifact: `docs/design/manifest-state-transition-v1-proposal.md`. The transition rows were candidates at that earlier review point; conditional normative adoption is recorded in the 2026-10-24 selection record. Persistence details, conformance tests and runtime evidence remain incomplete.
-- Still requiring decisions: exhaustive file/run transition rules and cross-field consistency; outcome and run/period aggregation with OSD-03; crash/concurrency and latest-manifest tie-breaking; crash/concurrency and latest-manifest tie-breaking.
-- No runtime implementation, executable schema validation, transition enforcement, or operational evidence is claimed.
+1. 決定は、承認機関、選択された値/ルール、根拠、および影響を受ける要件 ID が決定記録簿または権限のある仕様に記録されている場合にのみ解決されます。
+2. 決定が承認されると、トレーサビリティ、実装、テスト、および引き継ぎをまとめて更新します。
+3. このバックログまたはドキュメント/スキーマ CI のみに基づいて要件 `verified` をマークしないでください。
+4. P0 ～ P2 では、ローカル ソース ログの削除または Google Drive の削除が導入される可能性があります。 PC-B はアーカイブ エントリ ポイントを取得してはなりません。
+5. P0-010 は、すべてのソース句がマップされるか明示的に処理され、必要な実装/テスト/証拠のステータスが正確になるまで、開いたままになります。
 
 
-## Approved decision record — OSD-02 manifest v1 field specification
+<a id="osd-02-field-specification-approval--2026-10-21"></a>
+## OSD-02 フィールド仕様の承認 — 2026-10-21
 
-- **Approving authority:** project maintainer (explicit approval in conversation on 2026-10-21).
-- **Approved artifact:** `docs/design/manifest-schema-v1-proposal.md`, including the run-level fields, per-file fields, verification object, types, enums, nullability, and stated field-level validation constraints.
-- **Scope boundary:** approval fixes the field specification only. It does not approve the complete allowed/forbidden state-transition table, run/period aggregation under OSD-03, timestamp freshness/clock-skew policy under EOLM-MAN-011, crash/concurrency semantics, executable schema, runtime implementation, or operational evidence.
-- **Next step:** review `docs/design/manifest-state-transition-v1-proposal.md` and decide the proposed transition rules explicitly.
-- **Disposition:** field specification approved; OSD-02 remains partially open and P0-010 remains open.
-
-
-## OSD-02 transition clarification — initial per-file state
-
-- **Approving authority:** project maintainer (explicit selection of option A on 2026-10-21).
-- **Chosen rule:** new run target entries begin in `pending` to mean registered for processing before staging. When staging begins, transition `pending → staging → ready`; immediately before upload, transition `ready → pending` to record that upload has not yet been confirmed as started/successful.
-- **Disambiguation:** the same `pending` enum is used at two distinct lifecycle points. Its meaning is determined by the preceding state and event history; `pending` by itself is never evidence of upload attempt or success. The manifest schema has no separate event-history field in the approved field set, so the implementation must validate transition sequence using available run processing context and persisted state changes without inventing new fields.
-- **Scope:** this resolves the initial-state ambiguity only. The verification-result mapping and retry-exhaustion rule are approved. Terminal file states, run aggregation, timestamps/freshness, and crash/concurrency policy remain open. The transition table is still a proposal, not a fully approved normative table.
+- メンテナは、`docs/design/manifest-schema-v1-proposal.md` の内容 (必須フィールド セット、名前、型、列挙型、NULL 可能性、検証オブジェクト、およびフィールド レベルの制約) を承認しました。このドキュメントは承認されたフィールド仕様になりましたが、実行可能なスキーマまたはランタイム実装ではありません。
+- 承認された設計では、実行 ID/ステータス、ターゲット ファイル、ドライブ コンテンツ検証証拠が 1 つのマニフェストに保存されます。承認されたバージョン ルールは整数 `schema_version: 1` のままです。サポートされていない/不正なバージョンは拒否され、暗黙的な移行は許可されません。
+- 次のレビュー 成果物: `docs/design/manifest-state-transition-v1-proposal.md`。移行行は、以前のレビュー時点では候補でした。条件付きの規範的採用は、2026-10-24 選択記録に記録されます。永続性の詳細、適合性テスト、実行時の証拠は 未完了 のままです。
+- まだ決定が必要です: 徹底的なファイル/実行移行ルールとフィールド間の一貫性。 OSD-03 による結果と実行/期間の集計。クラッシュ/同時実行および最新のマニフェストのタイブレーク。クラッシュ/同時実行および最新のマニフェストのタイブレーク。
+- ランタイム実装、実行可能スキーマの検証、移行の強制、または運用上の証拠は主張されていません。
 
 
-## OSD-02 transition clarification — verification-result mapping
+<a id="approved-decision-record--osd-02-manifest-v1-field-specification"></a>
+## 承認された決定レコード — OSD-02 マニフェスト v1 フィールド仕様
 
-- **Approving authority:** project maintainer (explicit approval in conversation on 2026-10-21).
-- **Chosen mapping:** verification status `verified` maps to file status `verified`; `mismatch` maps to `failed`; `unavailable`, `ambiguous`, and verification-operation `failed` map to `unknown`; `not_checked` leaves the current file status unchanged.
-- **Safety interpretation:** `mismatch` is evidence of a known content mismatch and is therefore a confirmed file failure. `unavailable`, `ambiguous`, or a failed verification operation do not establish the cloud object's content/state, so the file remains `unknown`; these states must not authorize success, archive, overwrite, or deletion. `not_checked` is not a state transition and must not overwrite the existing file status.
-- **Scope boundary:** this approves only the verification-result-to-file-status mapping. It does not approve all verification method/time/hash combinations, retry-exhaustion behavior, terminal-state rules, run/period aggregation under OSD-03, freshness/clock-skew, crash/concurrency, or the complete normative transition table. OSD-02 and P0-010 remain open.
-
-
-## OSD-02 transition clarification — retry exhaustion — 2026-10-21
-
-- **Approving authority:** project maintainer (explicit approval in conversation on 2026-10-21).
-- **Chosen rule:** exhausting the retry budget does not itself determine the per-file state. Set file status to `failed` only when reliable evidence confirms the operation did not succeed and the failure is definitive (for example, an explicit non-retryable rejection that guarantees no object was created, or a confirmed content mismatch). If the remote upload outcome remains uncertain, retain `unknown`.
-- **Verification failures:** `mismatch → failed`; `unavailable`, `ambiguous`, and verification-operation `failed` → `unknown`. An inability to verify is not evidence of content mismatch.
-- **Safety boundary:** a timeout, communication failure, incomplete Drive enumeration, or retry exhaustion alone must never be converted to `failed`. A retry after an uncertain upload requires complete, trustworthy reconciliation of Drive state first.
-- **Scope boundary:** this resolves retry-exhaustion classification only. It does not approve terminal-state immutability, verification method/time/hash combinations, run/period aggregation under OSD-03, freshness, crash/concurrency, or the full transition table. OSD-02 and P0-010 remain open.
+- **承認権限:** プロジェクト管理者 (2026-10-21 の会話で明示的に承認)。
+- **承認された成果物:** `docs/design/manifest-schema-v1-proposal.md` (実行レベル フィールド、ファイルごとのフィールド、検証オブジェクト、型、列挙型、NULL 可能性、および指定されたフィールド レベルの検証制約を含む)。
+- **スコープ境界:** 承認はフィールド仕様のみを修正します。 完了 の許可/禁止された状態遷移テーブル、OSD-03 に基づく実行/期間集計、EOLM-MAN-011 に基づくタイムスタンプの鮮度/クロック スキュー ポリシー、クラッシュ/同時実行セマンティクス、実行可能スキーマ、ランタイム実装、または運用上の証拠は承認されません。
+- **次のステップ:** `docs/design/manifest-state-transition-v1-proposal.md` をレビューし、提案された移行ルールを明示的に決定します。
+- **Disposition:** フィールド仕様が承認されました。 OSD-02 は部分的に開いたままとなり、P0-010 は開いたままになります。
 
 
-## OSD-02 retry-exhaustion exception-case clarification — 2026-10-21
+<a id="osd-02-transition-clarification--initial-per-file-state"></a>
+## OSD-02 遷移の明確化 - ファイルごとの初期状態
 
-- **Approving authority:** project maintainer (explicit approval in conversation on 2026-10-21).
-- **Approved rule:** EX-01–EX-10 and cross-cutting retry/reconciliation rules are recorded in `docs/design/manifest-state-transition-v1-proposal.md` §6 and `docs/decisions/decision-register-c18-c32.md`.
-- **Core classification:** `failed` requires reliable evidence of definitive non-success, including a confirmed content mismatch or a rejection whose operation contract guarantees that no remote object was created. If remote state is uncertain, use `unknown`. Retry exhaustion, timeout, communication loss, incomplete Drive enumeration, ambiguous candidates, and verification-operation failure do not by themselves establish definitive failure.
-- **Retry gate:** `unknown → pending` requires complete and trustworthy reconciliation proving target absence plus retry-policy permission. Incomplete pagination, insufficient access, or uncertain query scope blocks retry. A same-content candidate may become `verified` only after OSD-01 trust, uniqueness, and actual content verification are satisfied.
-- **Archive gate:** archive must independently re-query and re-verify current Drive state; prior `verified` evidence alone is insufficient. Current mismatch blocks archive; unavailable/ambiguous/verification-operation failure remains `unknown` and blocks archive.
-- **Scope boundary:** this resolves the retry exception-case policy only. It does not approve the full normative transition table or close OSD-02/P0-010. Terminal-state behavior, verification method/time/hash combinations, OSD-03 aggregation, freshness/clock-skew, crash/concurrency/latest-manifest resolution, executable tests, and runtime evidence remain open.
-
-
-## OSD-02 transition clarification — terminal file states — 2026-10-21
-
-- **Approving authority:** project maintainer (explicit selection of option A in conversation on 2026-10-21).
-- **Chosen rule:** `verified` and `failed` are terminal file states within one `run_id`; no transition out of either state is permitted in that run. A later run uses a new `run_id` and a new manifest rather than rewriting historical results.
-- **Archive gate:** archive must independently re-query and re-verify the current Drive object. A current mismatch, unavailable/ambiguous result, or verification-operation failure blocks archive and must be recorded in sanitized operational diagnostics. It does not mutate the prior manifest or transition the prior run's file state.
-- **Scope boundary:** this resolves post-verification and terminal file-state semantics only. Run-level terminal transitions and OSD-03 aggregation, verification method/time/hash combinations, timestamp freshness/clock-skew, crash/concurrency/latest-manifest selection, executable tests, and runtime evidence remain open. OSD-02 remains partially resolved and P0-010 remains open.
-
-## OSD-02 transition clarification — verification object method/time/hash consistency — 2026-10-21
-
-- **Approving authority:** project maintainer (explicit selection of option A in conversation on 2026-10-21).
-- **Chosen rule:** `verification.method` states the method actually used to obtain an observed content hash, not merely a method attempted.
-- **Allowed combinations:** `not_checked` uses `not_performed` with null timestamp and null hash; `verified`/`mismatch` require an actual hash method, non-null timestamp, and observed hash; `unavailable`/`ambiguous`/verification-operation `failed` without an observed hash use `not_performed`, a non-null attempt timestamp, and null hash.
-- **Diagnostics:** detailed attempted method, sanitized error, and retry history belong in sanitized operational logs. An arbitrary candidate hash must not be recorded where candidate identity is ambiguous. `mismatch` requires an observed hash that differs from the expected source hash.
-- **Invalid combinations:** reject any combination outside the approved table in `docs/design/manifest-state-transition-v1-proposal.md` §4.
-- **Scope boundary:** this resolves verification-object field consistency only. Run-level status/time consistency, OSD-03 aggregation, timestamp freshness/clock-skew, crash/concurrency/latest-manifest selection, executable validation tests, and runtime evidence remain open. OSD-02 and P0-010 remain open.
-
-## OSD-02 transition clarification — run status and finish-time consistency — 2026-10-21
-
-- **Approving authority:** project maintainer (explicit approval of option A in conversation on 2026-10-21).
-- **Chosen rule:** `started_at_utc` is required in every run state. `running` requires `finished_at_utc: null`; `success`, `partial_failure`, and `failure` require non-null `finished_at_utc`.
-- **Validation:** reject status/finish-time combinations outside this rule.
-- **Boundary:** timestamp ordering, freshness, future-time and clock-skew rules remain open and separate. A crash-left `running` manifest is not automatically converted to `failure`; crash/concurrency policy remains open.
-- **Scope boundary:** this resolves run status/finish-time consistency only. OSD-03 aggregation, timestamp ordering/freshness/clock-skew, crash/concurrency/latest-manifest selection, executable tests, and runtime evidence remain open. OSD-02 and P0-010 remain open.
-
-## OSD-02 transition clarification — timestamp validation policy shape — 2026-10-21
-
-- **Approving authority:** project maintainer (explicit approval of option A in conversation on 2026-10-21).
-- **Chosen rule:** require UTC ISO 8601 timestamps with a `Z` designator; reject malformed/unparseable values and finish times earlier than start times without silently correcting them.
-- **Future time and freshness:** use configuration-driven future-time/clock-skew tolerance and context-appropriate freshness thresholds; reject values beyond configured future tolerance.
-- **Still open:** numeric configuration values, exact contexts in which freshness applies, and clock synchronization/monitoring expectations under EOLM-MAN-011.
-- **Scope boundary:** this approves the timestamp policy shape only. OSD-03 aggregation, crash/concurrency/latest-manifest selection, executable tests, runtime evidence, and numeric timestamp configuration remain open. OSD-02 and P0-010 remain open.
-
-## OSD-02 transition clarification — crash, concurrency, and latest-manifest policy shape — 2026-10-21
-
-- **Approving authority:** project maintainer (explicit approval of option A in conversation on 2026-10-21).
-- **Manifest eligibility:** validate structure and cross-check filename identity with the identity recorded in the JSON.
-- **Latest selection:** timestamp collisions or otherwise indistinguishable candidates are ambiguous; stop the dependent operation rather than choose arbitrarily.
-- **Concurrent updates:** prevent stale reads from overwriting newer state; re-read/re-validate or fail safely on conflict.
-- **Crash behavior:** a crash-left `running` manifest remains unfinished and is not automatically rewritten to `success` or `failure`.
-- **Destructive-action gate:** do not archive or delete until current remote state has been re-established and verified.
-- **Still open:** concrete atomicity/locking strategy, exact identity fields and filename convention, stale-run recovery, and executable tests.
-- **Scope boundary:** this approves policy shape only. OSD-03 aggregation, numeric timestamp configuration, runtime implementation/evidence, and P0-010 closure remain open.
+- **承認権限:** プロジェクト管理者 (2026-10-21 でオプション A を明示的に選択)。
+- **選択されたルール:** 新しい実行ターゲット エントリは `pending` で始まり、ステージング より前に処理用に登録されたことを意味します。 ステージング が開始すると、`pending → staging → ready` に遷移します。アップロードの直前に、`ready → pending` を遷移して、アップロードの開始/成功がまだ確認されていないことを記録します。
+- **曖昧さ回避:** 同じ `pending` 列挙型が 2 つの異なるライフサイクル ポイントで使用されています。その意味は、前の状態とイベント履歴によって決まります。 `pending` 自体は、アップロード試行や 成功 の証拠にはなりません。マニフェスト スキーマには、承認されたフィールド セットに個別のイベント履歴フィールドがないため、実装では、新しいフィールドを作成せずに、利用可能な実行処理コンテキストと永続的な状態の変更を使用して遷移シーケンスを検証する必要があります。
+- **Scope:** これにより、初期状態のあいまいさのみが解決されます。検証結果マッピングと再試行枯渇ルールが承認されます。ターミナル ファイルの状態、実行集計、タイムスタンプ/鮮度、およびクラッシュ/同時実行ポリシーは開いたままになります。移行表はまだ提案であり、完全に承認された規範表ではありません。
 
 
-## OSD-03 aggregation policy approval — 2026-10-21
+<a id="osd-02-transition-clarification--verification-result-mapping"></a>
+## OSD-02 遷移の明確化 — 検証と結果のマッピング
 
-- **Approving authority:** project maintainer (explicit approval of the combined Option A + Option C policy in conversation on 2026-10-21).
-- **Run aggregation:** all eligible targets verified and no relevant errors => `success`; verified zero-work only after successful enumeration and validation => `success` with `outcome: no_work`; verified work plus any unresolved eligible-file `failed`/`unknown` or run-scope unclassifiable error => `partial_failure`; no verified eligible work and a processing/validation failure or inability to establish valid no-work => `failure`.
-- **Period aggregation:** a period is complete only when every eligible target assigned to it is verified and no relevant error affects that period. `failed` or `unknown` blocks completion of its period.
-- **Unclassifiable filenames:** retain as run-scope validation errors; never infer period from `LastWriteTime`. They block run-level `success` but do not automatically invalidate an independently complete known period whose target inventory is established.
-- **Safe independent work:** continue processing independent valid files where safe; progress never cancels or hides errors.
-- **No-work distinction:** enumeration/access failure and only-invalid relevant filenames are not no-work.
-- **Still open:** OSD-02 must settle whether period summaries and unassigned validation errors are stored in the manifest or provided by a supported derived report. No new fields or enum values are implicitly approved. Executable tests and runtime evidence remain pending; OSD-03/P0-008/P0-010 are not closed by policy approval alone.
+- **承認権限:** プロジェクト管理者 (2026-10-21 の会話で明示的に承認)。
+- **選択されたマッピング:** 検証ステータス `verified` はファイル ステータス `verified` にマップされます。 `mismatch` は `failed` にマップされます。 `unavailable`、`ambiguous`、および検証操作 `failed` は `unknown` にマップされます。 `not_checked` は、現在のファイルのステータスを変更しません。
+- **安全性の解釈:** `mismatch` は既知のコンテンツ 不一致 の証拠であり、したがって確認されたファイル 失敗 です。 `unavailable`、`ambiguous`、または 失敗した 検証操作ではクラウド オブジェクトのコンテンツ/状態が確立されないため、ファイルは `unknown` のままになります。これらの州では、成功、アーカイブ、上書き、または削除を許可してはなりません。 `not_checked` は状態遷移ではないため、既存のファイルのステータスを上書きしてはなりません。
+- **スコープ境界:** これは検証結果とファイル状態のマッピングのみを承認します。すべての検証方法/時間/ハッシュの組み合わせ、再試行と枯渇の動作、終了状態のルール、OSD-03 での実行/期間の集計、鮮度/クロック スキュー、クラッシュ/同時実行性、または 完了 の標準遷移テーブルが承認されるわけではありません。 OSD-02 と P0-010 は開いたままになります。
 
 
-## OSD-02 / OSD-03 representation decision — derived aggregation report — 2026-10-21
+<a id="osd-02-transition-clarification--retry-exhaustion--2026-10-21"></a>
+## OSD-02 移行の明確化 — 再試行の枯渇 — 2026-10-21
 
-- **Approving authority:** project maintainer (explicit approval in conversation on 2026-10-21).
-- **Chosen option:** Option A. Keep the approved manifest v1 field set unchanged. Do not add period-summary or unassigned-error fields to the manifest.
-- **Required representation:** store period-level aggregation results and unclassifiable run-scope validation errors in a separate, durable derived aggregation report linked to the source run by `run_id`.
-- **Integrity requirements:** report results must be checked against the frozen eligible inventory and originating run. Missing, malformed, stale, or inconsistent report data must not certify period completion. The report must preserve run-scope errors without assigning an inferred period; `LastWriteTime` is never a fallback.
-- **Scope boundary:** report schema, publication/atomicity, crash recovery, freshness/consistency validation, implementation, and executable tests remain pending. This decision does not close OSD-02, OSD-03, P0-008, or P0-010 and does not claim runtime support.
-
-
-## Approved OSD-02 timestamp and freshness policy — 2026-10-21
-
-- **Approving authority:** project maintainer (explicit approval in conversation on 2026-10-21).
-- **Timestamp format:** all manifest timestamps must be valid, parseable UTC ISO 8601 strings with an explicit uppercase `Z` suffix. Offset forms, missing timezone, malformed values, and unparseable values are rejected.
-- **Ordering:** `finished_at_utc` must not precede `started_at_utc`. Invalid ordering is rejected; timestamps are never silently repaired.
-- **Future-time tolerance:** maximum accepted future skew is 5 minutes relative to the runtime's current UTC clock. Any timestamp more than 5 minutes in the future is rejected for the dependent operation.
-- **Freshness threshold:** 24 hours, configuration-driven. Freshness checks apply only to timestamps generated or updated during the current execution, including run start/finish and verification-attempt timestamps. Historical manifests are retained as history and are not invalidated solely because they are older than 24 hours.
-- **Clock synchronization:** assume the host OS time synchronization service is configured; at runtime, detect unavailable or clearly invalid clock readings where the platform exposes that information. If the current time cannot be obtained or parsed reliably, fail closed for time-dependent operations. A timestamp outside the configured future tolerance is rejected. This decision does not require a separate external monitoring/alerting service.
-- **Configuration contract:** the 5-minute future tolerance and 24-hour freshness threshold are initial approved defaults and must be configurable; invalid, negative, non-finite, or unparseable configuration values must be rejected rather than silently defaulted. Configuration validation and fixed-clock tests are required.
-- **Scope boundary:** this policy does not define crash recovery, concurrent writers, latest-manifest tie-breaking, OSD-03 aggregation, or archive authorization. Archive still independently re-queries and verifies current Drive state. Policy approval is not runtime implementation or test evidence.
-- **Affected requirements:** EOLM-MAN-011, EOLM-MAN-001–010, EOLM-TST-004–006, EOLM-TST-010, and applicable archive freshness gates.
-- **Disposition:** numeric timestamp/freshness policy resolved; OSD-02 remains partially open for crash/concurrency/latest-manifest decisions, transition completeness, executable schema/transition tests, and runtime evidence. OSD-03, P0-008, P0-010, and P0-012 remain open.
+- **承認権限:** プロジェクト管理者 (2026-10-21 の会話で明示的に承認)。
+- **選択されたルール:** 再試行バジェットを使い果たすこと自体は、ファイルごとの状態を決定しません。操作が成功しなかったことを信頼できる証拠が確認し、失敗 が確定的である場合にのみ、ファイル ステータスを `failed` に設定します (たとえば、オブジェクトが作成されていないことを保証する明示的な再試行不可能な拒否、または確認されたコンテンツ 不一致)。リモート アップロードの結果が不確実な場合は、`unknown` を保持してください。
+- **検証失敗:** `mismatch → failed`; `unavailable`、`ambiguous`、および検証操作 `failed` → `unknown`。検証できないことは、コンテンツ 不一致 の証拠にはなりません。
+- **安全境界:** タイムアウト、通信 失敗、未完了 ドライブ列挙、または再試行枯渇のみを `failed` に変換してはなりません。不確実なアップロード後の再試行には、最初にドライブの状態の信頼できる調整である 完了 が必要です。
+- **スコープ境界:** これは再試行枯渇分類のみを解決します。ターミナル状態の不変性、検証方法/時間/ハッシュの組み合わせ、OSD-03 での実行/期間の集計、鮮度、クラッシュ/同時実行性、または完全な遷移テーブルは承認されません。 OSD-02 と P0-010 は開いたままになります。
 
 
-## Maintainer-approved OSD-03 report contract (2026-10-21)
+<a id="osd-02-retry-exhaustion-exception-case-clarification--2026-10-21"></a>
+## OSD-02 再試行枯渇例外ケースの明確化 — 2026-10-21
 
-The maintainer explicitly approved **R1-B, R2-A, R3-B, R4-A, R5-A, R6-A, R7-A**. This settles the report-contract options but does not constitute an executable JSON Schema, runtime implementation, or test evidence.
-
-- **R1-B — summaries only:** period entries contain counts and completion state, not duplicated per-target rows. Validate the eligible inventory and per-file outcomes against immutable run-input evidence and the originating manifest.
-- **R2-A — tuple identity:** report identity is exactly (pc_id, log_type, run_id, report_schema_version). Omit report_id; derive the canonical filename from that tuple. Do not add fields to manifest v1.
-- **R3-B — content-bound references:** manifest_ref and evidence_ref each include canonical relative path, schema version, and lowercase 64-character SHA-256 of exact validated bytes. Validate referenced artifact identity against the report tuple. Reject absolute paths, traversal, identity mismatch, malformed digest, or changed bytes.
-- **R4-A — reuse OSD-02 controls:** use unique same-directory temp files, flush/close, read-back validation, and atomic create-if-absent; reuse the existing per-PC maintenance lock during normal publication. Regeneration/recovery must acquire the same named mutex plus ownership-token lock record. Existing same-identity identical bytes are idempotent; different bytes are a conflict and are never overwritten. Remove a temp file only when ownership is proven; orphan temp files are non-authoritative and must not be removed based on age alone.
-- **R5-A — deterministic regeneration:** regenerate only from the exact validated manifest plus immutable B2 run-input evidence. Never re-scan mutable source directories to reconstruct historical inventory. Validate identity, inventory digest, all counts, and error scope. If inputs are incomplete/unavailable, remain unresolved. Identical output is idempotent; different content for the same identity is a conflict.
-- **R6-A — three-state period completion:** complete only if all eligible targets for the period are verified and no relevant error affects it; incomplete for known failed/unknown targets or known relevant errors; indeterminate if required evidence is missing, malformed, conflicting, or unverifiable. Never map indeterminate to complete. These are report-only values and must not be added to manifest run-status enums.
-- **R7-A — separate local/Drive states:** local validated publication is authoritative. Drive replication is a separate verified step; replication failure does not invalidate/delete the local artifact. Do not claim cross-PC availability until the Drive copy's identity and exact content are verified.
-- Recompute all summary counts from the referenced manifest and B2 evidence. Reject missing/duplicate period rows, target accounting mismatch, inventory digest/count mismatch, report/manifest/evidence identity mismatch, and inconsistent error scope. generated_at_utc uses UTC ISO 8601 uppercase Z and approved future-time validation; report age alone does not invalidate immutable historical evidence.
-- Required synthetic acceptance tests are specified but **not yet executed/evidenced**. Runtime implementation, executable schema, and operational evidence remain pending. No P0 item is closed by this documentation change.
+- **承認権限:** プロジェクト管理者 (2026-10-21 の会話で明示的に承認)。
+- **承認されたルール:** EX-01–EX-10 および横断的な再試行/調整ルールは、`docs/design/manifest-state-transition-v1-proposal.md` §6 および `docs/decisions/decision-register-c18-c32.md` に記録されます。
+- **コア分類:** `failed` には、確認された内容 不一致 またはリモート オブジェクトが作成されていないことを操作契約で保証する拒否を含む、決定的な非 成功 の信頼できる証拠が必要です。リモート状態が不確かな場合は、`unknown` を使用してください。再試行枯渇、タイムアウト、通信損失、未完了 ドライブ列挙、曖昧 候補、および検証操作 失敗 は、それだけでは最終的な 失敗 を確立しません。
+- **再試行ゲート:** `unknown → pending` には、完了 と、ターゲットの不在と再試行ポリシーの許可を証明する信頼できる調整が必要です。不完全なページネーション、不十分なアクセス、または不確実なクエリ範囲により、再試行がブロックされます。同一コンテンツの候補は、OSD-01 の信頼性、一意性、および実際のコンテンツの検証が満たされた後にのみ `verified` になる可能性があります。
+- **アーカイブ ゲート:** アーカイブは、現在のドライブの状態を個別に再クエリして再検証する必要があります。以前の`verified`証拠だけでは不十分です。現在の 不一致 はアーカイブをブロックします。 利用不能/曖昧/verification-operation 失敗 は `unknown` のままで、アーカイブをブロックします。
+- **スコープ境界:** これは、再試行例外ケースのポリシーのみを解決します。完全な標準移行表を承認したり、OSD-02/P0-010 を閉じたりすることはできません。終了状態の動作、検証方法/時間/ハッシュの組み合わせ、OSD-03 集計、鮮度/クロック スキュー、クラッシュ/同時実行性/最新のマニフェスト解決、実行可能テスト、および実行時の証拠は未解決のままです。
 
 
-## OSD-03 executable schema implementation slice — PR #150 (2026-10-21)
+<a id="osd-02-transition-clarification--terminal-file-states--2026-10-21"></a>
+## OSD-02 遷移の明確化 — 端末ファイルの状態 — 2026-10-21
 
-- Added `contracts/aggregation-report-v1.schema.json` as a strict Draft 2020-12 structural schema candidate for the approved R1–R7 report shape. It rejects unknown properties, `report_id`, unsupported/non-integer report schema versions, invalid enums/count types, non-UTC-Z timestamps, malformed lowercase SHA-256 values, and non-canonical relative paths.
-- Added schema-definition and synthetic structural-contract tests in `tests/test_contract_schemas.py`. They cover partial-failure and zero-work examples, all three period completion values, strict versioning, unknown fields, reference path/hash validation, timestamp form, enums/counts, and run-scope error shape.
-- These tests are authored but **not yet executed/evidenced** in this PR. CI must pass on the exact latest PR HEAD before merge. No runtime report reader/writer, cross-artifact digest verification, tuple/path binding, count recomputation, deterministic regeneration, atomic publication, lock integration, or Drive replication implementation is included in this slice.
-- The JSON Schema validates structure only. Cross-field and cross-artifact invariants remain mandatory fail-closed runtime checks; schema acceptance alone is not proof of report correctness or authorization for any side effect.
-- No manifest v1 fields, B2 evidence contract, A2 digest contract, or OSD-02 safety boundaries are changed. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion.
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話でオプション A を明示的に選択)。
+- **選択されたルール:** `verified` および `failed` は 1 つの `run_id` 内の端末ファイルの状態です。その実行では、どちらの状態からの遷移も許可されません。後の実行では、履歴結果を書き換えるのではなく、新しい `run_id` と新しいマニフェストを使用します。
+- **アーカイブ ゲート:** アーカイブは、現在のドライブ オブジェクトを個別に再クエリして再検証する必要があります。現在の 不一致、利用不能/曖昧 の結果、または検証操作 失敗 はアーカイブをブロックするため、サニタイズされた操作診断に記録する必要があります。以前のマニフェストを変更したり、以前の実行のファイル状態を移行したりすることはありません。
+- **スコープ境界:** これは検証後のセマンティクスと端末のファイル状態セマンティクスのみを解決します。実行レベルの端末遷移と OSD-03 集計、検証方法/時間/ハッシュの組み合わせ、タイムスタンプの鮮度/クロック スキュー、クラッシュ/同時実行性/最新マニフェストの選択、実行可能テスト、および実行時の証拠はオープンなままです。 OSD-02 は部分的に解決されたままで、P0-010 は開いたままです。
+
+<a id="osd-02-transition-clarification--verification-object-methodtimehash-consistency--2026-10-21"></a>
+## OSD-02 遷移の明確化 — オブジェクトのメソッド/時間/ハッシュの整合性の検証 — 2026-10-21
+
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話でオプション A を明示的に選択)。
+- **選択されたルール:** `verification.method` は、単に試行された方法ではなく、観察されたコンテンツ ハッシュを取得するために実際に使用された方法を示します。
+- **許可される組み合わせ:** `not_checked` は、null タイムスタンプと null ハッシュを持つ `not_performed` を使用します。 `verified`/`mismatch` には、実際のハッシュ方法、null 以外のタイムスタンプ、および観察されたハッシュが必要です。観測されたハッシュのない `unavailable`/`ambiguous`/verification-operation `failed` では、`not_performed`、null 以外の試行タイムスタンプ、および null ハッシュが使用されます。
+- **Diagnostics:** 試行された詳細なメソッド、サニタイズされたエラー、および再試行履歴は、サニタイズされた操作ログに属します。候補 ID が 曖昧 である場合、任意の候補ハッシュを記録してはなりません。 `mismatch` には、予想されるソース ハッシュとは異なる観察されたハッシュが必要です。
+- **無効な組み合わせ:** `docs/design/manifest-state-transition-v1-proposal.md` §4 の承認された表以外の組み合わせは拒否されます。
+- **スコープ境界:** これは検証オブジェクト フィールドの整合性のみを解決します。実行レベルのステータス/時間の一貫性、OSD-03 集計、タイムスタンプの鮮度/クロック スキュー、クラッシュ/同時実行性/最新マニフェストの選択、実行可能検証テスト、および実行時の証拠は未解決のままです。 OSD-02 と P0-010 は開いたままになります。
+
+<a id="osd-02-transition-clarification--run-status-and-finish-time-consistency--2026-10-21"></a>
+## OSD-02 移行の明確化 - 実行ステータスと終了時間の一貫性 - 2026-10-21
+
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話におけるオプション A の明示的な承認)。
+- **選択されたルール:** `started_at_utc` はすべての実行状態で必要です。 `running` には `finished_at_utc: null` が必要です。 `success`、`partial_failure`、および `failure` には、null 以外の `finished_at_utc` が必要です。
+- **Validation:** このルール外のステータス/終了時間の組み合わせは拒否されます。
+- **Boundary:** タイムスタンプの順序、鮮度、将来時間、およびクロック スキュー ルールは、オープンかつ個別のままです。クラッシュしたままの `running` マニフェストは、自動的には `failure` に変換されません。クラッシュ/同時実行ポリシーはオープンのままです。
+- **スコープ境界:** これは実行ステータス/終了時間の一貫性のみを解決します。 OSD-03 集計、タイムスタンプの順序付け/鮮度/クロック スキュー、クラッシュ/同時実行性/最新マニフェストの選択、実行可能テスト、および実行時の証拠は未解決のままです。 OSD-02 と P0-010 は開いたままになります。
+
+<a id="osd-02-transition-clarification--timestamp-validation-policy-shape--2026-10-21"></a>
+## OSD-02 移行の明確化 — タイムスタンプ検証ポリシーの形状 — 2026-10-21
+
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話におけるオプション A の明示的な承認)。
+- **選択されたルール:** には UTC ISO 8601 タイムスタンプと `Z` 指定子が必要です。不正な値や解析不可能な値を拒否し、サイレントに修正することなく開始時刻よりも早く終了時刻を修正します。
+- **将来の時間と鮮度:** 構成主導の将来の時間/クロック スキュー許容値とコンテキストに適した鮮度のしきい値を使用します。設定された将来の許容範囲を超える値を拒否します。
+- **まだオープン中:** 数値構成値、鮮度が適用される正確なコンテキスト、EOLM-MAN-011 でのクロック同期/監視の期待。
+- **スコープ境界:** これはタイムスタンプ ポリシー形式のみを承認します。 OSD-03 集計、クラッシュ/同時実行/最新マニフェストの選択、実行可能テスト、実行時の証拠、および数値タイムスタンプの構成は開いたままになります。 OSD-02 と P0-010 は開いたままになります。
+
+<a id="osd-02-transition-clarification--crash-concurrency-and-latest-manifest-policy-shape--2026-10-21"></a>
+## OSD-02 移行の明確化 — クラッシュ、同時実行性、最新のマニフェスト ポリシーの形状 — 2026-10-21
+
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話におけるオプション A の明示的な承認)。
+- **マニフェスト適格性:** 構造を検証し、ファイル名の同一性を JSON に記録された ID と照合します。
+- **最新の選択:** タイムスタンプの衝突または区別できない候補は 曖昧 です。任意に選択するのではなく、依存する操作を停止します。
+- **同時更新:** 古い読み取りが新しい状態を上書きするのを防ぎます。再読み取り/再検証するか、競合時に安全に失敗します。
+- **クラッシュ動作:** クラッシュ後に残された `running` マニフェストは未完成のままであり、`success` または `failure` に自動的に書き換えられません。
+- **破壊的アクション ゲート:** 現在のリモート状態が再確立されるまで、および 確認済み はアーカイブまたは削除されません。
+- **まだオープン中:** 具体的なアトミック性/ロック戦略、正確な ID フィールドとファイル名規則、古い実行の回復、および実行可能テスト。
+- **スコープ境界:** これはポリシー形状のみを承認します。 OSD-03 集計、数値タイムスタンプ構成、ランタイム実装/証拠、および P0-010 クロージャは開いたままになります。
 
 
-## PR #151 status note — OSD-03 internal consistency slice (2026-10-22)
+<a id="osd-03-aggregation-policy-approval--2026-10-21"></a>
+## OSD-03 集約ポリシーの承認 — 2026-10-21
 
-PR #150 merged the structural aggregation-report v1 JSON Schema and its synthetic schema tests; PR-head and post-merge CI passed. PR #151 adds a report-local PowerShell consistency validator and synthetic tests for period uniqueness, safe reference paths/digest shape, summary count reconciliation, completion consistency, run-scope error count, and zero-work/success consistency. Until PR #151 CI passes on its exact latest HEAD, these tests are authored but not yet verified. This slice does not validate exact referenced manifest/evidence bytes, B2/A2 integrity, full target-set completeness, cross-artifact identity, deterministic regeneration, atomic publication, lock ownership, or Drive replication. P0 acceptance remains open.
+- **承認権限:** プロジェクト管理者 (2026-10-21 での会話におけるオプション A とオプション C を組み合わせたポリシーの明示的な承認)。
+- **集計の実行:** すべての適格なターゲット 確認済み および関連するエラーなし => `success`; 確認済み 列挙と検証が成功した場合のみゼロ作業 => `success` と `outcome: no_work`; 確認済み 作業に加え、未解決の対象ファイル `failed`/`unknown` または実行範囲の分類不能エラー => `partial_failure`; 確認済み 対象となる作業がなく、処理/検証 失敗 または有効な非作業を確立できない => `failure`。
+- **期間集計:** 期間が 完了 になるのは、それに割り当てられたすべての対象ターゲットが 確認済み であり、関連するエラーがその期間に影響を与えない場合のみです。 `failed` または `unknown` は、その期間の完了をブロックします。
+- **分類できないファイル名:** は実行スコープ検証エラーとして保持されます。 `LastWriteTime` から期間を推測しないでください。これらは実行レベル `success` をブロックしますが、ターゲット一覧が確立されている独立した 完了 既知の期間を自動的に無効にすることはありません。
+- **安全な独立作業:** 安全な場所で独立した有効なファイルの処理を続行します。進行状況によってエラーがキャンセルされたり、非表示になったりすることはありません。
+- **無作業の区別:** 列挙/アクセス 失敗 および唯一無効な関連ファイル名は無作業ではありません。
+- **まだオープン中:** OSD-02 期間の要約と未割り当ての検証エラーがマニフェストに保存されるか、サポートされている派生レポートによって提供されるかを決定する必要があります。新しいフィールドや列挙値は暗黙的に承認されません。実行可能なテストと実行時の証拠は 未確定 のままです。 OSD-03/P0-008/P0-010 は、ポリシーの承認だけでは終了しません。
 
-## OSD-03 status correction — 2026-10-22
 
-PR #151 is merged at `e93f0ea552496831c69efb1e8dd2818ac86f4e5b`. Validate and Package Validation passed on exact PR HEAD `846cfdbb1ce76f3ec1363460c4f0576b7c10a2b6` (runs `39635268289`, `39635268115`) and on the post-merge commit (runs `39636402422`, `39636402408`). The report-local consistency validator is now implemented and CI-verified within its stated scope. PR #152 adds a narrow exact-byte reference verifier; its tests are not yet CI-verified. Neither PR implements full manifest/B2 schema validation, identity binding, A2 digest recomputation, exhaustive target/count reconciliation, deterministic report regeneration, atomic publication, lock recovery, or Drive replication. P0 acceptance remains open.
+<a id="osd-02--osd-03-representation-decision--derived-aggregation-report--2026-10-21"></a>
+## OSD-02 / OSD-03 表現決定 — 派生集計レポート — 2026-10-21
+
+- **承認権限:** プロジェクト管理者 (2026-10-21 の会話で明示的に承認)。
+- **選択されたオプション:** オプション A. 承認されたマニフェスト v1 フィールド セットを変更しないでください。 period-summary フィールドや unassigned-error フィールドをマニフェストに追加しないでください。
+- **必須の表現:** は、`run_id` によって実行されるソースにリンクされた別個の永続的な派生集計レポートに、期間レベルの集計結果と分類できない実行範囲の検証エラーを格納します。
+- **整合性要件:** レポートの結果は、凍結された対象一覧および元の実行と照合する必要があります。欠落している、不正な形式、古い、または一貫性のないレポート データは、期間の完了を証明するものであってはなりません。レポートでは、推定期間を割り当てずに、実行範囲エラーを保持する必要があります。 `LastWriteTime` はフォールバックではありません。
+- **スコープ境界:** レポート スキーマ、公開/アトミック性、クラッシュ リカバリ、最新性/一貫性検証、実装、および実行可能テストは 未確定 のままです。この決定は、OSD-02、OSD-03、P0-008、または P0-010 を終了するものではなく、ランタイム サポートを主張するものでもありません。
+
+
+<a id="approved-osd-02-timestamp-and-freshness-policy--2026-10-21"></a>
+## OSD-02 タイムスタンプと鮮度ポリシーを承認しました — 2026-10-21
+
+- **承認権限:** プロジェクト管理者 (2026-10-21 の会話で明示的に承認)。
+- **タイムスタンプ形式:** すべてのマニフェスト タイムスタンプは、明示的に大文字の `Z` サフィックスが付いた、有効で解析可能な UTC ISO 8601 文字列である必要があります。オフセット形式、欠落しているタイムゾーン、不正な形式の値、および解析不可能な値は拒否されます。
+- **Ordering:** `finished_at_utc` を `started_at_utc` の前に置くことはできません。無効な注文は拒否されます。タイムスタンプがサイレントに修復されることはありません。
+- **将来時間許容範囲:** 許容される将来の最大スキューは、ランタイムの現在の UTC クロックを基準にして 5 分です。 5 分を超える将来のタイムスタンプは、依存する操作では拒否されます。
+- **鮮度のしきい値:** 24 時間、構成による。最新性チェックは、実行の開始/終了および検証試行のタイムスタンプを含む、現在の実行中に生成または更新されたタイムスタンプにのみ適用されます。履歴マニフェストは履歴として保持され、24 時間より古いという理由だけで無効になることはありません。
+- **クロック同期:** ホスト OS の時刻同期サービスが構成されていると仮定します。実行時に、プラットフォームがその情報を公開している場合、利用不能 または明らかに無効なクロック読み取り値を検出します。現在時刻を確実に取得または解析できない場合は、時間依存の操作に対してフェールクローズします。設定された将来の許容範囲外のタイムスタンプは拒否されます。この決定には、別個の外部監視/警告サービスは必要ありません。
+- **構成契約:** 5 分の将来許容範囲および 24 時間の鮮度しきい値は、初期承認済みのデフォルトであり、構成可能である必要があります。無効、負、非有限、または解析不可能な構成値は、黙ってデフォルト設定されるのではなく、拒否される必要があります。構成の検証と固定クロックのテストが必要です。
+- **スコープ境界:** このポリシーは、クラッシュ回復、同時書き込み、最新マニフェストのタイブレーク、OSD-03 集計、またはアーカイブ承認を定義しません。アーカイブは依然として独立して再クエリを実行し、現在のドライブの状態を確認します。ポリシーの承認は、実行時の実装やテストの証拠ではありません。
+- **影響を受ける要件:** EOLM-MAN-011、EOLM-MAN-001–010、EOLM-TST-004–006、EOLM-TST-010、および該当するアーカイブ鮮度ゲート。
+- **Disposition:** 数値タイムスタンプ/鮮度ポリシーが解決されました。 OSD-02 は、クラッシュ/同時実行性/最新マニフェストの決定、移行の完全性、実行可能スキーマ/移行テスト、および実行時の証拠に対して部分的にオープンなままです。 OSD-03、P0-008、P0-010、および P0-012 は開いたままになります。
+
+
+<a id="maintainer-approved-osd-03-report-contract-2026-10-21"></a>
+## メンテナ承認の OSD-03 レポート契約 (2026-10-21)
+
+メンテナは、**R1-B、R2-A、R3-B、R4-A、R5-A、R6-A、R7-A** を明示的に承認しました。これはレポート契約オプションを決定しますが、実行可能 JSON Schema、ランタイム実装、またはテスト証拠を構成するものではありません。
+
+- **R1-B — 概要のみ:** 期間エントリには、ターゲットごとの重複した行ではなく、カウントと完了状態が含まれます。不変の実行入力証拠および元のマニフェストに対して、適格なインベントリとファイルごとの結果を検証します。
+- **R2-A — タプル ID:** レポート ID は正確に (pc_id、log_type、run_id、report_schema_version) です。 report_id を省略します。そのタプルから正規のファイル名を導出します。マニフェスト v1 にはフィールドを追加しないでください。
+- **R3-B — コンテンツ バインドされた参照:** manifest_ref および evidence_ref にはそれぞれ、正規の相対パス、スキーマ バージョン、および正確に検証されたバイトの小文字の 64 文字 SHA-256 が含まれます。参照された成果物の ID をレポート タプルに対して検証します。絶対パス、トラバーサル、同一性 不一致、不正な形式のダイジェスト、または変更されたバイトを拒否します。
+- **R4-A — OSD-02 コントロールを再利用します。** は、同じディレクトリにある一意の一時ファイル、フラッシュ/クローズ、リードバック検証、およびアトミックな存在しない場合の作成を使用します。通常の公開中に既存の PC ごとのメンテナンス ロックを再利用します。再生成/回復では、同じ名前のミューテックスと所有権トークンのロック レコードを取得する必要があります。既存の同一性の同一バイトは冪等です。異なるバイトは競合し、上書きされることはありません。一時ファイルは、所有権が証明された場合にのみ削除してください。孤立した一時ファイルには権限がないため、経過時間だけを理由に削除してはなりません。
+- **R5-A — 決定論的再生成:** 正確に検証されたマニフェストと不変の B2 実行入力証拠からのみ再生成します。過去のインベントリを再構築するために、変更可能なソース ディレクトリを再スキャンしないでください。 ID、インベントリダイジェスト、すべてのカウント、およびエラー範囲を検証します。入力が 未完了/利用不能 の場合は、未解決のままになります。同一の出力は冪等です。同じ同一性に対する異なるコンテンツは競合です。
+- **R6-A — 3 状態の期間完了:** 完了 期間のすべての適格なターゲットが 確認済み であり、それに影響する関連エラーがない場合のみ。既知の 失敗した/不明 ターゲットまたは既知の関連エラーの場合は 未完了。 確定不能 必要な証拠が欠落している、形式が間違っている、矛盾している、または検証できない場合。 確定不能 を 完了 にマップしないでください。これらはレポート専用の値であり、マニフェストの実行ステータス列挙型に追加しないでください。
+- **R7-A — ローカル/ドライブの個別の状態:** ローカルで検証されたパブリケーションが信頼可能です。ドライブのレプリケーションは別の 確認済み ステップです。レプリケーション 失敗 はローカル 成果物を無効化/削除しません。ドライブ コピーの ID と正確なコンテンツが 確認済み になるまで、PC 間での可用性を主張しないでください。
+- 参照されたマニフェストと B2 証拠からすべてのサマリー カウントを再計算します。欠落/重複した期間行、ターゲット会計 不一致、一覧ダイジェスト/カウント 不一致、レポート/マニフェスト/証拠 ID 不一致、および一貫性のないエラー範囲を拒否します。 generated_at_utc は UTC ISO 8601 大文字の Z と承認された将来の検証を使用します。報告の経過時間だけでは、不変の歴史的証拠が無効になるわけではありません。
+- 必要な合成受け入れテストが指定されていますが、**まだ実行/証明されていません**。ランタイム実装、実行可能スキーマ、および運用上の証拠は 未確定 のままです。このドキュメントの変更によって閉じられる P0 項目はありません。
+
+
+<a id="osd-03-executable-schema-implementation-slice--pr-150-2026-10-21"></a>
+## OSD-03 実行可能スキーマ実装スライス — PR #150 (2026-10-21)
+
+- 承認された R1 ～ R7 レポート形式の厳密なドラフト 2020-12 構造スキーマ候補として `contracts/aggregation-report-v1.schema.json` を追加しました。 不明 プロパティ、`report_id`、サポートされていない/非整数のレポート スキーマ バージョン、無効な列挙型/カウント タイプ、非 UTC-Z タイムスタンプ、不正な形式の小文字 SHA-256 値、および非正規相対パスは拒否されます。
+- `tests/test_contract_schemas.py` にスキーマ定義と合成構造契約テストを追加しました。部分的な 失敗 およびゼロ作業の例、3 つの期間完了値すべて、厳密なバージョン管理、不明 フィールド、参照パス/ハッシュ検証、タイムスタンプ形式、列挙型/カウント、および実行スコープのエラー形状をカバーしています。
+- これらのテストは作成されていますが、この PR では **まだ実行も証拠化もされていません** が証明されています。 CI は、マージ前に正確な最新の PR HEAD を渡す必要があります。このスライスには、ランタイム レポート リーダー/ライター、クロス 成果物 ダイジェスト検証、タプル/パス バインディング、カウント再計算、確定的再生成、アトミック パブリケーション、ロック統合、またはドライブ レプリケーションの実装は含まれません。
+- JSON Schema は構造のみを検証します。クロスフィールドおよびクロス成果物の不変条件は引き続き必須のフェールクローズ実行時チェックです。スキーマの受け入れだけでは、レポートの正確性や副作用の承認の証拠にはなりません。
+- マニフェスト v1 フィールド、B2 証拠コントラクト、A2 ダイジェスト コントラクト、または OSD-02 安全境界は変更されません。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。
+
+
+<a id="pr-151-status-note--osd-03-internal-consistency-slice-2026-10-22"></a>
+## PR #151 ステータスメモ — OSD-03 内部整合性スライス (2026-10-22)
+
+PR #150 は、構造集約レポート v1 JSON Schema とその合成スキーマ テストをマージしました。 PR ヘッドとマージ後の CI が合格しました。 PR #151 は、レポートローカルの PowerShell 一貫性検証機能と、期間の一意性、安全な参照パス/ダイジェスト形状、要約数の調整、完了の一貫性、実行スコープのエラー数、およびゼロ作業/成功 の一貫性についての合成テストを追加します。 PR #151 CI がその正確な最新の HEAD を渡すまで、これらのテストは作成されますが、まだ 確認済み は作成されていません。このスライスは、正確に参照されるマニフェスト/証拠バイト、B2/A2 整合性、完全なターゲット セットの完全性、クロス成果物 ID、決定論的再生成、アトミック パブリケーション、ロック所有権、またはドライブ レプリケーションを検証しません。 P0 の受付は引き続き受け付けております。
+
+<a id="osd-03-status-correction--2026-10-22"></a>
+## OSD-03 ステータス修正 — 2026-10-22
+
+PR #151 は `e93f0ea552496831c69efb1e8dd2818ac86f4e5b` にマージされます。検証およびパッケージ検証は、正確な PR HEAD `846cfdbb1ce76f3ec1363460c4f0576b7c10a2b6` (`39635268289`、`39635268115` を実行) およびマージ後のコミット (`39636402422`、`39636402408` を実行) に渡されます。レポートローカル整合性検証機能が実装され、CI ～ 確認済み はその指定された範囲内に収まります。 PR #152 は、狭い正確なバイト参照検証機能を追加します。そのテストはまだ CI-確認済み ではありません。どちらの PR も、完全なマニフェスト/B2 スキーマ検証、ID バインディング、A2 ダイジェスト再計算、徹底的なターゲット/カウント調整、決定論的レポート再生成、アトミック パブリケーション、ロック回復、またはドライブ レプリケーションを実装していません。 P0 の受付は引き続き受け付けております。

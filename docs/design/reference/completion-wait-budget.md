@@ -59,7 +59,7 @@ helperは新しい予算を自動作成・リセットしない。明示再開�
 
 結果は元bytesと新checkpoint、追加件数、固定statusだけを持つimmutable非表示repr型で、全may_check/may_archive/may_change_state=false。既存`prepare_completion_wait_attempt`はcandidateの読戻しにこの検査を利用する。readerが扱える高精度UTC文字列を丸めずに保持し、budget状態への変換精度制限は緩和しない。これは提示された2記録の比較であり、元記録の真正性/現在性・保存喪失/rollback/ABA・原子的compare-and-publish・実試行前の永続化や資格の証拠ではない。exact再掲載も新しい試行receiptにしない。[合成試験](../../../tests/test_completion_wait_checkpoint_transition.py)で追記/保全/事前拒否とplan生成への接続を確認する。
 
-[schema](../../../contracts/completion-wait-checkpoint-v1.schema.json)は承認済みの7fieldだけを持つclosed v1で、manifestとは別契約。PC-A限定、log種別ごとのperiod形、UUID、UTC Z、0〜25回を規定する。periodの4桁年に未決の範囲制約を追加しない。
+[スキーマ](../../../contracts/completion-wait-checkpoint-v1.schema.json)は承認済みの7fieldだけを持つclosed v1で、manifestとは別契約。PC-A限定、log種別ごとのperiod形、UUID、UTC Z、0〜25回を規定する。periodの4桁年に未決の範囲制約を追加しない。
 
 `Common/CompletionWaitCheckpoint.py`の`read_completion_wait_checkpoint`は、callerが供給するexact bytes・信頼済みstatic schema、別入力の期待log/period/run IDと信頼できる現在UTCを要求する。I/Oをせず、未知/欠落/null field、重複JSON key、不正UTF-8/JSON/version、schema外部参照、scope不一致、不正日時、開始〜24時間外の試行、1時間未満の間隔、25回超、現在時計の逆行を拒否する。読取不能や欠落の代わりに空履歴を生成しない。現在が期限後でも有効な元履歴を保持し、既存予算helperで期限/回数のhold判定を行う。
 
@@ -87,7 +87,7 @@ stagingの`already_exists_identical`はcheckpoint更新のreceiptではなく、
 
 `inspect_completion_wait_attempt_usepoint`は同じmoduleの純粋検査で、plan・現在観測したbytes・phase、別入力のscope/現在UTC/実行条件と明示boolのAC接続状態を要求する。既存artifactのfield/versionは変えない。
 
-| phase | 検査 | 検査だけでは証明できないもの |
+|フェーズ| 検査 | 検査だけでは証明できないもの |
 | --- | --- | --- |
 | `before_commit` | 観測bytesがexact expected bytes、candidateが元の1試行planと一致、scope/clock/実行条件/ACが整合し、現在が元の24時間期限内 | 読取元・owner/rootの真正性、検査直後の競合を含むcompare-and-publishの保証 |
 | `after_commit` | 観測bytesがexact proposed bytes、同じplan/context/AC/期限を再検査 | 新しい一回限りのcommit receipt、同じbytesを再度確認してよい根拠、実readbackの現在性 |

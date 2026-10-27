@@ -26,14 +26,15 @@ profile_matches=trueは限定形状への一致であり、実効アクセスの
 
 ## Windows一次資料と限界
 
-[Null DACLs and Empty DACLs](https://learn.microsoft.com/en-us/windows/win32/secauthz/null-dacls-and-empty-dacls)に従い、null/absentと空DACLを同一視しない。
-[How AccessCheck Works](https://learn.microsoft.com/en-us/windows/win32/secauthz/how-dacls-control-access-to-an-object)はtokenのuser/group属性とACE順序がアクセス判定に関係することを説明する。
+[Null DACL と空の DACL](https://learn.microsoft.com/en-us/windows/win32/secauthz/null-dacls-and-empty-dacls)に従い、null/absentと空DACLを同一視しない。
+[AccessCheckの仕組み](https://learn.microsoft.com/en-us/windows/win32/secauthz/how-dacls-control-access-to-an-object)はtokenのuser/group属性とACE順序がアクセス判定に関係することを説明する。
 本helperはそのアルゴリズムを実装せず、denyを含む複雑なACLを許可方向に解釈しない。
 
 未実装: descriptor取得・provider完全性、actual execution tokenとのbinding、impersonation/group/privilege、directory/祖先のdelete-child/置換、root/ACL変更から利用までの保護、必要権限付き新規作成、実効アクセス検証。
 実taskのログオン方式・昇格などは同一accountだけでは決まらない。OSD-08の残る運用方針を別途確定する。
 STORE-01やACL全体・P0/Tier Bをこの部分実装で完了にしない。
 
-## Binary descriptor normalization slice
+<a id="binary-descriptor-normalization-slice"></a>
+## バイナリ記述子正規化スライス
 
-Common/PrivateFileSecurityDescriptor.ps1 adds ConvertFrom-EoPrivateFileSecurityDescriptor for supplied self-relative binary descriptors. It clones input bytes, requires an exact binary round trip, preserves ACE order/deny/flags and unsigned masks, and rejects owner absence, object/callback ACE, SACL and unsupported control flags instead of dropping them. The output is private internal SID-bearing data; only the existing Python assessment is suitable for sanitized diagnostics. Six cross-runtime tests cover sixteen synthetic descriptors. No Get-Acl/file/token query, ACL write, actual execution-user binding, effective-access/ancestry qualification or runtime permit is added. See [RawSecurityDescriptor](https://learn.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.rawsecuritydescriptor) and [CommonAce](https://learn.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.commonace) for the .NET representations.
+Common/PrivateFileSecurityDescriptor.ps1 は、提供された自己相対バイナリ記述子に ConvertFrom-EoPrivateFileSecurityDescriptor を追加します。入力バイトのクローンを作成し、正確なバイナリ ラウンド トリップを必要とし、ACE の順序/拒否/フラグと署名なしマスクを保持し、所有者の不在、オブジェクト/コールバック ACE、SACL、およびサポートされていない制御フラグを削除する代わりに拒否します。出力は、SID を含むプライベート内部データです。既存の Python 評価のみがサニタイズされた診断に適しています。 6 つのクロスランタイム テストは 16 個の合成記述子をカバーします。 Get-Acl/ファイル/トークン クエリ、ACL 書き込み、実際の実行ユーザー バインディング、有効アクセス/祖先資格、実行時許可は追加されません。 .NET 表現については、[RawSecurityDescriptor](https://learn.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.rawsecuritydescriptor) および [CommonAce](https://learn.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.commonace) を参照してください。

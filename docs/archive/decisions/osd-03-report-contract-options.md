@@ -1,111 +1,123 @@
-# OSD-03 — Derived aggregation report contract decisions
+<a id="osd-03--derived-aggregation-report-contract-decisions"></a>
+# OSD-03 — 派生集計レポート契約の決定
 
 > 履歴/検討資料。承認済みの選択・未決候補・当時の監査根拠を含み、この移動は撤回/失効を意味しない。現在の基準は[正式要件](../../requirements/log-move-requirements.md)と[現行決定台帳](../../decisions/decision-register-c18-c32.md)。当時の対象/証拠を現在のruntime受け入れへ拡張しない。
 
-- Status: R1–R7 approved by maintainer on 2026-10-21; executable schema, runtime implementation, and acceptance evidence remain pending.
-- Decision basis: approved OSD-03 aggregation semantics, approved manifest v1 field set, approved B2 run-input evidence direction, A2 inventory digest, exhaustive count reconciliation, and local-authoritative/verified-Drive-copy storage.
-- Related: `docs/archive/decisions/osd-03-status-aggregation-options.md`, `docs/design/reference/aggregation-report-v1-proposal.md`, `docs/design/run-input-evidence-v1-proposal.md`, `docs/archive/decisions/aggregation-inventory-integrity-options.md`, OSD-02.
-- Boundary: this proposal does not authorize runtime implementation, real log access, Drive writes, archive enablement, or deletion. Recommendations are not decisions until the maintainer explicitly selects them.
+- ステータス: R1 ～ R7 は 2026-10-21 のメンテナによって承認されました。実行可能スキーマ、ランタイム実装、および受け入れ証拠は 未確定 のままです。
+- 意思決定の根拠: 承認された OSD-03 集約セマンティクス、承認されたマニフェスト v1 フィールド セット、承認された B2 実行入力証拠の指示、A2 インベントリ ダイジェスト、網羅的なカウント調整、およびローカル権限/確認済み-ドライブ コピー ストレージ。
+- 関連: `docs/archive/decisions/osd-03-status-aggregation-options.md`、`docs/design/reference/aggregation-report-v1-proposal.md`、`docs/design/run-input-evidence-v1-proposal.md`、`docs/archive/decisions/aggregation-inventory-integrity-options.md`、OSD-02。
+- 境界: この提案では、ランタイム実装、実際のログ アクセス、ドライブへの書き込み、アーカイブの有効化、または削除は許可されません。推奨事項は、保守者が明示的に選択するまでは決定ではありません。
 
-## Non-negotiable constraints
+<a id="non-negotiable-constraints"></a>
+## 交渉不可能な制約
 
-1. Do not change the approved manifest v1 field set or add aggregation fields to the manifest.
-2. The run manifest remains the authoritative per-file outcome record. The immutable run-input evidence is the authoritative record of completed source enumeration, validation results, and the frozen eligible inventory.
-3. The aggregation report is derived evidence, not archive/delete authorization.
-4. Never use `LastWriteTime` or mutable source re-enumeration to reconstruct a historical run.
-5. Missing, malformed, stale/inconsistent-by-identity, incomplete, or unverifiable required inputs fail closed. A missing report cannot imply success or no-work.
-6. Reuse the approved OSD-02 publication and per-PC exclusion safety rules where applicable; do not invent unconditional overwrite or age-only stale-owner detection.
-7. Synthetic fixtures and temporary directories only; no runtime acceptance is claimed.
+1. 承認されたマニフェスト v1 フィールド セットを変更したり、マニフェストに集計フィールドを追加したりしないでください。
+2. 実行マニフェストは、ファイルごとの信頼できる結果レコードとして残ります。不変の実行入力証拠は、完了したソース列挙、検証結果、および凍結された対象一覧に関する信頼できる記録です。
+3. 集計レポートは派生証拠であり、アーカイブ/削除の承認ではありません。
+4. 履歴実行を再構築するために、`LastWriteTime` または可変ソースの再列挙を決して使用しないでください。
+5. 欠落、不正、古い/ID による一貫性がない、未完了、または検証できない必須入力がフェールクローズされました。レポートの欠落は、成功 または無作業を意味するものではありません。
+6. 承認された OSD-02 出版物と PC ごとの除外安全ルールを該当する場合には再利用します。無条件の上書きや、経過期間のみの古い所有者の検出を発明しないでください。
+7. 合成フィクスチャと一時ディレクトリのみ。実行時の受け入れは要求されません。
 
-## R1. Per-target detail duplicated in the report
+<a id="r1-per-target-detail-duplicated-in-the-report"></a>
+## R1。レポートに複製されたターゲットごとの詳細
 
-- **A — duplicate target rows in each period summary (proposal's current example):** each period contains an `eligible_targets` list with path/name/size/hash/status.
-  - Advantage: the report is self-describing.
-  - Risk: duplicates the immutable inventory in run-input evidence and per-file outcomes in the manifest; consistency requires cross-validating three copies.
-- **B — summaries only; reference the immutable source artifacts (recommended):** each period stores counts and completion state only. The report references the exact manifest and run-input evidence, including their SHA-256 digests, and validates each eligible target against those artifacts when reading the report.
-  - Advantage: one authoritative copy for inventory and one for per-file outcomes; fewer divergent copies.
-  - Cost: readers must load and validate both referenced artifacts before trusting completion.
-- **C — embed inventory in report, omit it from evidence:** rejected because it reopens the approved B2 evidence decision and weakens preservation of initial enumeration/validation facts.
+- **A — 各期間のサマリー内の重複したターゲット行 (提案の現在の例):** 各期間には、パス/名前/サイズ/ハッシュ/ステータスを含む `eligible_targets` リストが含まれます。
+  - 利点: レポートは自己記述的です。
+  - リスク: マニフェスト内の実行入力証拠およびファイルごとの結果の不変インベントリが複製されます。一貫性を確保するには、3 つのコピーを相互検証する必要があります。
+- **B — 概要のみ。不変のソース 成果物を参照します (推奨):** 各期間にはカウントと完了状態のみが保存されます。レポートは、SHA-256 ダイジェストを含む正確なマニフェストと実行入力証拠を参照し、レポートを読むときにそれらの成果物に対して対象となる各ターゲットを検証します。
+  - 利点: インベントリ用に 1 つの正式なコピーと、ファイルごとの結果用に 1 つの正式なコピー。分岐コピーが少なくなります。
+  - コスト: リーダーは完了を信頼する前に、両方の参照成果物をロードして検証する必要があります。
+- **C — レポートに一覧を埋め込み、証拠から除外:** は、承認された B2 証拠決定を再度オープンし、最初の列挙/検証事実の保存が弱くなるため拒否されました。
 
-## R2. Report identity and `report_id`
+<a id="r2-report-identity-and-report_id"></a>
+## R2。 ID と `report_id` を報告します
 
-- **A — identity tuple only (recommended):** the unique report identity is exactly `(pc_id, log_type, run_id, report_schema_version)`. Omit the redundant `report_id`; derive the canonical filename from the tuple.
-- **B — deterministic `report_id`:** retain the field, defined as a versioned deterministic encoding/hash of the exact identity tuple. Requires a byte-level canonicalization contract and reference vectors.
-- **C — random UUID:** easy to generate but permits multiple report IDs for the same run unless a separate uniqueness/collision rule is added; not recommended.
+- **A — ID タプルのみ (推奨):** 一意のレポート ID は正確に `(pc_id, log_type, run_id, report_schema_version)` です。冗長な `report_id` を省略します。タプルから正規のファイル名を導出します。
+- **B — 決定的 `report_id`:** は、正確な ID タプルのバージョン化された決定的エンコード/ハッシュとして定義されたフィールドを保持します。バイトレベルの正規化コントラクトと参照ベクトルが必要です。
+- **C — ランダム UUID:** 生成は簡単ですが、個別の一意性/衝突ルールが追加されない限り、同じ実行に対して複数のレポート ID が許可されます。推奨されません。
 
-## R3. Referenced source identity
+<a id="r3-referenced-source-identity"></a>
+## R3。参照元の同一性
 
-- **A — path plus identity fields:** canonical relative paths and exact identity tuple, but no source-content digest.
-- **B — canonical relative path plus SHA-256 of exact bytes (recommended):** `manifest_ref` and `evidence_ref` each contain canonical relative path, schema version, and lowercase 64-character SHA-256 of the validated artifact bytes. The referenced artifact's internal identity must match the report tuple. This detects replacement at a stable path.
-- Absolute paths, path guessing, and timestamp-only discovery are rejected.
+- **A — パスと ID フィールド:** 正規の相対パスと正確な ID タプル、ただしソース コンテンツ ダイジェストはありません。
+- **B — 正規の相対パスと正確なバイトの SHA-256 を加算したもの (推奨):** `manifest_ref` および `evidence_ref` には、それぞれ正規の相対パス、スキーマ バージョン、および検証された成果物 バイトの小文字の 64 文字 SHA-256 が含まれます。参照される成果物の内部 ID はレポート タプルと一致する必要があります。これにより、安定したパスでの置き換えが検出されます。
+- 絶対パス、パス推測、およびタイムスタンプのみの検出は拒否されます。
 
-## R4. Local publication, locking, and temp-file cleanup
+<a id="r4-local-publication-locking-and-temp-file-cleanup"></a>
+## R4。ローカル公開、ロック、一時ファイルのクリーンアップ
 
-- **A — reuse OSD-02 controls (recommended):** publish locally using unique same-directory temporary files, flush/close, read-back validation, and atomic create-if-absent. Reuse the already-held per-PC maintenance lock during normal run publication. Regeneration/recovery must acquire the same mutex plus ownership-token lock record. Existing report identity with identical validated bytes is idempotent; differing bytes are a conflict and are never overwritten.
-  - Temp cleanup: a process may remove only its own temp file after confirming its ownership token. Orphan temp files are non-authoritative; retain them for explicit disposition unless owner absence and safe cleanup can be proven without relying on age alone.
-- **B — report-specific independent lock:** separate mutex/lock namespace and lifecycle. Rejected as unnecessary coordination complexity and risk of lock-order deadlocks unless an implementation constraint proves shared locking impossible.
-- **C — direct final-path writes or unconditional replacement:** rejected.
+- **A — OSD-02 コントロールを再利用します (推奨): ** は、一意の同じディレクトリの一時ファイル、フラッシュ/クローズ、リードバック検証、およびアトミックな存在しない場合の作成を使用してローカルに公開します。通常の実行パブリケーション中に、すでに保持されている PC ごとのメンテナンス ロックを再利用します。再生成/回復では、同じミューテックスと所有権トークンのロック レコードを取得する必要があります。同一の検証済みバイトを持つ既存のレポート ID は冪等です。異なるバイトは競合し、上書きされることはありません。
+  - 一時クリーンアップ: プロセスは、所有権トークンを確認した後、自身の一時ファイルのみを削除できます。孤立した一時ファイルには権限がありません。所有者の不在と安全な清掃が経過時間だけに頼らずに証明できない限り、明示的な処分のために保管してください。
+- **B — レポート固有の独立したロック:** 個別のミューテックス/ロックの名前空間とライフサイクル。実装上の制約により共有ロックが不可能であることが証明されない限り、不必要な調整の複雑さとロック順序のデッドロックのリスクがあるため拒否されました。
+- **C — 最終パスの直接書き込みまたは無条件置換:** は拒否されました。
 
-## R5. Missing report and regeneration
+<a id="r5-missing-report-and-regeneration"></a>
+## R5。レポートの欠落と再生成
 
-- **A — deterministic regeneration from immutable inputs (recommended):** regenerate only from the exact validated manifest plus immutable B2 evidence. Do not rescan mutable source directories. Validate identity, inventory digest, all counts, and error scope. If inputs are incomplete/unavailable, leave the report unresolved. Existing same-identity identical output is idempotent; any different content is a conflict.
-- **B — no regeneration:** a missing report always remains unresolved and requires a new maintenance run. Strongly limits recovery but avoids reconstruction complexity.
-- Neither choice permits modifying the old manifest or fabricating enumeration facts.
+- **A — 不変入力からの決定論的再生成 (推奨):** は、正確に検証されたマニフェストと不変 B2 証拠からのみ再生成されます。変更可能なソース ディレクトリを再スキャンしないでください。 ID、インベントリダイジェスト、すべてのカウント、およびエラー範囲を検証します。入力が 未完了/利用不能 の場合、レポートを未解決のままにしておきます。既存の同一性の同一出力は冪等です。異なるコンテンツは競合します。
+- **B — 再生成なし:** 欠落したレポートは常に未解決のままであり、新しいメンテナンスの実行が必要です。回復は大幅に制限されますが、再構築の複雑さは回避されます。
+- どちらの選択をしても、古いマニフェストを変更したり、列挙ファクトを捏造したりすることはできません。
 
-## R6. Period completion and consistency
+<a id="r6-period-completion-and-consistency"></a>
+## R6。期間の完了と一貫性
 
-- **A — three-state completion (recommended):** `complete`, `incomplete`, `indeterminate`. `complete` only when evidence proves every eligible target for the period is verified and no relevant error affects it. `incomplete` when known failed/unknown targets or known relevant errors prevent completion. `indeterminate` when required inventory/enumeration/validation evidence is missing, malformed, conflicting, or unverifiable. Never map indeterminate to complete.
-- **B — binary complete/incomplete:** any uncertain case is collapsed to incomplete. Safer than optimistic behavior but loses the distinction between known failure and insufficient evidence.
-- Do not add these values to the manifest's run-status enum. Run status remains governed by the approved existing manifest contract and OSD-03 policy.
-- Report summary counts must be recomputed from the referenced manifest and evidence. Reject disagreement, duplicate/missing period rows, a target assigned to multiple periods, inventory digest/count mismatch, or report/manifest/evidence identity mismatch.
-- Validate `generated_at_utc` as UTC ISO 8601 uppercase `Z` and apply the approved future-time rule at generation. Historical report age alone must not invalidate immutable evidence.
+- **A — 3 状態完了 (推奨):** `complete`、`incomplete`、`indeterminate`。 `complete` は、その期間のすべての適格ターゲットが 確認済み であることが証拠によって証明されており、それに影響する関連エラーがない場合に限ります。既知の 失敗した/不明 ターゲットの `incomplete`、または既知の関連エラーにより完了が妨げられます。 `indeterminate` 必要な一覧/列挙/検証の証拠が欠落している、形式が間違っている、矛盾している、または検証できない場合。 確定不能 を 完了 にマップしないでください。
+- **B — バイナリ 完了/未完了:** 不確実なケースは 未完了 に折りたたまれます。楽観的な行動よりは安全ですが、既知の 失敗 と不十分な証拠との区別が失われます。
+- これらの値をマニフェストの実行ステータス列挙に追加しないでください。実行ステータスは、承認された既存のマニフェスト契約と OSD-03 ポリシーによって引き続き管理されます。
+- レポートの概要数は、参照されたマニフェストと証拠から再計算する必要があります。不一致、期間行の重複/欠落、複数の期間に割り当てられた目標、一覧ダイジェスト/カウント 不一致、またはレポート/マニフェスト/証拠の同一性 不一致 を拒否します。
+- `generated_at_utc` を UTC ISO 8601 大文字の `Z` として検証し、承認された将来のルールを生成時に適用します。歴史的報告の年代だけで不変の証拠を無効にしてはなりません。
 
-## R7. Local authoritative artifact and Drive replication
+<a id="r7-local-authoritative-artifact-and-drive-replication"></a>
+## R7。ローカルの信頼できる成果物とドライブのレプリケーション
 
-- **A — separate states (recommended):** local validated publication is authoritative; Drive replication is a separate verified step. Report local publication success even if replication fails, but explicitly record sanitized replication failure and never claim cross-PC availability until the Drive copy's identity and exact content are verified.
-- **B — coupled success:** treat the overall report as unavailable until local and Drive publication both succeed. This is conservative for cross-PC consumers but risks conflating a valid local artifact with replication failure.
-- In either case, never delete or corrupt a valid local report because Drive replication failed. The approved storage direction already requires local authority plus verified Drive copies; this choice clarifies reporting semantics only.
+- **A — 個別の州 (推奨):** ローカルで検証された出版物が信頼できます。ドライブのレプリケーションは、別の 確認済み ステップです。レプリケーションが失敗した場合でもローカル パブリケーション 成功 を報告しますが、サニタイズされたレプリケーション 失敗 を明示的に記録し、ドライブ コピーの ID と正確なコンテンツが 確認済み になるまでクロス PC 可用性を主張しないでください。
+- **B — 成功:** を結合すると、ローカルとドライブの公開が両方とも成功するまで、レポート全体が 利用不能 として扱われます。これは、クロス PC コンシューマにとっては保守的ですが、有効なローカル 成果物とレプリケーション 失敗 を混同する危険があります。
+- いずれの場合も、ドライブ レプリケーション 失敗した のため、有効なローカル レポートを削除したり破損したりしないでください。承認されたストレージの方向には、すでに地方自治体と 確認済み ドライブのコピーが必要です。この選択は、レポートのセマンティクスのみを明確にします。
 
-## R8. Acceptance evidence
+<a id="r8-acceptance-evidence"></a>
+## R8。受理証拠
 
-Regardless of selected options, require synthetic table-driven tests for:
-- required fields, nullability, enum and unsupported schema-version rejection;
-- identity/path/content-digest mismatch for report, manifest, and evidence;
-- inventory count/digest mismatch, missing/extra/duplicate target accounting, count mismatch and duplicate period;
-- all approved run aggregation cases, zero-work versus enumeration failure versus only-invalid filenames, and known-period completion plus unrelated run-scope errors;
-- report publication crash points, concurrent create, identical idempotent retry, conflicting retry, and unsupported atomic primitive;
-- missing/corrupt report regeneration from complete immutable inputs and refusal when evidence is incomplete;
-- local success plus Drive replication failure, verified replication, and no cross-PC availability claim before verification;
-- no source mutation, Drive deletion, archive action, or deletion side effect.
+選択したオプションに関係なく、以下については合成テーブル駆動テストが必要です。
+- 必須フィールド、null 可能性、列挙型、およびサポートされていないスキーマ バージョンの拒否。
+- レポート、マニフェスト、および証拠の ID/パス/コンテンツ ダイジェスト 不一致。
+- 一覧数/ダイジェスト 不一致、欠落/追加/重複ターゲット会計、カウント 不一致 および重複期間。
+- すべての承認された実行集計ケース、ゼロ作業と列挙 失敗 と無効なファイル名のみ、および既知の期間の完了と無関係な実行範囲エラー。
+- パブリケーションのクラッシュ ポイント、同時作成、同一冪等再試行、競合再試行、およびサポートされていないアトミック プリミティブをレポートします。
+- 完了 不変入力からの欠落または破損したレポートの再生成、および証拠が 未完了 の場合の拒否。
+- ローカル 成功 とドライブ レプリケーション 失敗、確認済み レプリケーション、および検証前のクロス PC 可用性要求なし。
+- ソースの変更、ドライブの削除、アーカイブ アクション、または削除の副作用はありません。
 
-Evidence status: **tests not yet executed**. This options document is not schema approval and does not close OSD-03, P0-008, or P0-010.
-
-
-## Maintainer-approved OSD-03 report contract (2026-10-21)
-
-The maintainer explicitly approved **R1-B, R2-A, R3-B, R4-A, R5-A, R6-A, R7-A**. This settles the report-contract options but does not constitute an executable JSON Schema, runtime implementation, or test evidence.
-
-- **R1-B — summaries only:** period entries contain counts and completion state, not duplicated per-target rows. Validate the eligible inventory and per-file outcomes against immutable run-input evidence and the originating manifest.
-- **R2-A — tuple identity:** report identity is exactly (pc_id, log_type, run_id, report_schema_version). Omit report_id; derive the canonical filename from that tuple. Do not add fields to manifest v1.
-- **R3-B — content-bound references:** manifest_ref and evidence_ref each include canonical relative path, schema version, and lowercase 64-character SHA-256 of exact validated bytes. Validate referenced artifact identity against the report tuple. Reject absolute paths, traversal, identity mismatch, malformed digest, or changed bytes.
-- **R4-A — reuse OSD-02 controls:** use unique same-directory temp files, flush/close, read-back validation, and atomic create-if-absent; reuse the existing per-PC maintenance lock during normal publication. Regeneration/recovery must acquire the same named mutex plus ownership-token lock record. Existing same-identity identical bytes are idempotent; different bytes are a conflict and are never overwritten. Remove a temp file only when ownership is proven; orphan temp files are non-authoritative and must not be removed based on age alone.
-- **R5-A — deterministic regeneration:** regenerate only from the exact validated manifest plus immutable B2 run-input evidence. Never re-scan mutable source directories to reconstruct historical inventory. Validate identity, inventory digest, all counts, and error scope. If inputs are incomplete/unavailable, remain unresolved. Identical output is idempotent; different content for the same identity is a conflict.
-- **R6-A — three-state period completion:** complete only if all eligible targets for the period are verified and no relevant error affects it; incomplete for known failed/unknown targets or known relevant errors; indeterminate if required evidence is missing, malformed, conflicting, or unverifiable. Never map indeterminate to complete. These are report-only values and must not be added to manifest run-status enums.
-- **R7-A — separate local/Drive states:** local validated publication is authoritative. Drive replication is a separate verified step; replication failure does not invalidate/delete the local artifact. Do not claim cross-PC availability until the Drive copy's identity and exact content are verified.
-- Recompute all summary counts from the referenced manifest and B2 evidence. Reject missing/duplicate period rows, target accounting mismatch, inventory digest/count mismatch, report/manifest/evidence identity mismatch, and inconsistent error scope. generated_at_utc uses UTC ISO 8601 uppercase Z and approved future-time validation; report age alone does not invalidate immutable historical evidence.
-- Required synthetic acceptance tests are specified but **not yet executed/evidenced**. Runtime implementation, executable schema, and operational evidence remain pending. No P0 item is closed by this documentation change.
+証拠ステータス: **テストはまだ実行されていません**。このオプション文書はスキーマ承認ではなく、OSD-03、P0-008、または P0-010 を閉じません。
 
 
-## OSD-03 report-contract acceptance tests — approved design, execution pending
+<a id="maintainer-approved-osd-03-report-contract-2026-10-21"></a>
+## メンテナ承認の OSD-03 レポート契約 (2026-10-21)
 
-1. Required fields, strict integer schema version, unsupported versions, no implicit migration, and absence of report_id.
-2. Canonical report identity tuple and filename agreement for PC/log type/run/schema version.
-3. Canonical relative manifest_ref and evidence_ref; exact bytes SHA-256; malformed digest, absolute/traversal path, identity mismatch, and stable-path content replacement all fail closed.
-4. R1-B: report period rows contain summaries only; counts recompute from the referenced manifest and B2 evidence; no duplicated per-target inventory is trusted from the report.
-5. Inventory digest/count mismatch; missing, extra, duplicate, or multiply assigned target; missing/duplicate period row; report/manifest/evidence identity mismatch; inconsistent error scope.
-6. R6-A: complete, incomplete, and indeterminate boundaries; indeterminate never becomes complete and these values never enter manifest v1 run-status enums.
-7. R4-A publication crash points, concurrent create, identical idempotent retry, conflicting retry, unsupported atomic primitive, mutex/lock ownership, and temp-file ownership cleanup. Orphan cleanup cannot rely on age alone.
-8. R5-A regeneration only from exact immutable manifest and B2 evidence; refuse if evidence is missing, corrupt, incomplete, or inconsistent; never rescan mutable source.
-9. R7-A local publication succeeds independently of Drive replication; replication failure preserves local report; cross-PC use is blocked until identity and content verification succeeds.
-10. UTC timestamp format/future tolerance, historical age, zero-work versus failed enumeration versus only-invalid filenames, known-period completion with unrelated run-scope errors, and all approved OSD-03 aggregation cases.
-11. Synthetic fixtures and temporary directories only. No real logs, credentials, production paths, Drive writes, archive enablement, or deletion. Evidence status: **not run / not yet evidenced**.
+メンテナは、**R1-B、R2-A、R3-B、R4-A、R5-A、R6-A、R7-A** を明示的に承認しました。これはレポート契約オプションを決定しますが、実行可能 JSON Schema、ランタイム実装、またはテスト証拠を構成するものではありません。
+
+- **R1-B — 概要のみ:** 期間エントリには、ターゲットごとの重複した行ではなく、カウントと完了状態が含まれます。不変の実行入力証拠および元のマニフェストに対して、適格なインベントリとファイルごとの結果を検証します。
+- **R2-A — タプル ID:** レポート ID は正確に (pc_id、log_type、run_id、report_schema_version) です。 report_id を省略します。そのタプルから正規のファイル名を導出します。マニフェスト v1 にはフィールドを追加しないでください。
+- **R3-B — コンテンツ バインドされた参照:** manifest_ref および evidence_ref にはそれぞれ、正規の相対パス、スキーマ バージョン、および正確に検証されたバイトの小文字の 64 文字 SHA-256 が含まれます。参照された成果物の ID をレポート タプルに対して検証します。絶対パス、トラバーサル、同一性 不一致、不正な形式のダイジェスト、または変更されたバイトを拒否します。
+- **R4-A — OSD-02 コントロールを再利用します。** は、同じディレクトリにある一意の一時ファイル、フラッシュ/クローズ、リードバック検証、およびアトミックな存在しない場合の作成を使用します。通常の公開中に既存の PC ごとのメンテナンス ロックを再利用します。再生成/回復では、同じ名前のミューテックスと所有権トークンのロック レコードを取得する必要があります。既存の同一性の同一バイトは冪等です。異なるバイトは競合し、上書きされることはありません。一時ファイルは、所有権が証明された場合にのみ削除してください。孤立した一時ファイルには権限がないため、経過時間だけを理由に削除してはなりません。
+- **R5-A — 決定論的再生成:** 正確に検証されたマニフェストと不変の B2 実行入力証拠からのみ再生成します。過去のインベントリを再構築するために、変更可能なソース ディレクトリを再スキャンしないでください。 ID、インベントリダイジェスト、すべてのカウント、およびエラー範囲を検証します。入力が 未完了/利用不能 の場合は、未解決のままになります。同一の出力は冪等です。同じ同一性に対する異なるコンテンツは競合です。
+- **R6-A — 3 状態の期間完了:** 完了 期間のすべての適格なターゲットが 確認済み であり、それに影響する関連エラーがない場合のみ。既知の 失敗した/不明 ターゲットまたは既知の関連エラーの場合は 未完了。 確定不能 必要な証拠が欠落している、形式が間違っている、矛盾している、または検証できない場合。 確定不能 を 完了 にマップしないでください。これらはレポート専用の値であり、マニフェストの実行ステータス列挙型に追加しないでください。
+- **R7-A — ローカル/ドライブの個別の状態:** ローカルで検証されたパブリケーションが信頼可能です。ドライブのレプリケーションは別の 確認済み ステップです。レプリケーション 失敗 はローカル 成果物を無効化/削除しません。ドライブ コピーの ID と正確なコンテンツが 確認済み になるまで、PC 間での可用性を主張しないでください。
+- 参照されたマニフェストと B2 証拠からすべてのサマリー カウントを再計算します。欠落/重複した期間行、ターゲット会計 不一致、一覧ダイジェスト/カウント 不一致、レポート/マニフェスト/証拠 ID 不一致、および一貫性のないエラー範囲を拒否します。 generated_at_utc は UTC ISO 8601 大文字の Z と承認された将来の検証を使用します。報告の経過時間だけでは、不変の歴史的証拠が無効になるわけではありません。
+- 必要な合成受け入れテストが指定されていますが、**まだ実行/証明されていません**。ランタイム実装、実行可能スキーマ、および運用上の証拠は 未確定 のままです。このドキュメントの変更によって閉じられる P0 項目はありません。
+
+
+<a id="osd-03-report-contract-acceptance-tests--approved-design-execution-pending"></a>
+## OSD-03 レポート契約受諾テスト — 承認された設計、実行 未確定
+
+1. 必須フィールド、厳密な整数スキーマのバージョン、サポートされていないバージョン、暗黙的な移行なし、report_id の欠如。
+2. PC/ログ タイプ/実行/スキーマ バージョンの正規レポート ID タプルとファイル名合意。
+3. 正規相対 manifest_ref および evidence_ref。正確なバイト SHA-256;不正な形式のダイジェスト、絶対パス/トラバーサル パス、同一性 不一致、および安定したパスのコンテンツ置換はすべてフェール クローズされます。
+4. R1-B: レポート期間の行には概要のみが含まれます。カウントは参照されたマニフェストと B2 証拠から再計算されます。ターゲットごとの重複したインベントリはレポートから信頼されません。
+5. 一覧ダイジェスト/カウント 不一致;割り当てられたターゲットが欠落している、余分である、重複している、または重複している。期間行が欠落または重複しています。レポート/マニフェスト/証拠の同一性 不一致;一貫性のないエラー範囲。
+6. R6-A: 完了、未完了、および 確定不能 の境界。 確定不能 が 完了 になることはなく、これらの値がマニフェスト v1 の実行ステータス列挙型に入力されることはありません。
+7. R4-A パブリケーションのクラッシュ ポイント、同時作成、同一冪等再試行、競合再試行、サポートされていないアトミック プリミティブ、ミューテックス/ロック所有権、および一時ファイル所有権のクリーンアップ。孤立ファイルの浄化は経過時間だけに頼ることはできません。
+8. R5-A 正確な不変マニフェストと B2 証拠からのみ再生成。証拠が欠落している、破損している、未完了、または矛盾している場合は拒否します。可変ソースを決して再スキャンしないでください。
+9. R7-A ローカル パブリケーションは、ドライブのレプリケーションとは関係なく成功します。レプリケーション 失敗 はローカル レポートを保存します。 ID とコンテンツの検証が成功するまで、PC 間での使用はブロックされます。
+10. UTC タイムスタンプ形式/将来の許容範囲、過去の経過期間、ゼロワーク対 失敗した 列挙と無効なファイル名のみ、無関係な実行スコープ エラーを伴う既知の期間の完了、およびすべての承認された OSD-03 集計ケース。
+11. 合成フィクスチャと一時ディレクトリのみ。実際のログ、認証情報、運用パス、ドライブへの書き込み、アーカイブの有効化、または削除はありません。証拠ステータス: **未実行 / まだ証拠がありません**。
