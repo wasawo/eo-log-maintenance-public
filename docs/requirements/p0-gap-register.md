@@ -2,7 +2,7 @@
 
 > 2026-10-27: [初回移動の受け入れ条件と作業順案](../development/implementation-workflow.md)を追加。Q1〜Q10と平坦化の合意により、初回完成は両経路の元削除まで。P0-012の本文/合格条件を、合意した2経路/2条件/役割限定と拒否条件の証明へ改訂済み。以下の過去記録を現在の要件合意と混同しない。P0-006/009/010/012のruntime/配布/追跡性受け入れは未完。
 
-> 現況: [2026-10-24棚卸し](../status/first-release-readiness-20261024.md)。以下の過去PR記録は当時の状態を含む。sentinel存在・schema未実装・CI待ち等を現況として扱わない。P0受け入れは未完了。
+> 現況の実装資産/不足は[実装計画§9](../development/implementation-workflow.md#9-既存の実装資産と不足)、旧棚卸しの証拠基準は同計画§10へ統合した。以下の過去PR記録は当時の状態を含み、sentinel存在・schema未実装・CI待ち等を現況として扱わない。P0受け入れは未完了。
 
 
 - 状態：初版。P0着手時の調査結果であり、全ソースの実行時検証完了を意味しない
@@ -26,7 +26,7 @@
 
 ## 差分一覧
 
-この表の現況はmain `179787f`と2026-10-24の選択記録を照合したもの。方針選択はP0受け入れではない。[選択記録](../decisions/selected-policy-decisions-20261024.md)、[限定4件](../decisions/implementation-grounded-four-decisions-20261024.md)、[初回配布順序](../status/first-release-readiness-20261024.md)を併読する。
+この表の現況はmain `179787f`と2026-10-24の選択記録を照合したもの。方針選択はP0受け入れではない。[選択記録](../decisions/selected-policy-decisions-20261024.md)、[限定4件](../decisions/implementation-grounded-four-decisions-20261024.md)、[初回配布順序](../development/implementation-workflow.md#9-既存の実装資産と不足)を併読する。
 
 | ID | 優先度 | 分類 | 対象 | 確認された現状／差分 | 対応方針 | 完了条件 |
 |---|---|---|---|---|---|---|

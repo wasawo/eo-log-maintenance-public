@@ -36,7 +36,6 @@ docs/
   decisions/                承認記録・判断案・比較検討
   validation/               テスト計画・監査・受け入れ証拠
   release/                  配布・導入設計
-  status/                   日付付き棚卸し
   handoff/                  変動する現在の進捗
     archive/                過去の引き継ぎ記録
 ```
@@ -136,10 +135,6 @@ docs/
 ### 配布・導入設計
 
 - [Distribution Design: GitHub to Google Drive](release/distribution-design.md)
-
-### 日付付き棚卸し
-
-- [初回配布までの実装棚卸し・作業順序](status/first-release-readiness-20261024.md)
 
 ### 引き継ぎ・過去記録
 

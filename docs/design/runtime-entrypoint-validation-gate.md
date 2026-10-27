@@ -32,7 +32,7 @@ The eventual implementation must perform these gates in order. Any failure, exce
 8. Before each archive move, query current Drive state, bind the selected cloud source to the destination, and verify actual content; metadata-only identity is insufficient. Validate records needed for that file, without waiting for both PCs' period completion. Prior success is not current verification.
 9. Before deleting any source in either route, confirm destination-content equality and source unchanged since copying for that exact source. Failure/uncertainty retains it. Record copy/verification/deletion results separately; a copy-only verified state is not completed movement. Verification methods, deletion response/unknown-outcome handling and persistence contracts require further design. During document review no deletion code/schema or real-data operation is added.
 
-The validators cover parts of steps 4–6. Separate source-inventory, lock, publication and recovery helpers now also exist; they are not an integrated official runtime. Current Drive verification and archive authorization remain absent. See [current inventory](../status/first-release-readiness-20261024.md) for implemented scope and remaining environment qualification.
+The validators cover parts of steps 4–6. Separate source-inventory, lock, publication and recovery helpers now also exist; they are not an integrated official runtime. Current Drive verification and archive authorization remain absent. See [current inventory](../development/implementation-workflow.md#9-既存の実装資産と不足) for implemented scope and remaining environment qualification.
 
 ## 4. Publication and recovery requirements
 

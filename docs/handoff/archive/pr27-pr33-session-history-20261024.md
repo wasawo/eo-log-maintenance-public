@@ -21,7 +21,7 @@
 - 基準main: `ec12f9e0c7c2a9aab933efc161649475672be25e`（[PR #29](https://github.com/wasawo/eo-log-maintenance-public/pull/29) スカッシュマージ済み）。mainの [Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40025793060) / [Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40025793004) 成功。
 - 作業ブランチ: `docs/approve-dry-run-a-reduce-effort`。最新指示（2026-10-24）はAの明示承認と、品質を大きく落とさない思考量削減。今回は承認反映とプロジェクト設定の調整を1単位とし、既存指示どおり1PR作成・CI成功確認後にマージする。runtime実装・本番適用は行わない。
 - 調査でIPC契約自体のレビューとC-01/C-02が承認待ちと確認。未承認の契約を規範とするadapter/validator実装は行わず、先にDry Runの具体的な判断資料を作成する。
-- [2026-10-24棚卸し・作業順序](../../status/first-release-readiness-20261024.md) を現行の入口とする。正式Sync/Archive・Drive adapterが不在で、初回実運用配布には未到達。review ZIPと正式配布を区別する。
+- [2026-10-24棚卸し・作業順序](../../development/implementation-workflow.md#10-旧棚卸しの証拠基準歴史) を現行の入口とする。正式Sync/Archive・Drive adapterが不在で、初回実運用配布には未到達。review ZIPと正式配布を区別する。
 - 利用者の既存ステージ済み表整形は `6d9036e` に含めて保全済み。
 
 ## 今回の作業: A承認反映・思考量削減

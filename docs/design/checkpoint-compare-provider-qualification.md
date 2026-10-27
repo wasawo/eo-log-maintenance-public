@@ -21,7 +21,7 @@ ReplaceFileWの1175/1176/1177等には、元/置換fileの名前や存在が異�
 2. 実mutex/ownerの内側で現行使用点検査を行った後、mutexプロトコルを使わない操作を意図的に挿入し、実ReplaceFileWで競合candidateを公開する。続く古いcandidateの無条件置換が競合内容を上書きできる反例を確認する。使用点検査結果は元々non-authorizingであり、これは意図的に危険な順序を実行する負例fixtureである。
 3. root markerの変更、許可名外、hardlink aliasで、native変更へ進めないことも検査する。
 
-このprobeは共有制約と無条件置換の限界を調べるもので、実providerを実装/採用するものではない。mockを実checkpoint更新へ昇格させず、metadata-onlyなroot検査やmutex保持だけを全writerの排除と読み替えない。testsは配布対象外。このprobe追加時点の非配布レビュー集合は46件で、現在の集合は[配布棚卸し](../status/first-release-readiness-20261024.md)を参照する。
+このprobeは共有制約と無条件置換の限界を調べるもので、実providerを実装/採用するものではない。mockを実checkpoint更新へ昇格させず、metadata-onlyなroot検査やmutex保持だけを全writerの排除と読み替えない。testsは配布対象外。このprobe追加時点の非配布レビュー集合46件と、その後の旧棚卸し50件は[実装計画§10の歴史](../development/implementation-workflow.md#10-旧棚卸しの証拠基準歴史)として扱う。最終runtime集合は未確定で、現在件数をこの記録から断定しない。
 
 ## File使用点との実置換接続（2026-10-26）
 

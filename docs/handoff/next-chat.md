@@ -8,6 +8,13 @@
 
 ## 最新基準と今回の作業
 
+### 旧初回配布棚卸しを正式計画へ統合・削除（2026-10-27）
+
+- cleanな同branch `docs/requirements-design-task-review`、基準`594a5e1`から継続。利用者指定の旧棚卸しを正式文書と照合し、固有の実装資産13分野を[実装計画§9](../development/implementation-workflow.md#9-既存の実装資産と不足)、過去のSHA/CI/試験件数/レビュー集合/部分Tier B限界を同計画§10へ移した。旧作業順はT0〜T5に置換し、copy-only/両PC待機/自動suffix前提を継承しない。
+- 元のstatus文書は重複解消後に削除した。移行表は実装計画§7、全文はGitの`594a5e1`時点で参照可能。README/Common/scripts/索引/参照表/配布/P0/旧履歴等のリンクを更新。40/46/50件や306件という旧数値を現在のpackage/試験/runtime証拠へ流用しない。
+- コード基準main `27e99fec`以降の文書branch差分に非Markdown変更がないこと、scripts/の追跡はREADMEだけであることを照合。今回はfile/文書の照合のみでpackage生成/再計数やruntime試験をしていない。T0/詳細契約/実装再開は未完、コード/schema・実データ操作なし。
+- 現存する追跡Markdown全89文書の相対リンク799件の参照先欠落0・削除旧文書へのリンク0、`git diff --check`成功。移行先2見出しと固有資産/証拠基準を照合した。文書のみのため無関係な全suiteは実行していない。root自己点検のみ、独立レビューなし。同branchへローカルコミットを蓄積し、PRはまとめる。今回push/PR/mergeなし。
+
 ### 再整理要件を正式文書へ統合・重複作業文書を削除（2026-10-27）
 
 - cleanな同branch `docs/requirements-design-task-review`、基準`c709558`から継続。利用者の正式設計書作成/不要文書削除指示を受け、[要件定義書](../requirements/log-move-requirements.md)・[設計書](../design/log-move-design.md)・[受け入れ条件/実装計画](../development/implementation-workflow.md)を現行の正式入口へ統合した。README/文書索引/開発参照表も3本へ案内する形に整理。
@@ -927,7 +934,7 @@
 
 以下はPR #39へまとめた過程の履歴であり、現行運用と進捗は上の最新欄を優先する。
 
-- 今回の文書整備：`docs/selected-policy-decisions` からmain `179787f`を基準に、[未決定台帳](../requirements/p0-open-specification-decisions.md)、[P0差分台帳](../requirements/p0-gap-register.md)、[要件追跡](../requirements/requirements-traceability.md)、[決定台帳](../decisions/decision-register-c18-c32.md)と[初回配布の依存順序](../status/first-release-readiness-20261024.md)を①〜㉜・限定4件へ整合。過去の段階的承認文と部分検証の履歴は、その当時の記録として残す。新PRの最新HEADでValidate/Package Validationを確認してから、今回の明示依頼の範囲で1PRをマージして作業を中断する。正式runtime/実auth/Drive/task/配布は未実装・未適用。
+- 今回の文書整備：`docs/selected-policy-decisions` からmain `179787f`を基準に、[未決定台帳](../requirements/p0-open-specification-decisions.md)、[P0差分台帳](../requirements/p0-gap-register.md)、[要件追跡](../requirements/requirements-traceability.md)、[決定台帳](../decisions/decision-register-c18-c32.md)と[初回配布の依存順序](../development/implementation-workflow.md#9-既存の実装資産と不足)を①〜㉜・限定4件へ整合。過去の段階的承認文と部分検証の履歴は、その当時の記録として残す。新PRの最新HEADでValidate/Package Validationを確認してから、今回の明示依頼の範囲で1PRをマージして作業を中断する。正式runtime/実auth/Drive/task/配布は未実装・未適用。
 - 今回のroot単独検証：mainとの差分35ファイル内のMarkdown相対リンク297件は欠落0、`git diff --check`成功。文書/作業指示/project設定だけの変更で、機能・package試験と実環境検証は再実行していない。今回差分の独立レビューは実施していない。PRとCIの結果は作成後のGitHub実状態で確認する。
 - 第10回指示で[現行実装に基づく4件の限定決定](../decisions/implementation-grounded-four-decisions-20261024.md)を記録した。固定code別retryable真偽表、PC-A確認予算checkpointの最小field/拒否境界、VERSION 0.1.0の現行非配布レビューpackage 40ファイル、owner record v1の既存互換境界である。31aAの正式PC別/version別manifest形式は維持するが、最終実file一覧は正式runtime完成後。owner-v2全field/providerも未確定。PS helperと試験はretryable真偽表へ未追従、checkpoint writer/schema、正式package manifestも未実装。追加9文書のroot自己点検でfile一覧40件、retryable表9行と現codeの対応、相対リンク132件欠落0、差分検査成功。文書のみのため機能/package試験・新CI・独立レビューは未実施。PR/マージや実接続は行っていない。
 - 第9回回答：㉙A、㉚aA/bA/cA、㉛aA/bA、㉜aA/bAを採用し、[決定記録](../decisions/selected-policy-decisions-20261024.md)と[比較資料](../decisions/remaining-policy-options-20261024.md)を更新。manifest正本＋補助checkpoint、Google公式Python client、multipart/5 MB以下・超過保留、固定code別retryable表、strict JSON＋Schemaのpackage manifest、専用PS移行、Windows App SDK通知、初回/状態変化時のみ再通知の方向が確定。具体field、SDK版/flow、正確なbyte境界、保護API/ACL、owner provider、CI配布identity、通知登録/重複抑制等は残る。①〜㉜の提示済み選択は回答済みで、詳細契約/実装/受け入れの完了ではない。
@@ -949,7 +956,7 @@ PR #27〜33前後の旧進捗節は [セッション記録](archive/pr27-pr33-se
 ## 次回の実装再開時
 
 1. まず利用者の継続指示を確認し、正本mainとローカル保全branchのコミット・作業ツリーを照合する。C-01のP1/検査V1/L1/現1.0改訂の選択は済んでいるので再質問しない。実装実施の承認と残る具体契約は別途確認する。Aは承認済みで再質問しない。IPC全体、C-02具体field、OSD-05の具体store/API/資格等の残る未確定を区別する。
-2. [更新後の初回配布順序](../status/first-release-readiness-20261024.md)に従い、採用済みのC-01/manifest遷移/Dry Run A/B2 V1/G1をschema・builder・合成fixtureへ反映する。retryable表はschema/PS helperへ追従済みで、RETRY-02統合は未実装。C-02の操作別fieldとowner-v2 provider等の詳細未決を分離し、ローカルroot・永続run状態・復旧の不足を整理する。確認予算の永続化だけで初回配布へ進めない。
+2. [更新後の初回配布順序](../development/implementation-workflow.md#9-既存の実装資産と不足)に従い、採用済みのC-01/manifest遷移/Dry Run A/B2 V1/G1をschema・builder・合成fixtureへ反映する。retryable表はschema/PS helperへ追従済みで、RETRY-02統合は未実装。C-02の操作別fieldとowner-v2 provider等の詳細未決を分離し、ローカルroot・永続run状態・復旧の不足を整理する。確認予算の永続化だけで初回配布へ進めない。
 3. Drive adapter/認証資格、両PCのTier B、正式手動runtime統合、E2E/Tier C、正式配布/導入と進む。taskは初回手動受け入れ後。実環境検証・実適用は別途の承認範囲を確認する。
 4. 旧lock自動処分・新run自動生成・実保存・task登録・Drive/本番復旧を、helper/CI成功から許可されたと解釈しない。
 

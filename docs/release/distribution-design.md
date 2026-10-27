@@ -7,7 +7,7 @@
 - Distribution target: Google Drive `_distribution/releases/<version>/`
 - Direction: GitHub → Google Drive only
 
-Current implementation/readiness: [2026-10-24 inventory](../status/first-release-readiness-20261024.md). The builder supports review packages and role guards; production release/authentication/upload/deployment remains incomplete.
+Current implementation/readiness: [2026-10-24 inventory](../development/implementation-workflow.md#9-既存の実装資産と不足). The builder supports review packages and role guards; production release/authentication/upload/deployment remains incomplete.
 
 ## 1. Purpose and scope
 

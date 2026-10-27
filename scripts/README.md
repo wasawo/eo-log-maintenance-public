@@ -7,4 +7,4 @@
 
 これらはまだ実装されていません。実装後にテストと README を更新します。
 
-現時点ではこのREADMEのみで、正式な `SyncLogs.ps1` / PC-A専用 `ArchiveLogs.ps1`、導入・更新入口は存在しません。Commonの補助処理を正式入口として実行しないでください。[初回配布の棚卸し](../docs/status/first-release-readiness-20261024.md)を参照してください。
+現時点ではこのREADMEのみで、正式な `SyncLogs.ps1` / PC-A専用 `ArchiveLogs.ps1`、導入・更新入口は存在しません。Commonの補助処理を正式入口として実行しないでください。[初回配布の棚卸し](../docs/development/implementation-workflow.md#9-既存の実装資産と不足)を参照してください。

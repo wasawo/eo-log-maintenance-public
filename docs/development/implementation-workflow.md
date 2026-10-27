@@ -103,6 +103,7 @@ T0の旧方針整合は§4のとおり進めた。次は元/保存先の識別�
 | `docs/development/requirements-design-task-review-20261027.md` | 要件定義書: Q1〜Q12/平坦化/恒久規則の承認記録と現行要件。実装対応は本計画 |
 | `docs/development/initial-move-delivery-plan-20261027.md` | 本計画: AC-01〜12、T0〜T5、既存ID対応、未決/受け入れ限界 |
 | `docs/design/move-source-destination-verification.md` | 設計書: 2経路、識別/Q5、記録/状態/照合/応答候補、公式資料と限界 |
+| `docs/status/first-release-readiness-20261024.md` | 本計画§9/10: 固有の実装棚卸しと当時の証拠基準を継承。重複する旧作業順は廃止 |
 
 既存schema/helperに対応する個別契約、運用規則、判断に必要な過去承認、検証根拠はまだ利用先があるため削除しない。ファイル名にproposal/optionsがあるだけで不要と決めない。AGENTSの変更は承認記録へのリンク先のみで、恒久規則の意味は変えていない。
 
@@ -116,3 +117,38 @@ T0の旧方針整合は§4のとおり進めた。次は元/保存先の識別�
 | §2.4 同名、§2.5 削除/クラウド確認、§2.6 起動 | 要件定義書§5〜8、設計書§3〜5/11/17 |
 | §4 P0 readiness、旧Phase 0〜8 | 本計画§2〜5、P0台帳。定期実行は後続候補 |
 | §7 安全境界 | 要件定義書§6/9/10、AGENTS |
+
+
+## 9. 既存の実装資産と不足
+
+整理日: 2026-10-27。コード基準はmain `27e99fec`（PR #46）、この整理開始HEADは`594a5e1`。文書branchのmainとの差分に非Markdown変更がなく、scripts/の追跡ファイルはREADMEのみであることを照合した。下表は旧棚卸しの固有情報を現要件へ合わせて移したもの。file/参照の確認であり、全機能の新しい実行検証ではない。
+
+| 分野 | 現在あるもの | 初回運用までの主な不足 |
+| --- | --- | --- |
+| 設定 | [厳密な設定読取](../../Common/MachineConfiguration.ps1)、[create-only生成](../../Common/MachineConfigurationBootstrap.ps1)、両PCの安全なexample、maintenanceLocalの字句的分離 | 正式導入入口、実root認可、実効権限・祖先・利用直前までの保護。example生成後の実値は各PCのGit管理外設定へ手動入力 |
+| ファイル選択 | [日付・期間等の共通処理](../../Common/LogFunctions.ps1)、[完全列挙・ハッシュ証拠構築](../../Common/SourceInventoryEvidenceBuilder.py)・[凍結B2との再観測比較](../design/source-inventory-revalidation.md) | 正式runへの接続、列挙後の変更と利用までの整合性 |
+| root検査 | [既存Windowsディレクトリの読取専用metadata検査](../../Common/MachineConfigurationRootInspection.ps1) | 対象FS・ACL・実トークンの認可、安全な生成と継続利用の資格確認 |
+| upload staging容量 | [既承認容量式の純粋PS観測](../design/staging-file-lifecycle.md)：凍結manifest/B2の明示size射影・tests専用PS bridge・祖先chainの128-bit identity前後照合付き未資格Windows空きbytes観測・size配列のBigInteger合計・10%切上げ＋100,000,000 bytes、不明/不足時停止 | 実空き容量の資格、開始時/各file直前の取得と容量変化時のcopy失敗対応。download容量方針には転用しない |
+| 証拠・集約 | [contracts](../../contracts/)、[A2/B2検証](../../Common/RunInputEvidenceIntegrity.py)、[安定読取観測付き参照成果物・全report再導出検証](../../Common/validate_aggregation_artifacts.py)、[pure report builder](../../Common/AggregationReportBuilder.py)、条件付き採用済み状態遷移表と[純粋snapshot/連続履歴検査（2種pending区別）・初期B2 planから全履歴/終端reportへのbinding・source隔離接続](../design/manifest-transition-inspection.md) | 真正なevent/metadata-first履歴、実run writer/遷移強制、決定的再生成・意味論的統合、Drive反映 |
+| upload staging copy | [凍結planと既存stagingの単一/一括照合・Drive観測比較接続](../design/source-inventory-revalidation.md)：size変化時open前停止・全hash後signature/祖先chain確認、完全列挙/計画/完了hash比較、source非読取/全許可false。tests専用source→copy接続もあり | 正式copy/metadata-first writer・割当identity binding・ready状態/Upload adapter・容量資格/使用点・実root/FSと電源断受け入れ |
+| 残存staging | [直下entry件数の読取観測](../design/staging-residual-observation.md)：内容非読取/非再帰、変化・不明時保留、初回件数保全 | metadata/旧run検査、正式startup warning・検査不能時run failureとUpload停止、root/owner/FS資格。cleanup/復旧は提供しない |
+| 公開・クラッシュ | [単一ファイル公開](../../Common/AtomicArtifactPublication.py)、[marker-last公開](../../Common/ArtifactSetPublication.py)、復旧分類・ディレクトリ検証・[終端履歴planの使用点再導出→別候補bundle保存/読戻しの隔離接続](../design/manifest-transition-inspection.md) | 元runningの正式更新・永続run状態/実event/providerとの接続。複数ファイルの原子的トランザクションや電源断耐久性の証明はない |
+| 排他・manifest選択 | [所有run lock](../../Common/OwnedRunLock.py)、[最新候補選択](../../Common/LatestManifestSelection.py)、[report binding付き読取adapter](../design/latest-manifest-selection.md) | 旧lockの自動引継ぎはしない。実owner証拠、復旧手順、新runとfresh inventoryの作成、実環境での統合 |
+| 明示回復 | 診断・専用mutex、[private証拠のメモリ上のbinding](../../Common/PrivateRecoveryEvidence.py)、供給ACL/descriptorの検査、v1の5field互換境界 | v2の全fieldと適格machine/boot provider、実効ACLと保存先検証、非公開の実保存。v1は診断・保全限定 |
+| 月次・旧確認予算 | [月次観測](../../Common/MonthlyScheduleObservation.py)、[旧24時間/25回予算・checkpoint/使用点の補助処理](../design/completion-wait-budget.md)、[AC電源観測](../design/power-status-observation.md) | 月次task/未実行補完・実時計/account/session/AC停止の統合は未完。定期実行は後続候補。旧PC-B完了待機予算はQ3後のarchive前提には使わない |
+| Drive | request/response schema、[相関・終了コード・固定retryable表の純粋helper](../../Common/DriveResponseSemantics.ps1)・[PS再試行観測](../design/drive-retry-observation.md)、[初期inventory読取接続・件数要約](../design/initial-inventory-observation.md)・OSD-01一括同一内容比較・旧PC suffix命名観測（Q8の自動改名採用ではない）・PC-A source一括再観測接続・page集約/前後照合・不足hash計画/完了集合検査/download chunk観測・staging隔離接続試験](../design/drive-content-comparison.md)、P1/V1/L1・R1/N1/D1 | C-01の実root/指定先/使用点検査、C-02のschemaと具体result形、公式Python client adapter、Desktop OAuth/drive.fileの実folder資格、PS retryの実counter/待機/送信統合・結果不明upload照合 |
+| 配布 | [役割別ビルダー](../../.github/scripts/Build-ReleasePackage.ps1)、example検査、PC-Bのarchive除外、レビュー用非配布マーカー。旧file集合の件数は§10で歴史として保持 | 正式入口、PC別/version別の最終JSON file manifest、tag/VERSION/commitのprovenance、E1承認後Actions配布identity、Drive内容検証、手動導入/専用PS移行/復旧 |
+
+正式Sync/Archive入口・実Drive adapter・元削除経路・正式writer・導入/更新の一連処理は未完。既存helper/schema/隔離接続をruntime完成としない。現要件の順序は§3のT0〜T5で、両経路とも確認済み元の直接削除までが初回完成。旧copy-only/両PC期間待ちの依存順序は引き継がない。
+
+レビュー用ZIPを作れることと実運用可能な初回リリースは別。通常ビルドは正式入口不在を拒否し、AllowNonDeployableの非配布マーカー付き成果物は導入しない。入口の存在判定やVERSION 0.1.0もruntime受け入れ/配布実績の証拠ではない。実配布の判定はT5と[配布設計](../release/distribution-design.md)に従う。
+
+## 10. 旧棚卸しの証拠基準（歴史）
+
+旧棚卸しはファイル名が2026-10-24、本文更新日が2026-10-25、main基準が`fd9cc8a931496d31601f062bf66448ea295eec65`（PR #39）だった。全文はGitの`594a5e1`時点に残る。以下を現在HEADの検証値/runtime受け入れへ読み替えない。
+
+- PR #39 mainの[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40105135888)・[Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40105134099)成功は当該SHAの証拠。旧本文のC-01/B2/G1/retryable実装の「ローカルのみ/PR未実施」も当時の状態で、現在のCI未実施断定に使わない。
+- 旧基準のローカル結果はPython 3.11.9で306件（2skip）、PowerShell 7.6.7の配布回帰成功。現在の試験件数/受け入れ値ではなく、今回再実行していない。
+- レビュー用0.1.0の40-file snapshot、その後の追加による50件の記録は[限定4件の決定記録](../decisions/implementation-grounded-four-decisions-20261024.md)と旧棚卸しの歴史。現在の最終runtime file manifest/配布資格ではなく、今回packageを生成/再計数していない。
+- PC-Bの部分volume/reparse/crash/source/lock証拠は加算して全体受け入れにしない。旧lock証拠のsource SHAは`302682abb7fd3b45b6745247dfa5297542f81c4b`。旧棚卸し時のTier Bはincomplete、Aのvolume証拠未収集、Tier C未実施、電源断/再起動耐久性未証明を保持する。現在の資格判定は[対象FS受け入れ計画](../validation/target-filesystem-acceptance.md)と個別証拠を照合する。
+- OAuth/credential・owner-v2/private保全・配布identity/provenance・最終file/migration・通知/重複抑制・時計/AC等の未完は§5と[未決台帳](../requirements/p0-open-specification-decisions.md)へ接続する。既存選択は[決定台帳](../decisions/decision-register-c18-c32.md)を維持し、旧24時間/25回待機をarchive必須条件へ戻さない。

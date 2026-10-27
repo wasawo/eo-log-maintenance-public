@@ -8,7 +8,7 @@
 
 | 変更対象 | 読む文書・実体 | 維持する条件 |
 | --- | --- | --- |
-| 全体・未完了 | [現行handoff](../handoff/next-chat.md)、[初回配布棚卸し](../status/first-release-readiness-20261024.md)、[実装計画](implementation-workflow.md)、[要件台帳](../requirements/requirements-traceability.md)、[P0台帳](../requirements/p0-gap-register.md) | 記録より実ファイル・実Git状態を優先し、実装済みhelperと正式runtime完成を区別 |
+| 全体・未完了 | [現行handoff](../handoff/next-chat.md)、[実装計画（§3作業順/§9資産/§10旧証拠）](implementation-workflow.md)、[要件台帳](../requirements/requirements-traceability.md)、[P0台帳](../requirements/p0-gap-register.md) | 記録より実ファイル・実Git状態を優先し、実装済みhelperと正式runtime完成を区別 |
 | 承認と未決定 | [決定台帳](../decisions/decision-register-c18-c32.md)、[未決定仕様](../requirements/p0-open-specification-decisions.md)、対象の個別承認記録 | 未決定の値・遷移・認証・配布条件を推測して実装しない |
 | 設定・root | [maintenanceLocal](../design/configuration-local-root.md)、[Config](../../Config/)、[Common](../../Common/README.md) | PC別フィールド、安全既定値、絶対Windowsパス、領域分離を維持。導入時は未作成の場合だけexampleから生成し、利用者は実パスのみ入力。更新時は既存実設定を保持。設定値は認可ではない |
 | ファイル選択・期間 | [ファイル名・期間](../design/filename-and-period-selection.md) | 承認済みファイル名日付を使いLastWriteTimeで代用しない |
