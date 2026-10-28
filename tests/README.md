@@ -16,6 +16,8 @@
 
 `test_simulation_run_owner.py`と`Test-OwnedLogMoveSimulation.ps1`は[所有ロック付き模擬実行](../docs/design/owned-simulation-run.md)の接続試験。実Win32 mutexの競合/中断/強制終了と記録保全、PC-Aの両経路・PC-B Syncからjournal/レポートまでを自作合成領域で確認する。実ログ・実Driveは使わない。
 
+`test_simulation_file_snapshot.py`と`Test-FileSnapshotMoveSimulation.ps1`は[読取列挙からモデルへの接続](../docs/design/file-snapshot-simulation.md)を検証する。全列挙と部分失敗を区別し、合成物理ファイルを変更せずに、両経路の期間選択・競合・journal・最終レポートまで通す。
+
 `test_power_status_observation.py`はAC観測のmock ABI/不明・失敗と既存使用点への合成接続を検査します。Windowsでは実APIを読取のみで一度照会します。電源の変更・実ログ/Driveアクセス・task登録・実運用受け入れは行いません。
 
 `test_checkpoint_replace_probe.py`はcaller指定先を受けない専用OS-temp probeで、実CreateFileW共有guardとReplaceFileW、使用点検査後の競合反例を確認します。許可名外/root marker変更/hardlinkでもnative変更へ進みません。これは不十分なAPI組合せを検出する負例であり、provider採用・Tier B/C・電源断耐久性の証拠ではありません。

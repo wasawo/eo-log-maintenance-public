@@ -2,6 +2,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'LogMoveSimulation.ps1')
+. (Join-Path $PSScriptRoot 'SimulationFileSnapshot.ps1')
 
 function Invoke-EoOwnedLogMoveSimulation {
     [CmdletBinding()]
@@ -17,6 +18,7 @@ function Invoke-EoOwnedLogMoveSimulation {
         [string]$PythonExecutable='python',
         [guid]$RunId=[guid]::NewGuid(),
         [hashtable]$Faults=@{},
+        [object[]]$SnapshotRoots=@(),
         [switch]$DryRun
     )
     $config=ConvertFrom-EoMachineConfigurationJson -Json $ConfigurationJson -ExpectedMachineId $MachineId
@@ -24,8 +26,14 @@ function Invoke-EoOwnedLogMoveSimulation {
     $arguments=@{ConfigurationJson=$ConfigurationJson;MachineId=$MachineId;Operation=$Operation;State=$State;
         ReferenceDate=$ReferenceDate;JournalRoot=$JournalRoot;ReportRoot=$ReportRoot;PythonExecutable=$PythonExecutable;
         RunId=$RunId;Faults=$Faults}
+    $useSnapshot=$SnapshotRoots.Count -gt 0
+    if ($useSnapshot -and ($State.Files -isnot [Collections.Generic.List[object]] -or $State.Files.Count -ne 0 -or
+        $State.Events -isnot [Collections.Generic.List[object]] -or $State.Events.Count -ne 0)) { throw 'simulation_snapshot_state_not_empty' }
+    $loadSnapshot={ Read-EoSimulationFileSnapshot -Roots $SnapshotRoots -ExcludedRoots @($LifecycleRoot,$JournalRoot,$ReportRoot) `
+        -MachineId $MachineId -Operation $Operation -RequestId $RunId -PythonExecutable $PythonExecutable }
     # Keep Dry Run outside ordinary ownership/start/cleanup paths.
     if ($DryRun) {
+        if ($useSnapshot) { $arguments.State=& $loadSnapshot }
         $result=Invoke-EoLogMoveSimulation @arguments -DryRun
         $result | Add-Member -NotePropertyName LifecycleStatus -NotePropertyValue 'not_started'
         return $result
@@ -59,6 +67,11 @@ function Invoke-EoOwnedLogMoveSimulation {
         if (-not $ready.Wait(30000)) { throw 'owned_simulation_unconfirmed' }
         $ack=$ready.GetAwaiter().GetResult() | ConvertFrom-Json -AsHashtable
         if (-not (& $validAck $ack 'ready')) { throw 'owned_simulation_unconfirmed' }
+        if ($useSnapshot) {
+            $snapshot=& $loadSnapshot
+            if ($process.HasExited) { throw 'owned_simulation_unconfirmed' }
+            $State.Files=$snapshot.Files
+        }
         $result=Invoke-EoLogMoveSimulation @arguments
         $request=@{protocol_version=1;run_id=$RunId.ToString('D');operation_status=$result.Status;report_save_status=$result.ReportSaveStatus}
         $stdout=$process.StandardOutput.ReadToEndAsync()

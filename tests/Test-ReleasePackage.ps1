@@ -62,6 +62,8 @@ try {
     Set-Content (Join-Path $fixture 'Common/MoveJournalCommand.py') '# Simulation journal bridge'
     Set-Content (Join-Path $fixture 'Common/SimulationRunReport.py') '# Private model report'
     Set-Content (Join-Path $fixture 'Common/SimulationRunOwner.py') '# Synthetic ownership broker'
+    Set-Content (Join-Path $fixture 'Common/SimulationFileSnapshot.py') '# Read-only model file snapshot'
+    Set-Content (Join-Path $fixture 'Common/SimulationFileSnapshot.ps1') '# Model snapshot bridge'
     Set-Content (Join-Path $fixture 'Common/OwnedLogMoveSimulation.ps1') '# Owned synthetic coordinator'
     Set-Content (Join-Path $fixture 'Common/SimulationRunReport.ps1') '# Private model report bridge'
     Set-Content (Join-Path $fixture 'Common/LogMoveSimulationJournal.ps1') '# Simulation record persistence'
@@ -149,6 +151,8 @@ try {
         'Common/MoveJournalCommand.py',
         'Common/SimulationRunReport.py',
         'Common/SimulationRunOwner.py',
+        'Common/SimulationFileSnapshot.py',
+        'Common/SimulationFileSnapshot.ps1',
         'Common/OwnedLogMoveSimulation.ps1',
         'Common/SimulationRunReport.ps1',
         'Common/LogMoveSimulationJournal.ps1',

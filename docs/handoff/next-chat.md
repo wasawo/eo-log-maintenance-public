@@ -6,11 +6,25 @@
 
 ## 現在地
 
-- 作業branch: `codex/owned-simulation-run`。今回開始はmain `6658025`、作業ツリーはクリーン。fetchとGitHubでPR #48のマージ済みを確認し、最新mainから新規作成した。今回は「次の作業に着手して」に基づくローカル実装・検証・コミットまで。新しいpush/PR/mergeは指示を待ち、前回PRの許可を流用しない。
+- 作業branch: `codex/owned-simulation-run`。今回開始HEADは`ab507bd`、作業ツリーはクリーン。main `6658025`から作成した同じブランチへ変更を蓄積する。今回は「次の作業に着手して」に基づくローカル実装・検証・コミットまで。新しいpush/PR/mergeは指示を待ち、前回PRの許可を流用しない。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
-## 今回の所有ロック・開始/終了記録の接続
+## 今回の合成ファイル列挙からモデルへの接続
+
+[ファイルスナップショット接続](../design/file-snapshot-simulation.md)を追加した。既存の再帰列挙/reparse検査・安定読取を再利用し、4つの合成root（元/保存先×ログ種別）全体を確認した後にだけ、空のモデルへ渡す。通常実行では所有取得/開始記録より後に列挙し、期間判定・同名比較・journal・結果レポート・終了記録まで接続する。Cloudは合成フォルダで、Drive APIではない。
+
+列挙・読取・途中変更・root不在・上限・不正scope/領域・junctionを確認できなければ部分一覧を返さず、モデル移動前に中断する。既存Stateを黙って置換せず、Dry Runでは一時モデルだけを使い呼出し側State/物理ファイル/管理記録を変更しない。全物理ファイルのbytes不変を合成試験で確認した。
+
+Python新規7試験（skipなし）、PS新規28 assertions（PC-A Sync/Archive、PC-B Sync、両ログ種別）、既存所有接続21 assertions、役割別配布回帰が成功。Python構文解析2ファイル、PS構文解析/PSScriptAnalyzer Error検査4ファイルも成功した。ローカルPython 3.11.9/PS 7.6.7、CI定義Python 3.12。実junction/所有mutex/非上書き公開を含む試験は自作合成一時領域だけをsandbox外で使用した。リモートCI・独立レビュー・実環境受け入れは未実施。
+
+文書103件の相対リンク1027件・見出し参照112件と`git diff --check`も成功した。変更していない純粋モデル/journal/report層の全試験やmarkdownlintは無関係に再実行していない。
+
+模擬設計末尾に残っていた「新しい永続記録・概要/レポート実保存・所有排他が残る」という一括記述を、記録/レポート/所有/合成列挙の接続済み範囲と、正式provider/実run未完へ分けた。実装規約の新たな不一致は見つかっていない。
+
+入力収集後のQ5/実体保持、所有喪失時の実操作停止、正式private root/ACL資格、実Drive列挙/版固定削除、正式入口と実運用受け入れは未完。実物理ファイルは移動・削除せず、snapshotのIDを実provider identityにしない。T0/T1/T4/AC全体を完了にしない。次は正式providerへ必要な実体保持・所有喪失停止・列挙の結合を具体化する。実ログ/本番Drive操作は未承認のまま。
+
+## 前回の所有ロック・開始/終了記録の接続
 
 [所有ロック付き模擬実行](../design/owned-simulation-run.md)を追加した。PowerShell wrapperから、既存OwnedRunLockと原子的非上書き公開を再利用するPython所有プロセスを呼び、開始記録の確認後に既存モデルの両経路・journal・結果レポートを処理する。終了時は開始記録と現在の最終レポートbytesをSHA-256で結び付ける。PC-BはSyncのみで、Dry Runは通常ロック/記録/cleanupへ入らない。
 

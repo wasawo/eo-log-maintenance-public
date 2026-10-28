@@ -39,6 +39,8 @@ PowerShellの例外や入力EOFでは、所有プロセスがinterruptedを保�
 
 この接続は、元/保存先がメモリ上のモデルである。所有プロセスの生存と、PowerShell側で既に実行中のモデル操作を原子的に結び付けてはいない。所有プロセスが途中で失われるとモデル処理が継続し得るが、最終LifecycleStatusは未確認となる。実providerへそのまま接続せず、所有喪失時の停止と実体保護を正式run側で設計・検証する必要がある。
 
+任意の`SnapshotRoots`を指定した場合は、所有取得後に[合成ファイルを読取列挙](file-snapshot-simulation.md)してモデルへ渡す。全領域を確認できなければモデル処理前に中断する。未指定時の直接モデル呼出しを維持し、物理ファイルの移動・削除は追加しない。
+
 所有資格・ACL、実列挙、複数端末/別root間のクラウド競合、実Driveの版固定削除、開始だけ残った記録の正式診断、実環境受け入れは未完。T0/T1/T4やAC全体は完了にしない。既存の直接モデル呼出しは排他を持たないため、このwrapperを迂回する並行writerの保証も含めない。
 
 [所有プロセス試験](../../tests/test_simulation_run_owner.py)では実Win32 mutexによる競合、EOF、強制終了と残存物保全、異常要求、レポート/開始digest、改変lock、run再使用を検証する。[PS接続試験](../../tests/Test-OwnedLogMoveSimulation.ps1)ではPC-Aの両経路とPC-B Syncをjournal/レポートまで通す。通常試験は自作合成一時領域のみを使う。
