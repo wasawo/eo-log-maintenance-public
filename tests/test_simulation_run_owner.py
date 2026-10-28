@@ -41,6 +41,11 @@ class SimulationRunOwnerTests(unittest.TestCase):
         stdout,stderr=process.communicate(message,timeout=20)
         return stdout,stderr
 
+    def check(self, process, run, sequence):
+        process.stdin.write(json.dumps(dict(protocol_version=1,run_id=run,kind='check',sequence=sequence))+'\n')
+        process.stdin.flush()
+        return json.loads(process.stdout.readline())
+
     def ended(self, run):
         return json.loads((self.lifecycle/(run+'.ended.json')).read_bytes())
 
@@ -146,6 +151,28 @@ class SimulationRunOwnerTests(unittest.TestCase):
             self.assertEqual(process.returncode,1)
             self.assertEqual(self.ended(run)['disposition'],'interrupted')
             self.assertNotIn('secret-synthetic-value',stdout+stderr)
+
+    def test_checkpoint_rechecks_owner_record_and_correlates_monotonic_sequence(self):
+        process,run=self.start(); self.ready(process,run)
+        for sequence in (1,2):
+            self.assertEqual(self.check(process,run,sequence),dict(protocol_version=1,phase='owned',run_id=run,sequence=sequence))
+        lock=next(self.lifecycle.glob('*.lock')); lock.write_bytes(b'changed synthetic ownership')
+        self.assertEqual(self.check(process,run,3)['phase'],'unconfirmed')
+        process.communicate(timeout=20)
+        self.assertEqual(process.returncode,1)
+        self.assertEqual(self.ended(run)['disposition'],'interrupted')
+        self.assertEqual(lock.read_bytes(),b'changed synthetic ownership')
+
+    def test_checkpoint_replay_or_wrong_run_is_rejected(self):
+        for variant in ('replay','wrong_run','boolean_sequence'):
+            process,run=self.start(); self.ready(process,run)
+            self.assertEqual(self.check(process,run,1)['phase'],'owned')
+            target_run=str(uuid4()) if variant=='wrong_run' else run
+            sequence=True if variant=='boolean_sequence' else (1 if variant=='replay' else 2)
+            self.assertEqual(self.check(process,target_run,sequence)['phase'],'unconfirmed')
+            process.communicate(timeout=20)
+            self.assertEqual(process.returncode,1)
+            self.assertEqual(self.ended(run)['disposition'],'interrupted')
 
 
 if __name__=='__main__': unittest.main()

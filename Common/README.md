@@ -4,6 +4,8 @@
 
 ## 機能から探す
 
+所有wrapperは[境界ごとの所有確認](../docs/design/owned-simulation-run.md#処理境界での所有確認)をモデルへ渡す。確認不能後は後続のモデルコピー/元除去・永続保存を止めるが、実providerの原子的な所有保証にはしない。
+
 [ファイルスナップショット接続](../docs/design/file-snapshot-simulation.md)は`SimulationFileSnapshot.py`/`.ps1`で合成フォルダを読取り、全列挙を確認してから所有ロック付きモデルへ渡す。物理ファイルは変更しない。
 
 [所有ロック付き模擬実行](../docs/design/owned-simulation-run.md)は`OwnedLogMoveSimulation.ps1`から既存モデル・journal・レポートを囲む。開始/終了記録と実OS mutexを接続するが、実providerやprivate root資格の保証ではない。

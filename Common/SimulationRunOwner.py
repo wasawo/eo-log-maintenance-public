@@ -15,7 +15,7 @@ if __name__ == '__main__':
 from Common.AtomicArtifactPublication import _chain, _same_bytes, publish_bytes_no_overwrite
 from Common.MoveJournal import _unique, _number
 from Common.MoveRunReport import _scope
-from Common.OwnedRunLock import acquire_owned_lock
+from Common.OwnedRunLock import acquire_owned_lock, _record_matches
 from Common.SimulationRunReport import read_report, summarize
 
 MAX_REQUEST_BYTES = 4096
@@ -45,8 +45,8 @@ def _publish(root, name, value):
     return hashlib.sha256(raw).hexdigest()
 
 
-def _emit(phase, run_id):
-    print(json.dumps(dict(protocol_version=1, phase=phase, run_id=run_id)), flush=True)
+def _emit(phase, run_id, **extra):
+    print(json.dumps(dict(protocol_version=1, phase=phase, run_id=run_id, **extra)), flush=True)
 
 
 def serve(args, input_stream):
@@ -62,7 +62,8 @@ def serve(args, input_stream):
     base = dict(lifecycle_version=1, simulation_only=True, run_id=args.run_id,
                 machine_id=args.machine_id, route=args.route, scope_ref=scope)
     lock_path = lifecycle / (scope+'.lock')
-    with acquire_owned_lock('MoveSimulation-'+scope[:48], lock_path, timeout_seconds=0, maximum_record_bytes=4096):
+    lock_scope='MoveSimulation-'+scope[:48]
+    with acquire_owned_lock(lock_scope, lock_path, timeout_seconds=0, maximum_record_bytes=4096) as token:
         _require([_chain(root) for root in roots] == chains)
         # A run UUID is single-use, even if the previous model never moved data.
         _require(not (lifecycle/(args.run_id+'.started.json')).exists() and not (lifecycle/(args.run_id+'.ended.json')).exists())
@@ -72,9 +73,20 @@ def serve(args, input_stream):
                       operation_status=None, report_save_status=None, report_sha256=None)
         try:
             _emit('ready', args.run_id)
-            raw = input_stream.readline(MAX_REQUEST_BYTES+1)
-            _require(0 < len(raw) <= MAX_REQUEST_BYTES and raw.endswith(b'\n'))
-            request = json.loads(raw.decode('utf-8'), object_pairs_hook=_unique, parse_float=_number, parse_constant=_number)
+            sequence=0
+            while True:
+                raw = input_stream.readline(MAX_REQUEST_BYTES+1)
+                _require(0 < len(raw) <= MAX_REQUEST_BYTES and raw.endswith(b'\n'))
+                request = json.loads(raw.decode('utf-8'), object_pairs_hook=_unique, parse_float=_number, parse_constant=_number)
+                _require(type(request) is dict)
+                _require([_chain(root) for root in roots] == chains and _record_matches(lock_path,lock_scope,token,4096))
+                if request.get('kind') != 'check':
+                    break
+                _require(set(request) == {'protocol_version','run_id','kind','sequence'})
+                _require(type(request['protocol_version']) is int and request['protocol_version'] == 1 and request['run_id'] == args.run_id)
+                _require(type(request['sequence']) is int and request['sequence'] == sequence+1)
+                sequence=request['sequence']
+                _emit('owned',args.run_id,sequence=sequence)
             _require(type(request) is dict and set(request) == {'protocol_version','run_id','operation_status','report_save_status'})
             _require(type(request['protocol_version']) is int and request['protocol_version'] == 1 and request['run_id'] == args.run_id)
             _require(request['operation_status'] in ('success','no_work','partial_failure','failure'))

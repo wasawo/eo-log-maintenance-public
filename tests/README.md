@@ -16,6 +16,8 @@
 
 `test_simulation_run_owner.py`と`Test-OwnedLogMoveSimulation.ps1`は[所有ロック付き模擬実行](../docs/design/owned-simulation-run.md)の接続試験。実Win32 mutexの競合/中断/強制終了と記録保全、PC-Aの両経路・PC-B Syncからjournal/レポートまでを自作合成領域で確認する。実ログ・実Driveは使わない。
 
+`Test-OwnershipLossMoveSimulation.ps1`は両経路の処理境界で所有確認を失わせ、後続のコピー/元除去/記録保存の停止、除去後の結果不明、過去照合の保留、確認応答後のQ5再検査を確認する。実所有プロセスのtoken記録改変とモデル停止も接続する。
+
 `test_simulation_file_snapshot.py`と`Test-FileSnapshotMoveSimulation.ps1`は[読取列挙からモデルへの接続](../docs/design/file-snapshot-simulation.md)を検証する。全列挙と部分失敗を区別し、合成物理ファイルを変更せずに、両経路の期間選択・競合・journal・最終レポートまで通す。
 
 `test_power_status_observation.py`はAC観測のmock ABI/不明・失敗と既存使用点への合成接続を検査します。Windowsでは実APIを読取のみで一度照会します。電源の変更・実ログ/Driveアクセス・task登録・実運用受け入れは行いません。

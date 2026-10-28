@@ -67,12 +67,34 @@ function Invoke-EoOwnedLogMoveSimulation {
         if (-not $ready.Wait(30000)) { throw 'owned_simulation_unconfirmed' }
         $ack=$ready.GetAwaiter().GetResult() | ConvertFrom-Json -AsHashtable
         if (-not (& $validAck $ack 'ready')) { throw 'owned_simulation_unconfirmed' }
+        $ownerChannel=@{Sequence=0L;Lost=$false}
+        $arguments.OwnershipCheck={
+            if ($ownerChannel.Lost) { return $false }
+            try {
+                if ($process.HasExited) { throw 'owned_simulation_unconfirmed' }
+                $ownerChannel.Sequence++
+                $message=@{protocol_version=1;run_id=$RunId.ToString('D');kind='check';sequence=$ownerChannel.Sequence}
+                $read=$process.StandardOutput.ReadLineAsync()
+                $write=$process.StandardInput.WriteLineAsync(($message|ConvertTo-Json -Compress))
+                if (-not $write.Wait(30000) -or -not $read.Wait(30000)) { throw 'owned_simulation_unconfirmed' }
+                $reply=$read.GetAwaiter().GetResult()|ConvertFrom-Json -AsHashtable
+                if ($reply -isnot [Collections.IDictionary] -or $reply.Count -ne 4 -or
+                    @($reply.Keys|Where-Object {$_ -cnotin @('protocol_version','phase','run_id','sequence')}).Count -ne 0 -or
+                    ($reply.protocol_version -isnot [int] -and $reply.protocol_version -isnot [long]) -or $reply.protocol_version -ne 1 -or
+                    $reply.phase -isnot [string] -or $reply.phase -cne 'owned' -or
+                    $reply.run_id -isnot [string] -or $reply.run_id -cne $RunId.ToString('D') -or
+                    ($reply.sequence -isnot [int] -and $reply.sequence -isnot [long]) -or $reply.sequence -ne $ownerChannel.Sequence) { throw 'owned_simulation_unconfirmed' }
+                return $true
+            }
+            catch { $ownerChannel.Lost=$true; return $false }
+        }.GetNewClosure()
         if ($useSnapshot) {
             $snapshot=& $loadSnapshot
             if ($process.HasExited) { throw 'owned_simulation_unconfirmed' }
             $State.Files=$snapshot.Files
         }
         $result=Invoke-EoLogMoveSimulation @arguments
+        if ($ownerChannel.Lost) { throw 'owned_simulation_unconfirmed' }
         $request=@{protocol_version=1;run_id=$RunId.ToString('D');operation_status=$result.Status;report_save_status=$result.ReportSaveStatus}
         $stdout=$process.StandardOutput.ReadToEndAsync()
         $write=$process.StandardInput.WriteLineAsync(($request|ConvertTo-Json -Compress))
@@ -87,6 +109,7 @@ function Invoke-EoOwnedLogMoveSimulation {
     }
     catch {
         if ($null -eq $result) { throw 'owned_simulation_interrupted' }
+        $result.OwnershipStatus='unconfirmed'
         $result | Add-Member -NotePropertyName LifecycleStatus -NotePropertyValue 'unconfirmed'
     }
     finally {

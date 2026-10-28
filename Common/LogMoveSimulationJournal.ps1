@@ -140,8 +140,9 @@ function Save-EoSimulationOutcome {
             $data.request_outcome='failed'; $data.source_after_delete='present'; $data.source_after_method=$presenceMethod
             $data.decision='incomplete'; $data.reason_code='delete_failed'
         }
-        elseif ($Reason -in @('source_changed','verification_unknown')) {
+        elseif ($Reason -in @('source_changed','verification_unknown','destination_mismatch')) {
             $data.request_outcome='not_sent'; $data.source_before_delete=$null; $data.source_method='unavailable'
+            $data.destination_current=$null; $data.destination_method='unavailable'
             $data.reason_code=if ($Reason -eq 'source_changed') { 'source_changed' } else { 'verification_unknown' }
         }
     }
