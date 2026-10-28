@@ -54,9 +54,11 @@ try {
     Set-Content (Join-Path $fixture 'Common/README.md') '# Common'
     Set-Content (Join-Path $fixture 'scripts/ArchiveAndUploadLogs.ps1') 'Write-Output "legacy"'
     Set-Content (Join-Path $fixture 'scripts/ArchiveLogs.ps1') 'Write-Output "archive fixture"'
+    Set-Content (Join-Path $fixture 'scripts/Show-MoveRun.ps1') '# Read-only move record summary'
     Set-Content (Join-Path $fixture 'Common/Hash-File.ps1') 'Get-FileHash -Algorithm SHA256'
     Set-Content (Join-Path $fixture 'Common/LogFunctions.ps1') '# Log filename and period functions'
     Set-Content (Join-Path $fixture 'Common/MoveJournal.py') '# Immutable move records, not deletion authority'
+    Set-Content (Join-Path $fixture 'Common/MoveRunReport.py') '# Identifier-only record report'
     Set-Content (Join-Path $fixture 'Common/MachineConfiguration.ps1') '# Read-only configuration structure loader'
     Set-Content (Join-Path $fixture 'Common/MachineConfigurationBootstrap.ps1') '# Create-only configuration helper'
     Set-Content (Join-Path $fixture 'Common/MachineConfigurationRootInspection.ps1') '# Read-only existing-root inspector'
@@ -137,6 +139,8 @@ try {
         'contracts/private-recovery-evidence-v1.schema.json',
         'contracts/move-record-v1.schema.json',
         'Common/MoveJournal.py',
+        'Common/MoveRunReport.py',
+        'scripts/Show-MoveRun.ps1',
         'Config/PC-A.example.json',
         'Config/PC-B.example.json',
         'scripts/README.md',

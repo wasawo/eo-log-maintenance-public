@@ -6,11 +6,25 @@
 
 ## 現在地
 
-- 作業branch: `codex/manual-move-preflight`。今回開始HEADは`bc9b5f5`、作業ツリーはクリーン。PR #47のmain `36550ab`から作成した同じブランチへ継続して蓄積する。PR #47のmain Validate/Package Validationは前回成功を確認済み。今回もローカルコミットまでとし、新たなpush/PR/mergeは利用者の指示を待つ。
+- 作業branch: `codex/manual-move-preflight`。今回開始HEADは`034afd5`、作業ツリーはクリーン。PR #47のmain `36550ab`から作成した同じブランチへ継続して蓄積する。PR #47のmain Validate/Package Validationは前回成功を確認済み。今回もローカルコミットまでとし、新たなpush/PR/mergeは利用者の指示を待つ。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
-## 今回の別プロセスによる現在状態の再観測
+## 今回の実行別概要表示
+
+[Show-MoveRun.ps1](../../scripts/Show-MoveRun.ps1)と`Common/MoveRunReport.py`で、移動記録の読取からPowerShellの日本語概要/JSON表示へ接続した。run ID・PC・経路を明示して選び、初回完了と完了済みの再確認を分け、過去の未解決も持ち越す。明示参照のある結果は照合を採用し、先後不明の複数結果や元の対応不整合を時刻/順序で解決しない。同じ元・コピー内容への別move IDは二重計上せず概要生成を拒否する。
+
+出力は対象参照UUID・状態・次の対応等に限定し、実パス・Drive ID・ファイル名・raw例外/stderrを表示しない。異常応答は閉じたkey/型/固定値の検査で拒否し、timeoutで子プロセスツリーを終了する。journalを変更せず、元/保存先の観測・移動・削除・回復は呼ばない。記録なしを「対象なし」や実行成功にしない。詳細は[集計仕様](../design/move-run-report.md)へ記録した。
+
+合成一時領域の新規10試験（実PowerShell command、日本語/JSON、非公開値非表示、journal bytes不変、異常応答/timeoutを含む）がPython 3.11.9/PowerShell 7.6.7で成功。role別配布回帰、Python構文解析2ファイル、変更PS 2ファイルの構文解析/PSScriptAnalyzer Error検査も成功した。CIには専用検査を追加し、packageのcommand/module同梱を回帰で確認した。正式Sync/Archive入口不在の配布拒否は維持する。新ブランチのリモートCI・独立レビュー・runtime受け入れは未実施。
+
+文書99件の相対リンク（root READMEの今回の概要リンクを含む）と見出し参照に欠落なし。`git diff --check`成功。今回も文書はリンク・記述整合・差分を確認し、markdownlintや無関係な全試験は再実行していない。
+
+正式な移動/再実行coordinator、fresh inventory/run全体の判定、private詳細レポート、root/ACL/排他資格、実Driveは未完。T0/T1/T4やAC全体は完了にしない。次は、読取表示へ渡す元単位のIDを通常再実行でも維持するcoordinatorと、模擬adapterの接続を具体化する。実Driveの条件付き削除に必要な保証は未解決であり、これを表示コマンドで代用しない。
+
+scripts READMEの「READMEのみ」という古い現在地と、実装計画§9の当時のfile棚卸しを更新/歴史として明記した。旧Drive IPC 1.0の操作追加はしておらず、本コマンドの読取表示用応答とは分ける。文書と既存コードの新たな実装規約不一致は見つかっていない。
+
+## 前回の別プロセスによる現在状態の再観測
 
 [隔離再観測試験](../design/cold-move-reconciliation.md)を追加した。Windows probeの`journal=True`でv1 preparedを元削除より前に保存・読戻しし、削除結果が記録できない場合やpendingの場合を作る。子プロセスへは自作rootと所有marker照合用nonceだけを渡し、現在の元/保存先の観測結果や親のメモリ上の内容基準は渡さない。
 

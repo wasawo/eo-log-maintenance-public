@@ -19,6 +19,8 @@
 
 [MoveJournal.py](MoveJournal.py)は[移動記録v1](../docs/design/move-record-v1.md)の非上書き保存・参照検査・読戻しを提供する。元/保存先の実観測や削除権限は提供せず、private root・所有権・ACL・排他の資格確認は呼出し側に必要。
 
+[MoveRunReport.py](MoveRunReport.py)は検査済み記録を実行別に集計し、[概要表示コマンド](../scripts/Show-MoveRun.ps1)へ限定した表示項目だけを返す。実移動の制御や実行成功の認定は行わない。[集計仕様](../docs/design/move-run-report.md)を参照。
+
 ## 詳細と検証
 
 - 全モジュールの従来説明は[Commonモジュール参照ノート](../docs/design/reference/common-module-notes.md)へ移した。個別の観測条件/未実装境界を削っていない。

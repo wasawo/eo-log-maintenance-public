@@ -83,6 +83,10 @@ jobs:
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_cold_move_reconciliation.py" -v
 
+      - name: Validate read-only move run reporting
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_move_run_report.py" -v
+
       - name: Validate referenced aggregation artifacts
         shell: pwsh
         run: |
