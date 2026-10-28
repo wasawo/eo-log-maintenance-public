@@ -4,6 +4,8 @@
 
 ## 機能から探す
 
+[所有ロック付き模擬実行](../docs/design/owned-simulation-run.md)は`OwnedLogMoveSimulation.ps1`から既存モデル・journal・レポートを囲む。開始/終了記録と実OS mutexを接続するが、実providerやprivate root資格の保証ではない。
+
 [模擬実行結果レポート](../docs/design/simulation-run-report.md)は`SimulationRunReport.py`/`.ps1`で別領域へ保存する。prepared前の失敗も含めるが、削除判定の証拠や実runの完成にはしない。
 
 | 分野 | 実装/参照先 | 現在の境界 |

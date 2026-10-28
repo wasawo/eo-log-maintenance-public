@@ -93,6 +93,8 @@ jobs:
           python -B -m unittest discover -s tests -p "test_move_journal_command.py" -v
           python -B -m unittest discover -s tests -p "test_simulation_run_report.py" -v
           ./tests/Test-LogMoveJournalIntegration.ps1
+          python -B -m unittest discover -s tests -p "test_simulation_run_owner.py" -v
+          ./tests/Test-OwnedLogMoveSimulation.ps1
 
       - name: Validate referenced aggregation artifacts
         shell: pwsh

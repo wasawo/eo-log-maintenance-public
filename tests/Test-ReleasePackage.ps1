@@ -61,6 +61,8 @@ try {
     Set-Content (Join-Path $fixture 'Common/MoveRunReport.py') '# Identifier-only record report'
     Set-Content (Join-Path $fixture 'Common/MoveJournalCommand.py') '# Simulation journal bridge'
     Set-Content (Join-Path $fixture 'Common/SimulationRunReport.py') '# Private model report'
+    Set-Content (Join-Path $fixture 'Common/SimulationRunOwner.py') '# Synthetic ownership broker'
+    Set-Content (Join-Path $fixture 'Common/OwnedLogMoveSimulation.ps1') '# Owned synthetic coordinator'
     Set-Content (Join-Path $fixture 'Common/SimulationRunReport.ps1') '# Private model report bridge'
     Set-Content (Join-Path $fixture 'Common/LogMoveSimulationJournal.ps1') '# Simulation record persistence'
     Set-Content (Join-Path $fixture 'Common/MachineConfiguration.ps1') '# Read-only configuration structure loader'
@@ -146,6 +148,8 @@ try {
         'Common/MoveRunReport.py',
         'Common/MoveJournalCommand.py',
         'Common/SimulationRunReport.py',
+        'Common/SimulationRunOwner.py',
+        'Common/OwnedLogMoveSimulation.ps1',
         'Common/SimulationRunReport.ps1',
         'Common/LogMoveSimulationJournal.ps1',
         'scripts/Show-MoveRun.ps1',

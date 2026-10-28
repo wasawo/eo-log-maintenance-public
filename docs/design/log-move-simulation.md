@@ -14,6 +14,8 @@ pwsh -NoProfile -File tests/Test-LogMoveSimulation.ps1
 
 正式な`SyncLogs.ps1`と`ArchiveLogs.ps1`は追加しない。実装基盤と運用入口を取り違えず、既存ビルダーの正式入口不在による配布拒否も維持する。
 
+[所有ロック付きwrapper](owned-simulation-run.md)では、このモデル呼出しを実OS mutexと開始/終了記録で囲む。直接のモデル呼出し自体は従来どおりロックを取得しない。実providerの所有資格を与えるものではない。
+
 ## 今回の模擬契約
 
 `Invoke-EoLogMoveSimulation`は設定JSON、実行PC、Sync/Archive、固定基準日、モデル状態、任意の故障指定、Dry Run指定を受け取る。既存の厳密な設定読取とファイル名・期間判定を再利用する。PC-BのArchiveと、PC-AのallowArchive無効は状態を読む前に拒否する。設定値だけで本番操作を認可するものではない。

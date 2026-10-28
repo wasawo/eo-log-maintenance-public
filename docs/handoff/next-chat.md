@@ -6,11 +6,27 @@
 
 ## 現在地
 
-- 作業branch: `codex/manual-move-preflight`。今回開始HEADは`7090125`、作業ツリーはクリーン。正本mainはfetch/ GitHubで`36550ab`を確認した。2026-10-28に利用者から「次の作業に着手して。実装後にコミットをまとめてPR作成、マージまで完了させて」と指示を受領した。直後の中断と「次の作業に着手して」は作業の継続として扱い、同じブランチの累積コミットを1つのPRへまとめ、最新HEADのValidate/Package Validation成功後にマージする。実データ操作・本番適用は含まない。
+- 作業branch: `codex/owned-simulation-run`。今回開始はmain `6658025`、作業ツリーはクリーン。fetchとGitHubでPR #48のマージ済みを確認し、最新mainから新規作成した。今回は「次の作業に着手して」に基づくローカル実装・検証・コミットまで。新しいpush/PR/mergeは指示を待ち、前回PRの許可を流用しない。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
-## 今回の実行全体の結果レポート
+## 今回の所有ロック・開始/終了記録の接続
+
+[所有ロック付き模擬実行](../design/owned-simulation-run.md)を追加した。PowerShell wrapperから、既存OwnedRunLockと原子的非上書き公開を再利用するPython所有プロセスを呼び、開始記録の確認後に既存モデルの両経路・journal・結果レポートを処理する。終了時は開始記録と現在の最終レポートbytesをSHA-256で結び付ける。PC-BはSyncのみで、Dry Runは通常ロック/記録/cleanupへ入らない。
+
+同じjournalの呼出しをscopeとする実Windows Global mutexを使い、LifecycleRootをjournalの兄弟`<末尾名>.lifecycle`へ固定する。二重起動・run UUID再使用・異常な配置/役割を開始前に拒否する。EOF/モデル例外はinterruptedを記録し、所有プロセス強制終了の開始記録/lockや、改変lockを自動解除しない。終了ファイルだけでcleanup成功とはせず、最終応答とLifecycleStatusを分ける。
+
+実装はメモリ上の元/保存先を扱う模擬接続である。所有プロセスが途中で失われても既に実行中のモデル操作が続く可能性があり、最終状態を未確認として返す。所有喪失時の実操作停止、実root/ACL/名前空間資格、実列挙、実Drive、正式Sync/Archive入口、実環境受け入れは未完。T0/T1/T4/AC全体に昇格させない。
+
+新規所有プロセス9試験とPowerShell接続21 assertions（PC-A Sync/Archive、PC-B Sync）がローカルで成功した。役割別配布回帰、PS構文解析/PSScriptAnalyzer Error検査3ファイル、Python構文解析2ファイルも成功。hardlink/実OS mutexを含む接続試験は自作合成一時領域だけをsandbox外で使用した。Python 3.11.9/PS 7.6.7、CI定義はPython 3.12。この新ブランチのリモートCI・独立レビュー・実環境受け入れは未実施。
+
+文書102件の相対リンク1015件・見出し参照112件と`git diff --check`も成功した。変更のないモデル本体・journal・レポートの全既存試験やmarkdownlintは無関係に再実行していない。
+
+前回PR #48はmain `6658025`へマージ済みで、[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40623877751)と[Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40623877773)は成功済み（PR本文にも確認結果あり）。下記の前回記録にあるqueued/マージ待ちは当時の状態である。
+
+模擬実装文書の「ロック取得なし」は直接モデル呼出しの範囲として維持し、所有wrapper経由ではOSロックを使うことを追記した。新たな実装規約の文書/コード不一致は見つかっていない。次は実列挙をモデルへ結び付ける入口と、所有喪失時の停止/正式private root資格を具体化する。実ログ・本番Driveの操作は未承認のまま。
+
+## 前回の実行全体の結果レポート
 
 累積実装は[PR #48](https://github.com/wasawo/eo-log-maintenance-public/pull/48)へまとめた（実装HEAD `880c7e2`、本引き継ぎ追記前）。作成時はValidate/Package Validationともqueuedを確認した。追記を含む最終HEADの両CI・merge可否を確認してから、利用者の承認範囲でマージする。本書の記録だけでCI成功/マージ済みとはせず、再開時はGitHubの実状態・main SHAを照合する。
 
