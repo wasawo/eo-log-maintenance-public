@@ -101,6 +101,8 @@ Bはここまでの自端末元だけを担当し、cloud元削除やarchiveは�
 
 さらに[保持handleのsecurity観測](same-process-owned-native-probe.md#保持handleのsecurity観測と残る資格)を候補へ接続し、owner/DACLとprocess primary userの取得不能・観測変化で停止する。ただしdirectory共有modeはDACLを凍結せず、再観測の一致も実効アクセス/全祖先/root資格の代わりにはならない。file専用ACL profileをdirectoryの認可へ流用しない。
 
+候補では[スレッド偽装も拒否](same-process-owned-native-probe.md#スレッド偽装時の拒否)する。thread tokenがないと確認できたときだけ観測を続け、同じユーザーの偽装や照会失敗も拒否する。偽装解除による自動続行や、実効権限の資格確認を提供するものではない。
+
 ## 7. 公式資料で確認した能力と未確認（2026-10-27）
 
 | 資料 | 確認できた事実 | 本設計への含意・未確認 |

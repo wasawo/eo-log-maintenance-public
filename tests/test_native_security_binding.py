@@ -1,5 +1,6 @@
 """Private held-handle observations, not authorization or real-root ACL edits."""
 import ctypes
+from contextlib import contextmanager
 import os
 import subprocess
 import unittest
@@ -18,6 +19,71 @@ class NativeSecurityBindingTests(unittest.TestCase):
         probe=OwnedDisposableMoveDeleteProbe()
         self.addCleanup(probe.close)
         return probe
+
+    @contextmanager
+    def impersonating_self(self,observer):
+        from ctypes import wintypes as w
+        observer._require_primary_context()
+        security=observer.security
+        security.ImpersonateSelf.argtypes=(ctypes.c_int,);security.ImpersonateSelf.restype=w.BOOL
+        security.RevertToSelf.argtypes=();security.RevertToSelf.restype=w.BOOL
+        self.assertTrue(security.ImpersonateSelf(2),'self impersonation failed')
+        try:
+            yield
+        finally:
+            if not security.RevertToSelf():
+                os._exit(92)  # Never continue the test runner under an unconfirmed token.
+
+    def test_same_user_thread_token_is_not_treated_as_process_context(self):
+        probe=self.probe();observer=NativeSecurityObserver(probe)
+        with probe._directory_handle(probe._root) as handle:
+            baseline=observer.read(handle)
+            with self.impersonating_self(observer):
+                self.assertTrue(observer.process_user_sid()==baseline.process_user_sid,'process user changed')
+                with self.assertRaisesRegex(MoveDeleteProbeError,'^probe_security_context_unconfirmed$'):
+                    observer.read(handle)
+            self.assertTrue(observer.read(handle)==baseline,'normal context was not restored')
+
+    def test_impersonating_start_stops_before_records_and_allows_fresh_retry(self):
+        probe=self.probe();observer=NativeSecurityObserver(probe)
+        with self.impersonating_self(observer):
+            with self.assertRaisesRegex(MoveDeleteProbeError,'^probe_security_context_unconfirmed$'):
+                probe.run_owned()
+        self.assertTrue((probe._root/'source.bin').exists())
+        self.assertFalse(probe._lock_path.exists())
+        self.assertEqual(read_move_journal(probe._root/'journal'),[])
+        self.assertEqual(probe.run_owned()['status'],'completed')
+
+    def test_thread_context_change_at_delete_boundary_retains_or_reports_unknown(self):
+        for checkpoint,expected,exists in (
+                ('before_delete',dict(status='retained',reason='ownership_unconfirmed'),True),
+                ('after_delete',dict(status='unknown',reason='ownership_unconfirmed_after_delete'),False)):
+            with self.subTest(checkpoint=checkpoint):
+                probe=self.probe();observer=NativeSecurityObserver(probe);entered=[]
+                context=self.impersonating_self(observer)
+                def change(phase):
+                    if phase==checkpoint:
+                        context.__enter__();entered.append(True)
+                try:
+                    result=probe.run_owned(at_checkpoint=change)
+                finally:
+                    if entered:context.__exit__(None,None,None)
+                self.assertEqual(entered,[True])
+                self.assertEqual(result,expected)
+                self.assertEqual((probe._root/'source.bin').exists(),exists)
+                self.assertEqual(len(read_move_journal(probe._root/'journal')),1)
+                self.assertFalse((probe._root/'result.json').exists())
+
+    def test_unreadable_thread_token_is_not_assumed_absent(self):
+        probe=self.probe();observer=NativeSecurityObserver(probe)
+        def denied(*args):
+            ctypes.set_last_error(5)
+            return False
+        with probe._directory_handle(probe._root) as handle:
+            with patch.object(observer.security,'OpenThreadToken',side_effect=denied):
+                with self.assertRaisesRegex(MoveDeleteProbeError,'^probe_security_context_unconfirmed$'):
+                    observer.read(handle)
+        self.assertTrue((probe._root/'source.bin').exists())
 
     def test_held_directory_observation_and_process_user_are_actual_private_facts(self):
         probe=self.probe();observer=NativeSecurityObserver(probe)

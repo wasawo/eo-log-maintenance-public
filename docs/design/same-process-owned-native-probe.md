@@ -78,3 +78,15 @@ Q12の直接削除方式、対象期間、同名競合、PC-Bの権限を変え�
 既存の[private file ACL profile](reference/private-evidence-acl-profile.md)はfile専用のまま維持し、directoryをfileと偽って分類しない。初期directory policyや正式factoryの資格条件を推測で採用していない。
 
 根拠は[GetSecurityInfo](https://learn.microsoft.com/en-us/windows/win32/api/aclapi/nf-aclapi-getsecurityinfo)、[GetSecurityDescriptorLength](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-getsecuritydescriptorlength)、[GetTokenInformation](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-gettokeninformation)。[pywin32のhandle取得](https://github.com/mhammond/pywin32/blob/7743a95fcdb03cd1c7939259caaea70ebace1e53/win32/src/win32security.i)と[libuvの利用例](https://github.com/libuv/libuv/blob/9d8bbff7be6298900c494f39619deab799826f30/test/appcontainer.c)を比較し、SACL privilegeを要求せずowner/DACLだけをhandleから取得する。fixtureのDACL変更は[SetSecurityInfo](https://learn.microsoft.com/en-us/windows/win32/api/aclapi/nf-aclapi-setsecurityinfo)を使い、Native割当てをLocalFreeで解放する。依存追加やコード転載はない。
+
+## スレッド偽装時の拒否
+
+process primary userが同じでも、スレッドの偽装tokenではgroupやprivilege等が異なる可能性がある。候補の観測はそれらを評価していないため、2026-10-29にsecurity観測の開始・終了でOpenThreadTokenを呼ぶ拒否処理を追加した。TOKEN_QUERYとOpenAsSelf=trueで呼び、ERROR_NO_TOKEN（1008）の場合だけ観測を続ける。tokenを取得できた場合はhandleを閉じて拒否し、アクセス拒否などの取得失敗も「tokenなし」と推測しない。同じSIDの自己偽装も例外にしない。
+
+拒否理由は固定の`probe_security_context_unconfirmed`とし、tokenやSIDは出力しない。初回観測で拒否したら所有記録・準備記録を作らない。処理中は既存の所有checkpointへ接続され、元削除前は元を保持、元削除後は結果不明となり成功記録を作らない。候補が利用者の偽装を解除して続行することはない。通常のprimary contextへ戻った後の再実行では、新たに観測する。
+
+既存6試験に4試験を追加し、同じprocess userの自己偽装の拒否、開始時の拒否と通常再実行、削除前後の偽装による停止、token照会のアクセス拒否を確認する。実偽装は試験自身のスレッドにImpersonateSelfで設定し、finallyでRevertToSelfを呼ぶ。解除できなければ試験プロセスを終了し、不明な権限のまま後続試験を実行しない。照会失敗の注入だけは模擬APIを使い、主要な拒否・停止は実Win32で試験する。
+
+調査では[pywin32](https://github.com/mhammond/pywin32/blob/main/win32/src/win32apimodule.cpp)のTOKEN_QUERYによる照会と、[PHP](https://github.com/php/php-src/blob/master/TSRM/tsrm_win32.c)のthread context利用を比較した。両者の「thread tokenがない場合だけprocess tokenを使う」という区別を参考にし、この候補では偽装を扱う機能を増やさず拒否する方式にした。APIの意味は[OpenThreadToken](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openthreadtoken)、試験の設定・解除は[ImpersonateSelf](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-impersonateself)と[RevertToSelf](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-reverttoself)に従う。依存追加・コード転載はない。
+
+これはtests内候補の未対応状態を拒否する変更であり、正式providerの実効token資格やAccessCheckを実装したものではない。観測間・観測直後の変更/復元、process tokenのgroup/privilege/elevation、全祖先とdirectory policy、実root資格、実Driveとの結合は未完。`may_change_state=false`と既存の本番操作境界を維持する。

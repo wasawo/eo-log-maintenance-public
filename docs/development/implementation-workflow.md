@@ -114,7 +114,7 @@ T0のローカル元削除方式を具体化するため、[Windows隔離probe](
 
 その後、書込viewだけが残る場合の保護open拒否、3つの管理directoryの保持と名前変更拒否を追加検証し、[正式provider前の拒否契約](../design/same-process-owned-native-probe.md#正式providerへ渡す前の拒否契約)へ結び付けた。実root/ACL資格や実Drive保存先は残件であり、T0完了にはしない。
 
-候補は[保持handleからのsecurity再観測](../design/same-process-owned-native-probe.md#保持handleのsecurity観測と残る資格)も行う。初回取得不能や観測変化で停止し、除去後の変化を成功記録にしない。実効AccessCheck、thread token/group/privilege、全祖先の資格、directory policyの採用は未完である。
+候補は[保持handleからのsecurity再観測](../design/same-process-owned-native-probe.md#保持handleのsecurity観測と残る資格)も行う。初回取得不能や観測変化で停止し、除去後の変化を成功記録にしない。[スレッド偽装時の拒否](../design/same-process-owned-native-probe.md#スレッド偽装時の拒否)は実装したが、偽装tokenを許可する資格確認は提供しない。実効AccessCheck、group/privilege/elevation、全祖先の資格、directory policyの採用は未完である。
 
 T0の旧方針整合は§4のとおり進めた。次は元/保存先の識別・Q5確認と削除結果の詳細設計を進める。通常検証は合成/隔離/模擬APIを使い、実ログ/本番Driveの接続・削除・本番適用は別途具体的指示と限定計画の範囲で扱う。独立レビュー未実施を自己点検で置き換えて表記しない。
 

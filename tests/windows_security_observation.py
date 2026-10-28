@@ -35,12 +35,14 @@ class NativeSecurityObserver:
             ('GetSecurityDescriptorLength',(w.LPVOID,),w.DWORD),
             ('ConvertSidToStringSidW',(w.LPVOID,pointer),w.BOOL),
             ('OpenProcessToken',(w.HANDLE,w.DWORD,ctypes.POINTER(w.HANDLE)),w.BOOL),
+            ('OpenThreadToken',(w.HANDLE,w.DWORD,w.BOOL,ctypes.POINTER(w.HANDLE)),w.BOOL),
             ('GetTokenInformation',(w.HANDLE,ctypes.c_int,w.LPVOID,w.DWORD,ctypes.POINTER(w.DWORD)),w.BOOL),
             ('IsValidSid',(w.LPVOID,),w.BOOL),
             ('GetLengthSid',(w.LPVOID,),w.DWORD),
         ):
             function=getattr(self.security,name);function.argtypes=args;function.restype=result
         self.kernel.GetCurrentProcess.argtypes=();self.kernel.GetCurrentProcess.restype=w.HANDLE
+        self.kernel.GetCurrentThread.argtypes=();self.kernel.GetCurrentThread.restype=w.HANDLE
         self.kernel.LocalFree.argtypes=(w.HLOCAL,);self.kernel.LocalFree.restype=w.HLOCAL
 
     def _require(self,condition):
@@ -80,6 +82,15 @@ class NativeSecurityObserver:
         finally:
             self.probe._close(token)
 
+    def _require_primary_context(self):
+        from ctypes import wintypes as w
+        token=w.HANDLE()
+        if self.security.OpenThreadToken(self.kernel.GetCurrentThread(),8,True,ctypes.byref(token)):
+            self.probe._close(token)
+            raise MoveDeleteProbeError('probe_security_context_unconfirmed')
+        if ctypes.get_last_error()!=1008:  # ERROR_NO_TOKEN alone confirms absence.
+            raise MoveDeleteProbeError('probe_security_context_unconfirmed')
+
     def _identity(self,handle):
         identity=self.probe._structures[0]();attributes=self.probe._structures[2]()
         for kind,value in ((18,identity),(9,attributes)):
@@ -90,6 +101,7 @@ class NativeSecurityObserver:
 
     def read(self,handle):
         from ctypes import wintypes as w
+        self._require_primary_context()
         before=self._identity(handle)
         descriptor=ctypes.c_void_p();owner=ctypes.c_void_p();dacl=ctypes.c_void_p()
         try:
@@ -105,6 +117,7 @@ class NativeSecurityObserver:
             raw=ctypes.string_at(descriptor,size)
             process_sid=self.process_user_sid()
             self._require(self._identity(handle)==before)
+            self._require_primary_context()
             return HandleSecurityObservation(before[0],before[1],raw,owner_sid,process_sid,
                 bool(control.value&4),not bool(dacl),bool(control.value&0x1000))
         finally:
