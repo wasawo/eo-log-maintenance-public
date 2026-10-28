@@ -20,7 +20,7 @@ probeはOSの一時領域に新しい専用ディレクトリと所有marker、�
 2. 保存先を読取アクセス、元を読取＋DELETEアクセスで開く。両方の共有指定はFILE_SHARE_READだけとし、通常の書込・削除openを許さない。既存writerのため開けなければ処理を止める。
 3. 各ハンドルからFile ID、size、通常ファイル/単一linkを確認し、全bytesを読んでハッシュを比較する。読取前後もmetadataを確認する。同内容でも元/保存先の実体が基準から変わっていれば元を残す。
 4. 確認した元/保存先identityと内容を`prepared.json`へcreate-onlyで保存し、flush/fsync後のbytesを読戻して照合する。失敗時は元削除を呼ばない。これは本番用の永続記録schemaの採用ではない。
-5. ハンドルを保持したまま、元への競合する書込/DELETE openが共有違反で拒否されることを確認する。rootと両ハンドルのidentity/sizeも再確認する。
+5. ハンドルを保持したまま、元への競合する書込/DELETE openが共有違反で拒否されることを確認する。準備記録も読取ハンドルで保護し、rootと両ハンドルのidentity/sizeだけでなく、内容も先頭から再読する。その後の[同一プロセス所有接続](same-process-owned-native-probe.md)では、所有確認の後にもこの再読を行う。
 6. 同じ元ハンドルへSetFileInformationByHandle / FileDispositionInfoを指定し、そのハンドルを閉じる。保存先ハンドルは、除去結果の観測と結果記録まで保持する。
 7. 自作root内の元名について、正常な不在を観測できた場合と、delete pendingなどで未確認の場合を区別し、別ファイル`result.json`へ記録する。削除後の記録失敗は結果不明とし、元削除を繰り返さない。
 
@@ -35,6 +35,8 @@ Microsoftの[CreateFileW](https://learn.microsoft.com/en-us/windows/win32/api/fi
 従来のprobe内`reconcile()`は、元の基準情報と準備記録bytesをメモリにも保持し、それ自体は別プロセスからの再開や、信用できない記録をロードするvalidatorを提供しない。ディスク上の記録を使う流れの確認ではあるが、このメソッドだけで実装計画の新しい永続記録契約やクラッシュ回復を完了したものではない。
 
 その後、`journal=True`で[移動記録v1](move-record-v1.md)を保存し、[別プロセスの読取専用worker](cold-move-reconciliation.md)が現在の合成元/保存先を再観測する試験を追加した。従来の同一probe内`reconcile()`とは別の接続であり、実Driveや正式なruntime回復は提供しない。
+
+さらに[同一プロセスの所有mutex・実体保持](same-process-owned-native-probe.md)を接続した。tests内だけの追加であり、任意pathを受ける正式削除providerへ切り替えていない。
 
 ## 検証結果と残る限界
 

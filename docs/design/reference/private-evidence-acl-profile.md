@@ -30,9 +30,11 @@ profile_matches=trueは限定形状への一致であり、実効アクセスの
 [AccessCheckの仕組み](https://learn.microsoft.com/en-us/windows/win32/secauthz/how-dacls-control-access-to-an-object)はtokenのuser/group属性とACE順序がアクセス判定に関係することを説明する。
 本helperはそのアルゴリズムを実装せず、denyを含む複雑なACLを許可方向に解釈しない。
 
-未実装: descriptor取得・provider完全性、actual execution tokenとのbinding、impersonation/group/privilege、directory/祖先のdelete-child/置換、root/ACL変更から利用までの保護、必要権限付き新規作成、実効アクセス検証。
+正式providerとして未実装: descriptor取得・provider完全性、actual execution tokenとのbinding、impersonation/group/privilege、directory/祖先のdelete-child/置換、root/ACL変更から利用までの保護、必要権限付き新規作成、実効アクセス検証。
 実taskのログオン方式・昇格などは同一accountだけでは決まらない。OSD-08の残る運用方針を別途確定する。
 STORE-01やACL全体・P0/Tier Bをこの部分実装で完了にしない。
+
+その後の[tests内のhandle security観測](../same-process-owned-native-probe.md#保持handleのsecurity観測と残る資格)は、owner/DACLとprocess primary userをOSから読取る別の隔離接続である。本profileと正規化helperは引き続き入力だけを扱い、directoryをfileと偽って評価しない。tests内の観測一致をCommonの保存/削除認可へ昇格させない。
 
 ## バイナリ記述子正規化スライス
 

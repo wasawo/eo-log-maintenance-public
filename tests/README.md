@@ -1,5 +1,15 @@
 # テスト計画
 
+`test_sdk_staging_observer.py`は[別プロセスによるstaging照合](../docs/design/sdk-download-staging.md#別プロセスでの現在状態照合)を検証する。子へ期待hash/判定を渡さず、現在のfileと記録を読み直す。候補/未完/owner保留を区別し、改変や実体差替えは確認不能とする。API・書込み・自動採用は行わない。
+
+`test_sdk_download_staging.py`は[公式SDK→隔離staging](../docs/design/sdk-download-staging.md)を、実所有mutex・実fileと合成HTTPで検証する。非上書き、flush/fsync/読戻し、元の版変化、I/O故障、所有喪失と失敗試行の保持を確認する。対象rootはfixture自身が作るOS-temp領域だけである。
+
+同試験はpayload作成前の割当て記録と、検証後のready候補の非上書き公開も確認する。記録の改変や公開応答の喪失を成功結果にせず、残存記録を自動採用しない。正式manifest/ready状態の受け入れではない。
+
+`test_drive_content_reader.py`は[公式SDKによる内容取得・hash・版再確認](../docs/design/drive-content-reader.md)を、合成HTTP応答で検証する。空/分割内容、不正Range、途中失敗、metadata変更と、取得hashの版を結び付けた既存plan/比較への接続を確認する。実ログ・実Drive・ローカル保存は扱わない。
+
+`test_drive_metadata_reader.py`は[公式Driveクライアントの読取接続](../docs/design/drive-metadata-reader.md)を検証する。同梱DiscoveryでSDKを動かし、HTTP応答だけを合成する。親/ID/全page/version、error時の非公開情報、既存比較への接続を確認し、実Driveや認証情報は使用しない。
+
 `Test-LogMoveJournalIntegration.ps1`は両経路の模擬移動・v1保存・ID維持・通常再実行・照合・概要を一連で検証する。`test_move_journal_command.py`は内部metadata bridgeのID再利用と不整合拒否を合成一時領域で確認する。[接続仕様](../docs/design/simulation-journal-integration.md)を参照。実ログ/Driveや正式runtimeは扱わない。
 
 `test_move_run_report.py`は移動記録の実行別集計とPowerShell表示コマンドを検証する。重複計上、持越し、曖昧な結果、scope拒否、非公開値の非表示、異常応答・timeoutとjournal不変を合成一時領域で確認する。[仕様](../docs/design/move-run-report.md)を参照。
@@ -13,6 +23,20 @@
 `Test-LogMoveSimulation.ps1`は設定・期間・平坦化・同名比較・内容確認・限定元削除・再実行・結果不明照合を、両経路のメモリ上のモデルで接続する。この試験はjournal/レポート保存を指定せず、実ファイル/Driveの削除や永続記録は行わない。[模擬契約と受け入れ限界](../docs/design/log-move-simulation.md)を参照。実行: `pwsh -NoProfile -File tests/Test-LogMoveSimulation.ps1`。
 
 `test_simulation_run_report.py`と`Test-LogMoveJournalIntegration.ps1`で、[模擬実行全体の結果レポート](../docs/design/simulation-run-report.md)を検証する。早期失敗・競合の比較対象・次の対応、削除結果確認/照合の分別、対象なし・未解決の区別、非上書き保存と読戻し、保存失敗・Dry Runを合成一時領域で確認する。
+
+`test_simulation_run_owner.py`と`Test-OwnedLogMoveSimulation.ps1`は[所有ロック付き模擬実行](../docs/design/owned-simulation-run.md)の接続試験。実Win32 mutexの競合/中断/強制終了と記録保全、PC-Aの両経路・PC-B Syncからjournal/レポートまでを自作合成領域で確認する。実ログ・実Driveは使わない。
+
+`Test-OwnershipLossMoveSimulation.ps1`は両経路の処理境界で所有確認を失わせ、後続のコピー/元除去/記録保存の停止、除去後の結果不明、過去照合の保留、確認応答後のQ5再検査を確認する。実所有プロセスのtoken記録改変とモデル停止も接続する。
+
+`test_owned_windows_move_probe.py`は[同一プロセスの所有・実体保持](../docs/design/same-process-owned-native-probe.md)を検証する。自作OS-tempの合成ファイルだけで所有mutex、元/保存先/記録のハンドル保持、Q5再読・限定削除・v1記録・プロセス終了後の別プロセス再観測を接続する。`owned_move_crash_worker.py`も自分で生成するfixture以外を受け付けず、正式runtimeや配布へは追加しない。
+
+`test_native_provider_boundaries.py`は[provider前の拒否条件](../docs/design/same-process-owned-native-probe.md#正式providerへ渡す前の拒否契約)の部分証拠を検査する。元のfile/mapping両handleを閉じて残した書込view、読取handleからの書込mapping作成拒否、3ディレクトリの名前変更拒否と保持不能時の停止を、Win32 APIと自作fixtureだけで確認する。
+
+`test_native_security_binding.py`は[保持handleのsecurity観測](../docs/design/same-process-owned-native-probe.md#保持handleのsecurity観測と残る資格)を検証する。`windows_security_observation.py`はprivateな読取だけ、`windows_fixture_acl.py`は自作3ディレクトリだけのfault作成を担当する。実rootのACL設定や実accountの権限変更には使わず、観測一致も認可としない。
+
+同試験は[スレッド偽装時の拒否](../docs/design/same-process-owned-native-probe.md#スレッド偽装時の拒否)も確認する。試験スレッドだけに自己偽装を設定し、必ず解除する（解除不能ならプロセス終了）。候補は偽装tokenの存在・照会失敗を拒否し、利用者の偽装を勝手に解除しない。
+
+`test_simulation_file_snapshot.py`と`Test-FileSnapshotMoveSimulation.ps1`は[読取列挙からモデルへの接続](../docs/design/file-snapshot-simulation.md)を検証する。全列挙と部分失敗を区別し、合成物理ファイルを変更せずに、両経路の期間選択・競合・journal・最終レポートまで通す。
 
 `test_power_status_observation.py`はAC観測のmock ABI/不明・失敗と既存使用点への合成接続を検査します。Windowsでは実APIを読取のみで一度照会します。電源の変更・実ログ/Driveアクセス・task登録・実運用受け入れは行いません。
 

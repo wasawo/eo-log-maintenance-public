@@ -20,7 +20,8 @@ function Invoke-EoLogMoveSimulation {
         [string]$JournalRoot = '',
         [string]$ReportRoot = '',
         [string]$PythonExecutable = 'python',
-        [guid]$RunId = [guid]::NewGuid()
+        [guid]$RunId = [guid]::NewGuid(),
+        [scriptblock]$OwnershipCheck
     )
 
     $config = ConvertFrom-EoMachineConfigurationJson -Json $ConfigurationJson -ExpectedMachineId $MachineId
@@ -51,11 +52,52 @@ function Invoke-EoLogMoveSimulation {
         }
     }
     foreach ($event in $State.Events) {
-        if ($event -isnot [hashtable] -or $event.Kind -cnotin @('prepared', 'delete_result', 'reconciled') -or
-            $event.SourceId -isnot [string] -or $event.MachineId -cnotin @('PC-A', 'PC-B') -or
+        if ($event -isnot [hashtable]) { throw 'move_simulation_record_invalid' }
+        foreach ($key in @('Kind','SourceId','MachineId','Operation','LogType','RelativePath')) {
+            if (-not $event.ContainsKey($key) -or $event[$key] -isnot [string] -or
+                [string]::IsNullOrWhiteSpace($event[$key])) { throw 'move_simulation_record_invalid' }
+        }
+        if ($event.Kind -cnotin @('prepared', 'delete_result', 'reconciled') -or
+            $event.MachineId -cnotin @('PC-A', 'PC-B') -or
             $event.Operation -cnotin @('Sync', 'Archive') -or $event.LogType -cnotin @('BattleLog', 'ErrorReport') -or
+            ($event.Operation -ceq 'Archive' -and $event.MachineId -cne 'PC-A') -or
             $null -eq (ConvertTo-SafeDiagnosticRelativePath -Path $event.RelativePath)) {
             throw 'move_simulation_record_invalid'
+        }
+        if ($event.Kind -cin @('prepared','delete_result')) {
+            if (-not $event.ContainsKey('DestinationId') -or $event.DestinationId -isnot [string] -or
+                [string]::IsNullOrWhiteSpace($event.DestinationId)) { throw 'move_simulation_record_invalid' }
+        }
+        if ($event.Kind -ceq 'prepared') {
+            foreach ($key in @('SourceLocation','DestinationLocation','DestinationName','Sha256','Size','Reused')) {
+                if (-not $event.ContainsKey($key)) { throw 'move_simulation_record_invalid' }
+            }
+            $expectedSource=if ($event.Operation -ceq 'Sync') {$event.MachineId}else{'Cloud'}
+            $expectedDestination=if ($event.Operation -ceq 'Sync') {'Cloud'}else{'Archive'}
+            if ($event.SourceLocation -isnot [string] -or $event.SourceLocation -cne $expectedSource -or
+                $event.DestinationLocation -isnot [string] -or $event.DestinationLocation -cne $expectedDestination -or
+                $event.DestinationName -isnot [string] -or
+                $event.DestinationName -cne ($event.RelativePath.Replace('\','/') -split '/')[-1] -or
+                $event.Sha256 -isnot [string] -or $event.Sha256 -cnotmatch '^[a-f0-9]{64}$' -or
+                ($event.Size -isnot [int] -and $event.Size -isnot [long]) -or $event.Size -lt 0 -or
+                $event.Reused -isnot [bool]) { throw 'move_simulation_record_invalid' }
+            if ($event.ContainsKey('JournalRecord') -ne $event.ContainsKey('JournalSha256')) { throw 'move_simulation_record_invalid' }
+            if ($event.ContainsKey('JournalRecord')) {
+                $record=$event.JournalRecord
+                if ($record -isnot [hashtable] -or -not $record.ContainsKey('record_id') -or -not $record.ContainsKey('move_id') -or
+                    $record.record_id -isnot [string] -or $record.move_id -isnot [string] -or
+                    $event.JournalSha256 -isnot [string] -or $event.JournalSha256 -cnotmatch '^[a-f0-9]{64}$') {
+                    throw 'move_simulation_record_invalid'
+                }
+            }
+        }
+        elseif (-not $event.ContainsKey('Outcome') -or $event.Outcome -isnot [string] -or
+            $event.Outcome -cnotin @('completed','unknown')) { throw 'move_simulation_record_invalid' }
+        foreach ($key in @('MoveId','JournalPreparedId')) {
+            if ($event.ContainsKey($key) -and ($event[$key] -isnot [string] -or
+                $event[$key] -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')) {
+                throw 'move_simulation_record_invalid'
+            }
         }
     }
     $sourceLocation = if ($Operation -eq 'Sync') { $MachineId } else { 'Cloud' }
@@ -77,6 +119,18 @@ function Invoke-EoLogMoveSimulation {
         throw 'move_simulation_journal_root_invalid'
     }
     $journalState = @{ Failed=$false }
+    $ownership=@{Lost=$false}
+    $ensureOwned={
+        param([string]$Phase,[string]$SourceId='')
+        if ($DryRun -or $null -eq $OwnershipCheck) { return $true }
+        if ($ownership.Lost) { return $false }
+        try {
+            $confirmed=& $OwnershipCheck $Phase $SourceId
+            if ($confirmed -isnot [bool] -or -not $confirmed) { throw 'ownership_unconfirmed' }
+            return $true
+        }
+        catch { $ownership.Lost=$true; $journalState.Failed=$true; return $false }
+    }
     $journalPrepared = @{}
     $outcomes = @{}
     $reportDetails = [Collections.Generic.List[object]]::new()
@@ -85,9 +139,35 @@ function Invoke-EoLogMoveSimulation {
         param([byte[]]$Bytes)
         [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($Bytes)).ToLowerInvariant()
     }
+    $confirmReconciliation = {
+        param($Record)
+        try {
+            $destination=@($State.Files | Where-Object { $_.Id -ceq $Record.DestinationId })
+            $recreated=@($State.Files | Where-Object {
+                $_.Id -ceq $Record.SourceId -or ($_.Location -ceq $sourceLocation -and $_.LogType -ceq $Record.LogType -and
+                    $_.RelativePath -ceq $Record.RelativePath)
+            })
+            if ($destination.Count -ne 1 -or $recreated.Count -ne 0) { return $false }
+            $target=$destination[0]
+            return ($target.Location -ceq $destinationLocation -and $target.LogType -ceq $Record.LogType -and
+                $target.RelativePath -ceq $Record.DestinationName -and $target.Bytes.LongLength -eq $Record.Size -and
+                (& $hashBytes $target.Bytes) -ceq $Record.Sha256)
+        }
+        catch { return $false }
+    }
     $addResult = {
-        param($Source, [string]$Outcome, [string]$Reason, $DestinationId)
-        if ($journalEnabled -and $journalPrepared.ContainsKey($Source.Id) -and $Reason -ne 'result_record_failed') {
+        param($Source, [string]$Outcome, [string]$Reason, $DestinationId, $ReconciliationRecord=$null)
+        if ($journalEnabled -and $journalPrepared.ContainsKey($Source.Id) -and $Reason -ne 'result_record_failed' -and
+            -not $ownership.Lost -and -not (& $ensureOwned 'before_outcome' $Source.Id)) {
+            $Reason=if ($Reason -ceq 'reconciled_completion') {'ownership_unconfirmed_during_reconciliation'}elseif ($Outcome -in @('completed','unknown')) {'ownership_unconfirmed_after_delete'}else{'ownership_unconfirmed'}
+            if ($Outcome -eq 'completed') { $Outcome='unknown' }
+        }
+        # Observe Q11 after the last ownership acknowledgement, including before_outcome.
+        if ($Reason -ceq 'reconciled_completion' -and -not (& $confirmReconciliation $ReconciliationRecord)) {
+            $Outcome='unknown'; $Reason='reconciliation_unconfirmed'
+        }
+        if ($journalEnabled -and $journalPrepared.ContainsKey($Source.Id) -and $Reason -ne 'result_record_failed' -and -not $ownership.Lost -and
+            ($null -eq $ReconciliationRecord -or $Reason -ceq 'reconciled_completion')) {
             $binding = $journalPrepared[$Source.Id]
             try {
                 [void](Save-EoSimulationOutcome -Prepared $binding.JournalRecord -Sha256 $binding.JournalSha256 `
@@ -122,6 +202,10 @@ function Invoke-EoLogMoveSimulation {
         }
     }
     foreach ($source in @($State.Files | Where-Object { $_.Location -ceq $sourceLocation })) {
+        if (-not (& $ensureOwned 'before_source' $source.Id)) {
+            & $addResult $source 'retained' 'ownership_unconfirmed' $null
+            continue
+        }
         if ($journalState.Failed) {
             & $addResult $source 'retained' 'record_failed' $null
             continue
@@ -173,6 +257,10 @@ function Invoke-EoLogMoveSimulation {
                 Id = [guid]::NewGuid().ToString('D'); Location = $destinationLocation
                 LogType = $source.LogType; RelativePath = $name; Bytes = $staged.Clone()
             }
+            if (-not (& $ensureOwned 'before_destination_write' $source.Id)) {
+                & $addResult $source 'retained' 'ownership_unconfirmed' $null
+                continue
+            }
             $State.Files.Add($destination)
         }
         if ($fault -eq 'destination_changed') { $destination.Bytes = [byte[]]@(255) }
@@ -193,6 +281,10 @@ function Invoke-EoLogMoveSimulation {
             DestinationName = $name; Sha256 = $baseline; Size = $staged.LongLength
             Reused = $reused
         }
+        if (-not (& $ensureOwned 'before_prepared' $source.Id)) {
+            & $addResult $source 'retained' 'ownership_unconfirmed' $destination.Id
+            continue
+        }
         if ($journalEnabled) {
             try {
                 $candidate = New-EoSimulationPreparedRecord -Event $prepared -RunId $currentRun
@@ -211,7 +303,7 @@ function Invoke-EoLogMoveSimulation {
         if ($fault -eq 'source_changed') { $source.Bytes = [byte[]]@(254) }
         if ($fault -eq 'source_replaced') { $source.Id = [guid]::NewGuid().ToString('D') }
         $sameSource = @($State.Files | Where-Object { $_.Id -ceq $prepared.SourceId })
-        if ($sameSource.Count -ne 1 -or $source.Id -cne $prepared.SourceId -or
+        if ($sameSource.Count -ne 1 -or -not [object]::ReferenceEquals($sameSource[0],$source) -or $source.Id -cne $prepared.SourceId -or
             (& $hashBytes $source.Bytes) -cne $baseline -or $source.Bytes.LongLength -ne $staged.LongLength) {
             & $addResult $originalSource 'retained' 'source_changed' $destination.Id
             continue
@@ -225,7 +317,30 @@ function Invoke-EoLogMoveSimulation {
             & $addResult $source 'retained' 'delete_failed' $destination.Id
             continue
         }
-        if ($fault -ne 'delete_unknown_present') { [void]$State.Files.Remove($source) }
+        if (-not (& $ensureOwned 'before_delete' $source.Id)) {
+            & $addResult $source 'retained' 'ownership_unconfirmed' $destination.Id
+            continue
+        }
+        # Ownership acknowledgement may wait; recheck model Q5 afterwards.
+        $sameSource=@($State.Files|Where-Object { $_.Id -ceq $prepared.SourceId })
+        $sameDestination=@($State.Files|Where-Object { $_.Id -ceq $destination.Id -and $_.Location -ceq $destinationLocation -and $_.RelativePath -ceq $name })
+        if ($sameSource.Count -ne 1 -or $source.Id -cne $prepared.SourceId -or
+            (& $hashBytes $source.Bytes) -cne $baseline -or $source.Bytes.LongLength -ne $staged.LongLength) {
+            & $addResult $originalSource 'retained' 'source_changed' $destination.Id
+            continue
+        }
+        if ($sameDestination.Count -ne 1 -or (& $hashBytes $sameDestination[0].Bytes) -cne $baseline) {
+            & $addResult $source 'retained' 'destination_mismatch' $destination.Id
+            continue
+        }
+        if ($fault -ne 'delete_unknown_present' -and -not $State.Files.Remove($source)) {
+            & $addResult $originalSource 'retained' 'source_changed' $destination.Id
+            continue
+        }
+        if (-not (& $ensureOwned 'after_delete' $source.Id)) {
+            & $addResult $source 'unknown' 'ownership_unconfirmed_after_delete' $destination.Id
+            continue
+        }
         $outcome = if ($fault -in @('delete_unknown_absent', 'delete_unknown_present', 'result_record_failed')) { 'unknown' } else { 'completed' }
         & $addResult $source $outcome $(if ($fault -eq 'result_record_failed') { 'result_record_failed' } elseif ($outcome -eq 'completed') { 'delete_confirmed' } else { 'delete_unknown' }) $destination.Id
         if ($fault -ne 'result_record_failed') {
@@ -273,25 +388,15 @@ function Invoke-EoLogMoveSimulation {
         }
         $record = $records[0]
         $reported = @{ Id = $record.SourceId; RelativePath = $record.RelativePath; LogType = $record.LogType }
-        $destination = @($State.Files | Where-Object { $_.Id -ceq $record.DestinationId })
-        $recreated = @($State.Files | Where-Object {
-            $_.Location -ceq $sourceLocation -and $_.LogType -ceq $record.LogType -and
-            $_.RelativePath -ceq $record.RelativePath
-        })
-        $canReconcile = $records.Count -eq 1 -and $destination.Count -eq 1 -and $recreated.Count -eq 0 -and
+        $canReconcile = $records.Count -eq 1 -and
             $record.SourceLocation -ceq $sourceLocation -and $record.DestinationLocation -ceq $destinationLocation -and
             $record.Sha256 -cmatch '^[a-f0-9]{64}$' -and $record.Size -ge 0
-        if ($canReconcile) {
-            $target = $destination[0]
-            $canReconcile = $target.Location -ceq $destinationLocation -and $target.LogType -ceq $record.LogType -and
-                $target.RelativePath -ceq $record.DestinationName -and $target.Bytes.LongLength -eq $record.Size -and
-                (& $hashBytes $target.Bytes) -ceq $record.Sha256
-        }
         if ($DryRun -or $Faults.ContainsKey($record.SourceId) -or $journalState.Failed) { $canReconcile = $false }
+        if (-not (& $ensureOwned 'before_reconcile' $record.SourceId)) { $canReconcile=$false }
         if ($journalEnabled -and -not $record.ContainsKey('JournalRecord')) { $canReconcile = $false }
         if ($canReconcile) {
             if ($journalEnabled) { $journalPrepared[$record.SourceId] = $record }
-            & $addResult $reported 'completed' 'reconciled_completion' $record.DestinationId
+            & $addResult $reported 'completed' 'reconciled_completion' $record.DestinationId $record
             $reconciledEvent = @{
                 Kind = 'reconciled'; SourceId = $record.SourceId; Outcome = $outcomes[$record.SourceId]
                 MachineId = $MachineId; Operation = $Operation
@@ -307,7 +412,8 @@ function Invoke-EoLogMoveSimulation {
     $journalSummary = $null
     $journalUnresolved = $null
     $journalReadStatus = if ($journalEnabled) { 'not_read' } else { 'disabled' }
-    if ($journalEnabled -and -not $DryRun) {
+    if (-not $DryRun) { [void](& $ensureOwned 'before_summary') }
+    if ($journalEnabled -and -not $DryRun -and -not $ownership.Lost) {
         try {
             $journalSummary = & (Join-Path $PSScriptRoot '../scripts/Show-MoveRun.ps1') -JournalRoot $JournalRoot `
                 -RunId $currentRun -MachineId $MachineId -Operation $Operation -PythonExecutable $PythonExecutable -AsJson 2>$null |
@@ -325,7 +431,7 @@ function Invoke-EoLogMoveSimulation {
     else { 'no_work' }
     $reportSaveStatus=if ($reportEnabled) {'not_written'}else{'disabled'}
     $runReportSummary=$null
-    if ($reportEnabled -and -not $DryRun) {
+    if ($reportEnabled -and -not $DryRun -and (& $ensureOwned 'before_report')) {
         $route=if ($Operation -eq 'Sync') {'local_to_cloud'}else{'cloud_to_archive'}
         $pendingRefs=if ($null -ne $journalSummary) { @($journalSummary.details | Where-Object {$_.state -cne 'completed'} | ForEach-Object {$_.move_ref}) }else{@()}
         $report=@{report_version=1;simulation_only=$true;run_id=$currentRun;machine_id=$MachineId;route=$route;
@@ -338,11 +444,17 @@ function Invoke-EoLogMoveSimulation {
         }
         catch { $runReportSummary=$null; $reportSaveStatus='unconfirmed' }
     }
+    if ($ownership.Lost) {
+        $status=if ($completed -gt 0) {'partial_failure'}else{'failure'}
+        if ($journalEnabled) {$journalReadStatus='unconfirmed';$journalSummary=$null;$journalUnresolved=$null}
+        if ($reportEnabled) {$reportSaveStatus='unconfirmed';$runReportSummary=$null}
+    }
     return [pscustomobject]@{
         SimulationOnly = $true; MachineId = $MachineId; Operation = $Operation
         RunId = $currentRun; JournalEnabled = $journalEnabled
         JournalReadStatus = $journalReadStatus; JournalUnresolvedSourceCount = $journalUnresolved; JournalSummary = $journalSummary
         Status = $status; CompletedSourceCount = $completed; UnresolvedSourceCount = $unresolved
+        OwnershipStatus=if ($DryRun -or $null -eq $OwnershipCheck) {'not_checked'}elseif ($ownership.Lost) {'unconfirmed'}else{'confirmed'}
         ReportSaveStatus=$reportSaveStatus; RunReportSummary=$runReportSummary
         Results = $results.ToArray()
     }

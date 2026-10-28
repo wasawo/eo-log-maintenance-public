@@ -1,2 +1,2 @@
-# JSON Schema 契約テスト用の依存関係
-jsonschema>=4.23,<5
+# Runtime contracts and the official Drive client with offline HTTP fixtures.
+-r requirements-runtime.txt

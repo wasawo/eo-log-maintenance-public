@@ -1,5 +1,9 @@
 # Drive同一内容の比較候補（OSD-01）
 
+2026-10-29に[公式SDKの読取接続](../drive-metadata-reader.md)を追加した。既存の純粋helperとは別の層から、親folderを確認した一覧を渡す。Drive file観測は任意のversionも保持し、前後の版変更を保留にする。比較結果の非認可flagと、正式adapter/実環境資格の未完は維持する。
+
+続く[SDKの内容読取](../drive-content-reader.md)は、取得前後のmetadata確認と実bytesのhashを接続する。download観測も任意versionを持ち、版付き観測が一覧と一致しなければ直接/plan付き比較を保留する。旧純粋helperのNoneは互換入力であり、版を確認済みとは扱わない。
+
 既存stagingからの読取接続は[stagingとDrive観測の接続](source-inventory-revalidation.md#既存stagingとdrive観測の接続)を参照。凍結planと実stagingを毎回再照合した元basename/size/hashだけを比較元にし、suffixやUpload先への自動aliasは行わない。比較成立も実Upload結果/再試行/同期成功/Archiveの許可ではない。
 
 2026-10-25。[OSD-01承認](../../requirements/p0-open-specification-decisions.md#承認された決定記録--osd-01)と[衝突/比較規則](../../development/implementation-workflow.md)を支える純粋helper：[DriveContentComparison.py](../../../Common/DriveContentComparison.py)。API接続・IPC結果schema・出所認証・復元・同期成功・archiveの実装ではない。

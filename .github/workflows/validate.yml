@@ -75,6 +75,18 @@ jobs:
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_windows_move_delete_probe.py" -v
 
+      - name: Validate same-process ownership and native handle binding
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_owned_windows_move_probe.py" -v
+
+      - name: Validate native mapping and namespace refusal boundaries
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_native_provider_boundaries.py" -v
+
+      - name: Validate held-handle root security observations
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_native_security_binding.py" -v
+
       - name: Validate immutable move journal and process reload
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_move_journal.py" -v
@@ -93,6 +105,11 @@ jobs:
           python -B -m unittest discover -s tests -p "test_move_journal_command.py" -v
           python -B -m unittest discover -s tests -p "test_simulation_run_report.py" -v
           ./tests/Test-LogMoveJournalIntegration.ps1
+          python -B -m unittest discover -s tests -p "test_simulation_run_owner.py" -v
+          ./tests/Test-OwnedLogMoveSimulation.ps1
+          ./tests/Test-OwnershipLossMoveSimulation.ps1
+          python -B -m unittest discover -s tests -p "test_simulation_file_snapshot.py" -v
+          ./tests/Test-FileSnapshotMoveSimulation.ps1
 
       - name: Validate referenced aggregation artifacts
         shell: pwsh
@@ -123,6 +140,10 @@ jobs:
           python -B -m unittest discover -s tests -p "test_pc_suffixed_name.py" -v
           python -B -m unittest discover -s tests -p "test_download_hash_observation.py" -v
           python -B -m unittest discover -s tests -p "test_drive_listing_observation.py" -v
+          python -B -m unittest discover -s tests -p "test_drive_metadata_reader.py" -v
+          python -B -m unittest discover -s tests -p "test_drive_content_reader.py" -v
+          python -B -m unittest discover -s tests -p "test_sdk_download_staging.py" -v
+          python -B -m unittest discover -s tests -p "test_sdk_staging_observer.py" -v
           python -B -m unittest discover -s tests -p "test_drive_comparison_reobservation.py" -v
           python -B -m unittest discover -s tests -p "test_drive_comparison_batch.py" -v
           python -B -m unittest discover -s tests -p "test_content_download_plan.py" -v

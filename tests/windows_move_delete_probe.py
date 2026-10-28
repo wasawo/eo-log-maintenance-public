@@ -3,7 +3,7 @@
 No caller-selected path or production provider is exposed. Optional v1 records
 support a separate test-only cold observer, not production restart recovery.
 """
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from datetime import datetime, timezone
 import ctypes
 import hashlib
@@ -37,6 +37,7 @@ class DisposableMoveDeleteProbe:
         self._prepared_bytes = None
         self._journal_enabled = journal
         self._journal_prepared = None
+        self._journal_prepared_bytes = None
         (self._root / ".probe-owner").write_bytes(self._nonce)
         if journal:
             (self._root / "journal").mkdir()
@@ -60,6 +61,7 @@ class DisposableMoveDeleteProbe:
             ("GetFileInformationByHandleEx", (w.HANDLE, ctypes.c_int, w.LPVOID, w.DWORD), w.BOOL),
             ("SetFileInformationByHandle", (w.HANDLE, ctypes.c_int, w.LPVOID, w.DWORD), w.BOOL),
             ("ReadFile", (w.HANDLE, w.LPVOID, w.DWORD, ctypes.POINTER(w.DWORD), w.LPVOID), w.BOOL),
+            ("SetFilePointerEx", (w.HANDLE, ctypes.c_longlong, ctypes.POINTER(ctypes.c_longlong), w.DWORD), w.BOOL),
             ("GetFileAttributesW", (w.LPCWSTR,), w.DWORD),
         ):
             function = getattr(self._api, name)
@@ -139,6 +141,9 @@ class DisposableMoveDeleteProbe:
 
     def _content(self, handle):
         before = self._info(handle)
+        # These are private synchronous handles, never shared between readers.
+        if not self._api.SetFilePointerEx(handle, 0, None, 0):  # FILE_BEGIN
+            raise MoveDeleteProbeError("probe_seek_failed")
         digest, size = hashlib.sha256(), 0
         buffer, read = ctypes.create_string_buffer(65536), ctypes.c_ulong()
         while True:
@@ -200,6 +205,27 @@ class DisposableMoveDeleteProbe:
             prepared_sha256=hashlib.sha256(raw).hexdigest(), destination_id=self._destination_id,
             root_chain=self._chain))
         self._journal_prepared = value
+        self._journal_prepared_bytes = raw
+
+    @contextmanager
+    def _journal_prepared_handle(self):
+        # Fixed constructor-owned journal record only, never a caller path.
+        self._verify_root()
+        directory=self._root/'journal'
+        info=directory.lstat()
+        if not stat.S_ISDIR(info.st_mode) or getattr(info,'st_file_attributes',0)&0x400:
+            raise MoveDeleteProbeError('probe_record_failed')
+        path=directory/(self._journal_prepared['record_id']+'.json')
+        info=path.lstat()
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or getattr(info,'st_file_attributes',0)&0x400:
+            raise MoveDeleteProbeError('probe_record_failed')
+        handle=self._api.CreateFileW(str(path),0x80000000,1,None,3,0x00200000,None)
+        if handle in (None,ctypes.c_void_p(-1).value):
+            raise MoveDeleteProbeError('probe_record_failed')
+        try:
+            yield handle
+        finally:
+            self._close(handle)
 
     def _save_journal_result(self, result):
         from Common.MoveJournal import encode_move_record, save_move_record
@@ -218,7 +244,24 @@ class DisposableMoveDeleteProbe:
             reason_code='delete_confirmed' if complete else 'delete_pending')
         save_move_record(self._root / 'journal', encode_move_record(value))
 
-    def run(self, *, fault=None, keep_reader=False):
+    def run(self, *, fault=None, keep_reader=False, ownership_check=None):
+        ownership_lost = False
+        def owned(phase):
+            nonlocal ownership_lost
+            if ownership_check is None:
+                return True
+            if ownership_lost:
+                return False
+            try:
+                result = ownership_check(phase)
+                if type(result) is not bool or not result:
+                    raise MoveDeleteProbeError('probe_ownership_unconfirmed')
+                return True
+            except Exception:
+                ownership_lost = True
+                return False
+        if not owned('before_open'):
+            return dict(status='retained',reason='ownership_unconfirmed')
         if fault not in (None, "source_changed", "source_replaced", "destination_changed", "destination_replaced", "record_failed", "result_record_failed", "after_prepare"):
             raise MoveDeleteProbeError("probe_fault_invalid")
         if fault == "source_changed":
@@ -233,7 +276,7 @@ class DisposableMoveDeleteProbe:
             os.replace(self._path("replacement.bin"), self._path("destination.bin"))
         if keep_reader:
             self._reader = self._open("source.bin", share=5)  # READ | DELETE sharing
-        with self._handle("destination.bin") as destination:
+        with ExitStack() as record_guards, self._handle("destination.bin") as destination:
             with self._handle("source.bin", access=0x80010000) as source:  # READ | DELETE
                 current_source = self._content(source)
                 current_destination = self._content(destination)
@@ -243,6 +286,8 @@ class DisposableMoveDeleteProbe:
                     return {"status": "retained", "reason": "destination_changed"}
                 if fault == "record_failed":
                     return {"status": "retained", "reason": "record_failed"}
+                if not owned('before_prepared'):
+                    return dict(status='retained',reason='ownership_unconfirmed')
                 prepared = {"kind": "probe-prepared-v0", "source_id": self._source_id,
                             "destination_id": self._destination_id, "size": self._size, "sha256": self._baseline}
                 try:
@@ -253,6 +298,20 @@ class DisposableMoveDeleteProbe:
                     return {"status": "retained", "reason": "record_failed"}
                 if fault == 'after_prepare':
                     return {"status": "retained", "reason": "interrupted_before_delete"}
+                if not owned('after_prepared'):
+                    return dict(status='retained',reason='ownership_unconfirmed')
+                try:
+                    prepared_guard=record_guards.enter_context(self._handle('prepared.json'))
+                    proof=self._content(prepared_guard)
+                    if proof[1:] != (len(self._prepared_bytes),hashlib.sha256(self._prepared_bytes).hexdigest()):
+                        return dict(status='retained',reason='record_invalid')
+                    if self._journal_enabled:
+                        journal_guard=record_guards.enter_context(self._journal_prepared_handle())
+                        proof=self._content(journal_guard)
+                        if proof[1:] != (len(self._journal_prepared_bytes),hashlib.sha256(self._journal_prepared_bytes).hexdigest()):
+                            return dict(status='retained',reason='record_invalid')
+                except (OSError,MoveDeleteProbeError):
+                    return dict(status='retained',reason='record_invalid')
                 writer, writer_error = self.competing_open(0x40000000)
                 deleter, delete_error = self.competing_open(0x10000)
                 if writer or deleter or writer_error != 32 or delete_error != 32:
@@ -261,11 +320,23 @@ class DisposableMoveDeleteProbe:
                 if (self._info(source) != (self._source_id, self._size)
                         or self._info(destination) != (self._destination_id, self._size)):
                     return {"status": "retained", "reason": "identity_changed"}
+                if not owned('before_delete'):
+                    return dict(status='retained',reason='ownership_unconfirmed')
+                # Record publication and ownership verification can take time.
+                # Re-read Q5 on the SAME source/destination handles afterwards.
+                if self._content(source) != (self._source_id,self._size,self._baseline):
+                    return dict(status='retained',reason='source_changed')
+                if self._content(destination) != (self._destination_id,self._size,self._baseline):
+                    return dict(status='retained',reason='destination_changed')
+                if self._path('prepared.json').read_bytes() != self._prepared_bytes:
+                    return dict(status='retained',reason='record_invalid')
                 # FILE_DISPOSITION_INFO uses BOOLEAN, not Win32 BOOL.
                 disposition = ctypes.c_ubyte(1)
                 if not self._api.SetFileInformationByHandle(source, 4, ctypes.byref(disposition), ctypes.sizeof(disposition)):
                     return {"status": "retained", "reason": "delete_failed"}
             # Source handle is closed; destination guard is still held.
+            if not owned('after_delete'):
+                return dict(status='unknown',reason='ownership_unconfirmed_after_delete')
             absent = self._absence()
             if fault == "result_record_failed":
                 return {"status": "unknown", "reason": "result_record_failed"}

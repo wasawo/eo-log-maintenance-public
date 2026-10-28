@@ -4,14 +4,24 @@
 
 ## 機能から探す
 
+所有wrapperは[境界ごとの所有確認](../docs/design/owned-simulation-run.md#処理境界での所有確認)をモデルへ渡す。確認不能後は後続のモデルコピー/元除去・永続保存を止めるが、実providerの原子的な所有保証にはしない。
+
+[ファイルスナップショット接続](../docs/design/file-snapshot-simulation.md)は`SimulationFileSnapshot.py`/`.ps1`で合成フォルダを読取り、全列挙を確認してから所有ロック付きモデルへ渡す。物理ファイルは変更しない。
+
+[所有ロック付き模擬実行](../docs/design/owned-simulation-run.md)は`OwnedLogMoveSimulation.ps1`から既存モデル・journal・レポートを囲む。開始/終了記録と実OS mutexを接続するが、実providerやprivate root資格の保証ではない。
+
 [模擬実行結果レポート](../docs/design/simulation-run-report.md)は`SimulationRunReport.py`/`.ps1`で別領域へ保存する。prepared前の失敗も含めるが、削除判定の証拠や実runの完成にはしない。
+
+SDKの[内容取得・hash・版再確認](../docs/design/drive-content-reader.md)は`DriveContentReader.py`で行う。結果は版付きの内容観測だけで、download保存・元削除を提供しない。
+
+共通SDK転送を使う[所有された隔離stagingへの保存接続](../docs/design/sdk-download-staging.md)はtests専用であり、Commonに実運用root向けの保存factoryを追加したものではない。
 
 | 分野 | 実装/参照先 | 現在の境界 |
 | --- | --- | --- |
 | 設定 | [MachineConfiguration.ps1](MachineConfiguration.ps1)、[bootstrap](MachineConfigurationBootstrap.ps1)、[root検査](MachineConfigurationRootInspection.ps1) | 構造/既存root観測等の補助。正式導入/実体保護は別 |
 | 日付/期間・source証拠 | [LogFunctions.ps1](LogFunctions.ps1)、[SourceInventoryEvidenceBuilder.py](SourceInventoryEvidenceBuilder.py)、[source再観測](../docs/design/reference/source-inventory-revalidation.md) | 選択/列挙/hashと凍結入力比較。削除許可ではない |
 | staging/残存物 | [staging lifecycle](../docs/design/staging-file-lifecycle.md)、[残存物観測](../docs/design/reference/staging-residual-observation.md) | コピー/容量/残存物の観測と正式runtimeを区別 |
-| 内容/Drive比較 | [DriveContentComparison.py](DriveContentComparison.py)、[内容比較仕様](../docs/design/reference/drive-content-comparison.md)、[応答検査](DriveResponseSemantics.ps1) | 純粋比較/応答相関。実Drive adapter/元削除は未実装 |
+| 内容/Drive比較 | [DriveContentComparison.py](DriveContentComparison.py)、[SDK読取接続](../docs/design/drive-metadata-reader.md)、[内容比較仕様](../docs/design/reference/drive-content-comparison.md)、[応答検査](DriveResponseSemantics.ps1) | SDKの一覧/metadataと比較を接続。実認証・転送・元削除・正式adapterは未完 |
 | manifest/集約 | [A2/B2検証](RunInputEvidenceIntegrity.py)、[report builder](AggregationReportBuilder.py)、[参照成果物検証](validate_aggregation_artifacts.py)、[遷移観測](../docs/design/reference/manifest-transition-inspection.md) | 旧v1観測/検証。verifiedを移動完了へ読み替えない |
 | 公開/排他/復旧 | [単一公開](AtomicArtifactPublication.py)、[bundle公開](ArtifactSetPublication.py)、[所有lock](OwnedRunLock.py)、[明示回復設計](../docs/design/explicit-recovery-command-design.md) | 所有権/現在性/対象FS/電源断の実受け入れは別 |
 | 診断/非公開証拠 | [従来の詳細ノート](../docs/design/reference/common-module-notes.md)、[private証拠契約](../docs/design/recovery-private-evidence-contract.md) | 各実装の型/証拠/秘匿境界を維持 |

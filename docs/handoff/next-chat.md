@@ -1,16 +1,170 @@
 # 現在の引き継ぎ
 
-更新日: 2026-10-28（日本時間）
+更新日: 2026-10-29（日本時間）
 恒久ルール: [AGENTS.md](../../AGENTS.md)。正本: `wasawo/eo-log-maintenance-public`。
 本書は記録時点。開始時は実Git/作業ツリーを優先する。
 
 ## 現在地
 
-- 作業branch: `codex/manual-move-preflight`。今回開始HEADは`7090125`、作業ツリーはクリーン。正本mainはfetch/ GitHubで`36550ab`を確認した。2026-10-28に利用者から「次の作業に着手して。実装後にコミットをまとめてPR作成、マージまで完了させて」と指示を受領した。直後の中断と「次の作業に着手して」は作業の継続として扱い、同じブランチの累積コミットを1つのPRへまとめ、最新HEADのValidate/Package Validation成功後にマージする。実データ操作・本番適用は含まない。
+2026-10-29、利用者から「ここまでのコミット内容をまとめてPR作成、マージまで進めて」と指示を受領した。開始HEADは`0fe1607`、作業ツリーはクリーン。最新リモートmainは`6658025`で、同branchの既存PRは0件。累積15コミット（所有付き模擬移動・snapshot接続、native所有/境界/セキュリティ検証、10原則とR-01〜03修正、進捗見積もり、SDK読取/内容hash/staging/別プロセス照合）と本記録を一つのPRへまとめる。rootの自己点検と既存の単位別検証記録を確認し、差分検査は成功。最新PR HEADのValidate・Package Validationが成功し、マージ可能であることを確認してからマージする。現時点ではpush・PR・CI・マージは未実施。実ログ/本番Drive操作、正式入口の完成や実環境受け入れは今回の対象外。
+
+2026-10-29、開始HEAD `1697f33`、作業ツリーはクリーン。download試験候補の[別プロセス照合](../design/sdk-download-staging.md#別プロセスでの現在状態照合)を追加した。root/nonce/attempt名と記録上限だけを子へ渡し、割当て/readyの対応と現在のpayload実体/size/hashを独立に読む。親のhashや判定を引き継がず、SDKもimportしない。allocation_only/incomplete/ready_candidate/held/unconfirmedを区別し、全結果may_change_state=false・cloud_observed=falseとする。
+
+新規7試験が成功。ready応答喪失は過去成功へ昇格せず、同内容の実体差替え、record digest/shape/重複key/版/内容不一致、欠落、hardlink、owner残存、不正locator/上限/余分なfileを確認した。子を-I -Bで起動し、全fileのbytes/名前不変と私的値の非表示も確認した。Python3.11.9（CI定義3.12）、親の生成fixtureは既存SDK2.201.0を使用。承認されたsandbox外の自作合成一時領域のみで実施し、実Drive・実ログ・実設定、リモートCI、独立レビュー、実環境受け入れは未実施。Common/配布集合/依存は未変更で、旧105試験・package等は再実行していない。
+
+Python2ファイルの構文解析、変更4文書の相対リンク125件・見出し参照23件、git diff --checkが成功。rootが差分・CI登録を自己点検した。cold reader未実装という記述は、今回のtests専用読取と未完の正式schema/資格/採用へ区別して更新し、新たな実装規約の不一致は見つかっていない。無関係な全試験、markdownlint、GUI表示確認は未実施。
+
+既存のcold読取・安定file読取・JSON重複拒否・hash helperを再利用した。workerは既存recordを変更せず、ownerの解除/採用も行わない。次はこの候補を根拠に正式service/root/記録/使用点の契約をT1入口へ接続する条件を整理する。ローカルready候補は現在cloudや所有資格を証明せず、単独のreader/観測helperの追加を自動選択しない。正式入口・移動・削除、T0/T1/T4/AC全体の未完と35%概算を維持する。
+
+2026-10-29、開始HEAD `06d1728`、作業ツリーはクリーン。download隔離fixtureへ[作成前記録とready候補](../design/sdk-download-staging.md#作成前記録とready候補)を接続した。payload/SDK要求前にstaging.jsonを非上書き公開・読戻し、検証後に割当てdigest/実体/size/hash/versionをready.jsonへ記録する。両者はfixture_only付きで、正式manifest/readyやupload metadataの置換方式は変更しない。
+
+新規6を含む14試験が成功。作成前記録の失敗はpayloadもSDKも開始せず、記録改変や所有喪失はready成功へ進めない。ready公開後の応答喪失では記録を残すが、成功結果は返さない。旧attemptは再利用・上書き・自動削除しない。Common/配布集合/CI/依存は未変更のため、成功済みSDK/比較105試験やpackage回帰は再実行していない。Python3.11.9（CI定義3.12）、SDK2.201.0の既存一時依存を使い、承認されたsandbox外の自作合成一時領域のみで実施した。実Drive・実ログ・実設定、独立レビュー、リモートCI、実環境受け入れは未実施。
+
+変更Python2ファイルの構文解析、変更5文書の相対リンク132件・見出し参照21件、git diff --checkが成功。rootが差分を自己点検した。metadata-first未完の表記は、今回のdownload試験候補と正式runtimeで残る契約/資格へ分け、既存規約との新たな不一致は見つかっていない。無関係な全試験、markdownlint、GUI表示確認は未実施。
+
+既存のAtomicArtifactPublicationの非上書き公開/読戻しと、fixtureの所有・SDK保存を再利用した。正式cold reader/記録schema、残存物の採用、実run回復、実root/容量資格、認証service、正式download/移動入口は未完。次は記録と現在のstaging実体を別の読取文脈で照合する契約と、正式service/rootへ接続する条件を整理する。35%の概算とT0/T1/T4/AC全体の未完は維持し、ready記録の存在を移動・削除の許可へ読み替えない。
+
+2026-10-29、開始HEAD `bd72145`、作業ツリーはクリーン。[SDK取得から所有された隔離stagingへの保存](../design/sdk-download-staging.md)をtests内へ接続した。CommonのSDK転送を公開hash入口と共有し、試験自身が生成するrootだけでmutex/token確認、xb作成、flush/fsync/close、読戻し、cloud版再確認、HTTP待機後のstaging再確認まで行う。失敗file・占有名・改変された所有記録は保持し、通常再試行は新規attemptへ進む。任意root/pathのfactory、正式writer、元削除は追加しない。
+
+新規8試験、関連10群105試験、役割別package回帰が成功。短い書込み・disk-full・flush失敗は実fileのstream proxyで注入し、実際のvolume枯渇を実証したものではない。閉じた後とcloud metadata待機中の改変、所有喪失、版変更、空file、期待size不一致も確認した。SDK2.201.0/Python3.11.9（CI定義3.12）、PowerShell7.6.7。既存の専用一時依存を再利用し、必要なfile/mutex/package試験は承認されたsandbox外の自作合成一時領域だけで実施。実Drive・実ログ・実設定、リモートCI、独立レビュー、実環境受け入れは未実施。
+
+Python4ファイルの構文解析、変更7文書の相対リンク180件・見出し参照22件、git diff --checkも成功。rootが差分/CI登録を自己点検し、「保存しない」の表記を公開hash入口と内部sink/試験保存へ区別して更新した。既存規約の新たな文書・コードの不一致は見つかっていない。無関係な全試験、markdownlint、GUI表示確認は未実施。
+
+既存fixtureの新規作成・flush/fsync/読戻しと、前回調査したSDK転送を再利用した。転送ロジックを試験側へ複製せず、公開hash入口はファイルを作らないまま維持する。既知のAPI hash不一致は追加metadata要求前に停止する。次は実認証service/保存rootの資格と、metadata-first/容量/ready状態を正式download経路へ統合する。35%の概算とT0/T1/T4/AC全体の未完は維持し、任意の低水準観測追加やR-04/05を自動選択しない。
+
+2026-10-29、開始HEAD `1fe4adb`、作業ツリーはクリーン。[SDK内容読取・hash・版再確認](../design/drive-content-reader.md)を追加した。canDownloadとmetadataを確認し、MediaIoBaseDownloadからhash sinkへ実bytesを渡す。全chunk/総size/取得後metadataが一致した場合だけ版付きhashを返す。Range/長さ/継続先の不正、途中error、空ファイルの不確実性、内容hash不一致では結果を返さない。保存path、認証設定、upload/元削除/正式CLIは提供しない。
+
+新規8試験、関連9群97試験、役割別package回帰が成功。公式SDKを使い、HTTPだけを模擬した。API hashなしの取得→不足hash計画→既存比較を接続し、別版のdownload hashを拒否する。前回用意した専用一時領域のSDK2.201.0を再利用した。Python3.11.9（CI定義3.12）、PowerShell7.6.7。必要なstaging/package試験だけ承認されたsandbox外の自作合成一時領域を使用し、実Drive通信、リモートCI、独立レビュー、実環境受け入れは未実施。
+
+変更Python5ファイルの構文解析、変更8文書の相対リンク210件・見出し参照27件、git diff --checkも成功。rootが差分とCI登録を自己点検した。download未実装の表記は、内容hash取得の接続済み部分と、未完の保存/正式providerへ分けて更新し、既存規約の新たな不一致は見つかっていない。無関係な全試験、markdownlint、GUI表示確認は未実施。
+
+Google公式download sampleとrcloneを比較し、全内容保持の代わりにhash sinkを採用した。旧version=None観測の互換性は維持するが、実providerの資格とはしない。実認証・service/timeout/ログ条件・download保存・upload・cloud元の版固定削除・正式入口は未完。次はserviceの資格確認と、取得内容を所有されたstagingへ保存する経路を、両経路の処理へつなぐ。chunk検査でtransport全体のmemoryを制限したとはせず、35%の見積もりとT0/T1/T4/AC全体の未完は維持する。
+
+2026-10-29、開始HEAD `01077cf`（進捗見積もり文書を先にコミット）、作業ツリーはクリーン。[公式SDKのDrive読取接続](../design/drive-metadata-reader.md)を追加した。認証済みserviceを呼出し側から受け、親folderを確認して全page/個別metadataを取得し、既存比較へ渡す。観測には任意versionを追加し、前後で版が違えば保留する。SDK追加再試行は0、HTTP非2xxは生のerror bodyがSDK診断へ渡る前に拒否する。service生成/資格、upload/download、ローカル保存、元削除、CLI/C-02は提供していない。
+
+公式SDK（ローカル2.201.0）を実行しHTTP応答だけを合成する新規10試験、関連8群87試験、役割別package回帰が成功した。SDKと依存は専用一時領域へ導入し、グローバルPythonや認証情報は変更していない。依存はruntimeとtestで共有し、CIにも新規試験を登録した。SDK同梱Discoveryで実network/資格情報なしに実行した。Python3.11.9（CI定義3.12）、PowerShell7.6.7。必要なstaging/package試験だけ承認されたsandbox外の自作合成一時領域を使った。実Drive通信、リモートCI、独立レビュー、実環境受け入れは未実施。
+
+変更Python3ファイルの構文解析、変更9文書の相対リンク231件・見出し参照28件、git diff --checkが成功。rootが差分とCIへの試験登録・依存関係・公開値を自己点検した。未実装表記は純粋比較、SDK読取接続、未完の正式adapterに分けて更新し、既存規約との新たな不一致は見つかっていない。markdownlint・GUI表示確認と、無関係な全試験は未実施。
+
+Google公式sampleとrcloneのpage継続方式を比較した。files.deleteの公開引数だけでは版固定削除を確定できず、元削除契約は未決のまま。次は認証serviceの資格/timeout/ログ条件と、内容download・再観測を、T2/T3で使う読取adapterへ接続する。任意HTTP条件を仮定して削除へ進まない。正式入口・実root資格・T0/T1/T4/AC全体は未完で、初回配布35%の概算は基準SHA時点の記録として維持する。
+
+2026-10-29の進捗確認: HEAD `ff53094`を基準に[実装計画の進捗見積もり](../development/implementation-workflow.md#2026-10-29の初回配布までの進捗見積もり)へ、T0〜T5の重み付き概算約35%・残り約65%と根拠を記録した。工数率ではなく、正式ACの完了は0/12件のまま。正式入口2本の不在、実Drive adapter/クラウド削除契約、実root資格、実移動の回復/表示、最終受け入れと配布/導入が残る。確認は現コード・契約・ビルダーと記録の静的照合で、この棚卸し自体では新しいテスト/ビルド・リモートCI・実環境操作は行っていない。文書更新は`01077cf`へコミット済み。
+
+2026-10-29に利用者の指示で[レビューR-01〜03](../archive/validation/implementation-principles-review-20261029.md#2026-10-29の修正結果)を修正した。照合は最後の所有確認後に元/保存先を観測し、不一致ならunknownとして過去journalを保持する。過去イベントの必須項目・型・経路対応も入口で検証し、破損した履歴からモデル変更を始めない。レポート試験は本体の理由表に依存しない期待値へ変更した。R-04/05は未対応の任意候補で、自動的に次作業へ選ばない。
+
+モデル383・所有喪失167・journal49・所有wrapper21・snapshot28の計648 assertionと、Pythonレポート5試験が成功した。誤ったdelete_failed対応のメモリ内変更も修正後の試験で検出できた。PowerShell3ファイルの構文解析/PSScriptAnalyzer Error、Python1ファイルの構文解析も成功。ローカルPowerShell7.6.7/Python3.11.9（CI定義3.12）。sandbox外試験は自作合成一時領域のみ。実ログ/本番Drive、独立レビュー、リモートCI、無関係な全試験・配布物生成は未実施。文書とモデルの保存先不一致時の完了判定の食い違いを解消し、新たな実装規約の不一致は見つかっていない。
+
+関連6文書の相対リンク96件・見出し参照7件とgit diff --checkも成功。コード・回帰試験・正式な模擬契約・前回の未コミットレビュー記録を同じローカルコミットへまとめる。markdownlint・GUI表示確認は未実施。正式provider/実環境資格とT0/T1/T4/AC全体の未完状態は維持する。
+
+2026-10-29に利用者の指示でAGENTS.mdの10原則追加を`ff5b723`へコミットした。元の文書更新の開始HEADは`9d71a3f`。変更2文書の相対リンク31件・見出し参照6件と差分検査は成功。承認境界を維持し、既存コードの一括リファクタリングは行っていない。
+
+- 作業branch: `codex/owned-simulation-run`。main `6658025`から累積した変更について、2026-10-29の今回の指示でpush・PR作成・マージまで承認済み。実施結果はGitHubの実状態を確認する。本PRのマージ後に次の変更を始める場合は、最新mainから新しい作業ブランチを作成する。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
-## 今回の実行全体の結果レポート
+## 今回のスレッド偽装時の拒否
+
+[スレッド偽装時の拒否](../design/same-process-owned-native-probe.md#スレッド偽装時の拒否)をtests内候補のsecurity観測へ接続した。開始・終了時にthread tokenの不在を確認し、同じSIDの自己偽装も照会失敗も拒否する。初回は所有記録生成前に停止し、削除前の検出は元保持、削除後は結果不明となり成功記録を作らない。候補が偽装解除して続行することはない。
+
+security観測は新規4を含む10試験、既存の同一プロセス所有9・mapping/namespace5回帰が成功（skipなし）。最初のsandbox内実行は失敗したため、承認されたsandbox外の自作合成一時領域で実行した。実Win32の自己偽装と解除を試験スレッドだけで行い、解除不能なら試験プロセスを終了する。照会のアクセス拒否だけ模擬APIで注入した。実accountの設定や実ログ/Driveは操作していない。ローカルPython 3.11.9、CI定義Python 3.12。Common/配布集合/PowerShellは未変更で、無関係な全試験、リモートCI、独立レビュー、実環境受け入れは未実施。
+
+実装計画のthread tokenが一律未完という記述は、今回の拒否実装と、未提供の偽装対応・実効権限資格へ区別して更新した。既存規約の新たな文書とコードの不一致は見つかっていない。pywin32/PHPのthread/process tokenの扱いを比較し、TOKEN_QUERYで不在のみを確認する方式とし、依存追加・コード転載はない。
+
+変更したPython2ファイルの構文解析、変更5文書の相対リンク125件・見出し参照20件、git diff --checkは成功。rootが差分を自己点検し、実値・資格情報の追加がないことと試験限定の入口を維持したことを確認した。markdownlintやGUI表示確認は未実施。
+
+正式provider、process tokenのgroup/privilege/elevation・AccessCheck、全祖先/directory policy/実root資格、実DriveとのQ5結合は未完。観測間・直後の変更/復元も排除していない。T0/T1/T4/AC全体を完了にしない。次は元削除providerの資格確認と単一試行の入力・拒否契約を、正式入口へ接続できる形へ整理する。追加の低水準観測を自動的に積み増すのではなく、残る資格条件と受け入れ判断を先に明確にする。実ログ/本番Drive操作は未承認。
+
+## 前回の保持handle security観測とACL変化時の停止
+
+[保持handleのsecurity観測](../design/same-process-owned-native-probe.md#保持handleのsecurity観測と残る資格)をtests内の同一プロセス候補へ接続した。root/所有記録/journalの3つのdirectory handleからFile IDとowner/DACLを取得し、process primary user SIDもOSへ照会する。初回の取得不能は通常所有記録を作る前に拒否し、実行中の再観測が変化したら元削除/成功記録を止める。除去後なら結果不明にする。
+
+観測はprivateなメモリ内だけで扱い、repr・journal・コンソールへSID/記述子を出さない。常にmay_change_state=falseとし、directoryを既存file専用profileへ偽装して渡さない。Common/正式factory/実運用rootの資格を追加したものではない。
+
+新規6試験でREAD_CONTROL不足、独立したprocess userの照合、初回観測失敗、directory保持中でもWRITE_DACでDACLを変更できることとその検出、除去後の変更時に成功記録を作らないことを確認した。fault用DACL変更は自作3ディレクトリとそのfixture内だけに限定し、実accountの権限・利用者の既存rootは変更しない。observer自体は読取だけである。
+
+新規6試験と既存同一プロセス接続9・mapping/namespace境界5回帰が成功した（skipなし）。自作合成一時領域だけをsandbox外で使用し、実ログ/Driveは未使用。ローカルPython 3.11.9、CI定義Python 3.12。Python構文解析4ファイルも成功。Common/配布集合/PowerShell/基礎probeは未変更のため、それらの成功済み試験は再実行していない。リモートCI・独立レビュー・実環境受け入れは未実施。
+
+文書104件の相対リンク1050件・見出し参照124件と`git diff --check`も成功。markdownlintや無関係な全試験は再実行していない。
+
+pywin32とlibuvのhandle取得方式を比較し、Microsoft GetSecurityInfo/GetTokenInformationの仕様へ沿ってNative割当てを解放する形にした。既存ACL文書の「descriptor取得は未実装」を、Commonの正式providerとtests内の部分観測へ分けて更新した。新たな実装規約の不一致は見つかっていない。
+
+今回も観測直後/途中変更・復元の排除、thread impersonation、group/privilege/elevation、SACL/mandatory label、実効AccessCheck、全祖先、正式directory policy・実root資格は未完。観測一致を認可とせず、T0/T1/T4/AC全体を完了にしない。次は実効token/祖先を含む資格契約と、独立観測を正式な単一試行providerへ渡す境界を具体化する。実ログ/本番Drive操作は未承認のまま。
+
+## 前回のmapping・directory保持とprovider前の拒否契約
+
+[正式provider前の拒否契約](../design/same-process-owned-native-probe.md#正式providerへ渡す前の拒否契約)を正式設計と結び付けた。root/役割、directory保持、所有/必要記録、元/保存先保持、Q5実体結合、結果観測の不足時は元削除へ進めず、設定値やACL profileのmatchesを認可にしない。Common/正式入口/Drive操作は追加していない。
+
+testsの候補にfixture・所有記録・journalのdirectory handle保持を追加した。READ/WRITE共有は許すがDELETE共有を許さず、保持不能時に共有条件を緩めない。3領域のMoveFileExWによる名前変更拒否と、既存DELETE accessがあれば自身の保持を拒否することを実Win32で確認した。全祖先の名前空間や実運用ACLの資格を証明したものではない。
+
+新しい境界試験は、書込mappingを作った元file handleとmapping object handleの両方を閉じ、viewだけが残った状態を作る。source/destinationの保護openは共有違反32で拒否された。viewからbytesを書き換えた場合も、view終了後に旧コピー基準との不一致を検出して元を残す。読取handleからの書込mapping作成はaccess denied 5。CPython/libuvの実装とMicrosoft仕様を比較し、保持handleの影響を混同しないWin32 fixtureを採用した。
+
+新規境界5試験と、変更した同一プロセス所有接続9回帰が成功した（skipなし）。自作合成一時領域だけをsandbox外で使い、実ログ/Driveは未使用。ローカルPython 3.11.9、CI定義Python 3.12。Common/配布集合/PowerShell/基礎probeのAPIは未変更のため、それらの成功済み試験は無関係に再実行していない。リモートCI・独立レビュー・実環境受け入れは未実施。
+
+Python構文解析3ファイル、文書104件の相対リンク1043件・見出し参照119件と`git diff --check`も成功。markdownlintや無関係な全試験は再実行していない。
+
+文書の「既存mapping/名前空間が未確認」は、当該fixtureで確認した拒否能力と、mapping種別/他FS/全祖先/ACLなど残る資格へ分けた。既存コードの実装規約との新たな不一致は見つかっていない。
+
+次は任意の実rootを受け入れる前の独立したroot/ACL/所有観測と、単一試行providerの拒否・入力契約を具体化する。marker付きfixtureを実root資格に流用しない。実Drive保存先/版固定削除、正式入口、全対象FS・電源断・close失敗等は未完。T0/T1/T4/AC全体を完了にしない。実ログ/本番Drive操作は未承認のまま。
+
+## 前回の同一プロセス所有・native実体保持の隔離接続
+
+[同一プロセスのnative隔離接続](../design/same-process-owned-native-probe.md)を追加した。tests内の既存probeへ所有mutex/token記録を接続し、元/保存先・local prepared/v1 prepared・所有記録の読取ハンドルを保持する。所有確認後に同じ元/保存先ハンドルを先頭へ戻して内容を再読し、同じ元ハンドルへ限定削除を指定する。任意root/pathを受ける入口や、Commonのモデルを実削除へ切り替える変更は追加していない。
+
+元/保存先の書込/DELETE open、所有/準備記録への書込み、別スレッドのmutex取得を拒否することを実Win32で確認した。準備時からの記録改変、再読位置移動失敗、所有確認不能では元を残す。除去後の確認不能/pendingは成功記録にしない。所有プロセスを削除前/後に終了するworkerも自分でfixtureを生成し、別プロセスが現在状態を照合する。旧prepared bytesと残存lockは変更・自動解除しない。
+
+新規9試験、変更した既存Windows probeの9回帰、同じ読取を使う別プロセス照合6回帰が成功した（skipなし）。Python構文解析4ファイルと差分検査も成功。最初の記録競合試験はPython CRT例外にWinError 32を期待して失敗したため、Win32 CreateFileW/GetLastErrorで共有拒否を直接検査するよう修正し、成功を確認した。テストは自作合成一時領域だけをsandbox外で使用し、実ログ/Driveは未使用。ローカルPython 3.11.9、CI定義はPython 3.12。Common/配布集合/PowerShellは未変更のため、それらの試験は再実行していない。リモートCI・独立レビュー・実環境受け入れは未実施。
+
+文書104件の相対リンク1038件・見出し参照115件と`git diff --check`も成功。markdownlintや無関係な全試験は再実行していない。
+
+Microsoft公式仕様とGitHubのCPython/libuvを比較し、専用同期ハンドルをSetFilePointerExで先頭へ戻す方式を選んだ。共有ハンドルの並行offset管理やSetEndOfFileを採用せず、依存関係も増やしていない。既存設計の準備記録後の「identity/size再確認」を内容再読・記録ハンドル保持へ更新した。新たな実装規約の文書/コード不一致は見つかっていない。
+
+既存memory mapping、祖先/名前空間保護、実効ACL、FS差、電源断、close失敗、開始済み要求の取消し、実Drive保存先は未解決。このtest-only候補を正式providerやT0/T1/T4/AC全体の完了へ昇格させない。PowerShellモデルの別プロセス所有方式を置き換えたものでもない。次はこの候補に必要な実root/所有資格・provider契約・拒否条件を正式設計へ結び付ける。実ログ/本番Drive操作は未承認のまま。
+
+## 前回の処理境界での所有確認と停止
+
+[所有確認](../design/owned-simulation-run.md#処理境界での所有確認)をモデルへ接続した。既存token照合とroot chain検査を、連番付きcheck/owned IPCで呼ぶ。異なるrun/型不正/再送番号/未知keyを拒否する。各元開始・保存先追加・prepared・元除去前後・結果保存・照合・概要/レポート前で確認し、一度確認不能になれば同じ実行中に成功へ戻さず、後続のコピー/元除去/永続保存を止める。空対象でも概要前に確認し、Dry Runは通常確認を呼ばない。
+
+除去前は元を残し、除去後の喪失は結果不明として返し、元の復元や成功journalを捏造しない。照合中の失敗は今回の削除とは別理由にする。既に記録まで確認できた別元の完了数を維持し、runは失敗/部分失敗とする。終了応答だけが確認不能な場合も、保存確認済みの成果物を勝手に消さない。
+
+所有応答後にモデルの元/保存先を再検査し、除去が実際に行えたかも確認する。Q5を確認できず削除を送らなかった結果で、現在の保存先内容へ準備時の値を流用していた点を修正し、null/unavailableを保存する。旧文書の「喪失後もモデル処理が継続し得る」は、既知の喪失後の停止と、確認から操作の間/開始済みIOの残る競合へ分けて更新した。
+
+所有プロセス11試験（skipなし）、新規PS所有喪失89 assertions、既存モデル115・journal接続49・所有接続21・合成ファイル接続28 assertionsがローカルで成功した。自作合成一時領域の実OS mutex/実所有プロセスとモデルだけを対象にsandbox外で検証し、実ログ/Driveは使用していない。PS構文解析/PSScriptAnalyzer Error検査4ファイル、Python構文解析2ファイルも成功。ローカルPython 3.11.9/PS 7.6.7、CI定義Python 3.12。配布集合を変えていないため配布回帰は再実行していない。リモートCI・独立レビュー・実環境受け入れは未実施。
+
+文書103件の相対リンク1031件・見出し参照115件と`git diff --check`も成功。markdownlintや無関係な全試験は再実行していない。
+
+確認から操作までを原子的に結び付けた保証、開始済みIOの取消し、実providerの実体保持/所有喪失停止、private root/ACL資格、実Drive列挙/版固定削除、正式入口は未完。T0/T1/T4/AC全体を完了にしない。次は実providerのQ5/実体保持と所有条件を同じ操作区間へ結び付ける契約・隔離接続を具体化する。実ログ/本番Drive操作は未承認のまま。
+
+## 前回の合成ファイル列挙からモデルへの接続
+
+[ファイルスナップショット接続](../design/file-snapshot-simulation.md)を追加した。既存の再帰列挙/reparse検査・安定読取を再利用し、4つの合成root（元/保存先×ログ種別）全体を確認した後にだけ、空のモデルへ渡す。通常実行では所有取得/開始記録より後に列挙し、期間判定・同名比較・journal・結果レポート・終了記録まで接続する。Cloudは合成フォルダで、Drive APIではない。
+
+列挙・読取・途中変更・root不在・上限・不正scope/領域・junctionを確認できなければ部分一覧を返さず、モデル移動前に中断する。既存Stateを黙って置換せず、Dry Runでは一時モデルだけを使い呼出し側State/物理ファイル/管理記録を変更しない。全物理ファイルのbytes不変を合成試験で確認した。
+
+Python新規7試験（skipなし）、PS新規28 assertions（PC-A Sync/Archive、PC-B Sync、両ログ種別）、既存所有接続21 assertions、役割別配布回帰が成功。Python構文解析2ファイル、PS構文解析/PSScriptAnalyzer Error検査4ファイルも成功した。ローカルPython 3.11.9/PS 7.6.7、CI定義Python 3.12。実junction/所有mutex/非上書き公開を含む試験は自作合成一時領域だけをsandbox外で使用した。リモートCI・独立レビュー・実環境受け入れは未実施。
+
+文書103件の相対リンク1027件・見出し参照112件と`git diff --check`も成功した。変更していない純粋モデル/journal/report層の全試験やmarkdownlintは無関係に再実行していない。
+
+模擬設計末尾に残っていた「新しい永続記録・概要/レポート実保存・所有排他が残る」という一括記述を、記録/レポート/所有/合成列挙の接続済み範囲と、正式provider/実run未完へ分けた。実装規約の新たな不一致は見つかっていない。
+
+入力収集後のQ5/実体保持、所有喪失時の実操作停止、正式private root/ACL資格、実Drive列挙/版固定削除、正式入口と実運用受け入れは未完。実物理ファイルは移動・削除せず、snapshotのIDを実provider identityにしない。T0/T1/T4/AC全体を完了にしない。次は正式providerへ必要な実体保持・所有喪失停止・列挙の結合を具体化する。実ログ/本番Drive操作は未承認のまま。
+
+## 前回の所有ロック・開始/終了記録の接続
+
+[所有ロック付き模擬実行](../design/owned-simulation-run.md)を追加した。PowerShell wrapperから、既存OwnedRunLockと原子的非上書き公開を再利用するPython所有プロセスを呼び、開始記録の確認後に既存モデルの両経路・journal・結果レポートを処理する。終了時は開始記録と現在の最終レポートbytesをSHA-256で結び付ける。PC-BはSyncのみで、Dry Runは通常ロック/記録/cleanupへ入らない。
+
+同じjournalの呼出しをscopeとする実Windows Global mutexを使い、LifecycleRootをjournalの兄弟`<末尾名>.lifecycle`へ固定する。二重起動・run UUID再使用・異常な配置/役割を開始前に拒否する。EOF/モデル例外はinterruptedを記録し、所有プロセス強制終了の開始記録/lockや、改変lockを自動解除しない。終了ファイルだけでcleanup成功とはせず、最終応答とLifecycleStatusを分ける。
+
+実装はメモリ上の元/保存先を扱う模擬接続である。所有プロセスが途中で失われても既に実行中のモデル操作が続く可能性があり、最終状態を未確認として返す。所有喪失時の実操作停止、実root/ACL/名前空間資格、実列挙、実Drive、正式Sync/Archive入口、実環境受け入れは未完。T0/T1/T4/AC全体に昇格させない。
+
+新規所有プロセス9試験とPowerShell接続21 assertions（PC-A Sync/Archive、PC-B Sync）がローカルで成功した。役割別配布回帰、PS構文解析/PSScriptAnalyzer Error検査3ファイル、Python構文解析2ファイルも成功。hardlink/実OS mutexを含む接続試験は自作合成一時領域だけをsandbox外で使用した。Python 3.11.9/PS 7.6.7、CI定義はPython 3.12。この新ブランチのリモートCI・独立レビュー・実環境受け入れは未実施。
+
+文書102件の相対リンク1015件・見出し参照112件と`git diff --check`も成功した。変更のないモデル本体・journal・レポートの全既存試験やmarkdownlintは無関係に再実行していない。
+
+前回PR #48はmain `6658025`へマージ済みで、[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40623877751)と[Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40623877773)は成功済み（PR本文にも確認結果あり）。下記の前回記録にあるqueued/マージ待ちは当時の状態である。
+
+模擬実装文書の「ロック取得なし」は直接モデル呼出しの範囲として維持し、所有wrapper経由ではOSロックを使うことを追記した。新たな実装規約の文書/コード不一致は見つかっていない。次は実列挙をモデルへ結び付ける入口と、所有喪失時の停止/正式private root資格を具体化する。実ログ・本番Driveの操作は未承認のまま。
+
+## 前回の実行全体の結果レポート
 
 累積実装は[PR #48](https://github.com/wasawo/eo-log-maintenance-public/pull/48)へまとめた（実装HEAD `880c7e2`、本引き継ぎ追記前）。作成時はValidate/Package Validationともqueuedを確認した。追記を含む最終HEADの両CI・merge可否を確認してから、利用者の承認範囲でマージする。本書の記録だけでCI成功/マージ済みとはせず、再開時はGitHubの実状態・main SHAを照合する。
 

@@ -1,0 +1,124 @@
+#requires -Version 7.6.7
+Set-StrictMode -Version Latest
+$ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'LogMoveSimulation.ps1')
+. (Join-Path $PSScriptRoot 'SimulationFileSnapshot.ps1')
+
+function Invoke-EoOwnedLogMoveSimulation {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$ConfigurationJson,
+        [Parameter(Mandatory)][ValidateSet('PC-A','PC-B')][string]$MachineId,
+        [Parameter(Mandatory)][ValidateSet('Sync','Archive')][string]$Operation,
+        [Parameter(Mandatory)][hashtable]$State,
+        [Parameter(Mandatory)][datetime]$ReferenceDate,
+        [Parameter(Mandatory)][string]$LifecycleRoot,
+        [Parameter(Mandatory)][string]$JournalRoot,
+        [Parameter(Mandatory)][string]$ReportRoot,
+        [string]$PythonExecutable='python',
+        [guid]$RunId=[guid]::NewGuid(),
+        [hashtable]$Faults=@{},
+        [object[]]$SnapshotRoots=@(),
+        [switch]$DryRun
+    )
+    $config=ConvertFrom-EoMachineConfigurationJson -Json $ConfigurationJson -ExpectedMachineId $MachineId
+    if ($Operation -eq 'Archive' -and ($MachineId -ne 'PC-A' -or -not $config.allowArchive)) { throw 'move_archive_role_denied' }
+    $arguments=@{ConfigurationJson=$ConfigurationJson;MachineId=$MachineId;Operation=$Operation;State=$State;
+        ReferenceDate=$ReferenceDate;JournalRoot=$JournalRoot;ReportRoot=$ReportRoot;PythonExecutable=$PythonExecutable;
+        RunId=$RunId;Faults=$Faults}
+    $useSnapshot=$SnapshotRoots.Count -gt 0
+    if ($useSnapshot -and ($State.Files -isnot [Collections.Generic.List[object]] -or $State.Files.Count -ne 0 -or
+        $State.Events -isnot [Collections.Generic.List[object]] -or $State.Events.Count -ne 0)) { throw 'simulation_snapshot_state_not_empty' }
+    $loadSnapshot={ Read-EoSimulationFileSnapshot -Roots $SnapshotRoots -ExcludedRoots @($LifecycleRoot,$JournalRoot,$ReportRoot) `
+        -MachineId $MachineId -Operation $Operation -RequestId $RunId -PythonExecutable $PythonExecutable }
+    # Keep Dry Run outside ordinary ownership/start/cleanup paths.
+    if ($DryRun) {
+        if ($useSnapshot) { $arguments.State=& $loadSnapshot }
+        $result=Invoke-EoLogMoveSimulation @arguments -DryRun
+        $result | Add-Member -NotePropertyName LifecycleStatus -NotePropertyValue 'not_started'
+        return $result
+    }
+    $route=if ($Operation -eq 'Sync') {'local_to_cloud'}else{'cloud_to_archive'}
+    $start=[Diagnostics.ProcessStartInfo]::new()
+    $start.FileName=$PythonExecutable
+    $start.UseShellExecute=$false
+    $start.CreateNoWindow=$true
+    $start.RedirectStandardInput=$true
+    $start.RedirectStandardOutput=$true
+    $start.RedirectStandardError=$true
+    foreach ($argument in @('-B',(Join-Path $PSScriptRoot 'SimulationRunOwner.py'),'--lifecycle-root',$LifecycleRoot,
+        '--journal-root',$JournalRoot,'--report-root',$ReportRoot,'--run-id',$RunId.ToString('D'),'--machine-id',$MachineId,'--route',$route)) {
+        $start.ArgumentList.Add($argument)
+    }
+    $process=[Diagnostics.Process]::new(); $process.StartInfo=$start
+    $started=$false; $result=$null
+    $validAck={
+        param($Value,[string]$Phase)
+        $Value -is [Collections.IDictionary] -and $Value.Count -eq 3 -and
+        @($Value.Keys|Where-Object {$_ -cnotin @('protocol_version','phase','run_id')}).Count -eq 0 -and
+        ($Value.protocol_version -is [int] -or $Value.protocol_version -is [long]) -and $Value.protocol_version -eq 1 -and
+        $Value.phase -is [string] -and $Value.run_id -is [string] -and
+        $Value.phase -ceq $Phase -and $Value.run_id -ceq $RunId.ToString('D')
+    }
+    try {
+        [void]$process.Start(); $started=$true
+        $stderr=$process.StandardError.ReadToEndAsync()
+        $ready=$process.StandardOutput.ReadLineAsync()
+        if (-not $ready.Wait(30000)) { throw 'owned_simulation_unconfirmed' }
+        $ack=$ready.GetAwaiter().GetResult() | ConvertFrom-Json -AsHashtable
+        if (-not (& $validAck $ack 'ready')) { throw 'owned_simulation_unconfirmed' }
+        $ownerChannel=@{Sequence=0L;Lost=$false}
+        $arguments.OwnershipCheck={
+            if ($ownerChannel.Lost) { return $false }
+            try {
+                if ($process.HasExited) { throw 'owned_simulation_unconfirmed' }
+                $ownerChannel.Sequence++
+                $message=@{protocol_version=1;run_id=$RunId.ToString('D');kind='check';sequence=$ownerChannel.Sequence}
+                $read=$process.StandardOutput.ReadLineAsync()
+                $write=$process.StandardInput.WriteLineAsync(($message|ConvertTo-Json -Compress))
+                if (-not $write.Wait(30000) -or -not $read.Wait(30000)) { throw 'owned_simulation_unconfirmed' }
+                $reply=$read.GetAwaiter().GetResult()|ConvertFrom-Json -AsHashtable
+                if ($reply -isnot [Collections.IDictionary] -or $reply.Count -ne 4 -or
+                    @($reply.Keys|Where-Object {$_ -cnotin @('protocol_version','phase','run_id','sequence')}).Count -ne 0 -or
+                    ($reply.protocol_version -isnot [int] -and $reply.protocol_version -isnot [long]) -or $reply.protocol_version -ne 1 -or
+                    $reply.phase -isnot [string] -or $reply.phase -cne 'owned' -or
+                    $reply.run_id -isnot [string] -or $reply.run_id -cne $RunId.ToString('D') -or
+                    ($reply.sequence -isnot [int] -and $reply.sequence -isnot [long]) -or $reply.sequence -ne $ownerChannel.Sequence) { throw 'owned_simulation_unconfirmed' }
+                return $true
+            }
+            catch { $ownerChannel.Lost=$true; return $false }
+        }.GetNewClosure()
+        if ($useSnapshot) {
+            $snapshot=& $loadSnapshot
+            if ($process.HasExited) { throw 'owned_simulation_unconfirmed' }
+            $State.Files=$snapshot.Files
+        }
+        $result=Invoke-EoLogMoveSimulation @arguments
+        if ($ownerChannel.Lost) { throw 'owned_simulation_unconfirmed' }
+        $request=@{protocol_version=1;run_id=$RunId.ToString('D');operation_status=$result.Status;report_save_status=$result.ReportSaveStatus}
+        $stdout=$process.StandardOutput.ReadToEndAsync()
+        $write=$process.StandardInput.WriteLineAsync(($request|ConvertTo-Json -Compress))
+        if (-not $write.Wait(30000)) { throw 'owned_simulation_unconfirmed' }
+        $process.StandardInput.Close()
+        if (-not $process.WaitForExit(30000)) { throw 'owned_simulation_unconfirmed' }
+        [void]$stderr.GetAwaiter().GetResult()
+        if ($process.ExitCode -ne 0) { throw 'owned_simulation_unconfirmed' }
+        $ack=$stdout.GetAwaiter().GetResult() | ConvertFrom-Json -AsHashtable
+        if (-not (& $validAck $ack 'finished')) { throw 'owned_simulation_unconfirmed' }
+        $result | Add-Member -NotePropertyName LifecycleStatus -NotePropertyValue 'confirmed'
+    }
+    catch {
+        if ($null -eq $result) { throw 'owned_simulation_interrupted' }
+        $result.OwnershipStatus='unconfirmed'
+        $result | Add-Member -NotePropertyName LifecycleStatus -NotePropertyValue 'unconfirmed'
+    }
+    finally {
+        if ($started -and -not $process.HasExited) {
+            # EOF asks the owner to record interruption, without an invented result.
+            try { $process.StandardInput.Close() } catch {}
+            if (-not $process.WaitForExit(30000)) { try { $process.Kill($true); $process.WaitForExit() } catch {} }
+        }
+        $process.Dispose()
+    }
+    return $result
+}

@@ -4,10 +4,25 @@ Repository-wide rules. Canonical repo: `wasawo/eo-log-maintenance-public`. The o
 
 ## 作業の進め方
 
-- Infer intent from the request and conversation; preserve task type (research/review/edit) and scope. Complete authorized work through required validation; action requests require execution, not proposals alone.
+- Infer intent from context; preserve task type (research/review/edit) and scope. Complete authorized work through required validation; act on execution requests instead of stopping at proposals.
 - Make routine, reversible choices within approval using existing conventions. While clarification is pending, continue independent authorized work.
 - Do not settle open specs or contradictions for implementation convenience. Before changing data handling, completion scope, or authority, check prior agreements and seek clarification where needed. Present evidence, a concrete proposal, and what remains unapproved.
 - Before implementing unfamiliar features, search GitHub OSS and compare approaches within scope. Reuse applicable prior research; investigate only gaps. Proceed once the comparison supports an implementation decision. Self-written code is allowed when justified; adopting approaches/dependencies still requires compliance with specs and approval boundaries.
+
+## 実装原則
+
+Apply these within approved requirements and safety limits; they do not authorize unrelated refactoring.
+
+- Keep related processing in one function/procedure unless reuse or composition justifies splitting.
+- Validate unknown inputs once at the responsible boundary; pass validated types/state inward without repeating the same checks. Required observations of changing external state, including pre-deletion checks, remain mandatory.
+- Do not preemptively extract single-use helpers. Extract for reuse, to hide complexity, or to name a clear concept that improves readability.
+- Do not add disproportionate complexity for speculative problems. Before adding it, identify concrete failure conditions, likelihood, and complexity cost; seek agreement when needed under existing approval rules.
+- Keep the main flow readable. Separate validation/supporting logic into small helpers when the extraction criteria above apply.
+- Avoid deep nesting; exit early on failed preconditions or exceptional cases so the normal path stays clear.
+- Minimize mutable state and reassignment; express initial values and branch results directly where practical.
+- Comment only on constraints, reasons, or surprising behavior not evident from the code; do not narrate simple assignments or ordinary control flow.
+- Test actual implementations where possible. Minimize mocks and do not reimplement production logic in tests; retain the synthetic-data and production-isolation limits below.
+- Avoid storing the same fact in multiple places; derive it when needed. Preserve required historical snapshots and recovery/audit evidence, which record past state rather than duplicate current state.
 
 ## 開始と作業体制
 

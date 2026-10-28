@@ -180,4 +180,50 @@ try {
 catch { $rejected = $_.Exception.Message -ceq 'move_archive_role_denied' }
 Assert-True $rejected 'disabled archive configuration rejected'
 Assert-True (($state | ConvertTo-Json -Depth 12 -Compress) -ceq $before) 'disabled archive has no model effects'
+# R-02: malformed shared history must fail at the boundary, before any effects.
+foreach ($operation in @('Sync','Archive')) {
+    $history=New-State
+    $location=if ($operation -ceq 'Sync') {'PC-A'}else{'Cloud'}
+    Add-File $history 'history' $location 'BattleLog' '20240101_12345678@history.txt'
+    [void](Invoke-Scenario $history 'PC-A' $operation @{history='delete_unknown_absent'})
+    [void](Invoke-Scenario $history 'PC-A' $operation)
+    foreach ($template in $history.Events) {
+        $keys=@('Kind','SourceId','MachineId','Operation','LogType','RelativePath')
+        if ($template.Kind -ceq 'prepared') {
+            $keys+=@('DestinationId','SourceLocation','DestinationLocation','DestinationName','Sha256','Size','Reused')
+        }
+        elseif ($template.Kind -ceq 'delete_result') { $keys+=@('DestinationId','Outcome') }
+        else { $keys+=@('Outcome') }
+        foreach ($key in $keys) {
+            foreach ($problem in @('missing','wrong_type')) {
+                $state=New-State
+                Add-File $state 'good' $location 'BattleLog' '20240101_12345678@good.txt'
+                $event=$template | ConvertTo-Json -Depth 20 -Compress | ConvertFrom-Json -AsHashtable -DateKind String
+                if ($problem -ceq 'missing') { $event.Remove($key) } else { $event[$key]=@{unexpected='value'} }
+                $state.Events.Add($event)
+                $before=$state | ConvertTo-Json -Depth 20 -Compress
+                $rejected=$false
+                try { Invoke-Scenario $state 'PC-A' $operation | Out-Null }
+                catch { $rejected=$_.Exception.Message -ceq 'move_simulation_record_invalid' }
+                Assert-True $rejected "$operation $($template.Kind) $key $problem has fixed boundary rejection"
+                Assert-True (($state | ConvertTo-Json -Depth 20 -Compress) -ceq $before) 'invalid history leaves all files and events untouched'
+            }
+        }
+    }
+    foreach ($change in @(@{SourceLocation='Archive'},@{DestinationLocation='PC-B'},@{DestinationName='other.txt'},
+            @{Sha256='not-a-hash'},@{Size=-1},@{Size=$true},@{Reused='true'},@{SourceId=' '},
+            @{JournalRecord=@{record_id='broken'}},@{JournalSha256=('a'*64)},@{MoveId='invalid'})) {
+        $state=New-State
+        Add-File $state 'good' $location 'BattleLog' '20240101_12345678@good.txt'
+        $event=$history.Events[0] | ConvertTo-Json -Depth 20 -Compress | ConvertFrom-Json -AsHashtable -DateKind String
+        foreach ($key in $change.Keys) { $event[$key]=$change[$key] }
+        $state.Events.Add($event)
+        $before=$state | ConvertTo-Json -Depth 20 -Compress
+        $rejected=$false
+        try { Invoke-Scenario $state 'PC-A' $operation | Out-Null }
+        catch { $rejected=$_.Exception.Message -ceq 'move_simulation_record_invalid' }
+        Assert-True $rejected "$operation rejects inconsistent prepared fields"
+        Assert-True (($state | ConvertTo-Json -Depth 20 -Compress) -ceq $before) 'inconsistent history has no effects'
+    }
+}
 Write-Host "PASS: $script:Passed log-move simulation assertions"
