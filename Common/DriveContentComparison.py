@@ -62,6 +62,7 @@ class DriveFileObservation:
     size_bytes: int | None
     sha256: str | None
     sha256_trusted: bool = False
+    version: str | None = None
 
 
 @dataclass(frozen=True, repr=False)
@@ -238,7 +239,8 @@ def _valid_drive_file(item):
     return (type(item) is DriveFileObservation and _text(item.file_id)
             and _text(item.filename) and (item.size_bytes is None or _size(item.size_bytes))
             and (item.sha256 is None or _hash(item.sha256))
-            and type(item.sha256_trusted) is bool)
+            and type(item.sha256_trusted) is bool
+            and (item.version is None or (type(item.version) is str and re.fullmatch('[1-9][0-9]*',item.version) is not None)))
 
 
 @dataclass(frozen=True, repr=False)

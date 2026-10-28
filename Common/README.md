@@ -17,7 +17,7 @@
 | 設定 | [MachineConfiguration.ps1](MachineConfiguration.ps1)、[bootstrap](MachineConfigurationBootstrap.ps1)、[root検査](MachineConfigurationRootInspection.ps1) | 構造/既存root観測等の補助。正式導入/実体保護は別 |
 | 日付/期間・source証拠 | [LogFunctions.ps1](LogFunctions.ps1)、[SourceInventoryEvidenceBuilder.py](SourceInventoryEvidenceBuilder.py)、[source再観測](../docs/design/reference/source-inventory-revalidation.md) | 選択/列挙/hashと凍結入力比較。削除許可ではない |
 | staging/残存物 | [staging lifecycle](../docs/design/staging-file-lifecycle.md)、[残存物観測](../docs/design/reference/staging-residual-observation.md) | コピー/容量/残存物の観測と正式runtimeを区別 |
-| 内容/Drive比較 | [DriveContentComparison.py](DriveContentComparison.py)、[内容比較仕様](../docs/design/reference/drive-content-comparison.md)、[応答検査](DriveResponseSemantics.ps1) | 純粋比較/応答相関。実Drive adapter/元削除は未実装 |
+| 内容/Drive比較 | [DriveContentComparison.py](DriveContentComparison.py)、[SDK読取接続](../docs/design/drive-metadata-reader.md)、[内容比較仕様](../docs/design/reference/drive-content-comparison.md)、[応答検査](DriveResponseSemantics.ps1) | SDKの一覧/metadataと比較を接続。実認証・転送・元削除・正式adapterは未完 |
 | manifest/集約 | [A2/B2検証](RunInputEvidenceIntegrity.py)、[report builder](AggregationReportBuilder.py)、[参照成果物検証](validate_aggregation_artifacts.py)、[遷移観測](../docs/design/reference/manifest-transition-inspection.md) | 旧v1観測/検証。verifiedを移動完了へ読み替えない |
 | 公開/排他/復旧 | [単一公開](AtomicArtifactPublication.py)、[bundle公開](ArtifactSetPublication.py)、[所有lock](OwnedRunLock.py)、[明示回復設計](../docs/design/explicit-recovery-command-design.md) | 所有権/現在性/対象FS/電源断の実受け入れは別 |
 | 診断/非公開証拠 | [従来の詳細ノート](../docs/design/reference/common-module-notes.md)、[private証拠契約](../docs/design/recovery-private-evidence-contract.md) | 各実装の型/証拠/秘匿境界を維持 |

@@ -1,5 +1,7 @@
 # テスト計画
 
+`test_drive_metadata_reader.py`は[公式Driveクライアントの読取接続](../docs/design/drive-metadata-reader.md)を検証する。同梱DiscoveryでSDKを動かし、HTTP応答だけを合成する。親/ID/全page/version、error時の非公開情報、既存比較への接続を確認し、実Driveや認証情報は使用しない。
+
 `Test-LogMoveJournalIntegration.ps1`は両経路の模擬移動・v1保存・ID維持・通常再実行・照合・概要を一連で検証する。`test_move_journal_command.py`は内部metadata bridgeのID再利用と不整合拒否を合成一時領域で確認する。[接続仕様](../docs/design/simulation-journal-integration.md)を参照。実ログ/Driveや正式runtimeは扱わない。
 
 `test_move_run_report.py`は移動記録の実行別集計とPowerShell表示コマンドを検証する。重複計上、持越し、曖昧な結果、scope拒否、非公開値の非表示、異常応答・timeoutとjournal不変を合成一時領域で確認する。[仕様](../docs/design/move-run-report.md)を参照。

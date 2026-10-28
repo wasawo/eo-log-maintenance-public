@@ -12,7 +12,7 @@
 | 承認と未決定 | [決定台帳](../decisions/decision-register-c18-c32.md)、[未決定仕様](../requirements/p0-open-specification-decisions.md)、対象の個別承認記録 | 未決定の値・遷移・認証・配布条件を推測して実装しない |
 | 設定・root | [maintenanceLocal](../design/configuration-local-root.md)、[Config](../../Config/)、[Common](../../Common/README.md) | PC別フィールド、安全既定値、絶対Windowsパス、領域分離を維持。導入時は未作成の場合だけexampleから生成し、利用者は実パスのみ入力。更新時は既存実設定を保持。設定値は認可ではない |
 | ファイル選択・期間 | [ファイル名・期間](../design/filename-and-period-selection.md) | 承認済みファイル名日付を使いLastWriteTimeで代用しない |
-| IPC・Drive | [PS/Python契約](../design/powershell-python-contract.md)、[contracts](../../contracts/)、[ランタイム ゲート](../design/runtime-entrypoint-validation-gate.md) | Drive for desktopの可視性はクラウド反映の証拠ではない。同名競合を上書きせず出所を推測しない |
+| IPC・Drive | [PS/Python契約](../design/powershell-python-contract.md)、[contracts](../../contracts/)、[SDKの読取接続](../design/drive-metadata-reader.md)、[ランタイム ゲート](../design/runtime-entrypoint-validation-gate.md) | SDK読取と正式adapterを区別する。Drive for desktopの可視性はクラウド反映の証拠ではない。同名競合を上書きせず出所を推測しない |
 | 同期・manifest・archive・復旧 | [ランタイム ゲート](../design/runtime-entrypoint-validation-gate.md)、[ステージングファイルのライフサイクル](../design/staging-file-lifecycle.md)、[テストシナリオ](../validation/runtime-safety-test-scenarios.md)、対象の個別契約 | 現在の対象ごとの保存先内容一致・元不変確認、不明時の元保全、所有権に基づく復旧。両PCの期間完了はarchive条件にしない。初期inventory/復元は通常移動と分離し、未照合・競合・出所不明を自動復元しない。現v1/helperの制約と新しい移動完了契約を区別する |
 | 実環境検証 | [対象FS受け入れ](../validation/target-filesystem-acceptance.md) | 通常テストは合成・隔離領域のみ。予定volumeの部分証拠をTier B/C全体の完了にしない |
 | 配布・導入 | [配布設計](../release/distribution-design.md)、[ビルダー](../../.github/scripts/Build-ReleasePackage.ps1)、[パッケージのテスト](../../tests/Test-ReleasePackage.ps1) | 役割別allowlist、PC-B archive除外、非配布マーカーを維持。実設定 `Config/PC-A.json` / `Config/PC-B.json` はGit/配布対象外 |

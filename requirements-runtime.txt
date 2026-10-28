@@ -1,2 +1,3 @@
-# Runtime dependency for validating derived reports and their referenced JSON artifacts.
+# JSON contracts and the official Drive metadata client.
 jsonschema>=4.23,<5
+google-api-python-client>=2,<3

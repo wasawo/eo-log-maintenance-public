@@ -80,7 +80,7 @@ SharedLogs/_distribution/
 | `scripts/README.md` | はい | スクリプトの使用上の注意 |
 | `Common/**/*.ps1` | はい、存在する場合 | 共有ランタイム関数 |
 | `Common/**/*.py` | はい、存在する場合 | 共有検証/公開ヘルパーを実装しました。最終的なランタイムスコープはまだレビューが必要です |
-| `requirements-runtime.txt` | はい | ランタイム JSON Schema 検証の依存関係 |
+| `requirements-runtime.txt` | はい | JSON Schema検証と公式Drive Pythonクライアントの依存関係。SDK読取接続の追加だけで実運用可能とはしない |
 | `contracts/aggregation-report-v1.schema.json` | はい | レポート契約を実装しました |
 | `contracts/manifest-v1.schema.json` | はい | マニフェスト構造コントラクトを実装しました |
 | `contracts/run-input-evidence-v1.schema.json` | はい | 実行入力証拠契約を実装しました |

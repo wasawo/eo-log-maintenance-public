@@ -140,6 +140,7 @@ jobs:
           python -B -m unittest discover -s tests -p "test_pc_suffixed_name.py" -v
           python -B -m unittest discover -s tests -p "test_download_hash_observation.py" -v
           python -B -m unittest discover -s tests -p "test_drive_listing_observation.py" -v
+          python -B -m unittest discover -s tests -p "test_drive_metadata_reader.py" -v
           python -B -m unittest discover -s tests -p "test_drive_comparison_reobservation.py" -v
           python -B -m unittest discover -s tests -p "test_drive_comparison_batch.py" -v
           python -B -m unittest discover -s tests -p "test_content_download_plan.py" -v
