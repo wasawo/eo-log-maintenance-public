@@ -6,6 +6,14 @@
 
 ## 現在地
 
+2026-10-29、開始HEAD `bd72145`、作業ツリーはクリーン。[SDK取得から所有された隔離stagingへの保存](../design/sdk-download-staging.md)をtests内へ接続した。CommonのSDK転送を公開hash入口と共有し、試験自身が生成するrootだけでmutex/token確認、xb作成、flush/fsync/close、読戻し、cloud版再確認、HTTP待機後のstaging再確認まで行う。失敗file・占有名・改変された所有記録は保持し、通常再試行は新規attemptへ進む。任意root/pathのfactory、正式writer、元削除は追加しない。
+
+新規8試験、関連10群105試験、役割別package回帰が成功。短い書込み・disk-full・flush失敗は実fileのstream proxyで注入し、実際のvolume枯渇を実証したものではない。閉じた後とcloud metadata待機中の改変、所有喪失、版変更、空file、期待size不一致も確認した。SDK2.201.0/Python3.11.9（CI定義3.12）、PowerShell7.6.7。既存の専用一時依存を再利用し、必要なfile/mutex/package試験は承認されたsandbox外の自作合成一時領域だけで実施。実Drive・実ログ・実設定、リモートCI、独立レビュー、実環境受け入れは未実施。
+
+Python4ファイルの構文解析、変更7文書の相対リンク180件・見出し参照22件、git diff --checkも成功。rootが差分/CI登録を自己点検し、「保存しない」の表記を公開hash入口と内部sink/試験保存へ区別して更新した。既存規約の新たな文書・コードの不一致は見つかっていない。無関係な全試験、markdownlint、GUI表示確認は未実施。
+
+既存fixtureの新規作成・flush/fsync/読戻しと、前回調査したSDK転送を再利用した。転送ロジックを試験側へ複製せず、公開hash入口はファイルを作らないまま維持する。既知のAPI hash不一致は追加metadata要求前に停止する。次は実認証service/保存rootの資格と、metadata-first/容量/ready状態を正式download経路へ統合する。35%の概算とT0/T1/T4/AC全体の未完は維持し、任意の低水準観測追加やR-04/05を自動選択しない。
+
 2026-10-29、開始HEAD `1fe4adb`、作業ツリーはクリーン。[SDK内容読取・hash・版再確認](../design/drive-content-reader.md)を追加した。canDownloadとmetadataを確認し、MediaIoBaseDownloadからhash sinkへ実bytesを渡す。全chunk/総size/取得後metadataが一致した場合だけ版付きhashを返す。Range/長さ/継続先の不正、途中error、空ファイルの不確実性、内容hash不一致では結果を返さない。保存path、認証設定、upload/元削除/正式CLIは提供しない。
 
 新規8試験、関連9群97試験、役割別package回帰が成功。公式SDKを使い、HTTPだけを模擬した。API hashなしの取得→不足hash計画→既存比較を接続し、別版のdownload hashを拒否する。前回用意した専用一時領域のSDK2.201.0を再利用した。Python3.11.9（CI定義3.12）、PowerShell7.6.7。必要なstaging/package試験だけ承認されたsandbox外の自作合成一時領域を使用し、実Drive通信、リモートCI、独立レビュー、実環境受け入れは未実施。
@@ -32,7 +40,7 @@ Google公式sampleとrcloneのpage継続方式を比較した。files.deleteの�
 
 2026-10-29に利用者の指示でAGENTS.mdの10原則追加を`ff5b723`へコミットした。元の文書更新の開始HEADは`9d71a3f`。変更2文書の相対リンク31件・見出し参照6件と差分検査は成功。承認境界を維持し、既存コードの一括リファクタリングは行っていない。
 
-- 作業branch: `codex/owned-simulation-run`。今回は「次の作業に着手して」により`1fe4adb`からSDK内容読取を実装・検証・ローカルコミットする。main `6658025`から作成した同じブランチへ変更を蓄積する。GitHubの同branchのPR検索結果は0件。push/PR/mergeは指示を待ち、前回PRの許可を流用しない。
+- 作業branch: `codex/owned-simulation-run`。今回は「次の作業に着手して」により`bd72145`からSDK→隔離staging接続を実装・検証・ローカルコミットする。main `6658025`から作成した同じブランチへ変更を蓄積する。GitHubの同branchのPR検索結果は0件。push/PR/mergeは指示を待ち、前回PRの許可を流用しない。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 

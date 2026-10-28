@@ -2,6 +2,8 @@
 
 更新日: 2026-10-29。[metadata読取](drive-metadata-reader.md)へ、[DriveContentReader.py](../../Common/DriveContentReader.py)の内容確認を接続した。T0/T2/T3の読取側の部分実装で、正式な移動・保存・元削除は提供しない。
 
+その後、[所有された隔離stagingへの保存](sdk-download-staging.md)をtests内へ接続した。SDK転送の内部処理を共用し、保存側が渡すverifierを転送/hash確認後・cloud metadata再取得前に呼ぶ。API hash不一致が既知なら追加のmetadata要求より前に停止する。公開hash入口は引き続きファイルを作らず、内部sinkを渡すことも実root資格にはしない。
+
 ## 処理の順序
 
 `read_drive_content_hash`は呼出し側の公式Drive v3 service、期待folder/file ID、明示的なchunk_size、任意の最大download bytesを受け取る。認証情報を探索・保存せず、ファイルパスも受け取らない。

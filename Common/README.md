@@ -14,6 +14,8 @@
 
 SDKの[内容取得・hash・版再確認](../docs/design/drive-content-reader.md)は`DriveContentReader.py`で行う。結果は版付きの内容観測だけで、download保存・元削除を提供しない。
 
+共通SDK転送を使う[所有された隔離stagingへの保存接続](../docs/design/sdk-download-staging.md)はtests専用であり、Commonに実運用root向けの保存factoryを追加したものではない。
+
 | 分野 | 実装/参照先 | 現在の境界 |
 | --- | --- | --- |
 | 設定 | [MachineConfiguration.ps1](MachineConfiguration.ps1)、[bootstrap](MachineConfigurationBootstrap.ps1)、[root検査](MachineConfigurationRootInspection.ps1) | 構造/既存root観測等の補助。正式導入/実体保護は別 |

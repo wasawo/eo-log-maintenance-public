@@ -122,6 +122,8 @@ T0の旧方針整合は§4のとおり進めた。次は元/保存先の識別�
 
 続いて[SDKの内容取得・hash・版再確認](../design/drive-content-reader.md)を追加した。受信内容のhashと取得前後のmetadataを確認し、版付きdownload観測を不足hash計画/比較へ渡す。SDKと合成HTTPによる接続で、実認証・download保存・upload・元削除・正式入口の未完は維持する。
 
+さらに[SDK取得から隔離stagingへの保存](../design/sdk-download-staging.md)をtests内で接続した。所有mutex/tokenと新規file作成の下で、SDK転送・flush/fsync/読戻し・cloud版再確認を行い、失敗試行を保持する。正式writer、実root/ACL/容量資格、metadata-first永続記録は未完であり、T0/T1/T4やAC全体の完了にはしない。
+
 ### 2026-10-29の初回配布までの進捗見積もり
 
 確認基準は作業branch `codex/owned-simulation-run` の `ff53094`。実装と記録を静的に照合した見積もりで、main/配布済みの状態を示すものではない。初回配布は、手動起動で両経路の移動・元削除・再実行・結果表示ができ、役割別に導入できる段階を指す。定期実行と専用競合解消ツールは含めない。

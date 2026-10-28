@@ -118,7 +118,7 @@ class DriveContentReaderTests(unittest.TestCase):
     def test_content_must_match_api_hash_even_when_size_and_version_match(self):
         service,http=self.service((200,METADATA),(200,b'xxxxx'),(200,METADATA))
         self.assert_private_failure(lambda:self.read(service,chunk_size=5))
-        self.assertEqual(len(http.calls),3)
+        self.assertEqual(len(http.calls),2)  # A known content mismatch needs no further request.
 
 
 if __name__=='__main__':unittest.main()

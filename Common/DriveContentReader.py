@@ -1,4 +1,4 @@
-"""Read one Drive blob into a hash, with metadata reobservation; never save/delete."""
+"""Shared SDK blob transfer; the public hash entry never saves or deletes files."""
 import hashlib
 import re
 
@@ -65,12 +65,17 @@ def read_drive_content_hash(service, *, folder_id, file_id, chunk_size, maximum_
     The caller owns service/auth/timeout. SDK/HTTP may materialize a whole
     response before our chunk checks; this is not a transport memory bound.
     """
+    return _read_drive_content(service,folder_id=folder_id,file_id=file_id,chunk_size=chunk_size,
+        maximum_download_bytes=maximum_download_bytes,sink=_HashSink())
+
+
+def _read_drive_content(service, *, folder_id, file_id, chunk_size, maximum_download_bytes, sink, verify_copy=None):
+    """Shared transfer core. A supplied sink/verifier is not a qualified runtime writer."""
     _require(type(chunk_size) is int and chunk_size>0)
     _require(maximum_download_bytes is None or (type(maximum_download_bytes) is int and maximum_download_bytes>0))
     try:
         before=read_drive_file_metadata(service,folder_id=folder_id,file_id=file_id,require_download=True)
         _require(maximum_download_bytes is None or before.size_bytes<=maximum_download_bytes)
-        sink=_HashSink()
         request=service.files().get_media(fileId=file_id,supportsAllDrives=True)
         request.http=_DownloadHttp(request.http,sink,before.size_bytes,chunk_size,request.uri)
         downloader=MediaIoBaseDownload(sink,request,chunksize=chunk_size)
@@ -78,10 +83,13 @@ def read_drive_content_hash(service, *, folder_id, file_id, chunk_size, maximum_
         while not done:
             _,done=downloader.next_chunk(num_retries=0)
         _require(sink.size==before.size_bytes)
-        after=read_drive_file_metadata(service,folder_id=folder_id,file_id=file_id,require_download=True)
-        _require(after==before)
         digest=sink.digest.hexdigest()
         _require(before.sha256 is None or digest==before.sha256)
-        return DownloadHashObservation(file_id,sink.size,digest,before.version)
+        observed=DownloadHashObservation(file_id,sink.size,digest,before.version)
+        if verify_copy is not None:
+            verify_copy(observed)
+        after=read_drive_file_metadata(service,folder_id=folder_id,file_id=file_id,require_download=True)
+        _require(after==before)
+        return observed
     except Exception:
         raise DriveContentReadError('drive_content_unconfirmed') from None
