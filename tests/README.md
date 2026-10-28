@@ -1,5 +1,7 @@
 # テスト計画
 
+`test_drive_content_reader.py`は[公式SDKによる内容取得・hash・版再確認](../docs/design/drive-content-reader.md)を、合成HTTP応答で検証する。空/分割内容、不正Range、途中失敗、metadata変更と、取得hashの版を結び付けた既存plan/比較への接続を確認する。実ログ・実Drive・ローカル保存は扱わない。
+
 `test_drive_metadata_reader.py`は[公式Driveクライアントの読取接続](../docs/design/drive-metadata-reader.md)を検証する。同梱DiscoveryでSDKを動かし、HTTP応答だけを合成する。親/ID/全page/version、error時の非公開情報、既存比較への接続を確認し、実Driveや認証情報は使用しない。
 
 `Test-LogMoveJournalIntegration.ps1`は両経路の模擬移動・v1保存・ID維持・通常再実行・照合・概要を一連で検証する。`test_move_journal_command.py`は内部metadata bridgeのID再利用と不整合拒否を合成一時領域で確認する。[接続仕様](../docs/design/simulation-journal-integration.md)を参照。実ログ/Driveや正式runtimeは扱わない。

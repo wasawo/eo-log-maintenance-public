@@ -2,6 +2,8 @@
 
 更新日: 2026-10-29。[移動設計](log-move-design.md)のクラウド対象確認へ向け、[DriveMetadataReader.py](../../Common/DriveMetadataReader.py)を追加した。T0/T2/T3の読取部分であり、正式Sync/Archive入口や両経路の完成ではない。
 
+その後、別moduleへ[内容取得・ハッシュ・版再確認](drive-content-reader.md)を接続した。metadataの`require_download=true`では、要求fieldsにcapabilities.canDownloadも追加し、trueを確認できなければ拒否する。既存の通常metadata読取はこの追加条件を必須にしない。
+
 ## 呼出しと対象
 
 呼出し側が用意したGoogle公式PythonクライアントのDrive v3 serviceを受け取る。認証情報の探索・保存、OAuth画面、既定accountの取得、service生成は行わない。実運用のaccount・drive.fileによる対象folderの資格確認は別途必要となる。引数のfolder IDは観測の比較対象であり、実行許可ではない。
@@ -33,4 +35,4 @@ SDKの追加再試行は`num_retries=0`とする。非2xxはSDKのretry診断へ
 
 依存関係は`requirements-runtime.txt`の`google-api-python-client>=2,<3`へ追加し、試験側も同じruntime依存を参照する。ローカル確認版は2.201.0で、作業専用の一時領域へ導入した。ローカルPython3.11.9（CI定義3.12）、PowerShell7.6.7。SDK依存からPython3.11の将来のサポート終了予告が出たが、現時点の試験は成功した。
 
-新規10試験、関連8群87試験、役割別package回帰が成功した。実Driveのaccount/権限・保存先の継続的な保護・再帰列挙・真正な内容download・upload・版固定削除・正式入口は未完。実Drive通信、リモートCI、独立レビュー、実環境受け入れは実施していない。配布拒否ガードとT0/T1/T4/AC全体の未完を維持する。
+初回接続時は新規10試験、関連8群87試験、役割別package回帰が成功した。内容確認の追加結果は上記の別仕様を参照。実Driveのaccount/権限・保存先の継続的な保護・再帰列挙・download保存・upload・版固定削除・正式入口は未完。実Drive通信、リモートCI、独立レビュー、実環境受け入れは実施していない。配布拒否ガードとT0/T1/T4/AC全体の未完を維持する。

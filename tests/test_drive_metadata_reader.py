@@ -22,13 +22,17 @@ class OfflineHttp:
     def __init__(self,responses):
         self.responses=list(responses)
         self.calls=[]
+        self.headers=[]
 
     def request(self,uri,method='GET',body=None,headers=None,**kwargs):
         self.calls.append((uri,method,body))
+        self.headers.append(dict(headers or {}))
         if not self.responses:
             raise AssertionError('Unexpected SDK HTTP request')
-        status,value=self.responses.pop(0)
-        return Response({'status':str(status),'content-type':'application/json'}),value if type(value) is bytes else json.dumps(value).encode('utf-8')
+        entry=self.responses.pop(0);status,value=entry[:2]
+        response_headers={'status':str(status),'content-type':'application/json'}
+        if len(entry)==3:response_headers.update(entry[2])
+        return Response(response_headers),value if type(value) is bytes else json.dumps(value).encode('utf-8')
 
 
 class DriveMetadataReaderTests(unittest.TestCase):

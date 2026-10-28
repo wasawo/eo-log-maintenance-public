@@ -12,6 +12,8 @@
 
 [模擬実行結果レポート](../docs/design/simulation-run-report.md)は`SimulationRunReport.py`/`.ps1`で別領域へ保存する。prepared前の失敗も含めるが、削除判定の証拠や実runの完成にはしない。
 
+SDKの[内容取得・hash・版再確認](../docs/design/drive-content-reader.md)は`DriveContentReader.py`で行う。結果は版付きの内容観測だけで、download保存・元削除を提供しない。
+
 | 分野 | 実装/参照先 | 現在の境界 |
 | --- | --- | --- |
 | 設定 | [MachineConfiguration.ps1](MachineConfiguration.ps1)、[bootstrap](MachineConfigurationBootstrap.ps1)、[root検査](MachineConfigurationRootInspection.ps1) | 構造/既存root観測等の補助。正式導入/実体保護は別 |

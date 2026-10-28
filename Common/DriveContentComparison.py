@@ -160,6 +160,7 @@ class DownloadHashObservation:
     file_id: str
     size_bytes: int
     sha256: str
+    version: str | None = None
 
 
 class DownloadObservationError(ValueError):
@@ -235,12 +236,16 @@ def _hash(value):
     return type(value) is str and re.fullmatch(r"[0-9a-f]{64}", value) is not None
 
 
+def _version(value):
+    return value is None or (type(value) is str and re.fullmatch('[1-9][0-9]*',value) is not None)
+
+
 def _valid_drive_file(item):
     return (type(item) is DriveFileObservation and _text(item.file_id)
             and _text(item.filename) and (item.size_bytes is None or _size(item.size_bytes))
             and (item.sha256 is None or _hash(item.sha256))
             and type(item.sha256_trusted) is bool
-            and (item.version is None or (type(item.version) is str and re.fullmatch('[1-9][0-9]*',item.version) is not None)))
+            and _version(item.version))
 
 
 @dataclass(frozen=True, repr=False)
@@ -303,10 +308,12 @@ def _index_downloads(downloads, by_id):
     downloaded = {}
     for item in downloads:
         if (type(item) is not DownloadHashObservation or not _text(item.file_id)
-                or not _size(item.size_bytes) or not _hash(item.sha256)):
+                or not _size(item.size_bytes) or not _hash(item.sha256) or not _version(item.version)):
             raise _ComparisonInputError("comparison_download_invalid")
         if item.file_id in downloaded or item.file_id not in by_id:
             raise _ComparisonInputError("comparison_download_unbound")
+        if item.version is not None and item.version != by_id[item.file_id].version:
+            raise _ComparisonInputError("comparison_download_version_mismatch")
         downloaded[item.file_id] = item
     return downloaded
 

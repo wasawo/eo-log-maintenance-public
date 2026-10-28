@@ -59,12 +59,17 @@ def _file_observation(value, folder_id, expected_id=None):
     return DriveFileObservation(value['id'],value['name'],int(size),sha,sha is not None,version)
 
 
-def read_drive_file_metadata(service, *, folder_id, file_id):
+def read_drive_file_metadata(service, *, folder_id, file_id, require_download=False):
     """Observe one exact file ID in one expected parent, never a name substitute."""
     _identifier(folder_id); _identifier(file_id)
+    _require(type(require_download) is bool)
     try:
-        value=_execute_read(service.files().get(fileId=file_id,fields=FILE_FIELDS,supportsAllDrives=True))
-        return _file_observation(value,folder_id,file_id)
+        fields=FILE_FIELDS+',capabilities(canDownload)' if require_download else FILE_FIELDS
+        value=_execute_read(service.files().get(fileId=file_id,fields=fields,supportsAllDrives=True))
+        observed=_file_observation(value,folder_id,file_id)
+        if require_download:
+            _require(type(value.get('capabilities')) is dict and value['capabilities'].get('canDownload') is True)
+        return observed
     except Exception:
         raise DriveMetadataReadError('drive_metadata_unconfirmed') from None
 
