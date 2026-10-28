@@ -8,7 +8,7 @@ ElectronicObserver の BattleLog / ErrorReport を、Windows PC-A と PC-B 間�
 
 > **2026-10-27 正式文書へ統合:** [要件定義書](docs/requirements/log-move-requirements.md)・[設計書](docs/design/log-move-design.md)・[受け入れ条件/実装計画](docs/development/implementation-workflow.md)を現行の入口としました。初回完成は両移動経路の確認済み元の直接削除まで。具体方式の未決と実装/受け入れ未完は文書内で区別しています。
 
-> **現在の段階:** 既存実装は安全基盤・検証補助処理が中心で、現在は文書/詳細契約を整備しています。正式な同期／アーカイブ入口と削除経路は未完成、P0受け入れも未完了です。判定基準は[実装計画](docs/development/implementation-workflow.md) §2と[P0台帳](docs/requirements/p0-gap-register.md)を参照してください。正式文書化は本番適用の許可ではありません。
+> **現在の段階:** 2026-10-28に実装を再開し、[両経路の模擬接続](docs/design/log-move-simulation.md)と記録・再観測を進めています。[保存済み記録の概要表示](docs/design/move-run-report.md)は読取専用で利用できます。正式な同期／アーカイブ入口と実元削除経路は未完成、P0受け入れも未完了です。判定基準は[実装計画](docs/development/implementation-workflow.md) §2と[P0台帳](docs/requirements/p0-gap-register.md)を参照してください。実装再開は本番適用の許可ではありません。
 
 [既存の実装資産と不足](docs/development/implementation-workflow.md#9-既存の実装資産と不足)と作業順序は正式な実装計画へ統合しました。過去の選択は[決定記録](docs/archive/decisions/selected-policy-decisions-20261024.md)を参照してください。レビュー用ZIPを生成できることと、本番導入できることは別です。
 

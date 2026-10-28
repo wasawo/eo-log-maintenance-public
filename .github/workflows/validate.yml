@@ -71,6 +71,29 @@ jobs:
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_dry_run_boundary.py" -v
 
+      - name: Validate isolated Windows move deletion probe
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_windows_move_delete_probe.py" -v
+
+      - name: Validate immutable move journal and process reload
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_move_journal.py" -v
+
+      - name: Validate cold native move reconciliation
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_cold_move_reconciliation.py" -v
+
+      - name: Validate read-only move run reporting
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_move_run_report.py" -v
+
+      - name: Validate simulation journal identity binding
+        shell: pwsh
+        run: |
+          python -B -m unittest discover -s tests -p "test_move_journal_command.py" -v
+          python -B -m unittest discover -s tests -p "test_simulation_run_report.py" -v
+          ./tests/Test-LogMoveJournalIntegration.ps1
+
       - name: Validate referenced aggregation artifacts
         shell: pwsh
         run: |
@@ -168,6 +191,7 @@ jobs:
         run: |
           ./tests/Test-LogFunctions.ps1
           ./tests/Test-StagingCapacity.ps1
+          ./tests/Test-LogMoveSimulation.ps1
 
       - name: Run read-only machine configuration tests
         shell: pwsh

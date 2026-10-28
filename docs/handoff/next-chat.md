@@ -6,11 +6,119 @@
 
 ## 現在地
 
-- 作業branch: `docs/requirements-design-task-review`。今回開始HEAD: `2728fc0`（origin実SHAと一致）。開始時からAGENTS.md、両スキル、本書に未コミット変更があり、今回のPRへ含める。mainの基準は `27e99fec`（PR #46）で、fetch後の実SHAも一致。利用者から、ここまでの変更をまとめたPR作成とマージまでの実行指示を受領した。
+- 作業branch: `codex/manual-move-preflight`。今回開始HEADは`7090125`、作業ツリーはクリーン。正本mainはfetch/ GitHubで`36550ab`を確認した。2026-10-28に利用者から「次の作業に着手して。実装後にコミットをまとめてPR作成、マージまで完了させて」と指示を受領した。直後の中断と「次の作業に着手して」は作業の継続として扱い、同じブランチの累積コミットを1つのPRへまとめ、最新HEADのValidate/Package Validation成功後にマージする。実データ操作・本番適用は含まない。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
-- 初回完成は手動で両経路を確認済み元の直接削除まで。新しい削除/記録/状態/IPC/実API/FS保証等は未確定で、T0とruntime受け入れは未完。実装再開指示は未受領。
+- 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
-## 今回のPR作成・マージ準備
+## 今回の実行全体の結果レポート
+
+累積実装は[PR #48](https://github.com/wasawo/eo-log-maintenance-public/pull/48)へまとめた（実装HEAD `880c7e2`、本引き継ぎ追記前）。作成時はValidate/Package Validationともqueuedを確認した。追記を含む最終HEADの両CI・merge可否を確認してから、利用者の承認範囲でマージする。本書の記録だけでCI成功/マージ済みとはせず、再開時はGitHubの実状態・main SHAを照合する。
+
+[模擬実行結果レポート](../design/simulation-run-report.md)を追加し、準備前のコピー失敗・競合・不正名と、期間除外・削除結果・照合を別のローカルJSONへ非上書き保存/読戻しする。ReportRootは任意で、journalと同一・親子パスを拒否する。Dry Runは保存しない。元/比較先の相対パス・不透明な参照・理由・次の対応を詳細へ残し、コンソール読戻しは概要だけを返す。
+
+モデル列挙完了・元件数と個別結果、journalの未解決を区別する。空の列挙でもjournal未解決/読取不能を対象なしにせず、未解決件数は重複し得るため合算しない。削除結果確認と照合完了を別計数にする。レポート保存失敗はReportSaveStatusで示し、確認済み移動を取り消した結果へ書き換えない。最終レポートがない中断を対象なし/成功と判断しない。
+
+Python 3.11.9の新規4試験、PS 7.6.7の接続49 assertions、既存モデル115 assertions、役割別配布回帰、Python構文解析2ファイル・PS構文解析/PSScriptAnalyzer Error検査4ファイルが成功した。hardlink公開を含む試験は自作合成一時領域だけをsandbox外で使用した。CIはPython 3.12であり、PRの最新HEADについて別途結果を確認する。rootの自己点検のみで、独立レビュー・実環境受け入れは未実施。
+
+文書101件の相対リンク1005件・見出し参照112件と`git diff --check`も成功した。markdownlintや無関係な全試験は再実行していない。PRでは今回だけでなくmainからの累積差分をValidate/Package Validationで検査する。
+
+実装計画の「全結果の永続記録は未完」を模擬レポート接続済み/実run未完へ更新した。tests索引の「永続記録なし」は保存を指定しない従来試験の範囲と明確にした。新たな実装規約の文書/コード不一致はない。
+
+次は正式runの所有資格・排他/実列挙/開始と中断記録、実providerへの接続条件を具体化する。実ログ/本番Driveの操作、実Drive条件付き削除、正式Sync/Archive入口、実環境ACL/FS受け入れ、日本語の詳細表示と運用性能は未完。T0/T1/T4/AC全体の完了にしない。マージ後は最新mainから新しい作業ブランチを作る。
+
+## 前回の模擬移動・journal・再実行・概要の接続
+
+[接続仕様](../design/simulation-journal-integration.md)に従い、既存PS模擬処理へ任意のJournalRoot/PythonExecutable/RunIdを追加した。Python内部metadata bridgeで、同じ経路/PC/ログ種別・型付き元参照・コピー内容のmove IDを再利用し、run/attemptは新しくする。preparedを元のモデル削除より前に保存・読戻しし、結果と照合を別記録へ保存する。現在runの概要も自動読戻しして返す。
+
+両経路の通常削除失敗→同じ処理の再実行→概要、結果不明/結果記録欠落→現在のモデル照合→概要を接続した。複数のpreparedはv1 record IDとの明示対応で区別する。書込ACKはkey/型/相関とechoを検査し、UTC文字列もDateTimeへ自動変換しない。stdin書込と子プロセス待機のそれぞれに30秒上限を設け、未確認時は成功へ落とさない。
+
+概要集計に残っていた「正常な再実行で完了しても、古い失敗試行を持ち越す」問題を修正した。同じ元/コピー内容の別試行で矛盾なく完了できれば、そのmoveは閉じる。同一preparedの矛盾やコピー内容の不整合は保留する。空の新しいモデル状態でも保存済み未解決を消さず、journal不明もno_workにしない。
+
+準備前のコピー失敗/競合/不正名は、保存先確認済みのpreparedを捏造せず従来のファイル別Resultsに残す。journal概要は全結果の永続記録ではない。モデル内件数とjournal未解決件数は重なり得るため、別項目で返す。Dry Runはjournalもモデルも変更しない。書込先の自動生成や資格付与、実ログ/Drive操作、正式入口は提供しない。
+
+実体ID/版は模擬値であり、実providerの保証にはしない。並行writerに対するID割当の原子性、private root/ACL/所有排他、実列挙/run全体の状態、全結果の永続化・private詳細レポート、実Driveの版固定削除、実環境受け入れは未完。T0/T1/T4やAC全体を完了にはしない。
+
+検証は自作合成一時領域だけをsandbox外で使い、PS接続32 assertions、Python内部bridge 3件、概要回帰11件、既存モデル115 assertions、役割別配布回帰が成功した。差分確認で結果記録欠落のfaultでも結果を保存する誤りを修正し、preparedだけが残ることを追加確認した。Python構文解析4ファイル、変更PS 4ファイルの構文解析/PSScriptAnalyzer Error検査、文書100件の相対リンク997件・見出し参照112件、`git diff --check`も成功した。ローカルはPython 3.11.9/PowerShell 7.6.7、CIはPython 3.12である。CIには内部bridgeとPS接続を追加したが、このブランチのリモートCI・独立レビュー・実環境受け入れは未実施。markdownlintや無関係な全試験は再実行していない。
+
+次はprepared前の失敗も含めたrun全体の結果記録とprivate詳細レポートを具体化し、空の列挙・未解決持越し・現在runの部分失敗を一貫して判定する。実providerの保証が必要な部分は、模擬接続の成功と区別して残す。
+
+模擬処理を「永続記録を行わない」としていた文書を、省略時は従来どおりメモリ上のみ、JournalRoot指定時はv1記録を保存する説明へ更新した。実装規約の新たな文書/コード不一致は見つかっていない。
+
+## 前回の実行別概要表示
+
+[Show-MoveRun.ps1](../../scripts/Show-MoveRun.ps1)と`Common/MoveRunReport.py`で、移動記録の読取からPowerShellの日本語概要/JSON表示へ接続した。run ID・PC・経路を明示して選び、初回完了と完了済みの再確認を分け、過去の未解決も持ち越す。明示参照のある結果は照合を採用し、先後不明の複数結果や元の対応不整合を時刻/順序で解決しない。同じ元・コピー内容への別move IDは二重計上せず概要生成を拒否する。
+
+出力は対象参照UUID・状態・次の対応等に限定し、実パス・Drive ID・ファイル名・raw例外/stderrを表示しない。異常応答は閉じたkey/型/固定値の検査で拒否し、timeoutで子プロセスツリーを終了する。journalを変更せず、元/保存先の観測・移動・削除・回復は呼ばない。記録なしを「対象なし」や実行成功にしない。詳細は[集計仕様](../design/move-run-report.md)へ記録した。
+
+合成一時領域の新規10試験（実PowerShell command、日本語/JSON、非公開値非表示、journal bytes不変、異常応答/timeoutを含む）がPython 3.11.9/PowerShell 7.6.7で成功。role別配布回帰、Python構文解析2ファイル、変更PS 2ファイルの構文解析/PSScriptAnalyzer Error検査も成功した。CIには専用検査を追加し、packageのcommand/module同梱を回帰で確認した。正式Sync/Archive入口不在の配布拒否は維持する。新ブランチのリモートCI・独立レビュー・runtime受け入れは未実施。
+
+文書99件の相対リンク（root READMEの今回の概要リンクを含む）と見出し参照に欠落なし。`git diff --check`成功。今回も文書はリンク・記述整合・差分を確認し、markdownlintや無関係な全試験は再実行していない。
+
+正式な移動/再実行coordinator、fresh inventory/run全体の判定、private詳細レポート、root/ACL/排他資格、実Driveは未完。T0/T1/T4やAC全体は完了にしない。次は、読取表示へ渡す元単位のIDを通常再実行でも維持するcoordinatorと、模擬adapterの接続を具体化する。実Driveの条件付き削除に必要な保証は未解決であり、これを表示コマンドで代用しない。
+
+scripts READMEの「READMEのみ」という古い現在地と、実装計画§9の当時のfile棚卸しを更新/歴史として明記した。旧Drive IPC 1.0の操作追加はしておらず、本コマンドの読取表示用応答とは分ける。文書と既存コードの新たな実装規約不一致は見つかっていない。
+
+## 前回の別プロセスによる現在状態の再観測
+
+[隔離再観測試験](../design/cold-move-reconciliation.md)を追加した。Windows probeの`journal=True`でv1 preparedを元削除より前に保存・読戻しし、削除結果が記録できない場合やpendingの場合を作る。子プロセスへは自作rootと所有marker照合用nonceだけを渡し、現在の元/保存先の観測結果や親のメモリ上の内容基準は渡さない。
+
+子プロセス自身がディスク上の記録とfixture対応を検査し、元の現在存在/実体IDと保存先の現在ID/size/hashをWin32 APIで読み直す。保存先のguardを保持したまま照合記録を別run/attemptで非上書き保存し、旧結果不明記録を変更しない。現在の観測時刻を取得し、前回の観測時刻も流用しない。元が残る場合は未完了、共有違反等は不明とし、回復で元削除を再送しない。
+
+cloud保存先は固定IDをローカル合成ファイルへ対応付けた模擬providerであり、実Driveを観測したものではない。workerはOS-temp直下の自作prefix/marker/root identityに限定され、任意の実運用pathを受け付けない。readonly observerではWRITE/DELETE openとdisposition誤呼出しも拒否するが、任意native codeのsecurity sandboxではない。実運用ACL/所有排他、名前空間保護、memory mapping、電源断、正式入口・PowerShell制御・経路間照合と件数集計は未完。
+
+Python 3.11.9/Windowsで新規6試験と変更した既存probeの9回帰が成功（skipなし）。sandbox外実行も合成一時領域だけを対象とした。Common/契約/配布対象の変更はなく、それらの成功済み試験は無関係に繰り返していない。CIにはPython 3.12/Windowsの専用ステップを追加したが、リモートCI・独立レビュー・runtime受け入れは未実施。
+
+Python構文解析3ファイル、文書98件の相対リンク972件・見出し参照112件と`git diff --check`も成功した。今回の文書検証はリンク・記述整合・差分の確認で、markdownlintは再実行していない。
+
+文書の「同一probe内照合のみ」「別プロセスの観測値は合成入力」という説明は、それぞれ旧メソッド・記録層単独試験の範囲として保持し、今回の実ファイル再観測を別の接続として追記した。文書と既存コードの新たな実装規約不一致は見つかっていない。T0/T1/AC全体は未完のまま。
+
+## 前回の移動記録v1・別プロセス読戻し
+
+[移動記録v1](../design/move-record-v1.md)として、独立schema、`Common/MoveJournal.py`、合成の保存/読戻し・別プロセス試験を追加した。既存の非上書き公開を再利用し、prepared/deletion_result/reconciliationを別のUUIDファイルへ保存する。元/保存先・経路/PC/ログ種別・move/run/attemptと、先行記録のexact bytesのSHA-256を照合する。要求成功と除去確認、削除確認と照合完了を分離し、観測不足のunknownを記録できる。記録自体を削除認可にはしない。
+
+未知key/重複JSON key/float・不正日付・不正役割・階層再現・不正参照・改変/欠落・試行矛盾を拒否する。専用root全体を読取り、部分ファイルや未知entry、結果なしのpreparedを黙って「対象なし」へ落とさない。既存結果不明のbytesは変更せず、別Pythonプロセスが模擬観測から新しい照合記録を保存する試験を追加した。
+
+実装再開指示に基づき、合意済み要件を満たすために正式設計の記録案を保存層の実装契約へ具体化した。記録案自体を利用者が個別承認済みだったとは扱わない。保存期間による削除、実API権限、完成範囲を変える判断はしていない。実runのprivate root/ACL/所有排他とPowerShell制御、Windows probeの実状態を別プロセスで再観測する処理、実Drive provider、経路間照合は未完。T0/T1/AC全体を完了にはしない。
+
+実装は既存JSON Schema・非上書き公開方式を再利用し、新しい外部依存は追加していない。新schemaを役割別配布allowlistへ含め、module/schemaの同梱回帰と専用CIステップを追加した。正式入口不在の配布拒否とPC-Bの実archive除外は維持する。
+
+ローカルはPython 3.11.9/PowerShell 7.6.7。CI定義はPython 3.12であり、このブランチのリモートCIは未実行。最初のsandbox試験は既存公開処理のhardlinkが拒否され、合成一時領域限定でsandbox外実行へ切り替えた。独立レビュー・実環境のruntime受け入れ・実ログ/本番Drive操作は未実施。
+
+最終検証は移動記録の15試験（skipなし）、役割別配布回帰、Python構文解析2ファイル、変更したPowerShell 2ファイルの構文解析/PSScriptAnalyzer Error検査が成功。文書97件の相対リンク961件・見出し参照112件に欠落なし。`git diff --check`成功。無関係な全試験は再実行していない。
+
+文書の「記録形式/名前/schema/writerが未選定」という記述を、今回具体化した保存層と、未完の実provider/正式run接続へ分けて更新した。Common索引のschema/allowlist不変の説明も、以前の配置整理時点の記録だと明記した。既存コードの実装規約と文書の新たな食い違いは見つかっていない。
+
+## 前回のWindows削除・記録の隔離接続
+
+[Windows隔離probe](../design/windows-move-delete-probe.md)を追加し、自作OS-tempの合成元/保存先で、128-bit File ID・size/hashの確認、削除前記録の実保存/読戻し、同一元ハンドルでの直接削除、除去確認、結果記録と照合を接続した。競合する書込/DELETE openは共有違反で拒否し、既存writerがあれば元の削除guardを取得できない。元/保存先の同内容別実体への差替えでも元を残す。
+
+別readerが残ると削除指定成功後も除去がpendingになることを確認し、成功応答と移動完了を分離した。読取ハンドルを閉じた後の同一probe内照合は、準備記録・現在の同じ保存先・元不在を再確認し、別の照合記録を保存する。結果記録の失敗、準備記録の改変/欠落、元再作成等を成功にせず、旧結果記録も書き換えない。
+
+実装はtests配下のみで、利用者指定pathや実設定を受け取らない。正式provider、新schema、別プロセス回復、Drive接続は提供せず、T0/T1やAC全体は未完のまま。次はこの候補を正式な元/保存先・試行identityと永続記録へどう結び付けるかを具体化する。書込可能mapping、実効ACL、名前空間保護、対象FS/電源断、実Drive保存先との結合は未確認。制御をPowerShell、実Driveの単試行をPythonとする本来の責務分担も変更していない。
+
+Microsoft公式仕様とGitHubのMicrosoft STL実装を比較し、基本FileDispositionInfoを候補として試験した。Drive公式のfiles.delete/404仕様も再確認したが、版を固定した削除と不在/権限不足を区別する保証は得ていない。非対応とは断定せず、cloud元削除は未実装・未実行を維持する。資料URLと限界は上記設計へ記録した。
+
+Python 3.11.9/Windowsの新しい統合試験9件は成功、skipなし。最初のsandbox実行は置換/hardlinkがWinError 5となったため、自動生成一時領域限定の同じ試験をsandbox外で実行して成功を確認した。Pythonの構文解析2ファイルと差分検査も成功。CIにはPython 3.12/Windowsの専用ステップを追加したが、リモートCIは未実行。変更していないCommon/配布物/PowerShellの試験を無関係に再実行していない。rootの自己点検であり、独立レビューと実運用受け入れは未実施。
+
+文書96件の相対リンク946件・見出し参照112件に欠落なし。`git diff --check`成功。今回はmarkdownlintの再実行は行わず、リンク・記述整合・差分を確認した。
+
+文書と既存コードの新たな不一致は見つかっていない。「具体的な開き方が未設計」という記述は、隔離候補ができたことと正式採用は未完であることへ更新した。
+
+## 前回の実装再開: 両経路の模擬接続
+
+新しい[模擬契約](../design/log-move-simulation.md)に基づき、`Common/LogMoveSimulation.ps1`と`tests/Test-LogMoveSimulation.ps1`を追加した。設定・期間選択・平坦化・同名同内容再利用/異内容保持・Q5・元単位の結果・通常再実行・結果不明照合を両経路で接続する。コピー対象のbytesを複製し、内容と元実体の確認後にモデル内の当該元だけを取り除く。コピー/確認/記録/削除の故障を注入し、独立した別ファイルは進める。旧不明記録を変更せず、削除後の結果記録欠落も「対象なし」に隠さない。
+
+全体はメモリ上の合成モデルで、正式Sync/Archive入口、Drive/Windows削除provider、新しい永続schema/writer、所有排他と実レポート保存は追加していない。設定内の実rootへアクセスせず、実ログ/本番Driveの接続・削除は行わない。T0の実API/FS・記録の残件を閉じた扱いにせず、T1全体やAC全体も未完のまま。正式入口を追加していないため、既存の配布拒否は維持する。
+
+GitHub上のrcloneのサーバー側moveとcopy/deleteの方式を比較し、後者の分解を参考にした。Q5/記録/照合の要件は別途必要で、コード転載・依存導入・rclone採用はなし。比較元と適用範囲は模擬契約へ記録した。
+
+PowerShell 7.6.7で`Test-LogMoveSimulation.ps1`は115 assertions成功。関連既存試験は`Test-LogFunctions.ps1`49件、`Test-MachineConfiguration.ps1`285 assertions、`Test-ReleasePackage.ps1`も成功した。新しい2スクリプトの構文解析とPSScriptAnalyzer 1.25.0のError検査は成功。新試験をCIのValidateへ接続した。root自己点検のみで、独立レビュー・新ブランチのリモートCI・実環境受け入れは未実施。
+
+文書95件の相対リンク936件・見出し参照112件に欠落なし。markdownlint 0.41.1のMD001/033/051/056/060(any)は0件。`git diff --check`も成功した。文書検証用ツールは一時領域のみで、依存関係や配布物へ追加しない。
+
+文書に残っていた「実装再開指示未受領/文書整理中」を現状へ更新した。実装計画§9のDrive比較資料は、開き角括弧がなく旧配置を指していたため、現在の参照先へ修正した。既存コードの実装規約と文書の新たな不一致は見つかっていない。今後の正式入口・実移動未完という差は計画済み機能の未実装であり、コードへ要件を戻す理由にしない。
+
+## 前回のPR作成・マージ準備（当時の記録）
 
 利用者の指示に従い、mainからの31コミットと未コミットの指示ファイル圧縮・ヒアリング反映を同じPRにまとめる。正式要件・設計・実装計画への統合、旧資料の整理、日本語化、アンカーと表の修正、監査指摘の解消、作業規則とスキルの見直しが対象。累積差分はMarkdownのみで、コード・schema・設定・配布物の変更はない。要件の合意を実装再開や実データ操作の許可へ拡張しない。
 
@@ -116,5 +224,5 @@ Markdown94文書でMD001/MD033/MD051/MD056/MD060（any）の指摘0件。相対�
 
 - 上記監査R-01〜R-05は文書上の修正と再検証を終えた。今後も、Markdownの診断成功だけで本文の意味が整合していると判断しない。
 - 正式設計の未決API/FS能力・確認と削除対象の結合・記録の型/版/永続化・経路間照合を具体化し、T0を閉じる。helperの小さな追加を自動選択しない。
-- 実装再開・実データ操作・本番適用へ進まない。PRは利用者のタイミングで同branchの変更をまとめる。
+- 実装は上記の再開指示の範囲で進める。実データ操作・本番適用へ進まない。PRは利用者のタイミングで現在の作業ブランチの変更をまとめる。
 - PR #46までの試験/CI・部分Tier B等の根拠は上記の旧handoff履歴と[実装計画§10](../development/implementation-workflow.md#10-旧棚卸しの証拠基準歴史)を参照。現在SHAに対する新しいruntime証拠とはしない。

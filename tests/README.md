@@ -1,5 +1,19 @@
 # テスト計画
 
+`Test-LogMoveJournalIntegration.ps1`は両経路の模擬移動・v1保存・ID維持・通常再実行・照合・概要を一連で検証する。`test_move_journal_command.py`は内部metadata bridgeのID再利用と不整合拒否を合成一時領域で確認する。[接続仕様](../docs/design/simulation-journal-integration.md)を参照。実ログ/Driveや正式runtimeは扱わない。
+
+`test_move_run_report.py`は移動記録の実行別集計とPowerShell表示コマンドを検証する。重複計上、持越し、曖昧な結果、scope拒否、非公開値の非表示、異常応答・timeoutとjournal不変を合成一時領域で確認する。[仕様](../docs/design/move-run-report.md)を参照。
+
+`test_cold_move_reconciliation.py`はWindows probeの保存記録を別プロセスが読み、現在の合成元/保存先を実APIで再観測して照合記録へつなぐ。元削除を再送せず、Driveはローカルファイルによる模擬providerだけを使う。[接続方法と未実証範囲](../docs/design/cold-move-reconciliation.md)を参照。
+
+`test_move_journal.py`は両経路の移動記録v1を合成一時領域へ保存し、参照digest、役割/対象/判定、破損・欠落、試行矛盾、別プロセスからの読戻しと別照合記録の保存を検証する。観測値は模擬adapterの合成値であり、実Drive/削除認可/別プロセスでの実FS回復ではない。[記録契約と限界](../docs/design/move-record-v1.md)を参照。
+
+`test_windows_move_delete_probe.py`は自作OS-temp内の合成元/保存先だけを使い、Windowsの同一ハンドル確認・直接削除と、削除前記録の実保存/読戻し・pending・結果不明照合を接続する。caller指定pathを受けず、実運用providerや別プロセス回復は提供しない。[試験範囲と限界](../docs/design/windows-move-delete-probe.md)を参照。
+
+`Test-LogMoveSimulation.ps1`は設定・期間・平坦化・同名比較・内容確認・限定元削除・再実行・結果不明照合を、両経路のメモリ上のモデルで接続する。この試験はjournal/レポート保存を指定せず、実ファイル/Driveの削除や永続記録は行わない。[模擬契約と受け入れ限界](../docs/design/log-move-simulation.md)を参照。実行: `pwsh -NoProfile -File tests/Test-LogMoveSimulation.ps1`。
+
+`test_simulation_run_report.py`と`Test-LogMoveJournalIntegration.ps1`で、[模擬実行全体の結果レポート](../docs/design/simulation-run-report.md)を検証する。早期失敗・競合の比較対象・次の対応、削除結果確認/照合の分別、対象なし・未解決の区別、非上書き保存と読戻し、保存失敗・Dry Runを合成一時領域で確認する。
+
 `test_power_status_observation.py`はAC観測のmock ABI/不明・失敗と既存使用点への合成接続を検査します。Windowsでは実APIを読取のみで一度照会します。電源の変更・実ログ/Driveアクセス・task登録・実運用受け入れは行いません。
 
 `test_checkpoint_replace_probe.py`はcaller指定先を受けない専用OS-temp probeで、実CreateFileW共有guardとReplaceFileW、使用点検査後の競合反例を確認します。許可名外/root marker変更/hardlinkでもnative変更へ進みません。これは不十分なAPI組合せを検出する負例であり、provider採用・Tier B/C・電源断耐久性の証拠ではありません。

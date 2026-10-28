@@ -46,6 +46,7 @@ try {
     Set-Content (Join-Path $fixture 'contracts/manifest-v1.schema.json') '{}'
     Set-Content (Join-Path $fixture 'contracts/run-input-evidence-v1.schema.json') '{}'
     Set-Content (Join-Path $fixture 'contracts/private-recovery-evidence-v1.schema.json') '{}'
+    Set-Content (Join-Path $fixture 'contracts/move-record-v1.schema.json') '{}'
     Set-Content (Join-Path $fixture 'contracts/completion-wait-checkpoint-v1.schema.json') '{}'
     Set-Content (Join-Path $fixture 'Config/PC-A.example.json') '{"machineId":"PC-A","role":"primary","runtimeRoot":"C:\\Example\\PCA\\Runtime","battleLogLocal":"C:\\Example\\PCA\\Source\\BattleLog","errorLogLocal":"C:\\Example\\PCA\\Source\\ErrorReport","battleLogDrive":"G:\\ExampleDrive\\SharedLogs\\BattleLog","errorLogDrive":"G:\\ExampleDrive\\SharedLogs\\ErrorReport","maintenanceDrive":"G:\\ExampleDrive\\SharedLogs\\_maintenance","battleLogArchive":"C:\\Example\\PCA\\Archive\\BattleLog","errorLogArchive":"C:\\Example\\PCA\\Archive\\ErrorReport","allowArchive":false,"maintenanceLocal":"C:\\Example\\PCA\\Maintenance"}'
     Set-Content (Join-Path $fixture 'Config/PC-B.example.json') '{"machineId":"PC-B","role":"secondary","runtimeRoot":"C:\\Example\\PCB\\Runtime","battleLogLocal":"C:\\Example\\PCB\\Source\\BattleLog","errorLogLocal":"C:\\Example\\PCB\\Source\\ErrorReport","battleLogDrive":"G:\\ExampleDrive\\SharedLogs\\BattleLog","errorLogDrive":"G:\\ExampleDrive\\SharedLogs\\ErrorReport","maintenanceDrive":"G:\\ExampleDrive\\SharedLogs\\_maintenance","maintenanceLocal":"C:\\Example\\PCB\\Maintenance"}'
@@ -53,8 +54,15 @@ try {
     Set-Content (Join-Path $fixture 'Common/README.md') '# Common'
     Set-Content (Join-Path $fixture 'scripts/ArchiveAndUploadLogs.ps1') 'Write-Output "legacy"'
     Set-Content (Join-Path $fixture 'scripts/ArchiveLogs.ps1') 'Write-Output "archive fixture"'
+    Set-Content (Join-Path $fixture 'scripts/Show-MoveRun.ps1') '# Read-only move record summary'
     Set-Content (Join-Path $fixture 'Common/Hash-File.ps1') 'Get-FileHash -Algorithm SHA256'
     Set-Content (Join-Path $fixture 'Common/LogFunctions.ps1') '# Log filename and period functions'
+    Set-Content (Join-Path $fixture 'Common/MoveJournal.py') '# Immutable move records, not deletion authority'
+    Set-Content (Join-Path $fixture 'Common/MoveRunReport.py') '# Identifier-only record report'
+    Set-Content (Join-Path $fixture 'Common/MoveJournalCommand.py') '# Simulation journal bridge'
+    Set-Content (Join-Path $fixture 'Common/SimulationRunReport.py') '# Private model report'
+    Set-Content (Join-Path $fixture 'Common/SimulationRunReport.ps1') '# Private model report bridge'
+    Set-Content (Join-Path $fixture 'Common/LogMoveSimulationJournal.ps1') '# Simulation record persistence'
     Set-Content (Join-Path $fixture 'Common/MachineConfiguration.ps1') '# Read-only configuration structure loader'
     Set-Content (Join-Path $fixture 'Common/MachineConfigurationBootstrap.ps1') '# Create-only configuration helper'
     Set-Content (Join-Path $fixture 'Common/MachineConfigurationRootInspection.ps1') '# Read-only existing-root inspector'
@@ -133,6 +141,14 @@ try {
         'contracts/manifest-v1.schema.json',
         'contracts/run-input-evidence-v1.schema.json',
         'contracts/private-recovery-evidence-v1.schema.json',
+        'contracts/move-record-v1.schema.json',
+        'Common/MoveJournal.py',
+        'Common/MoveRunReport.py',
+        'Common/MoveJournalCommand.py',
+        'Common/SimulationRunReport.py',
+        'Common/SimulationRunReport.ps1',
+        'Common/LogMoveSimulationJournal.ps1',
+        'scripts/Show-MoveRun.ps1',
         'Config/PC-A.example.json',
         'Config/PC-B.example.json',
         'scripts/README.md',
