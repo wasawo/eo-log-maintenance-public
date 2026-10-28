@@ -1,6 +1,8 @@
 """Real owned file staging fed by the production SDK transfer and fake HTTP."""
 import os
 import hashlib
+import json
+from unittest.mock import patch
 import unittest
 
 from googleapiclient.discovery import build
@@ -9,6 +11,7 @@ from Common.DriveContentComparison import DownloadRequirement, ComparisonSource,
 from Common.DriveMetadataReader import read_drive_listing
 from download_staging_fixture import StagingFixtureError
 from sdk_download_staging_fixture import SdkDownloadStagingFixture
+import sdk_download_staging_fixture as staging_module
 from test_drive_content_reader import DATA, DIGEST, METADATA
 from test_drive_metadata_reader import FOLDER, FILE, OfflineHttp
 
@@ -147,6 +150,90 @@ class SdkDownloadStagingTests(unittest.TestCase):
         self.assert_failure(lambda:self.download(value,service,size=6))
         self.assertEqual(value.attempts[0].read_bytes(),DATA)
         self.assertEqual(len(http.calls),4)
+
+    def test_metadata_precedes_payload_and_ready_binds_allocation_and_verified_copy(self):
+        value=self.fixture();service,http=self.service(*self.responses());seen=[]
+        def inspect(phase,path):
+            if phase=='before_create':
+                allocated=json.loads((path.parent/'staging.json').read_bytes())
+                self.assertEqual(allocated['state'],'staging')
+                self.assertTrue(allocated['fixture_only'])
+                self.assertEqual((allocated['file_id'],allocated['folder_id'],allocated['expected_size_bytes']),('dummy-file','dummy-folder',5))
+                self.assertFalse(path.exists())
+                self.assertFalse((path.parent/'ready.json').exists())
+                self.assertEqual(http.calls,[])
+                seen.append(phase)
+            if phase=='before_ready_record':
+                self.assertEqual(path.read_bytes(),DATA)
+                self.assertEqual(len(http.calls),5)
+                self.assertFalse((path.parent/'ready.json').exists())
+                seen.append(phase)
+        observed=self.download(value,service,at_checkpoint=inspect)
+        path=value.attempts[0];allocated_raw=(path.parent/'staging.json').read_bytes()
+        ready=json.loads((path.parent/'ready.json').read_bytes())
+        self.assertEqual(seen,['before_create','before_ready_record'])
+        self.assertEqual(ready['state'],'ready');self.assertTrue(ready['fixture_only'])
+        self.assertEqual(ready['staging_record_sha256'],hashlib.sha256(allocated_raw).hexdigest())
+        self.assertEqual(ready['file_identity'],[path.stat().st_dev,path.stat().st_ino])
+        self.assertEqual((ready['size_bytes'],ready['sha256'],ready['version']),(observed.size_bytes,DIGEST,'1'))
+
+    def test_allocation_publication_failure_prevents_payload_and_sdk_requests(self):
+        value=self.fixture();service,http=self.service()
+        with patch.object(staging_module,'publish_bytes_no_overwrite',side_effect=OSError('synthetic metadata failure')):
+            self.assert_failure(lambda:self.download(value,service))
+        self.assertFalse(value.attempts[0].exists())
+        self.assertFalse((value.attempts[0].parent/'ready.json').exists())
+        self.assertEqual(http.calls,[])
+
+    def test_interruption_after_allocation_preserves_record_and_retry_does_not_adopt_it(self):
+        value=self.fixture();service,http=self.service()
+        def stop(phase,path):
+            if phase=='after_staging_record':raise RuntimeError('synthetic interruption')
+        self.assert_failure(lambda:self.download(value,service,at_checkpoint=stop))
+        old=value.attempts[0];allocated=(old.parent/'staging.json').read_bytes()
+        self.assertFalse(old.exists());self.assertEqual(http.calls,[])
+        service,http=self.service(*self.responses())
+        self.download(value,service)
+        self.assertNotEqual(old.parent,value.attempts[1].parent)
+        self.assertEqual((old.parent/'staging.json').read_bytes(),allocated)
+        self.assertFalse((old.parent/'ready.json').exists())
+
+    def test_record_corruption_or_lost_ownership_before_ready_cannot_publish_ready(self):
+        for change in ('allocation','ownership','payload'):
+            value=self.fixture();service,http=self.service(*self.responses())
+            def corrupt(phase,path):
+                if phase=='before_ready_record':
+                    target=path.parent/'staging.json' if change=='allocation' else value.root/'owner.json' if change=='ownership' else path
+                    target.write_bytes(b'changed synthetic data')
+            self.assert_failure(lambda:self.download(value,service,at_checkpoint=corrupt))
+            self.assertTrue((value.attempts[0].parent/'staging.json').exists())
+            self.assertFalse((value.attempts[0].parent/'ready.json').exists())
+
+    def test_failed_or_uncertain_ready_publication_keeps_files_without_success_receipt(self):
+        original=staging_module.publish_bytes_no_overwrite
+        for after_publish in (False,True):
+            value=self.fixture();service,http=self.service(*self.responses())
+            def fail(path,raw):
+                if path.name=='ready.json':
+                    if after_publish:original(path,raw)
+                    raise OSError('synthetic publication response loss')
+                return original(path,raw)
+            with patch.object(staging_module,'publish_bytes_no_overwrite',side_effect=fail):
+                self.assert_failure(lambda:self.download(value,service))
+            path=value.attempts[0]
+            self.assertEqual(path.read_bytes(),DATA)
+            self.assertTrue((path.parent/'staging.json').exists())
+            self.assertEqual((path.parent/'ready.json').exists(),after_publish)
+            self.assertFalse((value.root/'owner.json').exists())
+
+    def test_preexisting_metadata_is_not_overwritten(self):
+        value=self.fixture();service,http=self.service()
+        def occupy(phase,path):
+            if phase=='before_staging_record':(path.parent/'staging.json').write_bytes(b'occupied')
+        self.assert_failure(lambda:self.download(value,service,at_checkpoint=occupy))
+        path=value.attempts[0]
+        self.assertEqual((path.parent/'staging.json').read_bytes(),b'occupied')
+        self.assertFalse(path.exists());self.assertEqual(http.calls,[])
 
 
 if __name__=='__main__':unittest.main()

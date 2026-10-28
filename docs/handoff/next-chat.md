@@ -6,6 +6,14 @@
 
 ## 現在地
 
+2026-10-29、開始HEAD `06d1728`、作業ツリーはクリーン。download隔離fixtureへ[作成前記録とready候補](../design/sdk-download-staging.md#作成前記録とready候補)を接続した。payload/SDK要求前にstaging.jsonを非上書き公開・読戻し、検証後に割当てdigest/実体/size/hash/versionをready.jsonへ記録する。両者はfixture_only付きで、正式manifest/readyやupload metadataの置換方式は変更しない。
+
+新規6を含む14試験が成功。作成前記録の失敗はpayloadもSDKも開始せず、記録改変や所有喪失はready成功へ進めない。ready公開後の応答喪失では記録を残すが、成功結果は返さない。旧attemptは再利用・上書き・自動削除しない。Common/配布集合/CI/依存は未変更のため、成功済みSDK/比較105試験やpackage回帰は再実行していない。Python3.11.9（CI定義3.12）、SDK2.201.0の既存一時依存を使い、承認されたsandbox外の自作合成一時領域のみで実施した。実Drive・実ログ・実設定、独立レビュー、リモートCI、実環境受け入れは未実施。
+
+変更Python2ファイルの構文解析、変更5文書の相対リンク132件・見出し参照21件、git diff --checkが成功。rootが差分を自己点検した。metadata-first未完の表記は、今回のdownload試験候補と正式runtimeで残る契約/資格へ分け、既存規約との新たな不一致は見つかっていない。無関係な全試験、markdownlint、GUI表示確認は未実施。
+
+既存のAtomicArtifactPublicationの非上書き公開/読戻しと、fixtureの所有・SDK保存を再利用した。正式cold reader/記録schema、残存物の採用、実run回復、実root/容量資格、認証service、正式download/移動入口は未完。次は記録と現在のstaging実体を別の読取文脈で照合する契約と、正式service/rootへ接続する条件を整理する。35%の概算とT0/T1/T4/AC全体の未完は維持し、ready記録の存在を移動・削除の許可へ読み替えない。
+
 2026-10-29、開始HEAD `bd72145`、作業ツリーはクリーン。[SDK取得から所有された隔離stagingへの保存](../design/sdk-download-staging.md)をtests内へ接続した。CommonのSDK転送を公開hash入口と共有し、試験自身が生成するrootだけでmutex/token確認、xb作成、flush/fsync/close、読戻し、cloud版再確認、HTTP待機後のstaging再確認まで行う。失敗file・占有名・改変された所有記録は保持し、通常再試行は新規attemptへ進む。任意root/pathのfactory、正式writer、元削除は追加しない。
 
 新規8試験、関連10群105試験、役割別package回帰が成功。短い書込み・disk-full・flush失敗は実fileのstream proxyで注入し、実際のvolume枯渇を実証したものではない。閉じた後とcloud metadata待機中の改変、所有喪失、版変更、空file、期待size不一致も確認した。SDK2.201.0/Python3.11.9（CI定義3.12）、PowerShell7.6.7。既存の専用一時依存を再利用し、必要なfile/mutex/package試験は承認されたsandbox外の自作合成一時領域だけで実施。実Drive・実ログ・実設定、リモートCI、独立レビュー、実環境受け入れは未実施。
@@ -40,7 +48,7 @@ Google公式sampleとrcloneのpage継続方式を比較した。files.deleteの�
 
 2026-10-29に利用者の指示でAGENTS.mdの10原則追加を`ff5b723`へコミットした。元の文書更新の開始HEADは`9d71a3f`。変更2文書の相対リンク31件・見出し参照6件と差分検査は成功。承認境界を維持し、既存コードの一括リファクタリングは行っていない。
 
-- 作業branch: `codex/owned-simulation-run`。今回は「次の作業に着手して」により`bd72145`からSDK→隔離staging接続を実装・検証・ローカルコミットする。main `6658025`から作成した同じブランチへ変更を蓄積する。GitHubの同branchのPR検索結果は0件。push/PR/mergeは指示を待ち、前回PRの許可を流用しない。
+- 作業branch: `codex/owned-simulation-run`。今回は「次の作業に着手して」により`06d1728`からdownload作成前記録/ready候補を実装・検証・ローカルコミットする。main `6658025`から作成した同じブランチへ変更を蓄積する。GitHubの同branchのPR検索結果は0件。push/PR/mergeは指示を待ち、前回PRの許可を流用しない。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 

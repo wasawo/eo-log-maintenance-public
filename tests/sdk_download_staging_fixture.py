@@ -1,9 +1,11 @@
 """TEST ONLY: shared SDK transfer into constructor-owned staging attempts."""
 import os
+import hashlib
+import json
 from pathlib import Path
 import tempfile
 
-from Common.AtomicArtifactPublication import _chain
+from Common.AtomicArtifactPublication import _chain, _same_bytes, publish_bytes_no_overwrite
 from Common.DriveContentComparison import DownloadRequirement, hash_downloaded_content
 from Common.DriveContentReader import _HashSink, _read_drive_content
 from Common.OwnedRunLock import acquire_owned_lock, _record_matches
@@ -70,16 +72,45 @@ class SdkDownloadStagingFixture(DownloadStagingFixture):
                 chain=_chain(directory)
                 path=directory/'download.bin'
                 self.attempts.append(path)
+                records={}
                 def guard():
                     self.guard()
                     if _chain(directory)!=chain or not _record_matches(self.root/'owner.json',self.scope,token,4096):
                         raise StagingFixtureError('fixture_ownership_unconfirmed')
+                    for record_path,raw in records.items():
+                        if not regular(record_path.lstat()) or not _same_bytes(record_path,raw):
+                            raise StagingFixtureError('fixture_staging_record_changed')
+                def publish_record(name,value):
+                    guard()
+                    record_path=directory/name
+                    raw=(json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n').encode('utf-8')
+                    if record_path.exists() or record_path.is_symlink():
+                        raise StagingFixtureError('fixture_staging_record_exists')
+                    if publish_bytes_no_overwrite(record_path,raw)!='published' or not _same_bytes(record_path,raw):
+                        raise StagingFixtureError('fixture_staging_record_unconfirmed')
+                    if json.loads(record_path.read_bytes())!=value:
+                        raise StagingFixtureError('fixture_staging_record_unconfirmed')
+                    records[record_path]=raw
+                    guard()
+                    return hashlib.sha256(raw).hexdigest()
+                allocation=dict(record_version=1,fixture_only=True,attempt_id=directory.name,
+                    fixture_ref=hashlib.sha256(self.nonce).hexdigest(),file_id=requirement.file_id,
+                    folder_id=folder_id,staging_file='download.bin',expected_size_bytes=requirement.expected_size_bytes)
+                checkpoint('before_staging_record',path)
+                allocated_sha=publish_record('staging.json',dict(allocation,state='staging'))
+                checkpoint('after_staging_record',path)
                 checkpoint('before_create',path)
                 guard()
                 with (path.open('xb') if stream_factory is None else stream_factory(path)) as stream:
                     sink=_FileSink(stream,path,guard,requirement.expected_size_bytes,checkpoint)
                     observed=_read_drive_content(service,folder_id=folder_id,file_id=requirement.file_id,
                         chunk_size=chunk_size,maximum_download_bytes=maximum_download_bytes,sink=sink,verify_copy=sink.finish)
+                    checkpoint('before_ready_record',path)
+                    sink.verify(observed)
+                    publish_record('ready.json',dict(allocation,state='ready',staging_record_sha256=allocated_sha,
+                        file_identity=[sink.written.st_dev,sink.written.st_ino],size_bytes=observed.size_bytes,
+                        sha256=observed.sha256,version=observed.version))
+                    checkpoint('after_ready_record',path)
                     checkpoint('before_return',path)
                     sink.verify(observed)
                     return observed

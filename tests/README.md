@@ -2,6 +2,8 @@
 
 `test_sdk_download_staging.py`は[公式SDK→隔離staging](../docs/design/sdk-download-staging.md)を、実所有mutex・実fileと合成HTTPで検証する。非上書き、flush/fsync/読戻し、元の版変化、I/O故障、所有喪失と失敗試行の保持を確認する。対象rootはfixture自身が作るOS-temp領域だけである。
 
+同試験はpayload作成前の割当て記録と、検証後のready候補の非上書き公開も確認する。記録の改変や公開応答の喪失を成功結果にせず、残存記録を自動採用しない。正式manifest/ready状態の受け入れではない。
+
 `test_drive_content_reader.py`は[公式SDKによる内容取得・hash・版再確認](../docs/design/drive-content-reader.md)を、合成HTTP応答で検証する。空/分割内容、不正Range、途中失敗、metadata変更と、取得hashの版を結び付けた既存plan/比較への接続を確認する。実ログ・実Drive・ローカル保存は扱わない。
 
 `test_drive_metadata_reader.py`は[公式Driveクライアントの読取接続](../docs/design/drive-metadata-reader.md)を検証する。同梱DiscoveryでSDKを動かし、HTTP応答だけを合成する。親/ID/全page/version、error時の非公開情報、既存比較への接続を確認し、実Driveや認証情報は使用しない。
