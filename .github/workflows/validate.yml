@@ -75,6 +75,10 @@ jobs:
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_windows_move_delete_probe.py" -v
 
+      - name: Validate same-process ownership and native handle binding
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_owned_windows_move_probe.py" -v
+
       - name: Validate immutable move journal and process reload
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_move_journal.py" -v

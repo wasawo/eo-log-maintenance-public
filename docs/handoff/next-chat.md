@@ -6,11 +6,25 @@
 
 ## 現在地
 
-- 作業branch: `codex/owned-simulation-run`。今回開始HEADは`53e2fde`、作業ツリーはクリーン。main `6658025`から作成した同じブランチへ変更を蓄積する。今回は「次の作業に着手して」に基づくローカル実装・検証・コミットまで。新しいpush/PR/mergeは指示を待ち、前回PRの許可を流用しない。
+- 作業branch: `codex/owned-simulation-run`。今回開始HEADは`175daba`、作業ツリーはクリーン。main `6658025`から作成した同じブランチへ変更を蓄積する。今回は「次の作業に着手して」に基づくローカル実装・検証・コミットまで。新しいpush/PR/mergeは指示を待ち、前回PRの許可を流用しない。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
-## 今回の処理境界での所有確認と停止
+## 今回の同一プロセス所有・native実体保持の隔離接続
+
+[同一プロセスのnative隔離接続](../design/same-process-owned-native-probe.md)を追加した。tests内の既存probeへ所有mutex/token記録を接続し、元/保存先・local prepared/v1 prepared・所有記録の読取ハンドルを保持する。所有確認後に同じ元/保存先ハンドルを先頭へ戻して内容を再読し、同じ元ハンドルへ限定削除を指定する。任意root/pathを受ける入口や、Commonのモデルを実削除へ切り替える変更は追加していない。
+
+元/保存先の書込/DELETE open、所有/準備記録への書込み、別スレッドのmutex取得を拒否することを実Win32で確認した。準備時からの記録改変、再読位置移動失敗、所有確認不能では元を残す。除去後の確認不能/pendingは成功記録にしない。所有プロセスを削除前/後に終了するworkerも自分でfixtureを生成し、別プロセスが現在状態を照合する。旧prepared bytesと残存lockは変更・自動解除しない。
+
+新規9試験、変更した既存Windows probeの9回帰、同じ読取を使う別プロセス照合6回帰が成功した（skipなし）。Python構文解析4ファイルと差分検査も成功。最初の記録競合試験はPython CRT例外にWinError 32を期待して失敗したため、Win32 CreateFileW/GetLastErrorで共有拒否を直接検査するよう修正し、成功を確認した。テストは自作合成一時領域だけをsandbox外で使用し、実ログ/Driveは未使用。ローカルPython 3.11.9、CI定義はPython 3.12。Common/配布集合/PowerShellは未変更のため、それらの試験は再実行していない。リモートCI・独立レビュー・実環境受け入れは未実施。
+
+文書104件の相対リンク1038件・見出し参照115件と`git diff --check`も成功。markdownlintや無関係な全試験は再実行していない。
+
+Microsoft公式仕様とGitHubのCPython/libuvを比較し、専用同期ハンドルをSetFilePointerExで先頭へ戻す方式を選んだ。共有ハンドルの並行offset管理やSetEndOfFileを採用せず、依存関係も増やしていない。既存設計の準備記録後の「identity/size再確認」を内容再読・記録ハンドル保持へ更新した。新たな実装規約の文書/コード不一致は見つかっていない。
+
+既存memory mapping、祖先/名前空間保護、実効ACL、FS差、電源断、close失敗、開始済み要求の取消し、実Drive保存先は未解決。このtest-only候補を正式providerやT0/T1/T4/AC全体の完了へ昇格させない。PowerShellモデルの別プロセス所有方式を置き換えたものでもない。次はこの候補に必要な実root/所有資格・provider契約・拒否条件を正式設計へ結び付ける。実ログ/本番Drive操作は未承認のまま。
+
+## 前回の処理境界での所有確認と停止
 
 [所有確認](../design/owned-simulation-run.md#処理境界での所有確認)をモデルへ接続した。既存token照合とroot chain検査を、連番付きcheck/owned IPCで呼ぶ。異なるrun/型不正/再送番号/未知keyを拒否する。各元開始・保存先追加・prepared・元除去前後・結果保存・照合・概要/レポート前で確認し、一度確認不能になれば同じ実行中に成功へ戻さず、後続のコピー/元除去/永続保存を止める。空対象でも概要前に確認し、Dry Runは通常確認を呼ばない。
 

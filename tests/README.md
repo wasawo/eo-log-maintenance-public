@@ -18,6 +18,8 @@
 
 `Test-OwnershipLossMoveSimulation.ps1`は両経路の処理境界で所有確認を失わせ、後続のコピー/元除去/記録保存の停止、除去後の結果不明、過去照合の保留、確認応答後のQ5再検査を確認する。実所有プロセスのtoken記録改変とモデル停止も接続する。
 
+`test_owned_windows_move_probe.py`は[同一プロセスの所有・実体保持](../docs/design/same-process-owned-native-probe.md)を検証する。自作OS-tempの合成ファイルだけで所有mutex、元/保存先/記録のハンドル保持、Q5再読・限定削除・v1記録・プロセス終了後の別プロセス再観測を接続する。`owned_move_crash_worker.py`も自分で生成するfixture以外を受け付けず、正式runtimeや配布へは追加しない。
+
 `test_simulation_file_snapshot.py`と`Test-FileSnapshotMoveSimulation.ps1`は[読取列挙からモデルへの接続](../docs/design/file-snapshot-simulation.md)を検証する。全列挙と部分失敗を区別し、合成物理ファイルを変更せずに、両経路の期間選択・競合・journal・最終レポートまで通す。
 
 `test_power_status_observation.py`はAC観測のmock ABI/不明・失敗と既存使用点への合成接続を検査します。Windowsでは実APIを読取のみで一度照会します。電源の変更・実ログ/Driveアクセス・task登録・実運用受け入れは行いません。
