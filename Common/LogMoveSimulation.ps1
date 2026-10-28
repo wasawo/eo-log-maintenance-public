@@ -4,6 +4,7 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'LogFunctions.ps1')
 . (Join-Path $PSScriptRoot 'MachineConfiguration.ps1')
 . (Join-Path $PSScriptRoot 'LogMoveSimulationJournal.ps1')
+. (Join-Path $PSScriptRoot 'SimulationRunReport.ps1')
 
 function Invoke-EoLogMoveSimulation {
     <# Model sources/destinations only; optional journal I/O, never live file/Drive operations. #>
@@ -17,6 +18,7 @@ function Invoke-EoLogMoveSimulation {
         [hashtable]$Faults = @{},
         [switch]$DryRun,
         [string]$JournalRoot = '',
+        [string]$ReportRoot = '',
         [string]$PythonExecutable = 'python',
         [guid]$RunId = [guid]::NewGuid()
     )
@@ -60,12 +62,24 @@ function Invoke-EoLogMoveSimulation {
     $destinationLocation = if ($Operation -eq 'Sync') { 'Cloud' } else { 'Archive' }
     $currentRun = $RunId.ToString('D')
     $journalEnabled = -not [string]::IsNullOrWhiteSpace($JournalRoot)
+    $reportEnabled = -not [string]::IsNullOrWhiteSpace($ReportRoot)
+    $inventoryCount = @($State.Files | Where-Object { $_.Location -ceq $sourceLocation }).Count
+    if ($reportEnabled -and -not $DryRun) {
+        if (-not (Test-Path -LiteralPath $ReportRoot -PathType Container)) { throw 'move_simulation_report_root_invalid' }
+        if ($journalEnabled) {
+            $journalPath=[IO.Path]::GetFullPath($JournalRoot).TrimEnd('\','/')
+            $reportPath=[IO.Path]::GetFullPath($ReportRoot).TrimEnd('\','/')
+            if ($reportPath -eq $journalPath -or $reportPath.StartsWith($journalPath+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or
+                $journalPath.StartsWith($reportPath+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)) { throw 'move_simulation_report_root_invalid' }
+        }
+    }
     if ($journalEnabled -and -not $DryRun -and -not (Test-Path -LiteralPath $JournalRoot -PathType Container)) {
         throw 'move_simulation_journal_root_invalid'
     }
     $journalState = @{ Failed=$false }
     $journalPrepared = @{}
     $outcomes = @{}
+    $reportDetails = [Collections.Generic.List[object]]::new()
     $results = [Collections.Generic.List[object]]::new()
     $hashBytes = {
         param([byte[]]$Bytes)
@@ -86,6 +100,26 @@ function Invoke-EoLogMoveSimulation {
             SourceId = $Source.Id; RelativePath = $Source.RelativePath; LogType = $Source.LogType
             DestinationId = $DestinationId; Outcome = $Outcome; Reason = $Reason
         })
+        if ($reportEnabled -and -not $DryRun) {
+            $reference = { param([string]$Id) [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($Id))).ToLowerInvariant() }
+            $name=($Source.RelativePath.Replace('\','/') -split '/')[-1]
+            $candidates=@($State.Files | Where-Object {
+                $_.Location -ceq $destinationLocation -and $_.LogType -ceq $Source.LogType -and
+                (($null -ne $DestinationId -and $_.Id -ceq $DestinationId) -or
+                 ($null -eq $DestinationId -and ($_.RelativePath.Replace('\','/') -split '/')[-1] -ceq $name))
+            } | ForEach-Object { @{target_ref=(& $reference $_.Id);relative_path=$_.RelativePath.Replace('\','/')} })
+            $nextAction=switch ($Reason) {
+                {$_ -in @('retention_period','delete_confirmed','reconciled_completion')} {'none';break}
+                'filename_invalid' {'inspect_source';break}
+                {$_ -in @('destination_ambiguous','content_conflict')} {'resolve_conflict';break}
+                'destination_mismatch' {'inspect_destination';break}
+                {$_ -in @('record_failed','result_record_failed','record_missing')} {'inspect_records';break}
+                {$_ -in @('copy_failed','source_changed','delete_failed')} {'retry_move';break}
+                default {'reobserve'}
+            }
+            $reportDetails.Add(@{source_ref=(& $reference $Source.Id);source_relative_path=$Source.RelativePath.Replace('\','/');
+                log_type=$Source.LogType;outcome=$Outcome;reason_code=$Reason;next_action=$nextAction;destination_candidates=$candidates})
+        }
     }
     foreach ($source in @($State.Files | Where-Object { $_.Location -ceq $sourceLocation })) {
         if ($journalState.Failed) {
@@ -289,11 +323,27 @@ function Invoke-EoLogMoveSimulation {
     elseif ($DryRun) { 'dry_run' }
     elseif ($completed -gt 0) { 'success' }
     else { 'no_work' }
+    $reportSaveStatus=if ($reportEnabled) {'not_written'}else{'disabled'}
+    $runReportSummary=$null
+    if ($reportEnabled -and -not $DryRun) {
+        $route=if ($Operation -eq 'Sync') {'local_to_cloud'}else{'cloud_to_archive'}
+        $pendingRefs=if ($null -ne $journalSummary) { @($journalSummary.details | Where-Object {$_.state -cne 'completed'} | ForEach-Object {$_.move_ref}) }else{@()}
+        $report=@{report_version=1;simulation_only=$true;run_id=$currentRun;machine_id=$MachineId;route=$route;
+            inventory_complete=$true;inventory_source_count=$inventoryCount;journal_read_status=$journalReadStatus;
+            journal_unresolved_move_refs=@($pendingRefs);results=$reportDetails.ToArray()}
+        try {
+            $runReportSummary=Save-EoSimulationRunReport -Report $report -ReportRoot $ReportRoot -PythonExecutable $PythonExecutable
+            if ($runReportSummary.status -cne $status) { throw 'simulation_report_unconfirmed' }
+            $reportSaveStatus='confirmed'
+        }
+        catch { $runReportSummary=$null; $reportSaveStatus='unconfirmed' }
+    }
     return [pscustomobject]@{
         SimulationOnly = $true; MachineId = $MachineId; Operation = $Operation
         RunId = $currentRun; JournalEnabled = $journalEnabled
         JournalReadStatus = $journalReadStatus; JournalUnresolvedSourceCount = $journalUnresolved; JournalSummary = $journalSummary
         Status = $status; CompletedSourceCount = $completed; UnresolvedSourceCount = $unresolved
+        ReportSaveStatus=$reportSaveStatus; RunReportSummary=$runReportSummary
         Results = $results.ToArray()
     }
 }

@@ -100,7 +100,7 @@ T0のローカル元削除方式を具体化するため、[Windows隔離probe](
 
 [実行別概要表示](../design/move-run-report.md)で、記録の読取からPowerShellの画面表示まで接続した。初回完了と再確認の計数を分け、過去の未解決を持ち越す。fresh inventory/run全体の判定、詳細レポート保存、通常移動の正式入口は未完で、T1/T4全体の完了にはしない。
 
-[模擬処理のjournal接続](../design/simulation-journal-integration.md)で、同じ元/コピー内容のmove ID維持、削除前保存、通常再実行、照合、概要を両経路で接続した。準備前の失敗はファイル別Resultsに残るが、全結果の永続記録は未完。実runの資格・排他や実providerの採用には進んでいない。
+[模擬処理のjournal接続](../design/simulation-journal-integration.md)で、同じ元/コピー内容のmove ID維持、削除前保存、通常再実行、照合、概要を両経路で接続した。[模擬実行結果レポート](../design/simulation-run-report.md)では準備前の失敗も別のローカルJSONへ保存し、模擬実行全体の集計と保存失敗の区別を接続した。正式な実run lifecycle、資格・排他、実providerの採用には進んでいない。
 
 本書のAC全体は未完。実装再開指示は2026-10-28に受領した。両経路の対象選択・移動・再実行・結果を模擬モデルで接続するが、正式Sync/Archive入口、実Drive adapter、新しい実元削除経路、永続記録と実レポートは未完成。T0完了やT1完了には昇格しない。
 

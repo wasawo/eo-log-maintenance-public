@@ -60,6 +60,8 @@ try {
     Set-Content (Join-Path $fixture 'Common/MoveJournal.py') '# Immutable move records, not deletion authority'
     Set-Content (Join-Path $fixture 'Common/MoveRunReport.py') '# Identifier-only record report'
     Set-Content (Join-Path $fixture 'Common/MoveJournalCommand.py') '# Simulation journal bridge'
+    Set-Content (Join-Path $fixture 'Common/SimulationRunReport.py') '# Private model report'
+    Set-Content (Join-Path $fixture 'Common/SimulationRunReport.ps1') '# Private model report bridge'
     Set-Content (Join-Path $fixture 'Common/LogMoveSimulationJournal.ps1') '# Simulation record persistence'
     Set-Content (Join-Path $fixture 'Common/MachineConfiguration.ps1') '# Read-only configuration structure loader'
     Set-Content (Join-Path $fixture 'Common/MachineConfigurationBootstrap.ps1') '# Create-only configuration helper'
@@ -143,6 +145,8 @@ try {
         'Common/MoveJournal.py',
         'Common/MoveRunReport.py',
         'Common/MoveJournalCommand.py',
+        'Common/SimulationRunReport.py',
+        'Common/SimulationRunReport.ps1',
         'Common/LogMoveSimulationJournal.ps1',
         'scripts/Show-MoveRun.ps1',
         'Config/PC-A.example.json',

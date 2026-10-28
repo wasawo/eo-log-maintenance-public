@@ -31,7 +31,7 @@ PowerShell 7.6.7とruntime依存を導入したPythonを使う。必要なら`-P
 
 内部応答はversion、request/record/run ID、scope、型・key、recordのechoとdigest形式を検査する。preparedのmove ID再利用と、照合への既存結果参照の追加だけを認める。stdin書込・子プロセス待機はそれぞれ30秒を上限とし、未確認時に成功へ置き換えない。これは模擬journal用の内部契約で、Drive IPCの操作を増やすものではない。
 
-コピー失敗・競合・不正名など、preparedより前の失敗を「保存先確認済み」と偽ってv1へ保存しない。それらは従来のファイル別Resultsに残る。従って、journal概要だけでは現在runの全対象・失敗を網羅しない。全結果の永続保存と正式な実行全体の判定は後続である。
+コピー失敗・競合・不正名など、preparedより前の失敗を「保存先確認済み」と偽ってv1へ保存しない。それらはファイル別Resultsと、任意の[模擬実行結果レポート](simulation-run-report.md)へ残す。journal概要だけでは現在runの全対象・失敗を網羅しない。正式な実行全体の判定は後続である。
 
 メモリ上の対象が0件でも、journalの過去未解決があればfailureにする。journalを読めない場合もno_workにしない。JournalReadStatusとJournalUnresolvedSourceCountを、モデル内のファイル別未解決件数とは別に返す。同じ対象が両方へ現れ得るため、これらの件数を単純に足さない。過去の記録を読み、未解決を示すことは、現在のファイルモデルを復元したことにはならない。
 
@@ -43,4 +43,4 @@ Dry Runではjournalを読書きせず、モデルも変更しない。古いモ
 
 [PowerShell接続試験](../../tests/Test-LogMoveJournalIntegration.ps1)で、両経路の削除失敗→通常再実行→概要、結果不明と結果記録欠落→照合、Dry Run、壊れたjournal、準備前の失敗、PC-B SyncとArchive拒否を確認する。[内部コマンド試験](../../tests/test_move_journal_command.py)ではID再利用・別実体/内容の分離・同内容再保存・矛盾拒否を検証する。
 
-模擬状態は呼出し側が保持しており、journalだけで現在の元/保存先を復元するものではない。正式coordinator、実列挙とrun全体の記録、private root/ACL/排他資格、実providerとDrive版固定削除、全結果のprivate詳細レポート、実運用性能・実環境受け入れは未完。T0/T1/T4全体を完了にはしない。
+模擬状態は呼出し側が保持しており、journalだけで現在の元/保存先を復元するものではない。正式coordinator、実列挙と実run全体の記録、private root/ACL/排他資格、実providerとDrive版固定削除、実運用の詳細表示・性能・実環境受け入れは未完。T0/T1/T4全体を完了にはしない。

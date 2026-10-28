@@ -10,7 +10,9 @@
 
 `test_windows_move_delete_probe.py`は自作OS-temp内の合成元/保存先だけを使い、Windowsの同一ハンドル確認・直接削除と、削除前記録の実保存/読戻し・pending・結果不明照合を接続する。caller指定pathを受けず、実運用providerや別プロセス回復は提供しない。[試験範囲と限界](../docs/design/windows-move-delete-probe.md)を参照。
 
-`Test-LogMoveSimulation.ps1`は設定・期間・平坦化・同名比較・内容確認・限定元削除・再実行・結果不明照合を、両経路のメモリ上のモデルで接続する。実ファイル/Driveの削除や永続記録は行わない。[模擬契約と受け入れ限界](../docs/design/log-move-simulation.md)を参照。実行: `pwsh -NoProfile -File tests/Test-LogMoveSimulation.ps1`。
+`Test-LogMoveSimulation.ps1`は設定・期間・平坦化・同名比較・内容確認・限定元削除・再実行・結果不明照合を、両経路のメモリ上のモデルで接続する。この試験はjournal/レポート保存を指定せず、実ファイル/Driveの削除や永続記録は行わない。[模擬契約と受け入れ限界](../docs/design/log-move-simulation.md)を参照。実行: `pwsh -NoProfile -File tests/Test-LogMoveSimulation.ps1`。
+
+`test_simulation_run_report.py`と`Test-LogMoveJournalIntegration.ps1`で、[模擬実行全体の結果レポート](../docs/design/simulation-run-report.md)を検証する。早期失敗・競合の比較対象・次の対応、削除結果確認/照合の分別、対象なし・未解決の区別、非上書き保存と読戻し、保存失敗・Dry Runを合成一時領域で確認する。
 
 `test_power_status_observation.py`はAC観測のmock ABI/不明・失敗と既存使用点への合成接続を検査します。Windowsでは実APIを読取のみで一度照会します。電源の変更・実ログ/Driveアクセス・task登録・実運用受け入れは行いません。
 

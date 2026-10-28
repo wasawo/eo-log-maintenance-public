@@ -6,11 +6,25 @@
 
 ## 現在地
 
-- 作業branch: `codex/manual-move-preflight`。今回開始HEADは`2554263`、作業ツリーはクリーン。PR #47のmain `36550ab`から作成した同じブランチへ継続して蓄積する。PR #47のmain Validate/Package Validationは前回成功を確認済み。今回もローカルコミットまでとし、新たなpush/PR/mergeは利用者の指示を待つ。
+- 作業branch: `codex/manual-move-preflight`。今回開始HEADは`7090125`、作業ツリーはクリーン。正本mainはfetch/ GitHubで`36550ab`を確認した。2026-10-28に利用者から「次の作業に着手して。実装後にコミットをまとめてPR作成、マージまで完了させて」と指示を受領した。直後の中断と「次の作業に着手して」は作業の継続として扱い、同じブランチの累積コミットを1つのPRへまとめ、最新HEADのValidate/Package Validation成功後にマージする。実データ操作・本番適用は含まない。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
-## 今回の模擬移動・journal・再実行・概要の接続
+## 今回の実行全体の結果レポート
+
+[模擬実行結果レポート](../design/simulation-run-report.md)を追加し、準備前のコピー失敗・競合・不正名と、期間除外・削除結果・照合を別のローカルJSONへ非上書き保存/読戻しする。ReportRootは任意で、journalと同一・親子パスを拒否する。Dry Runは保存しない。元/比較先の相対パス・不透明な参照・理由・次の対応を詳細へ残し、コンソール読戻しは概要だけを返す。
+
+モデル列挙完了・元件数と個別結果、journalの未解決を区別する。空の列挙でもjournal未解決/読取不能を対象なしにせず、未解決件数は重複し得るため合算しない。削除結果確認と照合完了を別計数にする。レポート保存失敗はReportSaveStatusで示し、確認済み移動を取り消した結果へ書き換えない。最終レポートがない中断を対象なし/成功と判断しない。
+
+Python 3.11.9の新規4試験、PS 7.6.7の接続49 assertions、既存モデル115 assertions、役割別配布回帰、Python構文解析2ファイル・PS構文解析/PSScriptAnalyzer Error検査4ファイルが成功した。hardlink公開を含む試験は自作合成一時領域だけをsandbox外で使用した。CIはPython 3.12であり、PRの最新HEADについて別途結果を確認する。rootの自己点検のみで、独立レビュー・実環境受け入れは未実施。
+
+文書101件の相対リンク1005件・見出し参照112件と`git diff --check`も成功した。markdownlintや無関係な全試験は再実行していない。PRでは今回だけでなくmainからの累積差分をValidate/Package Validationで検査する。
+
+実装計画の「全結果の永続記録は未完」を模擬レポート接続済み/実run未完へ更新した。tests索引の「永続記録なし」は保存を指定しない従来試験の範囲と明確にした。新たな実装規約の文書/コード不一致はない。
+
+次は正式runの所有資格・排他/実列挙/開始と中断記録、実providerへの接続条件を具体化する。実ログ/本番Driveの操作、実Drive条件付き削除、正式Sync/Archive入口、実環境ACL/FS受け入れ、日本語の詳細表示と運用性能は未完。T0/T1/T4/AC全体の完了にしない。マージ後は最新mainから新しい作業ブランチを作る。
+
+## 前回の模擬移動・journal・再実行・概要の接続
 
 [接続仕様](../design/simulation-journal-integration.md)に従い、既存PS模擬処理へ任意のJournalRoot/PythonExecutable/RunIdを追加した。Python内部metadata bridgeで、同じ経路/PC/ログ種別・型付き元参照・コピー内容のmove IDを再利用し、run/attemptは新しくする。preparedを元のモデル削除より前に保存・読戻しし、結果と照合を別記録へ保存する。現在runの概要も自動読戻しして返す。
 

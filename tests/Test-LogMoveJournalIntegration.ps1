@@ -22,17 +22,68 @@ function New-Journal {
     New-Item -ItemType Directory -Path $path | Out-Null
     $path
 }
-function Invoke-Model($State,$Journal,$Machine='PC-A',$Operation='Sync',$Faults=@{},[switch]$DryRun) {
+function Invoke-Model($State,$Journal,$Machine='PC-A',$Operation='Sync',$Faults=@{},[switch]$DryRun,[string]$ReportRoot='', [guid]$RunId=[guid]::NewGuid()) {
     $config=Get-Content (Join-Path $PSScriptRoot "../Config/$Machine.example.json") -Raw | ConvertFrom-Json -AsHashtable
     if ($Machine -eq 'PC-A') { $config.allowArchive=$true }
     Invoke-EoLogMoveSimulation -ConfigurationJson ($config|ConvertTo-Json -Compress) -MachineId $Machine -Operation $Operation `
-        -State $State -ReferenceDate ([datetime]'2026-10-28') -Faults $Faults -DryRun:$DryRun -JournalRoot $Journal -PythonExecutable $PythonExecutable
+        -State $State -ReferenceDate ([datetime]'2026-10-28') -Faults $Faults -DryRun:$DryRun -JournalRoot $Journal -PythonExecutable $PythonExecutable -ReportRoot $ReportRoot -RunId $RunId
 }
 function Read-Summary($Journal,$Run,$Machine='PC-A',$Operation='Sync') {
     & (Join-Path $PSScriptRoot '../scripts/Show-MoveRun.ps1') -JournalRoot $Journal -RunId $Run -MachineId $Machine `
         -Operation $Operation -PythonExecutable $PythonExecutable -AsJson | ConvertFrom-Json -AsHashtable
 }
 try {
+    foreach ($operation in @('Sync','Archive')) {
+        $state=New-State; $journal=New-Journal; $reports=New-Journal
+        $location=if ($operation -eq 'Sync') {'PC-A'}else{'Cloud'}
+        $target=if ($operation -eq 'Sync') {'Cloud'}else{'Archive'}
+        Add-Source $state 'conflict' $location 'sub/20240101_12345678@conflict.txt'
+        Add-Source $state 'existing' $target '20240101_12345678@conflict.txt'
+        $state.Files[1].Bytes=[Text.Encoding]::UTF8.GetBytes('different')
+        Add-Source $state 'success' $location '20240101_12345678@success.txt'
+        $run=Invoke-Model $state $journal 'PC-A' $operation -ReportRoot $reports
+        Assert-True ($run.ReportSaveStatus -ceq 'confirmed' -and $run.RunReportSummary.status -ceq 'partial_failure') "$operation persists whole-run partial failure"
+        $saved=Get-Content (Join-Path $reports ($run.RunId+'.json')) -Raw | ConvertFrom-Json -AsHashtable
+        $conflict=@($saved.results|Where-Object {$_.reason_code -ceq 'content_conflict'})[0]
+        Assert-True ($conflict.next_action -ceq 'resolve_conflict' -and $conflict.destination_candidates.Count -eq 1) "$operation conflict report contains comparison and next action"
+        Assert-True ($saved.results.Count -eq 2 -and $saved.inventory_source_count -eq 2) "$operation report includes early failure without fabricated preparation"
+    }
+    $state=New-State; $journal=New-Journal; $reports=New-Journal
+    Add-Source $state 'early-report'
+    $run=Invoke-Model $state $journal -Faults @{'early-report'='copy_failed'} -ReportRoot $reports
+    Assert-True ($run.ReportSaveStatus -ceq 'confirmed' -and $run.RunReportSummary.unresolved_source_count -eq 1) 'early copy failure survives final report readback'
+    Assert-True (@(Get-ChildItem $journal -Force).Count -eq 0) 'early failure report remains separate from deletion journal'
+    $run=Invoke-Model (New-State) $journal -ReportRoot $reports
+    Assert-True ($run.ReportSaveStatus -ceq 'confirmed' -and $run.RunReportSummary.status -ceq 'no_work') 'complete empty model inventory can be reported as no-work'
+    $state=New-State; Add-Source $state 'retained-period' 'PC-A' '20261001_12345678@current.txt'
+    $run=Invoke-Model $state $journal -ReportRoot $reports
+    Assert-True ($run.ReportSaveStatus -ceq 'confirmed' -and $run.RunReportSummary.status -ceq 'no_work') 'period exclusions are preserved without becoming failures'
+    $state=New-State; Add-Source $state 'dry-report'
+    $before=@(Get-ChildItem $reports -Force).Count
+    $run=Invoke-Model $state $journal -ReportRoot $reports -DryRun
+    Assert-True ($run.ReportSaveStatus -ceq 'not_written' -and @(Get-ChildItem $reports -Force).Count -eq $before) 'Dry Run never writes a final report'
+    $state=New-State; Add-Source $state 'report-fails'
+    $runId=[guid]::NewGuid()
+    Set-Content (Join-Path $reports ($runId.ToString('D')+'.json')) 'occupied'
+    $run=Invoke-Model $state $journal -ReportRoot $reports -RunId $runId
+    Assert-True ($run.ReportSaveStatus -ceq 'unconfirmed' -and $run.CompletedSourceCount -eq 1 -and $run.Status -ceq 'success') 'report save failure is distinct from confirmed model movement'
+    Assert-True ((Get-Content (Join-Path $reports ($runId.ToString('D')+'.json')) -Raw).Trim() -ceq 'occupied') 'report conflict is never overwritten'
+    $state=New-State; $journal=New-Journal; $reports=New-Journal
+    Add-Source $state 'pending-report'
+    [void](Invoke-Model $state $journal -Faults @{'pending-report'='result_record_failed'})
+    $run=Invoke-Model (New-State) $journal -ReportRoot $reports
+    Assert-True ($run.ReportSaveStatus -ceq 'confirmed' -and $run.RunReportSummary.status -ceq 'failure' -and $run.RunReportSummary.journal_unresolved_source_count -eq 1) 'empty inventory report retains unresolved journal'
+    $run=Invoke-Model $state $journal -ReportRoot $reports
+    Assert-True ($run.ReportSaveStatus -ceq 'confirmed' -and $run.RunReportSummary.reconciled_source_count -eq 1 -and $run.RunReportSummary.deleted_source_count -eq 0) 'reconciliation is reported separately from deletion confirmation'
+    $state=New-State; $journal=New-Journal; $reports=New-Journal
+    Set-Content (Join-Path $journal 'partial.tmp') 'partial'
+    $run=Invoke-Model $state $journal -ReportRoot $reports
+    Assert-True ($run.ReportSaveStatus -ceq 'confirmed' -and $run.RunReportSummary.status -ceq 'failure' -and $run.RunReportSummary.journal_read_status -ceq 'unconfirmed') 'unreadable journal cannot become report no-work'
+    $state=New-State; $journal=New-Journal
+    Add-Source $state 'separate-root'
+    $denied=$false
+    try { [void](Invoke-Model $state $journal -ReportRoot $journal) } catch { $denied=$_.Exception.Message -ceq 'move_simulation_report_root_invalid' }
+    Assert-True ($denied -and $state.Files.Count -eq 1 -and @(Get-ChildItem $journal -Force).Count -eq 0) 'overlapping report and journal roots rejected before model changes'
     foreach ($operation in @('Sync','Archive')) {
         $state=New-State; $journal=New-Journal
         $location=if ($operation -eq 'Sync') {'PC-A'}else{'Cloud'}
