@@ -6,6 +6,8 @@
 
 ## 現在地
 
+2026-10-29、利用者から「ここまでのコミット内容をまとめてPR作成、マージまで進めて」と指示を受領した。開始HEADは`0fe1607`、作業ツリーはクリーン。最新リモートmainは`6658025`で、同branchの既存PRは0件。累積15コミット（所有付き模擬移動・snapshot接続、native所有/境界/セキュリティ検証、10原則とR-01〜03修正、進捗見積もり、SDK読取/内容hash/staging/別プロセス照合）と本記録を一つのPRへまとめる。rootの自己点検と既存の単位別検証記録を確認し、差分検査は成功。最新PR HEADのValidate・Package Validationが成功し、マージ可能であることを確認してからマージする。現時点ではpush・PR・CI・マージは未実施。実ログ/本番Drive操作、正式入口の完成や実環境受け入れは今回の対象外。
+
 2026-10-29、開始HEAD `1697f33`、作業ツリーはクリーン。download試験候補の[別プロセス照合](../design/sdk-download-staging.md#別プロセスでの現在状態照合)を追加した。root/nonce/attempt名と記録上限だけを子へ渡し、割当て/readyの対応と現在のpayload実体/size/hashを独立に読む。親のhashや判定を引き継がず、SDKもimportしない。allocation_only/incomplete/ready_candidate/held/unconfirmedを区別し、全結果may_change_state=false・cloud_observed=falseとする。
 
 新規7試験が成功。ready応答喪失は過去成功へ昇格せず、同内容の実体差替え、record digest/shape/重複key/版/内容不一致、欠落、hardlink、owner残存、不正locator/上限/余分なfileを確認した。子を-I -Bで起動し、全fileのbytes/名前不変と私的値の非表示も確認した。Python3.11.9（CI定義3.12）、親の生成fixtureは既存SDK2.201.0を使用。承認されたsandbox外の自作合成一時領域のみで実施し、実Drive・実ログ・実設定、リモートCI、独立レビュー、実環境受け入れは未実施。Common/配布集合/依存は未変更で、旧105試験・package等は再実行していない。
@@ -56,7 +58,7 @@ Google公式sampleとrcloneのpage継続方式を比較した。files.deleteの�
 
 2026-10-29に利用者の指示でAGENTS.mdの10原則追加を`ff5b723`へコミットした。元の文書更新の開始HEADは`9d71a3f`。変更2文書の相対リンク31件・見出し参照6件と差分検査は成功。承認境界を維持し、既存コードの一括リファクタリングは行っていない。
 
-- 作業branch: `codex/owned-simulation-run`。今回は「次の作業に着手して」により`1697f33`からstagingの別プロセス照合を実装・検証・ローカルコミットする。main `6658025`から作成した同じブランチへ変更を蓄積する。GitHubの同branchのPR検索結果は0件。push/PR/mergeは指示を待ち、前回PRの許可を流用しない。
+- 作業branch: `codex/owned-simulation-run`。main `6658025`から累積した変更について、2026-10-29の今回の指示でpush・PR作成・マージまで承認済み。実施結果はGitHubの実状態を確認する。本PRのマージ後に次の変更を始める場合は、最新mainから新しい作業ブランチを作成する。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
