@@ -50,7 +50,7 @@ def summarize_move_run(records, *, run_id, machine_id, route):
         superseded = {ref['record_id'] for r in present for ref in r['prior_record_refs']}
         terminals = [r for r in present if r['event_kind'] != 'prepared' and r['record_id'] not in superseded]
         preparations = [r for r in history if r['event_kind'] == 'prepared']
-        source_keys = {json.dumps(r['event_data']['source'], sort_keys=True) for r in preparations}
+        source_keys = {json.dumps([r['event_data']['source'],r['event_data']['copy_content']], sort_keys=True) for r in preparations}
         log_types = {r['log_type'] for r in history}
         state, reason, basis, action = 'unknown', 'result_not_recorded', 'none', 'reobserve'
         if len(source_keys) != 1 or len(log_types) != 1:
@@ -73,7 +73,14 @@ def summarize_move_run(records, *, run_id, machine_id, route):
             # A result superseded by an explicit reference is not a pending leaf.
             referenced = {ref['record_id'] for r in history for ref in r['prior_record_refs']}
             leaves = [r for r in history if r['record_id'] not in referenced]
-            if leaves and all(r['event_kind'] != 'prepared' and r['event_data']['decision'] == 'completed' for r in leaves):
+            attempts = {}
+            for record in leaves:
+                key = record['record_id'] if record['event_kind']=='prepared' else record['prior_record_refs'][0]['record_id']
+                attempts.setdefault(key,[]).append(record)
+            # One unambiguous completed attempt closes this exact source/content
+            # movement; older failed attempts do not create another source task.
+            if any(all(r['event_kind'] != 'prepared' and r['event_data']['decision']=='completed' for r in attempt)
+                   for attempt in attempts.values()):
                 continue
             if leaves and all(r['event_kind'] != 'prepared' and r['event_data']['decision'] == 'incomplete' for r in leaves):
                 state = 'incomplete'

@@ -85,6 +85,21 @@ class MoveRunReportTests(unittest.TestCase):
         self.assertFalse(later['run_records_present'])
         self.assertEqual([], later['details'])
 
+    def test_successful_retry_closes_old_failed_attempt_of_same_source_content(self):
+        first=prepared()
+        self.save(first)
+        failed=followup(first)
+        failed['event_data'].update(request_outcome='failed',source_after_delete='present',source_after_method='windows_lookup',
+                                    decision='incomplete',reason_code='delete_failed')
+        self.save(failed)
+        retry=copy.deepcopy(first)
+        for field in ('record_id','run_id','attempt_id'): retry[field]=str(uuid4())
+        self.save(retry)
+        self.complete(retry)
+        report=self.report(str(uuid4()))
+        self.assertEqual(0,report['unresolved_source_count'])
+        self.assertEqual(0,report['newly_completed_source_count'])
+
     def test_no_run_record_is_not_no_work_and_old_prepared_is_not_lost(self):
         run = str(uuid4())
         report = self.report(run)

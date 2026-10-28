@@ -15,7 +15,7 @@
 | 診断/非公開証拠 | [従来の詳細ノート](../docs/design/reference/common-module-notes.md)、[private証拠契約](../docs/design/recovery-private-evidence-contract.md) | 各実装の型/証拠/秘匿境界を維持 |
 | 月次/電源・旧確認予算 | [月次](../docs/design/reference/monthly-schedule-observation.md)、[電源](../docs/design/reference/power-status-observation.md)、[確認予算](../docs/design/reference/completion-wait-budget.md) | 定期実行は後続。旧PC-B完了待機はarchive前提にしない |
 
-両経路をメモリ上でつなぐ[LogMoveSimulation.ps1](LogMoveSimulation.ps1)を追加した。[模擬契約と限界](../docs/design/log-move-simulation.md)を参照。実ファイル・Drive操作や永続記録を提供せず、正式な移動入口ではない。
+両経路をメモリ上でつなぐ[LogMoveSimulation.ps1](LogMoveSimulation.ps1)を追加した。[模擬契約](../docs/design/log-move-simulation.md)と[任意のjournal接続](../docs/design/simulation-journal-integration.md)を参照。実ログ/Drive操作は提供せず、正式な移動入口ではない。
 
 [MoveJournal.py](MoveJournal.py)は[移動記録v1](../docs/design/move-record-v1.md)の非上書き保存・参照検査・読戻しを提供する。元/保存先の実観測や削除権限は提供せず、private root・所有権・ACL・排他の資格確認は呼出し側に必要。
 

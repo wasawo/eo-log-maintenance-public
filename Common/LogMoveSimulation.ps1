@@ -3,9 +3,10 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'LogFunctions.ps1')
 . (Join-Path $PSScriptRoot 'MachineConfiguration.ps1')
+. (Join-Path $PSScriptRoot 'LogMoveSimulationJournal.ps1')
 
 function Invoke-EoLogMoveSimulation {
-    <# In-memory integration model only. No filesystem, Drive, or live adapter. #>
+    <# Model sources/destinations only; optional journal I/O, never live file/Drive operations. #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$ConfigurationJson,
@@ -14,7 +15,10 @@ function Invoke-EoLogMoveSimulation {
         [Parameter(Mandatory)][hashtable]$State,
         [Parameter(Mandatory)][datetime]$ReferenceDate,
         [hashtable]$Faults = @{},
-        [switch]$DryRun
+        [switch]$DryRun,
+        [string]$JournalRoot = '',
+        [string]$PythonExecutable = 'python',
+        [guid]$RunId = [guid]::NewGuid()
     )
 
     $config = ConvertFrom-EoMachineConfigurationJson -Json $ConfigurationJson -ExpectedMachineId $MachineId
@@ -54,6 +58,14 @@ function Invoke-EoLogMoveSimulation {
     }
     $sourceLocation = if ($Operation -eq 'Sync') { $MachineId } else { 'Cloud' }
     $destinationLocation = if ($Operation -eq 'Sync') { 'Cloud' } else { 'Archive' }
+    $currentRun = $RunId.ToString('D')
+    $journalEnabled = -not [string]::IsNullOrWhiteSpace($JournalRoot)
+    if ($journalEnabled -and -not $DryRun -and -not (Test-Path -LiteralPath $JournalRoot -PathType Container)) {
+        throw 'move_simulation_journal_root_invalid'
+    }
+    $journalState = @{ Failed=$false }
+    $journalPrepared = @{}
+    $outcomes = @{}
     $results = [Collections.Generic.List[object]]::new()
     $hashBytes = {
         param([byte[]]$Bytes)
@@ -61,12 +73,25 @@ function Invoke-EoLogMoveSimulation {
     }
     $addResult = {
         param($Source, [string]$Outcome, [string]$Reason, $DestinationId)
+        if ($journalEnabled -and $journalPrepared.ContainsKey($Source.Id) -and $Reason -ne 'result_record_failed') {
+            $binding = $journalPrepared[$Source.Id]
+            try {
+                [void](Save-EoSimulationOutcome -Prepared $binding.JournalRecord -Sha256 $binding.JournalSha256 `
+                    -Outcome $Outcome -Reason $Reason -RunId $currentRun -JournalRoot $JournalRoot -PythonExecutable $PythonExecutable)
+            }
+            catch { $Outcome='unknown'; $Reason='result_record_failed'; $journalState.Failed=$true }
+        }
+        $outcomes[$Source.Id] = $Outcome
         $results.Add([pscustomobject]@{
             SourceId = $Source.Id; RelativePath = $Source.RelativePath; LogType = $Source.LogType
             DestinationId = $DestinationId; Outcome = $Outcome; Reason = $Reason
         })
     }
     foreach ($source in @($State.Files | Where-Object { $_.Location -ceq $sourceLocation })) {
+        if ($journalState.Failed) {
+            & $addResult $source 'retained' 'record_failed' $null
+            continue
+        }
         $name = ($source.RelativePath.Replace('\', '/') -split '/')[-1]
         try {
             $eligible = Test-LogFileEligible -LogType $source.LogType -FileName $name `
@@ -134,6 +159,20 @@ function Invoke-EoLogMoveSimulation {
             DestinationName = $name; Sha256 = $baseline; Size = $staged.LongLength
             Reused = $reused
         }
+        if ($journalEnabled) {
+            try {
+                $candidate = New-EoSimulationPreparedRecord -Event $prepared -RunId $currentRun
+                $ack = Send-EoSimulationRecord -Record $candidate -JournalRoot $JournalRoot -PythonExecutable $PythonExecutable
+                $prepared.JournalRecord = $ack.record
+                $prepared.JournalSha256 = $ack.record_sha256
+                $journalPrepared[$source.Id] = $prepared
+            }
+            catch {
+                $journalState.Failed=$true
+                & $addResult $source 'retained' 'record_failed' $destination.Id
+                continue
+            }
+        }
         $State.Events.Add($prepared)
         if ($fault -eq 'source_changed') { $source.Bytes = [byte[]]@(254) }
         if ($fault -eq 'source_replaced') { $source.Id = [guid]::NewGuid().ToString('D') }
@@ -154,14 +193,19 @@ function Invoke-EoLogMoveSimulation {
         }
         if ($fault -ne 'delete_unknown_present') { [void]$State.Files.Remove($source) }
         $outcome = if ($fault -in @('delete_unknown_absent', 'delete_unknown_present', 'result_record_failed')) { 'unknown' } else { 'completed' }
+        & $addResult $source $outcome $(if ($fault -eq 'result_record_failed') { 'result_record_failed' } elseif ($outcome -eq 'completed') { 'delete_confirmed' } else { 'delete_unknown' }) $destination.Id
         if ($fault -ne 'result_record_failed') {
-            $State.Events.Add(@{
+            $resultEvent = @{
                 Kind = 'delete_result'; SourceId = $prepared.SourceId
-                DestinationId = $destination.Id; Outcome = $outcome; MachineId = $MachineId
+                DestinationId = $destination.Id; Outcome = $outcomes[$source.Id]; MachineId = $MachineId
                 Operation = $Operation; RelativePath = $source.RelativePath; LogType = $source.LogType
-            })
+            }
+            if ($journalEnabled) {
+                $resultEvent.JournalPreparedId=$prepared.JournalRecord.record_id
+                $resultEvent.MoveId=$prepared.JournalRecord.move_id
+            }
+            $State.Events.Add($resultEvent)
         }
-        & $addResult $source $outcome $(if ($outcome -eq 'completed') { 'delete_confirmed' } else { 'delete_unknown' }) $destination.Id
     }
     # Preserve unresolved prior attempts even when this run enumerates zero sources.
     $pendingEvents = @($State.Events | Where-Object {
@@ -170,15 +214,24 @@ function Invoke-EoLogMoveSimulation {
     foreach ($pending in $pendingEvents) {
         if ($pending.MachineId -cne $MachineId -or $pending.Operation -cne $Operation) { continue }
         if (@($results | Where-Object { $_.SourceId -ceq $pending.SourceId }).Count -gt 0) { continue }
+        $pendingMove = if ($pending.ContainsKey('JournalRecord')) { $pending.JournalRecord.move_id }
+            elseif ($pending.ContainsKey('MoveId')) { $pending.MoveId } else { $null }
         if (@($State.Events | Where-Object {
             $_.Kind -in @('delete_result', 'reconciled') -and $_.SourceId -ceq $pending.SourceId -and
-            $_.Outcome -eq 'completed'
+            $_.Outcome -eq 'completed' -and $_.MachineId -ceq $MachineId -and $_.Operation -ceq $Operation -and
+            ($null -eq $pendingMove -or ($_.ContainsKey('MoveId') -and $_.MoveId -ceq $pendingMove))
         }).Count -gt 0) { continue }
         $records = @($State.Events | Where-Object {
             $_.Kind -eq 'prepared' -and $_.SourceId -ceq $pending.SourceId -and
             $_.DestinationId -ceq $pending.DestinationId -and $_.MachineId -ceq $MachineId -and
             $_.Operation -ceq $Operation
         })
+        if ($pending.ContainsKey('JournalRecord')) {
+            $records = @($records | Where-Object { $_.ContainsKey('JournalRecord') -and $_.JournalRecord.record_id -ceq $pending.JournalRecord.record_id })
+        }
+        elseif ($pending.ContainsKey('JournalPreparedId')) {
+            $records = @($records | Where-Object { $_.ContainsKey('JournalRecord') -and $_.JournalRecord.record_id -ceq $pending.JournalPreparedId })
+        }
         if ($records.Count -eq 0) {
             $unbound = @{ Id = $pending.SourceId; RelativePath = $pending.RelativePath; LogType = $pending.LogType }
             & $addResult $unbound 'unknown' 'record_missing' $pending.DestinationId
@@ -200,20 +253,37 @@ function Invoke-EoLogMoveSimulation {
                 $target.RelativePath -ceq $record.DestinationName -and $target.Bytes.LongLength -eq $record.Size -and
                 (& $hashBytes $target.Bytes) -ceq $record.Sha256
         }
-        if ($DryRun -or $Faults.ContainsKey($record.SourceId)) { $canReconcile = $false }
+        if ($DryRun -or $Faults.ContainsKey($record.SourceId) -or $journalState.Failed) { $canReconcile = $false }
+        if ($journalEnabled -and -not $record.ContainsKey('JournalRecord')) { $canReconcile = $false }
         if ($canReconcile) {
-            $State.Events.Add(@{
-                Kind = 'reconciled'; SourceId = $record.SourceId; Outcome = 'completed'
+            if ($journalEnabled) { $journalPrepared[$record.SourceId] = $record }
+            & $addResult $reported 'completed' 'reconciled_completion' $record.DestinationId
+            $reconciledEvent = @{
+                Kind = 'reconciled'; SourceId = $record.SourceId; Outcome = $outcomes[$record.SourceId]
                 MachineId = $MachineId; Operation = $Operation
                 RelativePath = $record.RelativePath; LogType = $record.LogType
-            })
-            & $addResult $reported 'completed' 'reconciled_completion' $record.DestinationId
+            }
+            if ($journalEnabled) { $reconciledEvent.MoveId=$record.JournalRecord.move_id }
+            $State.Events.Add($reconciledEvent)
         }
         else { & $addResult $reported 'unknown' 'reconciliation_unconfirmed' $record.DestinationId }
     }
     $completed = @($results | Where-Object { $_.Outcome -eq 'completed' }).Count
     $unresolved = @($results | Where-Object { $_.Outcome -in @('retained', 'unknown') }).Count
-    $status = if ($unresolved -gt 0) {
+    $journalSummary = $null
+    $journalUnresolved = $null
+    $journalReadStatus = if ($journalEnabled) { 'not_read' } else { 'disabled' }
+    if ($journalEnabled -and -not $DryRun) {
+        try {
+            $journalSummary = & (Join-Path $PSScriptRoot '../scripts/Show-MoveRun.ps1') -JournalRoot $JournalRoot `
+                -RunId $currentRun -MachineId $MachineId -Operation $Operation -PythonExecutable $PythonExecutable -AsJson 2>$null |
+                ConvertFrom-Json -AsHashtable -DateKind String
+            $journalUnresolved = $journalSummary.unresolved_source_count
+            $journalReadStatus = 'confirmed'
+        }
+        catch { $journalState.Failed=$true; $journalReadStatus='unconfirmed' }
+    }
+    $status = if ($unresolved -gt 0 -or $journalState.Failed -or ($null -ne $journalUnresolved -and $journalUnresolved -gt 0)) {
         if ($completed -gt 0) { 'partial_failure' } else { 'failure' }
     }
     elseif ($DryRun) { 'dry_run' }
@@ -221,6 +291,8 @@ function Invoke-EoLogMoveSimulation {
     else { 'no_work' }
     return [pscustomobject]@{
         SimulationOnly = $true; MachineId = $MachineId; Operation = $Operation
+        RunId = $currentRun; JournalEnabled = $journalEnabled
+        JournalReadStatus = $journalReadStatus; JournalUnresolvedSourceCount = $journalUnresolved; JournalSummary = $journalSummary
         Status = $status; CompletedSourceCount = $completed; UnresolvedSourceCount = $unresolved
         Results = $results.ToArray()
     }

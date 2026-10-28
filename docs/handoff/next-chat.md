@@ -6,11 +6,29 @@
 
 ## 現在地
 
-- 作業branch: `codex/manual-move-preflight`。今回開始HEADは`034afd5`、作業ツリーはクリーン。PR #47のmain `36550ab`から作成した同じブランチへ継続して蓄積する。PR #47のmain Validate/Package Validationは前回成功を確認済み。今回もローカルコミットまでとし、新たなpush/PR/mergeは利用者の指示を待つ。
+- 作業branch: `codex/manual-move-preflight`。今回開始HEADは`2554263`、作業ツリーはクリーン。PR #47のmain `36550ab`から作成した同じブランチへ継続して蓄積する。PR #47のmain Validate/Package Validationは前回成功を確認済み。今回もローカルコミットまでとし、新たなpush/PR/mergeは利用者の指示を待つ。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
-## 今回の実行別概要表示
+## 今回の模擬移動・journal・再実行・概要の接続
+
+[接続仕様](../design/simulation-journal-integration.md)に従い、既存PS模擬処理へ任意のJournalRoot/PythonExecutable/RunIdを追加した。Python内部metadata bridgeで、同じ経路/PC/ログ種別・型付き元参照・コピー内容のmove IDを再利用し、run/attemptは新しくする。preparedを元のモデル削除より前に保存・読戻しし、結果と照合を別記録へ保存する。現在runの概要も自動読戻しして返す。
+
+両経路の通常削除失敗→同じ処理の再実行→概要、結果不明/結果記録欠落→現在のモデル照合→概要を接続した。複数のpreparedはv1 record IDとの明示対応で区別する。書込ACKはkey/型/相関とechoを検査し、UTC文字列もDateTimeへ自動変換しない。stdin書込と子プロセス待機のそれぞれに30秒上限を設け、未確認時は成功へ落とさない。
+
+概要集計に残っていた「正常な再実行で完了しても、古い失敗試行を持ち越す」問題を修正した。同じ元/コピー内容の別試行で矛盾なく完了できれば、そのmoveは閉じる。同一preparedの矛盾やコピー内容の不整合は保留する。空の新しいモデル状態でも保存済み未解決を消さず、journal不明もno_workにしない。
+
+準備前のコピー失敗/競合/不正名は、保存先確認済みのpreparedを捏造せず従来のファイル別Resultsに残す。journal概要は全結果の永続記録ではない。モデル内件数とjournal未解決件数は重なり得るため、別項目で返す。Dry Runはjournalもモデルも変更しない。書込先の自動生成や資格付与、実ログ/Drive操作、正式入口は提供しない。
+
+実体ID/版は模擬値であり、実providerの保証にはしない。並行writerに対するID割当の原子性、private root/ACL/所有排他、実列挙/run全体の状態、全結果の永続化・private詳細レポート、実Driveの版固定削除、実環境受け入れは未完。T0/T1/T4やAC全体を完了にはしない。
+
+検証は自作合成一時領域だけをsandbox外で使い、PS接続32 assertions、Python内部bridge 3件、概要回帰11件、既存モデル115 assertions、役割別配布回帰が成功した。差分確認で結果記録欠落のfaultでも結果を保存する誤りを修正し、preparedだけが残ることを追加確認した。Python構文解析4ファイル、変更PS 4ファイルの構文解析/PSScriptAnalyzer Error検査、文書100件の相対リンク997件・見出し参照112件、`git diff --check`も成功した。ローカルはPython 3.11.9/PowerShell 7.6.7、CIはPython 3.12である。CIには内部bridgeとPS接続を追加したが、このブランチのリモートCI・独立レビュー・実環境受け入れは未実施。markdownlintや無関係な全試験は再実行していない。
+
+次はprepared前の失敗も含めたrun全体の結果記録とprivate詳細レポートを具体化し、空の列挙・未解決持越し・現在runの部分失敗を一貫して判定する。実providerの保証が必要な部分は、模擬接続の成功と区別して残す。
+
+模擬処理を「永続記録を行わない」としていた文書を、省略時は従来どおりメモリ上のみ、JournalRoot指定時はv1記録を保存する説明へ更新した。実装規約の新たな文書/コード不一致は見つかっていない。
+
+## 前回の実行別概要表示
 
 [Show-MoveRun.ps1](../../scripts/Show-MoveRun.ps1)と`Common/MoveRunReport.py`で、移動記録の読取からPowerShellの日本語概要/JSON表示へ接続した。run ID・PC・経路を明示して選び、初回完了と完了済みの再確認を分け、過去の未解決も持ち越す。明示参照のある結果は照合を採用し、先後不明の複数結果や元の対応不整合を時刻/順序で解決しない。同じ元・コピー内容への別move IDは二重計上せず概要生成を拒否する。
 

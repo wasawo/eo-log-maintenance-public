@@ -10,7 +10,7 @@
 pwsh -NoProfile -File tests/Test-LogMoveSimulation.ps1
 ```
 
-実装は[LogMoveSimulation.ps1](../../Common/LogMoveSimulation.ps1)、合成シナリオの入口と検証は[Test-LogMoveSimulation.ps1](../../tests/Test-LogMoveSimulation.ps1)。PowerShell 7.6.7で動かす。テストが読む設定は公開ダミーexampleのみで、設定内のパスへアクセスしない。Drive接続、ログ本文のディスク読取、ファイルコピー・削除、永続記録、ロック取得は行わない。変更するのは呼出し側が渡したメモリ上のモデルだけである。
+実装は[LogMoveSimulation.ps1](../../Common/LogMoveSimulation.ps1)、従来のメモリ上の検証は[Test-LogMoveSimulation.ps1](../../tests/Test-LogMoveSimulation.ps1)。PowerShell 7.6.7で動かす。設定内のパスへアクセスせず、Drive接続、ログ本文のディスク読取、実ファイルのコピー・削除、ロック取得は行わない。JournalRootを省略した場合はメモリ上だけを変更する。指定時は[記録接続](simulation-journal-integration.md)に従って、用意済みの専用rootへ移動記録v1を保存する。
 
 正式な`SyncLogs.ps1`と`ArchiveLogs.ps1`は追加しない。実装基盤と運用入口を取り違えず、既存ビルダーの正式入口不在による配布拒否も維持する。
 
@@ -24,7 +24,7 @@ pwsh -NoProfile -File tests/Test-LogMoveSimulation.ps1
 
 イベントは`prepared`（対象とsize/SHA-256の対応）、`delete_result`（完了/不明）、`reconciled`（今回の照合完了）を区別する。元を取り除いた直後に応答が失われるケース、元が残るケース、除去後の結果記録だけが失敗するケースを注入できる。前回不明の対象や結果未記録の対象が列挙から消えても「対象なし」に落とさず、次回に同じ経路・元/保存先の記録と現在の内容を確認する。対応記録の欠落、保存先欠落・不一致、同じパスの再作成、存在確認不能は完了にしない。旧不明イベントは書き換えず、完了した元を次回再計上しない。
 
-上記フィールド名と状態名は模擬モデル内だけの契約である。manifest v1、Drive IPC、新しい永続記録schemaの採用や変更ではない。メモリ上の完全な存在確認と単一処理による除去を、Windowsのハンドル操作やDriveの条件付き削除で実現できると主張しない。
+上記フィールド名と状態名は模擬モデル内の契約であり、v1 recordそのものではない。JournalRoot指定時はpreparedとv1記録の明示対応を追加する。manifest v1とDrive IPCは変更しない。メモリ上の完全な存在確認と単一処理による除去を、Windowsのハンドル操作やDriveの条件付き削除で実現できると主張しない。
 
 Dry Runでは、対象判定と不正名の報告だけを行い、モデルのbytes・ファイル集合・イベントを変更しない。返却結果には常に`SimulationOnly = true`を付ける。個別結果と、元単位の完了/未解決件数を返し、同じ保存先を使う複数の元も個別に数える。表示用のJSONを永続証拠として読み戻す機能はない。
 

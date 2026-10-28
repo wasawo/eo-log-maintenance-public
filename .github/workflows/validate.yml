@@ -87,6 +87,12 @@ jobs:
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_move_run_report.py" -v
 
+      - name: Validate simulation journal identity binding
+        shell: pwsh
+        run: |
+          python -B -m unittest discover -s tests -p "test_move_journal_command.py" -v
+          ./tests/Test-LogMoveJournalIntegration.ps1
+
       - name: Validate referenced aggregation artifacts
         shell: pwsh
         run: |

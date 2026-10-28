@@ -1,5 +1,7 @@
 # テスト計画
 
+`Test-LogMoveJournalIntegration.ps1`は両経路の模擬移動・v1保存・ID維持・通常再実行・照合・概要を一連で検証する。`test_move_journal_command.py`は内部metadata bridgeのID再利用と不整合拒否を合成一時領域で確認する。[接続仕様](../docs/design/simulation-journal-integration.md)を参照。実ログ/Driveや正式runtimeは扱わない。
+
 `test_move_run_report.py`は移動記録の実行別集計とPowerShell表示コマンドを検証する。重複計上、持越し、曖昧な結果、scope拒否、非公開値の非表示、異常応答・timeoutとjournal不変を合成一時領域で確認する。[仕様](../docs/design/move-run-report.md)を参照。
 
 `test_cold_move_reconciliation.py`はWindows probeの保存記録を別プロセスが読み、現在の合成元/保存先を実APIで再観測して照合記録へつなぐ。元削除を再送せず、Driveはローカルファイルによる模擬providerだけを使う。[接続方法と未実証範囲](../docs/design/cold-move-reconciliation.md)を参照。
