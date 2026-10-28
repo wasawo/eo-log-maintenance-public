@@ -1,5 +1,7 @@
 # テスト計画
 
+`test_sdk_staging_observer.py`は[別プロセスによるstaging照合](../docs/design/sdk-download-staging.md#別プロセスでの現在状態照合)を検証する。子へ期待hash/判定を渡さず、現在のfileと記録を読み直す。候補/未完/owner保留を区別し、改変や実体差替えは確認不能とする。API・書込み・自動採用は行わない。
+
 `test_sdk_download_staging.py`は[公式SDK→隔離staging](../docs/design/sdk-download-staging.md)を、実所有mutex・実fileと合成HTTPで検証する。非上書き、flush/fsync/読戻し、元の版変化、I/O故障、所有喪失と失敗試行の保持を確認する。対象rootはfixture自身が作るOS-temp領域だけである。
 
 同試験はpayload作成前の割当て記録と、検証後のready候補の非上書き公開も確認する。記録の改変や公開応答の喪失を成功結果にせず、残存記録を自動採用しない。正式manifest/ready状態の受け入れではない。

@@ -28,13 +28,33 @@ SDK転送はCommonの内部`_read_drive_content`へまとめ、公開`read_drive
 
 以降の書込・検証・公開では、root/所有に加え、保存済み記録が期待bytesのままであることも確認する。ready公開の直前・直後も現在のpayloadを確認する。payload/記録改変、所有喪失、公開失敗なら成功結果を返さない。ready公開後の応答喪失ではreadyが残る場合もあるため、記録の存在だけから呼出し成功や現在のready状態を推測しない。
 
-readyは、過去の検証時点のdownload候補であり、現在のcloud元の不変、運用root資格、次回の所有、移動完了/削除許可ではない。残存記録の自動採用、実run回復、正式なcold reader/schemaは未実装。再試行は従来どおり新しいattemptへ進み、古い記録・payloadを保持する。
+readyは、過去の検証時点のdownload候補であり、現在のcloud元の不変、運用root資格、次回の所有、移動完了/削除許可ではない。以下のcold照合を追加したが、残存記録の自動採用、実run回復、正式なreader/schemaは未実装。再試行は従来どおり新しいattemptへ進み、古い記録・payloadを保持する。
+
+## 別プロセスでの現在状態照合
+
+2026-10-29に[読取worker](../../tests/sdk_staging_observer.py)を追加した。親が渡すものはroot・nonce・attempt名と記録読取上限だけで、期待hash/実体identity/親の判定は渡さない。workerはSDKをimportせず、記録/現在fileを自身で読む。fixture-onlyのlocatorであり、任意rootの認可情報ではない。
+
+rootはOS-temp直下の既存fixture prefix・marker・実体chain、attemptは固定prefixのbasenameに限定する。記録は単一リンクの通常fileとして安定読取し、未知key・重複key・不正な数値/型/版、割当てとreadyのdigest/共通項目の不一致を拒否する。readyがあれば現在のpayload実体identity・size・実bytesのSHA-256を確認し、記録/名前集合/chainも読み直す。readyのないpayloadから完了を推測せず、残存する公開一時file等も黙って無視しない。
+
+| status | 読取結果の意味 |
+| --- | --- |
+| allocation_only | 有効な作成前記録があるがpayload/readyはない |
+| incomplete | 作成前記録とpayloadがあり、ready記録がない。内容が完全でもreadyとは扱わない |
+| ready_candidate | 割当て・ready・現在のローカル実体/内容が対応する。過去呼出しの成功や現在のcloud版は未確認 |
+| held | 所有記録が存在する。実行中か失効かを推測せず、内容を書き換えない |
+| unconfirmed | 記録/実体/内容/locator/読取等が不正または確認不能。対象なしへ変換しない |
+
+出力は固定status/reasonと`may_change_state=false`、`cloud_observed=false`だけで、ID/path/hash/marker/内容を出さない。owner記録を読んで解除/採用することも、mutex取得、記録追加、ready更新、移動・削除、API接続を行うこともない。owner記録の不在は、実運用での所有取得や書込者不在の証明ではない。
+
+この照合は読取時点の部分観測である。原子的snapshot、任意の同時変更、root/ACL/FS資格、現在cloud元の再確認、次の処理への採用条件は未完。観測の一致を理由に既存attemptを使い回す実装は追加しない。workerはtests専用で配布しない。
 
 ## 検証と残る限界
 
 [初回8試験と追加6試験](../../tests/test_sdk_download_staging.py)で、公式SDK＋合成HTTPからの実保存、API hashなしの一覧/plan/比較接続、中断・版変更と新規再試行、占有名、短い書込み・disk-full・flush失敗、保存後/metadata待機中の改変、所有喪失、空file/期待size不一致を確認した。追加分は、metadata-firstの実行順序、readyの実体/記録binding、作成前記録の失敗/中断/占有、記録改変、readyの保存失敗/応答喪失を確認する。I/O故障は小さなstream proxyや公開APIの失敗注入を使い、SDK・file・公開処理は実物を使う。実際のvolume枯渇を再現したものではない。
 
-今回14試験が成功した。初回の保存接続時には既存SDK/hash/比較/plan/旧stagingの関連10群105試験と役割別package回帰も成功しているが、今回の差分はtestsと文書のみのため、それらを再実行していない。ローカルSDK2.201.0、Python3.11.9（CI定義3.12）、PowerShell7.6.7。既存のSDK用一時依存と、承認されたsandbox外の自作合成一時領域を使い、実Drive・実ログ・実設定は使用していない。
+作成前/ready記録の追加時には14試験が成功した。初回の保存接続時には既存SDK/hash/比較/plan/旧stagingの関連10群105試験と役割別package回帰も成功しているが、記録追加の差分はtestsと文書のみのため、それらを再実行していない。ローカルSDK2.201.0、Python3.11.9（CI定義3.12）、PowerShell7.6.7。既存のSDK用一時依存と、承認されたsandbox外の自作合成一時領域を使い、実Drive・実ログ・実設定は使用していない。
+
+続くcold照合の[7試験](../../tests/test_sdk_staging_observer.py)も成功した。通常候補、作成前だけ/途中payload、ready応答喪失、記録binding/identity/shape/重複key/版/内容の不一致、同内容の別実体、欠落、hardlink、owner残存、不正locator/上限/余分なfileを確認する。子は`-I -B`で起動し、全fileの読取前後のbytes/名前の不変と、私的値を標準出力/エラーへ出さないことを検証した。Common/配布集合/依存は未変更のため、旧試験/ビルダーを再実行せず、CIへ新しい7試験の登録だけを追加した。
 
 streamとfileの扱いは既存fixtureのxb/flush/fsync/close/読戻しを再利用し、SDKは前回のGoogle公式sampleとrcloneの比較に基づく共通転送を使う。全bytesをメモリへ集めるpublish_bytes_no_overwriteはこのchunk保存には使わず、ready状態や最終archive先の公開を実装したものとも扱わない。新たな依存・コード転載はない。
 

@@ -6,6 +6,14 @@
 
 ## 現在地
 
+2026-10-29、開始HEAD `1697f33`、作業ツリーはクリーン。download試験候補の[別プロセス照合](../design/sdk-download-staging.md#別プロセスでの現在状態照合)を追加した。root/nonce/attempt名と記録上限だけを子へ渡し、割当て/readyの対応と現在のpayload実体/size/hashを独立に読む。親のhashや判定を引き継がず、SDKもimportしない。allocation_only/incomplete/ready_candidate/held/unconfirmedを区別し、全結果may_change_state=false・cloud_observed=falseとする。
+
+新規7試験が成功。ready応答喪失は過去成功へ昇格せず、同内容の実体差替え、record digest/shape/重複key/版/内容不一致、欠落、hardlink、owner残存、不正locator/上限/余分なfileを確認した。子を-I -Bで起動し、全fileのbytes/名前不変と私的値の非表示も確認した。Python3.11.9（CI定義3.12）、親の生成fixtureは既存SDK2.201.0を使用。承認されたsandbox外の自作合成一時領域のみで実施し、実Drive・実ログ・実設定、リモートCI、独立レビュー、実環境受け入れは未実施。Common/配布集合/依存は未変更で、旧105試験・package等は再実行していない。
+
+Python2ファイルの構文解析、変更4文書の相対リンク125件・見出し参照23件、git diff --checkが成功。rootが差分・CI登録を自己点検した。cold reader未実装という記述は、今回のtests専用読取と未完の正式schema/資格/採用へ区別して更新し、新たな実装規約の不一致は見つかっていない。無関係な全試験、markdownlint、GUI表示確認は未実施。
+
+既存のcold読取・安定file読取・JSON重複拒否・hash helperを再利用した。workerは既存recordを変更せず、ownerの解除/採用も行わない。次はこの候補を根拠に正式service/root/記録/使用点の契約をT1入口へ接続する条件を整理する。ローカルready候補は現在cloudや所有資格を証明せず、単独のreader/観測helperの追加を自動選択しない。正式入口・移動・削除、T0/T1/T4/AC全体の未完と35%概算を維持する。
+
 2026-10-29、開始HEAD `06d1728`、作業ツリーはクリーン。download隔離fixtureへ[作成前記録とready候補](../design/sdk-download-staging.md#作成前記録とready候補)を接続した。payload/SDK要求前にstaging.jsonを非上書き公開・読戻し、検証後に割当てdigest/実体/size/hash/versionをready.jsonへ記録する。両者はfixture_only付きで、正式manifest/readyやupload metadataの置換方式は変更しない。
 
 新規6を含む14試験が成功。作成前記録の失敗はpayloadもSDKも開始せず、記録改変や所有喪失はready成功へ進めない。ready公開後の応答喪失では記録を残すが、成功結果は返さない。旧attemptは再利用・上書き・自動削除しない。Common/配布集合/CI/依存は未変更のため、成功済みSDK/比較105試験やpackage回帰は再実行していない。Python3.11.9（CI定義3.12）、SDK2.201.0の既存一時依存を使い、承認されたsandbox外の自作合成一時領域のみで実施した。実Drive・実ログ・実設定、独立レビュー、リモートCI、実環境受け入れは未実施。
@@ -48,7 +56,7 @@ Google公式sampleとrcloneのpage継続方式を比較した。files.deleteの�
 
 2026-10-29に利用者の指示でAGENTS.mdの10原則追加を`ff5b723`へコミットした。元の文書更新の開始HEADは`9d71a3f`。変更2文書の相対リンク31件・見出し参照6件と差分検査は成功。承認境界を維持し、既存コードの一括リファクタリングは行っていない。
 
-- 作業branch: `codex/owned-simulation-run`。今回は「次の作業に着手して」により`06d1728`からdownload作成前記録/ready候補を実装・検証・ローカルコミットする。main `6658025`から作成した同じブランチへ変更を蓄積する。GitHubの同branchのPR検索結果は0件。push/PR/mergeは指示を待ち、前回PRの許可を流用しない。
+- 作業branch: `codex/owned-simulation-run`。今回は「次の作業に着手して」により`1697f33`からstagingの別プロセス照合を実装・検証・ローカルコミットする。main `6658025`から作成した同じブランチへ変更を蓄積する。GitHubの同branchのPR検索結果は0件。push/PR/mergeは指示を待ち、前回PRの許可を流用しない。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
