@@ -112,6 +112,8 @@ T0のローカル元削除方式を具体化するため、[Windows隔離probe](
 
 [同一プロセスのnative隔離接続](../design/same-process-owned-native-probe.md)で、所有mutex/token記録・元/保存先・準備記録を保持し、Q5再読から同一ハンドル削除・v1結果保存まで試験した。所有プロセス終了後も旧記録/lockを保全し、別プロセスの現在状態照合へつなぐ。任意rootの正式provider採用や、既存PowerShellモデルの実削除化ではない。
 
+その後、書込viewだけが残る場合の保護open拒否、3つの管理directoryの保持と名前変更拒否を追加検証し、[正式provider前の拒否契約](../design/same-process-owned-native-probe.md#正式providerへ渡す前の拒否契約)へ結び付けた。実root/ACL資格や実Drive保存先は残件であり、T0完了にはしない。
+
 T0の旧方針整合は§4のとおり進めた。次は元/保存先の識別・Q5確認と削除結果の詳細設計を進める。通常検証は合成/隔離/模擬APIを使い、実ログ/本番Driveの接続・削除・本番適用は別途具体的指示と限定計画の範囲で扱う。独立レビュー未実施を自己点検で置き換えて表記しない。
 
 ## 7. 文書の統合・削除記録

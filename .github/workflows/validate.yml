@@ -79,6 +79,10 @@ jobs:
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_owned_windows_move_probe.py" -v
 
+      - name: Validate native mapping and namespace refusal boundaries
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_native_provider_boundaries.py" -v
+
       - name: Validate immutable move journal and process reload
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_move_journal.py" -v

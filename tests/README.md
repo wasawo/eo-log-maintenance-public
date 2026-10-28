@@ -20,6 +20,8 @@
 
 `test_owned_windows_move_probe.py`は[同一プロセスの所有・実体保持](../docs/design/same-process-owned-native-probe.md)を検証する。自作OS-tempの合成ファイルだけで所有mutex、元/保存先/記録のハンドル保持、Q5再読・限定削除・v1記録・プロセス終了後の別プロセス再観測を接続する。`owned_move_crash_worker.py`も自分で生成するfixture以外を受け付けず、正式runtimeや配布へは追加しない。
 
+`test_native_provider_boundaries.py`は[provider前の拒否条件](../docs/design/same-process-owned-native-probe.md#正式providerへ渡す前の拒否契約)の部分証拠を検査する。元のfile/mapping両handleを閉じて残した書込view、読取handleからの書込mapping作成拒否、3ディレクトリの名前変更拒否と保持不能時の停止を、Win32 APIと自作fixtureだけで確認する。
+
 `test_simulation_file_snapshot.py`と`Test-FileSnapshotMoveSimulation.ps1`は[読取列挙からモデルへの接続](../docs/design/file-snapshot-simulation.md)を検証する。全列挙と部分失敗を区別し、合成物理ファイルを変更せずに、両経路の期間選択・競合・journal・最終レポートまで通す。
 
 `test_power_status_observation.py`はAC観測のmock ABI/不明・失敗と既存使用点への合成接続を検査します。Windowsでは実APIを読取のみで一度照会します。電源の変更・実ログ/Driveアクセス・task登録・実運用受け入れは行いません。

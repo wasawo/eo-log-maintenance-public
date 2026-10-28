@@ -1,16 +1,32 @@
 # 現在の引き継ぎ
 
-更新日: 2026-10-28（日本時間）
+更新日: 2026-10-29（日本時間）
 恒久ルール: [AGENTS.md](../../AGENTS.md)。正本: `wasawo/eo-log-maintenance-public`。
 本書は記録時点。開始時は実Git/作業ツリーを優先する。
 
 ## 現在地
 
-- 作業branch: `codex/owned-simulation-run`。今回開始HEADは`175daba`、作業ツリーはクリーン。main `6658025`から作成した同じブランチへ変更を蓄積する。今回は「次の作業に着手して」に基づくローカル実装・検証・コミットまで。新しいpush/PR/mergeは指示を待ち、前回PRの許可を流用しない。
+- 作業branch: `codex/owned-simulation-run`。今回開始HEADは`efb7811`、作業ツリーはクリーン。main `6658025`から作成した同じブランチへ変更を蓄積する。今回は「次の作業に着手して」に基づくローカル実装・検証・コミットまで。新しいpush/PR/mergeは指示を待ち、前回PRの許可を流用しない。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
-## 今回の同一プロセス所有・native実体保持の隔離接続
+## 今回のmapping・directory保持とprovider前の拒否契約
+
+[正式provider前の拒否契約](../design/same-process-owned-native-probe.md#正式providerへ渡す前の拒否契約)を正式設計と結び付けた。root/役割、directory保持、所有/必要記録、元/保存先保持、Q5実体結合、結果観測の不足時は元削除へ進めず、設定値やACL profileのmatchesを認可にしない。Common/正式入口/Drive操作は追加していない。
+
+testsの候補にfixture・所有記録・journalのdirectory handle保持を追加した。READ/WRITE共有は許すがDELETE共有を許さず、保持不能時に共有条件を緩めない。3領域のMoveFileExWによる名前変更拒否と、既存DELETE accessがあれば自身の保持を拒否することを実Win32で確認した。全祖先の名前空間や実運用ACLの資格を証明したものではない。
+
+新しい境界試験は、書込mappingを作った元file handleとmapping object handleの両方を閉じ、viewだけが残った状態を作る。source/destinationの保護openは共有違反32で拒否された。viewからbytesを書き換えた場合も、view終了後に旧コピー基準との不一致を検出して元を残す。読取handleからの書込mapping作成はaccess denied 5。CPython/libuvの実装とMicrosoft仕様を比較し、保持handleの影響を混同しないWin32 fixtureを採用した。
+
+新規境界5試験と、変更した同一プロセス所有接続9回帰が成功した（skipなし）。自作合成一時領域だけをsandbox外で使い、実ログ/Driveは未使用。ローカルPython 3.11.9、CI定義Python 3.12。Common/配布集合/PowerShell/基礎probeのAPIは未変更のため、それらの成功済み試験は無関係に再実行していない。リモートCI・独立レビュー・実環境受け入れは未実施。
+
+Python構文解析3ファイル、文書104件の相対リンク1043件・見出し参照119件と`git diff --check`も成功。markdownlintや無関係な全試験は再実行していない。
+
+文書の「既存mapping/名前空間が未確認」は、当該fixtureで確認した拒否能力と、mapping種別/他FS/全祖先/ACLなど残る資格へ分けた。既存コードの実装規約との新たな不一致は見つかっていない。
+
+次は任意の実rootを受け入れる前の独立したroot/ACL/所有観測と、単一試行providerの拒否・入力契約を具体化する。marker付きfixtureを実root資格に流用しない。実Drive保存先/版固定削除、正式入口、全対象FS・電源断・close失敗等は未完。T0/T1/T4/AC全体を完了にしない。実ログ/本番Drive操作は未承認のまま。
+
+## 前回の同一プロセス所有・native実体保持の隔離接続
 
 [同一プロセスのnative隔離接続](../design/same-process-owned-native-probe.md)を追加した。tests内の既存probeへ所有mutex/token記録を接続し、元/保存先・local prepared/v1 prepared・所有記録の読取ハンドルを保持する。所有確認後に同じ元/保存先ハンドルを先頭へ戻して内容を再読し、同じ元ハンドルへ限定削除を指定する。任意root/pathを受ける入口や、Commonのモデルを実削除へ切り替える変更は追加していない。
 

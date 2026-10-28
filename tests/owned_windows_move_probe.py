@@ -2,7 +2,7 @@
 
 No caller-selected paths, production provider, or ownership broker is exposed.
 """
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 import ctypes
 import hashlib
 from Common.ArtifactSetDirectoryVerification import _chain
@@ -16,6 +16,8 @@ class OwnedDisposableMoveDeleteProbe(DisposableMoveDeleteProbe):
         self._ownership_root=self._root/'ownership'
         self._ownership_root.mkdir()
         self._ownership_chain=_chain(self._ownership_root)
+        self._journal_root=self._root/'journal'
+        self._journal_chain=_chain(self._journal_root)
         self._lock_path=self._ownership_root/'run.lock'
         self._scope='NativeMoveProbe-'+self._nonce.decode('ascii')
 
@@ -23,6 +25,15 @@ class OwnedDisposableMoveDeleteProbe(DisposableMoveDeleteProbe):
         self._verify_root()
         if _chain(self._ownership_root) != self._ownership_chain:
             raise MoveDeleteProbeError('probe_ownership_root_changed')
+        if _chain(self._journal_root) != self._journal_chain:
+            raise MoveDeleteProbeError('probe_journal_root_changed')
+        with ExitStack() as directories:
+            directories.enter_context(self._directory_handle(self._root))
+            directories.enter_context(self._directory_handle(self._ownership_root))
+            directories.enter_context(self._directory_handle(self._journal_root))
+            return self._run_with_owner(at_checkpoint,options)
+
+    def _run_with_owner(self,at_checkpoint,options):
         with acquire_owned_lock(self._scope,self._lock_path,timeout_seconds=0,maximum_record_bytes=4096) as token:
             with self._owner_record_handle(token):
                 def verify(phase):
@@ -31,8 +42,33 @@ class OwnedDisposableMoveDeleteProbe(DisposableMoveDeleteProbe):
                         at_checkpoint(phase)
                     self._verify_root()
                     return (_chain(self._ownership_root) == self._ownership_chain
+                            and _chain(self._journal_root) == self._journal_chain
                             and _record_matches(self._lock_path,self._scope,token,4096))
                 return self.run(ownership_check=verify,**options)
+
+    @contextmanager
+    def _directory_handle(self,path):
+        # Only three constructor-owned directories can reach this method.
+        if path not in (self._root,self._ownership_root,self._journal_root):
+            raise MoveDeleteProbeError('probe_directory_guard_invalid')
+        self._verify_root()
+        # BACKUP_SEMANTICS | OPEN_REPARSE_POINT; allow READ/WRITE, deny DELETE.
+        handle=self._api.CreateFileW(str(path),0x80000000,3,None,3,0x02200000,None)
+        if handle in (None,ctypes.c_void_p(-1).value):
+            raise MoveDeleteProbeError('probe_directory_guard_failed')
+        try:
+            attributes=self._structures[2]()
+            if (not self._api.GetFileInformationByHandleEx(handle,9,ctypes.byref(attributes),ctypes.sizeof(attributes))
+                    or not attributes.FileAttributes&0x10 or attributes.FileAttributes&0x400):
+                raise MoveDeleteProbeError('probe_directory_guard_invalid')
+            self._verify_root()
+            if _chain(self._ownership_root) != self._ownership_chain:
+                raise MoveDeleteProbeError('probe_ownership_root_changed')
+            if _chain(self._journal_root) != self._journal_chain:
+                raise MoveDeleteProbeError('probe_journal_root_changed')
+            yield handle
+        finally:
+            self._close(handle)
 
     @contextmanager
     def _owner_record_handle(self,token):
