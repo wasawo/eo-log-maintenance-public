@@ -52,11 +52,52 @@ function Invoke-EoLogMoveSimulation {
         }
     }
     foreach ($event in $State.Events) {
-        if ($event -isnot [hashtable] -or $event.Kind -cnotin @('prepared', 'delete_result', 'reconciled') -or
-            $event.SourceId -isnot [string] -or $event.MachineId -cnotin @('PC-A', 'PC-B') -or
+        if ($event -isnot [hashtable]) { throw 'move_simulation_record_invalid' }
+        foreach ($key in @('Kind','SourceId','MachineId','Operation','LogType','RelativePath')) {
+            if (-not $event.ContainsKey($key) -or $event[$key] -isnot [string] -or
+                [string]::IsNullOrWhiteSpace($event[$key])) { throw 'move_simulation_record_invalid' }
+        }
+        if ($event.Kind -cnotin @('prepared', 'delete_result', 'reconciled') -or
+            $event.MachineId -cnotin @('PC-A', 'PC-B') -or
             $event.Operation -cnotin @('Sync', 'Archive') -or $event.LogType -cnotin @('BattleLog', 'ErrorReport') -or
+            ($event.Operation -ceq 'Archive' -and $event.MachineId -cne 'PC-A') -or
             $null -eq (ConvertTo-SafeDiagnosticRelativePath -Path $event.RelativePath)) {
             throw 'move_simulation_record_invalid'
+        }
+        if ($event.Kind -cin @('prepared','delete_result')) {
+            if (-not $event.ContainsKey('DestinationId') -or $event.DestinationId -isnot [string] -or
+                [string]::IsNullOrWhiteSpace($event.DestinationId)) { throw 'move_simulation_record_invalid' }
+        }
+        if ($event.Kind -ceq 'prepared') {
+            foreach ($key in @('SourceLocation','DestinationLocation','DestinationName','Sha256','Size','Reused')) {
+                if (-not $event.ContainsKey($key)) { throw 'move_simulation_record_invalid' }
+            }
+            $expectedSource=if ($event.Operation -ceq 'Sync') {$event.MachineId}else{'Cloud'}
+            $expectedDestination=if ($event.Operation -ceq 'Sync') {'Cloud'}else{'Archive'}
+            if ($event.SourceLocation -isnot [string] -or $event.SourceLocation -cne $expectedSource -or
+                $event.DestinationLocation -isnot [string] -or $event.DestinationLocation -cne $expectedDestination -or
+                $event.DestinationName -isnot [string] -or
+                $event.DestinationName -cne ($event.RelativePath.Replace('\','/') -split '/')[-1] -or
+                $event.Sha256 -isnot [string] -or $event.Sha256 -cnotmatch '^[a-f0-9]{64}$' -or
+                ($event.Size -isnot [int] -and $event.Size -isnot [long]) -or $event.Size -lt 0 -or
+                $event.Reused -isnot [bool]) { throw 'move_simulation_record_invalid' }
+            if ($event.ContainsKey('JournalRecord') -ne $event.ContainsKey('JournalSha256')) { throw 'move_simulation_record_invalid' }
+            if ($event.ContainsKey('JournalRecord')) {
+                $record=$event.JournalRecord
+                if ($record -isnot [hashtable] -or -not $record.ContainsKey('record_id') -or -not $record.ContainsKey('move_id') -or
+                    $record.record_id -isnot [string] -or $record.move_id -isnot [string] -or
+                    $event.JournalSha256 -isnot [string] -or $event.JournalSha256 -cnotmatch '^[a-f0-9]{64}$') {
+                    throw 'move_simulation_record_invalid'
+                }
+            }
+        }
+        elseif (-not $event.ContainsKey('Outcome') -or $event.Outcome -isnot [string] -or
+            $event.Outcome -cnotin @('completed','unknown')) { throw 'move_simulation_record_invalid' }
+        foreach ($key in @('MoveId','JournalPreparedId')) {
+            if ($event.ContainsKey($key) -and ($event[$key] -isnot [string] -or
+                $event[$key] -cnotmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')) {
+                throw 'move_simulation_record_invalid'
+            }
         }
     }
     $sourceLocation = if ($Operation -eq 'Sync') { $MachineId } else { 'Cloud' }
@@ -98,14 +139,35 @@ function Invoke-EoLogMoveSimulation {
         param([byte[]]$Bytes)
         [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($Bytes)).ToLowerInvariant()
     }
+    $confirmReconciliation = {
+        param($Record)
+        try {
+            $destination=@($State.Files | Where-Object { $_.Id -ceq $Record.DestinationId })
+            $recreated=@($State.Files | Where-Object {
+                $_.Id -ceq $Record.SourceId -or ($_.Location -ceq $sourceLocation -and $_.LogType -ceq $Record.LogType -and
+                    $_.RelativePath -ceq $Record.RelativePath)
+            })
+            if ($destination.Count -ne 1 -or $recreated.Count -ne 0) { return $false }
+            $target=$destination[0]
+            return ($target.Location -ceq $destinationLocation -and $target.LogType -ceq $Record.LogType -and
+                $target.RelativePath -ceq $Record.DestinationName -and $target.Bytes.LongLength -eq $Record.Size -and
+                (& $hashBytes $target.Bytes) -ceq $Record.Sha256)
+        }
+        catch { return $false }
+    }
     $addResult = {
-        param($Source, [string]$Outcome, [string]$Reason, $DestinationId)
+        param($Source, [string]$Outcome, [string]$Reason, $DestinationId, $ReconciliationRecord=$null)
         if ($journalEnabled -and $journalPrepared.ContainsKey($Source.Id) -and $Reason -ne 'result_record_failed' -and
             -not $ownership.Lost -and -not (& $ensureOwned 'before_outcome' $Source.Id)) {
             $Reason=if ($Reason -ceq 'reconciled_completion') {'ownership_unconfirmed_during_reconciliation'}elseif ($Outcome -in @('completed','unknown')) {'ownership_unconfirmed_after_delete'}else{'ownership_unconfirmed'}
             if ($Outcome -eq 'completed') { $Outcome='unknown' }
         }
-        if ($journalEnabled -and $journalPrepared.ContainsKey($Source.Id) -and $Reason -ne 'result_record_failed' -and -not $ownership.Lost) {
+        # Observe Q11 after the last ownership acknowledgement, including before_outcome.
+        if ($Reason -ceq 'reconciled_completion' -and -not (& $confirmReconciliation $ReconciliationRecord)) {
+            $Outcome='unknown'; $Reason='reconciliation_unconfirmed'
+        }
+        if ($journalEnabled -and $journalPrepared.ContainsKey($Source.Id) -and $Reason -ne 'result_record_failed' -and -not $ownership.Lost -and
+            ($null -eq $ReconciliationRecord -or $Reason -ceq 'reconciled_completion')) {
             $binding = $journalPrepared[$Source.Id]
             try {
                 [void](Save-EoSimulationOutcome -Prepared $binding.JournalRecord -Sha256 $binding.JournalSha256 `
@@ -326,26 +388,15 @@ function Invoke-EoLogMoveSimulation {
         }
         $record = $records[0]
         $reported = @{ Id = $record.SourceId; RelativePath = $record.RelativePath; LogType = $record.LogType }
-        $destination = @($State.Files | Where-Object { $_.Id -ceq $record.DestinationId })
-        $recreated = @($State.Files | Where-Object {
-            $_.Location -ceq $sourceLocation -and $_.LogType -ceq $record.LogType -and
-            $_.RelativePath -ceq $record.RelativePath
-        })
-        $canReconcile = $records.Count -eq 1 -and $destination.Count -eq 1 -and $recreated.Count -eq 0 -and
+        $canReconcile = $records.Count -eq 1 -and
             $record.SourceLocation -ceq $sourceLocation -and $record.DestinationLocation -ceq $destinationLocation -and
             $record.Sha256 -cmatch '^[a-f0-9]{64}$' -and $record.Size -ge 0
-        if ($canReconcile) {
-            $target = $destination[0]
-            $canReconcile = $target.Location -ceq $destinationLocation -and $target.LogType -ceq $record.LogType -and
-                $target.RelativePath -ceq $record.DestinationName -and $target.Bytes.LongLength -eq $record.Size -and
-                (& $hashBytes $target.Bytes) -ceq $record.Sha256
-        }
         if ($DryRun -or $Faults.ContainsKey($record.SourceId) -or $journalState.Failed) { $canReconcile = $false }
         if (-not (& $ensureOwned 'before_reconcile' $record.SourceId)) { $canReconcile=$false }
         if ($journalEnabled -and -not $record.ContainsKey('JournalRecord')) { $canReconcile = $false }
         if ($canReconcile) {
             if ($journalEnabled) { $journalPrepared[$record.SourceId] = $record }
-            & $addResult $reported 'completed' 'reconciled_completion' $record.DestinationId
+            & $addResult $reported 'completed' 'reconciled_completion' $record.DestinationId $record
             $reconciledEvent = @{
                 Kind = 'reconciled'; SourceId = $record.SourceId; Outcome = $outcomes[$record.SourceId]
                 MachineId = $MachineId; Operation = $Operation

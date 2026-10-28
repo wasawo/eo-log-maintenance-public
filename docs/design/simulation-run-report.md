@@ -43,6 +43,8 @@ python -B Common/SimulationRunReport.py --report-root <専用フォルダ> --rea
 
 ## 検証と残件
 
+2026-10-29に、試験用のoutcome/next_actionを本体の理由表から生成する方式をやめ、契約上の期待値として固定した。各理由の集計を個別に検証し、保存・読戻し・別プロセス試験も維持する。`delete_failed`を誤って対象外へ対応付けるメモリ内の変更は、修正後の試験で検出した。本体の理由表やレポート形式は変更していない。
+
 [Python試験](../../tests/test_simulation_run_report.py)で全理由分類・保存/別プロセス読戻し・改変・不正入力・詳細非表示を検査し、[PS接続試験](../../tests/Test-LogMoveJournalIntegration.ps1)で両経路の部分失敗・早期失敗・対象なし・期間除外・Dry Run・保存失敗を検証する。
 
 実列挙、実provider、正式入口、起動/中断を含めた実run lifecycle、実環境資格、実運用の詳細表示・性能は未完。T0/T1/T4とAC全体の受け入れ完了にはしない。

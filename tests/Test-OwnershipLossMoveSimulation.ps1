@@ -80,6 +80,48 @@ try {
         Assert-True ($run.Results[0].Reason -ceq 'ownership_unconfirmed_during_reconciliation' -and $run.CompletedSourceCount -eq 0 -and
             @(Get-ChildItem $arguments.JournalRoot -File).Count -eq $count) "$operation reconciliation recording failure is not labelled as this-run deletion"
     }
+    # R-01: Q11 observations must follow the last waiting ownership callback.
+    foreach($operation in @('Sync','Archive')) {
+        $location=if($operation -ceq 'Sync'){'PC-A'}else{'Cloud'}
+        foreach($withJournal in @($false,$true)) {
+            $phases=if($withJournal){@('before_reconcile','before_outcome')}else{@('before_reconcile')}
+            foreach($phase in $phases) {
+                foreach($change in @('destination_content','destination_removed','source_recreated')) {
+                    $state=New-State $location;$state.Files.RemoveAt(1)
+                    $arguments=@{ConfigurationJson=($config|ConvertTo-Json -Compress);MachineId='PC-A';Operation=$operation;
+                        State=$state;ReferenceDate=[datetime]'2026-10-28';PythonExecutable=$PythonExecutable}
+                    if($withJournal) {
+                        $base=Join-Path $fixture ([guid]::NewGuid().ToString('N'))
+                        foreach($part in @('journal','reports')){New-Item -ItemType Directory -Path (Join-Path $base $part) -Force|Out-Null}
+                        $arguments.JournalRoot=Join-Path $base 'journal';$arguments.ReportRoot=Join-Path $base 'reports'
+                    }
+                    [void](Invoke-EoLogMoveSimulation @arguments -Faults @{one='delete_unknown_absent'})
+                    $historyBefore=$state.Events | ConvertTo-Json -Depth 20 -Compress
+                    $count=if($withJournal){@(Get-ChildItem $arguments.JournalRoot -File).Count}else{0}
+                    $control=@{Changed=$false}
+                    $check={param($Point) if($Point -ceq $phase -and -not $control.Changed) {
+                        $control.Changed=$true
+                        switch($change) {
+                            'destination_content' {$state.Files[0].Bytes=[byte[]]@(99)}
+                            'destination_removed' {$state.Files.Clear()}
+                            'source_recreated' {$state.Files.Add(@{Id='new-source';Location=$location;LogType='BattleLog';
+                                RelativePath='20240101_12345678@one.txt';Bytes=[byte[]]@(99)})}
+                        }
+                    };return $true}
+                    $run=Invoke-EoLogMoveSimulation @arguments -OwnershipCheck $check
+                    Assert-True ($control.Changed -and $run.CompletedSourceCount -eq 0 -and $run.Status -ceq 'failure' -and
+                        $run.Results[0].Reason -ceq 'reconciliation_unconfirmed') "$operation $withJournal $phase $change cannot reconcile stale observations"
+                    Assert-True ($state.Events[-1].Kind -ceq 'reconciled' -and $state.Events[-1].Outcome -ceq 'unknown') 'no completed model event is added'
+                    if($withJournal) {
+                        Assert-True (@(Get-ChildItem $arguments.JournalRoot -File).Count -eq $count) 'unconfirmed reconciliation preserves old journal without a new deletion result'
+                        Assert-True ($run.ReportSaveStatus -ceq 'confirmed' -and $run.RunReportSummary.unresolved_source_count -eq 1) 'unconfirmed reconciliation remains visible in final report'
+                    }
+                    $state.Events.RemoveAt($state.Events.Count-1)
+                    Assert-True (($state.Events | ConvertTo-Json -Depth 20 -Compress) -ceq $historyBefore) 'previous history is unchanged'
+                }
+            }
+        }
+    }
     # Real owner IPC: alter the self-created token record immediately after
     # prepared publication, so the next checkpoint must refuse deletion.
     $script:originalSend=(Get-Command Send-EoSimulationRecord).ScriptBlock
