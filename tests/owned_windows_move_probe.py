@@ -8,6 +8,7 @@ import hashlib
 from Common.ArtifactSetDirectoryVerification import _chain
 from Common.OwnedRunLock import acquire_owned_lock, _record_matches, _strict_record_bytes
 from windows_move_delete_probe import DisposableMoveDeleteProbe, MoveDeleteProbeError
+from windows_security_observation import NativeSecurityObserver
 
 
 class OwnedDisposableMoveDeleteProbe(DisposableMoveDeleteProbe):
@@ -28,12 +29,14 @@ class OwnedDisposableMoveDeleteProbe(DisposableMoveDeleteProbe):
         if _chain(self._journal_root) != self._journal_chain:
             raise MoveDeleteProbeError('probe_journal_root_changed')
         with ExitStack() as directories:
-            directories.enter_context(self._directory_handle(self._root))
-            directories.enter_context(self._directory_handle(self._ownership_root))
-            directories.enter_context(self._directory_handle(self._journal_root))
-            return self._run_with_owner(at_checkpoint,options)
+            handles=[directories.enter_context(self._directory_handle(path)) for path in (self._root,self._ownership_root,self._journal_root)]
+            observer=NativeSecurityObserver(self)
+            baseline=[observer.read(handle) for handle in handles]
+            def unchanged_security():
+                return [observer.read(handle) for handle in handles]==baseline
+            return self._run_with_owner(at_checkpoint,options,unchanged_security)
 
-    def _run_with_owner(self,at_checkpoint,options):
+    def _run_with_owner(self,at_checkpoint,options,unchanged_security):
         with acquire_owned_lock(self._scope,self._lock_path,timeout_seconds=0,maximum_record_bytes=4096) as token:
             with self._owner_record_handle(token):
                 def verify(phase):
@@ -43,6 +46,7 @@ class OwnedDisposableMoveDeleteProbe(DisposableMoveDeleteProbe):
                     self._verify_root()
                     return (_chain(self._ownership_root) == self._ownership_chain
                             and _chain(self._journal_root) == self._journal_chain
+                            and unchanged_security()
                             and _record_matches(self._lock_path,self._scope,token,4096))
                 return self.run(ownership_check=verify,**options)
 

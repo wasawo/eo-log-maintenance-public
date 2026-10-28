@@ -83,6 +83,10 @@ jobs:
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_native_provider_boundaries.py" -v
 
+      - name: Validate held-handle root security observations
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_native_security_binding.py" -v
+
       - name: Validate immutable move journal and process reload
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_move_journal.py" -v

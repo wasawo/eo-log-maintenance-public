@@ -62,3 +62,19 @@ probeのハンドルは専用・同期読取であり、他スレッドへ共有
 | 結果観測 | 要求成功だけ、pending/権限不足/記録不明、不在の確証がない | 完了にせず結果不明/未完了として保全し、Q11の現在状態照合へ。元が消えただけで過去成功を作らない |
 
 Q12の直接削除方式、対象期間、同名競合、PC-Bの権限を変えるものではない。これらの根拠を実root/実providerでそろえる前に、tests内候補を公開された実削除入口へ昇格させない。
+
+## 保持handleのsecurity観測と残る資格
+
+2026-10-29に`tests/windows_security_observation.py`を追加した。保持中のdirectory handleからGetSecurityInfoでowner/DACLの記述子を読み、File ID・object種別を取得前後に確認する。pathからGet-Aclを取り直す方式と異なり、観測を開いている実体へ結び付ける。READ_CONTROL不足、無効/未対応の記述子、64 KiBを超える応答、API失敗は固定理由で拒否し、不足する情報を補完しない。
+
+観測値はobject kind、volume/128-bit File ID、owner/DACLの自己相対bytes、owner SID、process primary tokenのuser SID、DACL present/null/protectedを持つ。GetTokenInformationのbufferも64 KiB以内とし、Native APIの割当てを解放する。SID・記述子はprivateなメモリ内に限り、repr・journal・コンソール・PRへ出さない。プロセスprimary userの観測は、thread impersonation下のeffective userやgroup/privilege/elevationの証明ではない。
+
+候補は3ディレクトリのhandleを保持した後に基準観測を取得する。取得不能なら通常所有記録の生成より前に拒否する。取得後も各所有checkpointで同じhandleを読み直し、実体/記述子/観測したprocess userが変われば元削除や成功記録を止める。除去後に検出した場合は結果不明とする。
+
+[6試験](../../tests/test_native_security_binding.py)では、実handleとprocess userの観測、READ_CONTROLのないhandleの拒否、初回観測失敗、保持中のDACL変更の検出、除去後の変更で成功記録を作らないことを確認する。fault fixtureは自分で作った3ディレクトリだけを対象に、実行user/SYSTEM/local Administratorsの明示DACLへ設定する。observer自身はACLを書き換えず、任意pathやSDDLを受け取らない。実accountの権限・task・設定・利用者の既存rootは変更しない。
+
+共有modeでdirectoryの名前変更を拒否できても、WRITE_DACによるDACL変更を凍結できるわけではない。今回もholding中の変更が成功し、再観測で検出した。checkpoint間の変更/復元、観測直後の変更、全祖先、SACL・mandatory label、group/privilege/impersonation、実効AccessCheck、実運用rootのqualificationは残る。観測一致の`may_change_state`は常にfalseであり、自作fixtureの試験が通ることを任意rootの削除許可へ流用しない。
+
+既存の[private file ACL profile](reference/private-evidence-acl-profile.md)はfile専用のまま維持し、directoryをfileと偽って分類しない。初期directory policyや正式factoryの資格条件を推測で採用していない。
+
+根拠は[GetSecurityInfo](https://learn.microsoft.com/en-us/windows/win32/api/aclapi/nf-aclapi-getsecurityinfo)、[GetSecurityDescriptorLength](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-getsecuritydescriptorlength)、[GetTokenInformation](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-gettokeninformation)。[pywin32のhandle取得](https://github.com/mhammond/pywin32/blob/7743a95fcdb03cd1c7939259caaea70ebace1e53/win32/src/win32security.i)と[libuvの利用例](https://github.com/libuv/libuv/blob/9d8bbff7be6298900c494f39619deab799826f30/test/appcontainer.c)を比較し、SACL privilegeを要求せずowner/DACLだけをhandleから取得する。fixtureのDACL変更は[SetSecurityInfo](https://learn.microsoft.com/en-us/windows/win32/api/aclapi/nf-aclapi-setsecurityinfo)を使い、Native割当てをLocalFreeで解放する。依存追加やコード転載はない。

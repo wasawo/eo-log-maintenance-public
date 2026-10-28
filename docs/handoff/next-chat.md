@@ -6,11 +6,27 @@
 
 ## 現在地
 
-- 作業branch: `codex/owned-simulation-run`。今回開始HEADは`efb7811`、作業ツリーはクリーン。main `6658025`から作成した同じブランチへ変更を蓄積する。今回は「次の作業に着手して」に基づくローカル実装・検証・コミットまで。新しいpush/PR/mergeは指示を待ち、前回PRの許可を流用しない。
+- 作業branch: `codex/owned-simulation-run`。今回開始HEADは`ede1a3f`、作業ツリーはクリーン。main `6658025`から作成した同じブランチへ変更を蓄積する。今回は「次の作業に着手して」に基づくローカル実装・検証・コミットまで。新しいpush/PR/mergeは指示を待ち、前回PRの許可を流用しない。
 - 正式文書: [要件定義書](../requirements/log-move-requirements.md)、[設計書](../design/log-move-design.md)、[受け入れ条件・実装計画](../development/implementation-workflow.md)。Q1〜Q12/平坦化は確認済み。承認根拠は要件定義書「承認記録」。提示済みの未回答質問はない。
 - 初回完成は手動で両経路を確認済み元の直接削除まで。2026-10-28に利用者から「修正した資料をもとに実装作業を再開して」と指示を受領した。実装停止を解除し、未決を模擬契約と実API/FS保証に分けて進める。T0とruntime受け入れは未完であり、実データ操作・本番適用は未承認。
 
-## 今回のmapping・directory保持とprovider前の拒否契約
+## 今回の保持handle security観測とACL変化時の停止
+
+[保持handleのsecurity観測](../design/same-process-owned-native-probe.md#保持handleのsecurity観測と残る資格)をtests内の同一プロセス候補へ接続した。root/所有記録/journalの3つのdirectory handleからFile IDとowner/DACLを取得し、process primary user SIDもOSへ照会する。初回の取得不能は通常所有記録を作る前に拒否し、実行中の再観測が変化したら元削除/成功記録を止める。除去後なら結果不明にする。
+
+観測はprivateなメモリ内だけで扱い、repr・journal・コンソールへSID/記述子を出さない。常にmay_change_state=falseとし、directoryを既存file専用profileへ偽装して渡さない。Common/正式factory/実運用rootの資格を追加したものではない。
+
+新規6試験でREAD_CONTROL不足、独立したprocess userの照合、初回観測失敗、directory保持中でもWRITE_DACでDACLを変更できることとその検出、除去後の変更時に成功記録を作らないことを確認した。fault用DACL変更は自作3ディレクトリとそのfixture内だけに限定し、実accountの権限・利用者の既存rootは変更しない。observer自体は読取だけである。
+
+新規6試験と既存同一プロセス接続9・mapping/namespace境界5回帰が成功した（skipなし）。自作合成一時領域だけをsandbox外で使用し、実ログ/Driveは未使用。ローカルPython 3.11.9、CI定義Python 3.12。Python構文解析4ファイルも成功。Common/配布集合/PowerShell/基礎probeは未変更のため、それらの成功済み試験は再実行していない。リモートCI・独立レビュー・実環境受け入れは未実施。
+
+文書104件の相対リンク1050件・見出し参照124件と`git diff --check`も成功。markdownlintや無関係な全試験は再実行していない。
+
+pywin32とlibuvのhandle取得方式を比較し、Microsoft GetSecurityInfo/GetTokenInformationの仕様へ沿ってNative割当てを解放する形にした。既存ACL文書の「descriptor取得は未実装」を、Commonの正式providerとtests内の部分観測へ分けて更新した。新たな実装規約の不一致は見つかっていない。
+
+今回も観測直後/途中変更・復元の排除、thread impersonation、group/privilege/elevation、SACL/mandatory label、実効AccessCheck、全祖先、正式directory policy・実root資格は未完。観測一致を認可とせず、T0/T1/T4/AC全体を完了にしない。次は実効token/祖先を含む資格契約と、独立観測を正式な単一試行providerへ渡す境界を具体化する。実ログ/本番Drive操作は未承認のまま。
+
+## 前回のmapping・directory保持とprovider前の拒否契約
 
 [正式provider前の拒否契約](../design/same-process-owned-native-probe.md#正式providerへ渡す前の拒否契約)を正式設計と結び付けた。root/役割、directory保持、所有/必要記録、元/保存先保持、Q5実体結合、結果観測の不足時は元削除へ進めず、設定値やACL profileのmatchesを認可にしない。Common/正式入口/Drive操作は追加していない。
 

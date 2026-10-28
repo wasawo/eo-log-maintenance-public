@@ -22,6 +22,8 @@
 
 `test_native_provider_boundaries.py`は[provider前の拒否条件](../docs/design/same-process-owned-native-probe.md#正式providerへ渡す前の拒否契約)の部分証拠を検査する。元のfile/mapping両handleを閉じて残した書込view、読取handleからの書込mapping作成拒否、3ディレクトリの名前変更拒否と保持不能時の停止を、Win32 APIと自作fixtureだけで確認する。
 
+`test_native_security_binding.py`は[保持handleのsecurity観測](../docs/design/same-process-owned-native-probe.md#保持handleのsecurity観測と残る資格)を検証する。`windows_security_observation.py`はprivateな読取だけ、`windows_fixture_acl.py`は自作3ディレクトリだけのfault作成を担当する。実rootのACL設定や実accountの権限変更には使わず、観測一致も認可としない。
+
 `test_simulation_file_snapshot.py`と`Test-FileSnapshotMoveSimulation.ps1`は[読取列挙からモデルへの接続](../docs/design/file-snapshot-simulation.md)を検証する。全列挙と部分失敗を区別し、合成物理ファイルを変更せずに、両経路の期間選択・競合・journal・最終レポートまで通す。
 
 `test_power_status_observation.py`はAC観測のmock ABI/不明・失敗と既存使用点への合成接続を検査します。Windowsでは実APIを読取のみで一度照会します。電源の変更・実ログ/Driveアクセス・task登録・実運用受け入れは行いません。
