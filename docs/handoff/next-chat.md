@@ -6,6 +6,20 @@
 
 ## 現在地
 
+2026-10-30、利用者のS3③-Aセットアップ支援実装指示で再開。開始01:36:23 JST、上限3 PRまたは30分/承認待ち発生で停止。最新main/origin/main/GitHub mainは `21b9c761c47aa13c8616f517b6c63fd94262f3cb`、PR #58統合とmainのValidate/Package Validation両方成功を確認した。開始ツリーはクリーン、worktreeは本checkoutのみ、originは正本。AGENTS/current-slice/PC別手順とDesktopAuthorization/DPAPIを確認し、最新mainから `feat/s3-setup-support` を作成した。既存credential/実設定の存在は探索していない。
+
+**承認判断点のため実装前に停止。** 既存folderのdrive.file認可について、[GoogleのDesktop/mobile Picker公式手順](https://developers.google.com/workspace/drive/picker/guides/desktop-mobile-picker)を確認した。同手順はGoogle Picker APIの有効化を前提とし、既存Desktop OAuth URLへprompt=consent/trigger_onepick=trueを加え、file_ids等で選択対象を指定し、picked_file_idsをcallbackで返す。scopeはdrive.fileのみで、既存PKCE/state/loopbackに接続する候補となる。これは現在のDrive APIのみの前提に対する追加Google APIであるため、利用者の「新しいGoogle API/外部依存/追加認可方式が必要なら判断を待つ」に該当する。実APIを有効化/呼出しせず、コードや認可方式を未承認で追加しない。
+
+推奨判断案: Desktop OAuth内蔵Picker方式の実装・模擬検証に限り、Google Picker APIを追加対象として許可する。JavaScript library/API key/Web OAuth clientを必要とするWeb版ではなく、既存Desktop clientとdrive.fileを維持する案。事前指定した隔離folder/必要な既存合成fileのIDに選択候補を絞り、callbackの選択IDを許可集合と照合する。folder選択が既存配下fileすべてを認可するとは仮定せず、個別の可視性は③④の実証に残す。state/PKCE・秘密非表示・非上書き/旧credential保持・PC役割は維持する。Cloud上のAPI有効化、実OAuth/token、実folder認可、実Drive操作はこの実装許可に含めず、別途承認待ちとする。
+
+代替案: 新APIを追加しない場合は、利用者の新しい範囲指示で①初回登録/②保護設定だけを先行し、③folder認可は未実装で残す。Web Picker方式は[公式Web手順](https://developers.google.com/workspace/drive/picker/guides/web-picker-sample)上で追加API/API key/Web client/JavaScript導入を伴うため、現行のDesktop前提では推奨しない。folder作成/共有変更/広いscopeでの迂回は提案・実装しない。
+
+今回の成果は上記の公式資料調査と判断用handoffのみ。新機能・合成テスト・回帰試験・push/PR/mergeは未実施（コード不変）。初回登録/保護設定の実装も、今回指示の停止条件に従い判断待ちで止める。次の具体的作業は、追加Google Picker APIの実装・模擬検証を許可するか、①②だけへ範囲を変更するかの利用者判断。S3③④未完・正式AC/P0/Q5/安全条件不変、実credential/OAuth/Drive/実ログ/元やcloud削除未実施、S4未着手を維持する。root自己点検のみ、独立レビューなし。
+
+記録の検証: handoffの相対リンク45件/見出し参照12件とgit diff --checkが成功。文書のみのため無関係な試験・package生成は実施しない。mainは変更せず、判断材料を作業branchのローカルcommitに保全する。
+
+## PR #58のPC別セットアップ準備時点の記録
+
 2026-10-30、利用者のS3③セットアップ準備指示で再開。開始00:57:04 JST、上限3 PRまたは30分。fetch後のmain/origin/main/GitHub mainは `bbc114b030d6a621c725e2ccf8f8aa4b8da2a63a`、PR #57は同SHAへsquashマージ済み。mainのValidate/Package Validationも両方成功を確認した。開始ツリーはクリーン、worktreeは本checkoutのみ、originは正本。最新mainから `docs/s3-environment-setup` を作成し、AGENTS/current-sliceとPR #56の限定計画・実装を照合した。
 
 今回の差分は既存drive-metadata-reader文書のPC別セットアップ順序/コマンド/完全なダミーJSONと本handoffのみ。依存準備、初回登録のAPI順序、PCごとのstore/root/name/required-visibleの差、空source読取→B/A upload→B再照合→A Archive、秘密非記録の入力・保存境界を具体化した。実値や実credential/実設定の存在を探索せず、すべてのコマンドを将来の承認後の利用者手順として記載した。実行できない認証CLIを創作せず、不足段階を停止点にした。
