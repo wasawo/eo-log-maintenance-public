@@ -18,6 +18,8 @@ S3条件③④は未完。実credential/実OAuth/実APIは一切実行せず、�
 
 最終ローカル検証: 合成認証13試験と既存SDK/API模擬7試験が成功。Python AST、変更Markdown7文書の相対リンク147件/見出し参照25件、git diff --checkが成功。rootが累積差分を自己点検し、新依存・実token/ID/path・元/クラウド削除・承認条件緩和・正式AC/P0/schema変更がないことを確認した。通常の合成modeとpackage拒否は維持する。実credential/実Drive試験の成功とは報告しない。PR/CI/mergeは実施後に別途報告する。
 
+PR #57のHEAD `c492568` でPackage Validation成功、Validate失敗を確認し、マージしていない。新規認証13試験中、CIだけ共有Sync/Archive経路の2件がgeneric failureになり、他11件は成功（ローカル13件は成功）。生の例外や秘密を出さずに原因を特定するため、tests専用workerへ失敗class/行番号だけの診断とstderr確認を追加した。再CIが未成功の間はマージ不可。旧OwnedRunLock試験にも失敗がログにあり、今回差分との因果は未確定で、無関係な実装修正はしていない。次の最小作業は最新HEADのCI診断から子process経路の相違を特定し、S3範囲の最小修正・再検証を行うこと。実操作は引き続き承認待ち、S3③④未完。
+
 ## S3実Drive試験準備・PR #56時点の記録
 
 2026-10-29、S3実Drive結合試験の準備だけを行う利用者指示で、最新main `473fedd931582ba49215f18ca8c428f2be1752f2` から `docs/s3-live-test-preparation` を作成した。開始時main/origin/main/GitHub mainが一致し、作業ツリーはクリーン、worktreeは本checkoutのみ、originは正本。PR #55は同SHAへsquashマージ済み。今回開始時のmain CIはPackage Validation成功・Validate実行中だったが、文書検証後の再確認で両方成功を確認した。

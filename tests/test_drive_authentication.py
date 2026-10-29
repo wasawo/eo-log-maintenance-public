@@ -192,7 +192,7 @@ function Invoke-EoDriveApiFixture {
  $Request.request_id='synthetic-request'
  $requestJson=$Request|ConvertTo-Json -Depth 8 -Compress
  $raw=$requestJson | & $PythonExecutable -B WORKER
- if ($LASTEXITCODE -ne 0) { throw 'synthetic-bridge-failed' }
+ if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine($raw); throw 'synthetic-bridge-failed' }
  $response=$raw|ConvertFrom-Json -AsHashtable
  if (-not $response.ok) { throw 'synthetic-bridge-failed' }
  return $response.result
@@ -201,6 +201,7 @@ function Invoke-EoDriveApiFixture {
         script+='$report=Invoke-EoSyntheticLogTransfer -Route '+route+' -Operation '+route+' -MachineId '+self.config['machine_id']+' -Synthetic -SyntheticRoot '+quote(self.root)+' -IsolatedDrive -ConnectionConfig '+quote(self.configpath)+' -PythonExecutable '+quote(sys.executable)+" -ReferenceDate '2026-10-29'\n$report | ConvertTo-Json -Depth 8\n"
         proc=subprocess.run([shutil.which('pwsh'),'-NoProfile','-Command',script],capture_output=True,text=True,timeout=60)
         self.assertEqual(proc.returncode,0,proc.stderr)
+        self.assertEqual(proc.stderr,'')
         self.assertNotIn(str(self.private),proc.stdout+proc.stderr)
         return json.loads(proc.stdout)
 

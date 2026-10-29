@@ -13,6 +13,9 @@ try:
         return create_service(config, store, http=Http(request['root'],request['kind']))
     result = execute(request, service_factory=factory)
     print(json.dumps(dict(ok=True,result=result)))
-except Exception:
-    print(json.dumps(dict(ok=False,result={})))
+except Exception as error:
+    # Test diagnostics only: class/line, never exception text, credential or path.
+    trace=error.__traceback__
+    while trace.tb_next is not None: trace=trace.tb_next
+    print(json.dumps(dict(ok=False,result={},failure_type=type(error).__name__,failure_line=trace.tb_lineno)))
     raise SystemExit(1)
