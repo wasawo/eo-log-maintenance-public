@@ -94,3 +94,157 @@ SDKの追加再試行は`num_retries=0`とする。非2xxはSDKのretry診断へ
 runnerは明示folder/許可名/required-visibleを確認して既存adapterを呼ぶ。未知/欠落候補・同名複数・API失敗で停止し、uploadは種別ごと許可名1件・各4 KiBのみ。同内容再利用/異内容保留は既存処理を維持する。POST前の意図をprivate storeにflushし、成功/既知の競合結果だけ確認済み記録を追記する。応答不明・強制終了後に未確定意図が残れば、次回はAPI前に停止し、自動再uploadしない。解除/読取照合の専用手順は未実装で、別途承認された診断・判断が必要。両PC合計4件/16 KiBの実試験予算は操作者の限定計画でも管理し、PC間のglobal quota機構を追加したとはしない。保留時も元/途中物/cloudを消さない。
 
 根拠: [Microsoft DPAPI](https://learn.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectdata)、[Google Desktop OAuth](https://developers.google.com/identity/protocols/oauth2/native-app)、[公式Credentials](https://google-auth.readthedocs.io/en/latest/reference/google.oauth2.credentials.html)。初回consentと安全なcallback受領、実principal/scope・所有/容量/可視性、両PC store/ACL/失効/復旧の実資格と本計画の実行承認は未完。新機能を実credentialに対して実行しない。
+
+### PC-A/Bのセットアップ順序とコマンド（準備資料・未実行）
+
+以下は将来の承認後に操作者が使用する手順で、今回の文書変更から実行許可を得ない。現在は初回登録/対象folder認可の支援が不足しており、コマンドを順番に実行するだけで実接続まで完了する状態ではない。不足箇所では停止する。すべての値はダミーまたは私的な変数とし、実値をこの文書・チャット・PR・シェル引数の直書きへ移さない。
+
+#### 1. 両PCのローカル前提
+
+各PC内で承認済みのWindows userとしてログオンし、同じuserで準備・手動起動する。PC間のWindows user一致やtokenコピーは要求しない。リポジトリの確認済みmainを使い、公開用packageの配布拒否を解除しない。PowerShellは正確に7.6.7、Pythonは3.12系、venv/store/非公開設定はrepo・共有Drive・同期領域の外の明示領域とする。reparse/UNC・不明ACLの領域は使わない。
+
+将来、各PCの非記録端末で実行するローカル依存準備の例（この作業では実行しない）。`py -3.12`がなければ停止し、Python/launcherの導入を利用者側で準備する。`$Repo`は確認済みcheckout、`$Venv`は新規のrepo外venvを非公開で指定する。既存の不明な環境を自動探索/上書きしない。
+
+```powershell
+$Repo = Read-Host -MaskInput '確認済みcheckoutの絶対パス'
+$Venv = Read-Host -MaskInput '新規のrepo外venvの絶対パス'
+Set-Location -LiteralPath $Repo
+if ($PSVersionTable.PSVersion -ne [version]'7.6.7') { throw 'powershell_version_unconfirmed' }
+py -3.12 --version
+if ($LASTEXITCODE -ne 0) { throw 'python_unavailable' }
+if (Test-Path -LiteralPath $Venv) { throw 'new_environment_required' }
+py -3.12 -m venv $Venv
+if ($LASTEXITCODE -ne 0) { throw 'venv_setup_failed' }
+$Python = Join-Path $Venv 'Scripts/python.exe'
+& $Python -B -m pip install --quiet -r requirements-runtime.txt
+if ($LASTEXITCODE -ne 0) { throw 'dependencies_unconfirmed' }
+& $Python -B -c "import sys,importlib.metadata as m; print(sys.version.split()[0]); print(m.version('google-api-python-client')); print(m.version('google-auth'))"
+if ($LASTEXITCODE -ne 0) { throw 'dependencies_unconfirmed' }
+```
+
+この準備は認証情報を必要としない。`PYTHONPATH`に過去の一時依存を追加する方法を実環境手順にしない。版だけを公開できる記録とし、pipのerrorや絶対pathをそのまま共有ログへ保存しない。
+
+#### 2. Google側の準備と初回登録の停止点
+
+| 順序 | 利用者が非公開で準備・確認する内容 | 既存実装と停止点 |
+| --- | --- | --- |
+| Cloud設定 | 試験用projectでGoogle Drive APIを有効化。Google Auth platformのアプリ情報/Audience/Data Accessを設定し、OAuth client種類はDesktop app。同じproject/アプリ/client IDを両PCで使用 | API有効化・アプリ登録・client情報取得を行うCLIはない。現taskではConsoleにもアクセスしない |
+| principal/scope | 両PCで同じGoogle accountを使い、要求scopeは `https://www.googleapis.com/auth/drive.file` のみ。外部アプリのTestingの場合は該当accountをtest userへ追加。追加scopeは選ばない | account chooser/consent画面で利用者がaccountとscopeを確認し、非公開に証拠を残す。`login_hint`や設定のprincipal文字列だけでは本人性の証明にならない |
+| client/store | Desktop clientの情報をrepo/package/共有領域へ置かず、各PC専用の保護領域で扱う。Windows user-bound暗号化、current-userのprotected ACL、別PCへのtoken非コピーを維持 | `WindowsProtection.create_directory`、`CredentialStore.validate`、`transaction`/`save(..., initial=True)`はlibraryとしてある。安全な初期設定/登録用CLIはない |
+| consent/callback | 各PCで別々に初回consentを行い、`http://127.0.0.1:<明示port>/<path>`で受領。通常のnon-interactive実行中にloginを開始しない | `DesktopAuthorization`はPKCE/state付きURL生成とcode交換を行う。browser起動、loopback listener、callbackの安全な受渡し、client読込から初期保管までを結ぶ運用入口が不足。ここで停止し、追加実装の承認を得る |
+| token保存 | 承認後の登録支援でcode交換結果をメモリからDPAPI storeへ渡す。token JSONを手作業で端末/ファイル/チャットへ貼らない | `exchange`後にrecord検証→storeの排他transaction→`save(record, initial=True)`。store名は`credential.bin`。このAPI順序は存在するが、本書に新しいbootstrap scriptを実装しない |
+| refresh | 初回試験は`allow_refresh=false`。refresh試験を承認した段階だけtrueとし、期限が近いtokenの更新と保存を確認する | `create_service`は残り300秒以下で明示refreshを1回試行し、scope確認・保護保存後にserviceを返す。false/失敗/保存失敗は停止。Drive要求中の401/期限切れは再認証・自動再送しない |
+
+token発行/失効の条件はGoogle側にも依存し、Testing等の設定を恒久的なrefresh資格とみなさない。refreshが必要なら、OAuth token endpointへの接続とstore更新をDrive読取許可と分けて承認する。Windows保護storeを作成してもGoogleへの認証は行われない。API/client/scopeの準備根拠: [Google初期設定](https://developers.google.com/workspace/guides/configure-oauth-consent)、[Desktop OAuth](https://developers.google.com/identity/protocols/oauth2/native-app)、[tokenの失効条件](https://developers.google.com/identity/protocols/oauth2#expiration)。
+
+#### 3. 非公開設定の全項目とPC別の差
+
+以下は構造確認用のPC-B Syncのダミーであり、そのまま実行する設定ではない。16 KiB以内のUTF-8 JSON、未知/重複keyなし、ファイルのprotected ACLが必要。`client_secret`/access token/refresh tokenは接続JSONに追加できない（DPAPI record側だけ）。principal/client IDと2つのfolder IDは両PCで同じ実値へ私的に置換する。owner/容量/可視性はJSONから自動取得されない。
+
+```json
+{
+  "version": 1,
+  "mode": "isolated_drive",
+  "machine_id": "PC-B",
+  "principal": "DUMMY_GOOGLE_PRINCIPAL",
+  "client_id": "DUMMY_DESKTOP_CLIENT_ID",
+  "scope": "https://www.googleapis.com/auth/drive.file",
+  "folders": {"BattleLog": "DUMMY_BATTLE_FOLDER", "ErrorReport": "DUMMY_ERROR_FOLDER"},
+  "store_directory": "C:\\DUMMY\\pc-b\\store",
+  "fixture_root": "C:\\DUMMY\\TEMP\\eolm-s1-sync-00000000000000000000000000000000",
+  "upload_names": {
+    "BattleLog": ["20240101_12345678@s3-pc-b.txt"],
+    "ErrorReport": ["20231231_12345678.txt"]
+  },
+  "required_visible": {"BattleLog": [], "ErrorReport": []},
+  "principal_verified": false,
+  "environment_verified": false,
+  "allow_refresh": false,
+  "execution_approved": false
+}
+```
+
+確認flagをtrueにする行為は、新しい操作許可や実証結果を生成しない。principal確認、owner/容量/対象root等の利用者確認、当該限定実行の許可が揃ったときだけ、承認済みの非公開設定にその事実を反映する。`required_visible`が空の例を、既存fileの見落としや資格不足の回避に使わない。
+
+| 設定 | PC-B Sync | PC-A Sync | PC-A Archive |
+| --- | --- | --- | --- |
+| machine/fixture | PC-B / B専用s1 root | PC-A / A専用s1 root | PC-A / 別のs2 root |
+| store_directory | Bの承認Windows user専用 | Aの承認Windows user専用 | Aと同じ保護storeを使えるが実行は直列 |
+| upload_names各種別 | 上記Bの2名 | Battle `20240101_12345679@s3-pc-a.txt` / Error `20231231_12345679.txt` | 両種別とも空配列。Archiveでuploadしない |
+| required_visible | 初回は既存の可視性確認fixture。A upload後の再照合ではA名も追加 | 既存可視fixtureと先にuploadしたB名 | 既存可視fixtureとA/B名をすべて含める |
+| fixture_root | OS-temp直下の生成済B rootと一致 | OS-temp直下の生成済A rootと一致 | OS-temp直下の生成済s2 rootと一致 |
+
+許可名は種別ごとupload最大1件、required-visible最大6件。既存fileをrequired-visibleから省略して隠さない。列挙結果に未知名/同名複数がある場合やrequired-visibleが欠ける場合は停止する。configはprotected ACLで新規作成し、その検証を行う操作が必要だが、現行runnerは設定ファイル作成・ACL修復を提供しない。既存の`open_private`/`validate_acl` APIを結ぶ安全な設定作成・検証導線を追加候補とし、平文credential入りの設定や不明なACLのeditor保存で代用しない。
+
+#### 4. fixture作成と正式入口のコマンド
+
+以下も将来の承認後の利用者操作で、今回は実行しない。PowerShell 7.6.7でrepo rootから実行する。Sync部分はPC-A/Bそれぞれで、各PCの`$MachineId`を明示して使う。新しいGUID rootだけを作り、元の実ログからコピーしない。最初は空のsourceで準備し、後述の読取確認が終わるまでデータを追加しない。
+
+```powershell
+$MachineId = 'PC-B'  # PC-A側は 'PC-A'
+$ReferenceDate = [datetime]'2026-10-29'  # 合成試験の固定基準日
+$SyncRoot = Join-Path ([IO.Path]::GetTempPath()) ('eolm-s1-sync-' + [guid]::NewGuid().ToString('N'))
+[void][IO.Directory]::CreateDirectory($SyncRoot)
+[IO.File]::WriteAllText((Join-Path $SyncRoot '.synthetic-fixture'), 'eolm-s1-synthetic-v1')
+foreach ($side in @('source','mock-drive')) {
+    foreach ($kind in @('BattleLog','ErrorReport')) {
+        [void][IO.Directory]::CreateDirectory((Join-Path $SyncRoot "$side/$kind"))
+    }
+}
+$SyncConfig = Read-Host -MaskInput '準備済みの非公開Sync設定の絶対パス'
+# 設定のfixture_rootはこのSyncRootを私的に反映する。実値を表示/保存ログへ出さない。
+& (Join-Path $Repo 'scripts/SyncLogs.ps1') -Synthetic -SyntheticRoot $SyncRoot `
+    -MachineId $MachineId -ReferenceDate $ReferenceDate -IsolatedDrive `
+    -ConnectionConfig $SyncConfig -PythonExecutable $Python -DryRun
+```
+
+Dry Runはconfig/store/Python/APIを読まず、空のsourceではno_workとなる。認証・設定・可視性検証の成功を示さない。初期登録/アプリ対象認可/保護設定の不足を解消し、実credential読取・storeのlease処理・ローカルfixture操作・指定folderのDrive読取を承認した後、空のsourceかつ`allow_refresh=false`のまま同じコマンドから`-DryRun`だけを外すと、現行Syncは両folderを列挙するがupload対象は0件となる。tokenの有効期間が不足すれば停止する。列挙JSON/workerを直接実行・ログ保存せず、正式入口の匿名化結果と非公開の確認記録を使う。
+
+両PCの読取資格を確認し、限定uploadも承認された段階でだけ、各SyncRootに次の合成元を新規作成する。1件の再作成・改変を黙って行わず、同名があれば停止する。
+
+```powershell
+$BattleName = if ($MachineId -eq 'PC-B') { '20240101_12345678@s3-pc-b.txt' } else { '20240101_12345679@s3-pc-a.txt' }
+$ErrorName = if ($MachineId -eq 'PC-B') { '20231231_12345678.txt' } else { '20231231_12345679.txt' }
+$BattleBytes = [Text.Encoding]::UTF8.GetBytes("s3 synthetic $MachineId BattleLog")
+$ErrorBytes = [Text.Encoding]::UTF8.GetBytes("s3 synthetic $MachineId ErrorReport")
+foreach ($item in @(@('BattleLog', $BattleName, $BattleBytes), @('ErrorReport', $ErrorName, $ErrorBytes))) {
+    $path = Join-Path $SyncRoot ("source/" + $item[0] + '/' + $item[1])
+    $stream = [IO.File]::Open($path, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+    try { $stream.Write($item[2], 0, $item[2].Length) } finally { $stream.Dispose() }
+}
+# 上記upload_namesと作成した名前/bytesの私的な対応確認後に限る。
+& (Join-Path $Repo 'scripts/SyncLogs.ps1') -Synthetic -SyntheticRoot $SyncRoot `
+    -MachineId $MachineId -ReferenceDate $ReferenceDate -IsolatedDrive `
+    -ConnectionConfig $SyncConfig -PythonExecutable $Python
+```
+
+実行順序は、両PCの空source読取確認→Bの2件upload→A設定にB可視名を含めAの2件upload→B設定にA可視名を追加しBの同内容再照合→A Archiveとする。既存の可視性fixtureは全段階で保持し、設定に期待一覧を反映する。A/Bの共有folderとtoken/storeを同時操作しない。同名異内容の試験は、元を変更せず保持する別の新規ローカルfixtureを非公開設定とともに承認する必要がある。通常の同内容再実行を競合試験の代わりにしない。cloudへの追加競合file作成は行わない。
+
+PC-Aだけで、別の空s2 rootとprotected Archive設定を準備した後のコマンド:
+
+```powershell
+$ArchiveRoot = Join-Path ([IO.Path]::GetTempPath()) ('eolm-s2-archive-' + [guid]::NewGuid().ToString('N'))
+[void][IO.Directory]::CreateDirectory($ArchiveRoot)
+[IO.File]::WriteAllText((Join-Path $ArchiveRoot '.synthetic-fixture'), 'eolm-s2-synthetic-v1')
+foreach ($side in @('mock-drive','archive')) {
+    foreach ($kind in @('BattleLog','ErrorReport')) {
+        [void][IO.Directory]::CreateDirectory((Join-Path $ArchiveRoot "$side/$kind"))
+    }
+}
+$ArchiveConfig = Read-Host -MaskInput '準備済みの非公開Archive設定の絶対パス'
+& (Join-Path $Repo 'scripts/ArchiveLogs.ps1') -Synthetic -SyntheticRoot $ArchiveRoot `
+    -MachineId PC-A -ReferenceDate $ReferenceDate -IsolatedDrive `
+    -ConnectionConfig $ArchiveConfig -PythonExecutable $Python
+```
+
+`mock-drive`は既存fixture構造のための空directoryで、実Driveをmount/同期する場所ではない。内容は実API readerから取得して`archive`へ検証コピーする。PC-Bではこの操作を起動しない。上記例の2024 Battle/2023 Errorは固定基準日のSync/Archive期間条件を満たす。Archiveはcloud元を消さず、`CompletedMoveCount`は0のまま。mode/result flagだけで③④や正式ACを合格にしない。
+
+#### 5. owner・可視性・容量・秘密保全と不足機能
+
+- 操作者がGoogle Driveの非公開画面で同一account、My Driveの2専用folder、owner・共有/継承・limited-access例外、既存fileの全期待一覧、使用可能容量を確認する。両PCのOS-temp/archiveにも空き容量と書込権限を確認する。runnerはowner/quotaを自動照会せず、`about.get`/permissions APIも計画外。容量を枯渇させて検証しない。
+- `drive.file`はアプリごとの対象資格であり、所有/ACL/folder ID/同じprincipalだけでは既存folderと全配下の可視性を保証しない。現在は対象を当該OAuthアプリへ選択/開く導線（Picker等）がなく、readerはfolder metadataが見えるまでuploadできない。単なるDrive画面でのfolder作成/共有で解消したとは扱わず、見えなければ停止する。folder作成API・scope拡大・別アプリの認可を自動代用しない。[Googleのscope説明](https://developers.google.com/workspace/drive/api/guides/api-specific-auth)
+- consent前/未認可の2対照fixtureもPR #56の計画どおり非公開に追跡する。見えない対象を不在に置き換えず、required-visibleとの不一致は想定された停止として扱う。必要な全対象の資格を確認できるまでupload段階へ進めない。
+- 保護store/設定/証拠はrepo/package/Drive同期外。storeは`credential.bin`と暗号化pending・lease/意図記録を保持する。copy/backup/別user/別PCの復号、失効や回復の資格は未検証で、自動cleanupしない。共有terminal/CI/Transcript/PSDebug/画面記録で実設定やcode/URL/tokenを扱わず、入力は非記録の私的な端末で行う。実値をコマンドへ埋め込まず、例外/HTTP body/credentialのprintをしない。環境変数・shell履歴・チャットでtokenを受け渡さない。
+- **追加実装候補（今回未着手）**: 既存PKCE/state/DPAPI APIを結ぶ安全な初回登録・loopback callback受領・秘密非表示の保管導線、保護ACL付き接続設定の新規作成/検証、当該OAuthアプリで既存試験folder/fileを認可対象にする選択導線。必要理由は、現libraryだけでは初回登録から可視な指定rootを持つrunnerまで安全にセットアップできないため。principalの自動的なGoogle identity証明もなく、手動確認で残す証拠/受け入れ判断が必要。新たなscopeやidentity APIを勝手に選ばない。
+
+次の承認は、まず上記不足を解消する具体的な実装範囲。その後、両PC・principal/client・2folder・非公開保存先を指定し、初回consent/code交換/DPAPI保存、credential読取、refresh、Drive読取、最大4件/16 KiBのupload/download/hash/競合検証を段階ごとに承認する。folder認可や共有の変更も別に範囲を明示する。合成準備分を含む24 KiB上限、非上書き/元保持、停止/結果不明/別途後処理というPR #56の制限を維持し、未承認の操作に進まない。
