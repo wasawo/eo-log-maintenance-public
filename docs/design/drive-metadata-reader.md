@@ -36,3 +36,47 @@ SDKの追加再試行は`num_retries=0`とする。非2xxはSDKのretry診断へ
 依存関係は`requirements-runtime.txt`の`google-api-python-client>=2,<3`へ追加し、試験側も同じruntime依存を参照する。ローカル確認版は2.201.0で、作業専用の一時領域へ導入した。ローカルPython3.11.9（CI定義3.12）、PowerShell7.6.7。SDK依存からPython3.11の将来のサポート終了予告が出たが、現時点の試験は成功した。
 
 初回接続時は新規10試験、関連8群87試験、役割別package回帰が成功した。内容確認の追加結果は上記の別仕様を参照。実Driveのaccount/権限・保存先の継続的な保護・再帰列挙・download保存・upload・版固定削除・正式入口は未完。実Drive通信、リモートCI、独立レビュー、実環境受け入れは実施していない。配布拒否ガードとT0/T1/T4/AC全体の未完を維持する。
+
+## S3 実Drive結合試験の限定計画（未承認・未実施）
+
+[current-sliceの条件③④](../development/current-slice.md)を実証するための実行前チェックリスト。本節の作成・PR/mergeは、認証、consent、credential読取/更新、実APIアクセスの許可ではない。方式の根拠は[採用済み回答](../archive/decisions/selected-policy-decisions-20261024.md)と[OSD-05の未完事項](../requirements/p0-open-specification-decisions.md)。正式AC・P0・削除条件を変更しない。
+
+### 現在利用できる機能と実行前の不足
+
+- metadata/list/content readerと[転送adapter](../../Common/DriveTransferAdapter.py)は、呼出し側が明示的に渡す公式Drive v3 serviceを利用できる。新規uploadは1試行、既存同内容は再利用、異内容/複数候補/確認不能は保留する。転送adapterのbytes上限は4 MiB。
+- 正式Sync/Archive入口は合成root専用で、`-DriveApiMock`もtests専用HTTP workerに固定される。実Driveへ切り替える引数はない。このworkerへ実ID/tokenを渡したり、隔離ガードを外して実試験へ転用したりしない。
+- project用OAuthフロー、Windows user-bound暗号化専用fileのstore API/ACL/更新・失効手順、認証済みservice生成、実試験runnerは未実装・未認定。SDKの存在だけでは認証可能とはいえない。接続許可だけで直ちに実行できる状態ではなく、不足部分の具体化・実装範囲の承認を別に得る。今回は選定・実装しない。
+- PowerShellは7.6.7、PythonはCIの3.12を基準とし、既存`requirements-runtime.txt`の依存を用いる。実施時は明示したinterpreterとSDK版を確認し、未設定の`python` shimや過去の一時依存を暗黙に利用しない。認証情報・環境変数・実設定を列挙して前提を調べない。
+
+### 利用者が非公開で用意・確認する前提
+
+1. 両PCで同じGoogle principal、Desktop user OAuth、`drive.file`、各PCの承認実行Windows userに結び付く暗号化保存という採用済み方針を維持する。PC間でtokenをコピーしない。OAuthアプリ登録の同一性、consent対象/許可scope、各PCでの初回認証・refresh/store更新の扱いを確定し、それらの操作は個別に承認する。service account、平文token、自動scope拡大へ切り替えない。
+2. 本番から独立したMy Driveの試験領域と、BattleLog/ErrorReportの平坦な専用folderを指定する。folder作成・共有変更・アプリへの対象選択/認可を含む利用者の準備も、本計画から実施済み・許可済みとはしない。実ID/path/mail/client/tokenは追跡file・PR・通常ログに書かず、承認対象との対応を非公開で管理する。
+3. Drive画面等でowner・共有/継承/limited-access・使用可能容量を利用者が確認する。PC-A/Bの独立したローカル合成元・download領域にも空き容量と書込権限が必要。容量不明、scopeの対象不明、未知の同名file、第三者の同時操作がある場合は開始しない。既存readerはowner/quotaやfolderのcreate能力を観測しておらず、列挙成功からこれらを推定しない。
+4. 各PC・各ログ種別1件、計4件、各4 KiB以下の固定合成bytesと異なる承認済み形式の名前を用意する。新規upload上限4件/合計16 KiB、既存fileの更新・上書き・改名・移動・削除は0件。可視性比較用に、consent前からある合成fileと未認可の合成fileを各1件、各4 KiB以下で区別する（準備分を含むcloud合成bytes上限24 KiB）。未知の既存データをfixtureとして流用しない。
+
+### 承認後にCodexが実施する順序（現在は実行不可）
+
+認証/store/service/runnerの未完を解消し、対象・操作・制限・非公開証拠の保存先を明示した利用者承認が揃ってから実行する。実APIは指定folder直下の`files.list`、指定folder/fileのmetadata `files.get`、新規bytesの`files.create`、指定fileの`files.get`によるmedia取得だけに限定する。`about.get`、permissions API、全Drive探索、folder作成、共有/owner/ACL変更、delete/update/trash/copy APIは含めない。容量・所有の事前情報は利用者の非公開確認とし、追加APIが必要なら別途提案して停止する。
+
+| 順序 | 操作・期待する結果 | 続行できない場合 |
+| --- | --- | --- |
+| 1 | PC-A/Bのprincipal・OAuthアプリ・scope・保護store資格と、承認されたroot/fixture一覧を非公開で照合。必要なfolder metadataと全pageの一覧だけを読み取る | 認証/権限/対象が未確認ならuploadせず停止。見えないfileを不在と扱わない |
+| 2 | 既知のconsent前/未認可合成fileの可視性を期待一覧と照合。両PCの可視範囲を分けて記録 | `drive.file`の適合が不明・不足なら停止。scopeや共有を自動修復しない |
+| 3 | 各PCから各種別1件を新規uploadし、返されたIDのparent/name/size/versionを確認。内容をdownloadして元bytesのSHA-256と照合し、再列挙で同名候補一意を確認 | hash/版/親/名前の不一致・複数候補・部分列挙なら保留。新規uploadを追加しない |
+| 4 | PC-AがPC-B作成分を、PC-BがPC-A作成分を列挙・取得・照合。同じprincipalでもPC間可視性は実証する | 片方だけ成功なら③④の合格としない。PC-Bでarchiveを呼ばない |
+| 5 | 同じ名前/bytesを再度照合し同じIDを再利用。次に同名の異なるローカル合成bytesで照合し、競合保留・既存ID/内容の不変・元保持を確認 | 同名異内容でPOST/上書き/改名が生じたら即停止。競合fixtureのための追加cloud作成はしない |
+| 6 | 承認download領域への保存・hashとPC-A側経路を、資格確認済みrunnerが提供する範囲で検証 | 現在の`download_bytes`はメモリ取得で、正式入口のlive保存経路はない。未接続なら未実行として残し、library成功を正式E2E成功にしない |
+
+列挙は既存上限100 pages/4096 files以内、今回の転送は各4 KiB以下。大量データで上限を試さない。実試験のtimeout案はHTTP要求30秒、操作を扱う子process120秒、試験全体10分とし、超過時は停止・結果不明を維持する。実施runnerにはこの有限timeoutと、認証transportを含む暗黙再送の抑止の確認が必要（現行bridgeの30秒だけでlive transportが認定されたとはしない）。未実装/未合意なら開始しない。Dry Runはlive接続資格の代用にせず、認証・API・downloadを呼ばない。
+
+### 停止・元保持・後処理
+
+- 認証失敗、401/403、quota不足、429/5xx、timeout、通信断、不正/不完全応答、同名複数、hash/版変更、対象外IDや想定外の操作要求で、その実試験を停止する。既存の模擬fault試験を基本証拠とし、実権限剥奪・token失効・容量枯渇・通信切断・強制終了を誘発する試験は本計画に含めない。実環境で自然発生した失敗と模擬検証を区別する。
+- POST開始後の応答不明や途中中断は「未作成」や「成功」としない。自動再送・自動再開しない。ローカル元、download途中物、cloudの作成候補は保持し、非公開の要求/対象対応と状態を残す。次回は別途承認された読取照合で完全列挙・候補一意性・内容一致を確認してから続行判断する。不在/一意性が確認不能なら再uploadしない。
+- 正常・競合・失敗のすべてでローカル元とcloud元を保持する。APIエラーの生body、header、token、実ID/path/mailは公開しない。公開報告は匿名化したfixture番号、件数、結果と未検証条件に限定し、詳細証拠は事前承認した非公開保存先のみで扱う。
+- 後処理は自動化しない。cloud fixture、ローカル合成元、download/途中物、非公開証拠を残し、利用者へ対応表を非公開で引き渡す。利用者が別途明示する保持期間・確認済み対象・手動後処理の指示を待つ。成功したことや試験終了だけを削除許可にしない。token失効/store消去も自動で行わない。
+
+③は両PCの認証/store・principal・可視性/所有/容量・root資格の証拠、④は承認範囲内の実API結合結果で判断する。未完のproviderやlive正式入口を計画文書だけで完成扱いにしない。合成/API模擬の既存成功、実接続試験、正式ACを分け、S3は証拠が揃うまで未完、S4は未着手とする。
+
+公開資料の根拠: [drive.fileの対象範囲](https://developers.google.com/workspace/drive/api/guides/api-specific-auth)、[File metadataとcapabilities](https://developers.google.com/workspace/drive/api/reference/rest/v3/files)。folder IDや同一principalのみでは可視性・実能力の証明にならないため、上記の事前確認とPC間照合を置く。

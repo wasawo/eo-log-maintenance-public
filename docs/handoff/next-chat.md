@@ -6,6 +6,22 @@
 
 ## 現在地
 
+2026-10-29、S3実Drive結合試験の準備だけを行う利用者指示で、最新main `473fedd931582ba49215f18ca8c428f2be1752f2` から `docs/s3-live-test-preparation` を作成した。開始時main/origin/main/GitHub mainが一致し、作業ツリーはクリーン、worktreeは本checkoutのみ、originは正本。PR #55は同SHAへsquashマージ済み。今回開始時のmain CIはPackage Validation成功・Validate実行中だったが、文書検証後の再確認で両方成功を確認した。
+
+今回の差分は[既存Drive文書の限定計画](../design/drive-metadata-reader.md#s3-実drive結合試験の限定計画未承認未実施)、current-sliceからの参照、本handoffのみ。具体的なfixture数/bytes上限、PC間の可視性確認、同内容再利用/異内容保留、失敗/応答不明/中断時の停止と元・途中物保持、後処理を利用者の別指示まで保留する順序が既存文書では不足していたため追記した。認証方式の新設・store API選定・接続runner実装は行わない。Q5/役割/安全仕様・正式AC・P0は変更しない。
+
+コード確認結果: 呼出し側serviceを受けるmetadata/content/転送adapterはあるが、認証provider・Windows user-bound暗号化専用fileの具体契約・live service生成/正式入口/試験runnerは未完。正式入口のAPIモードはtestsの完全オフラインHTTPへ固定される。端末のPowerShell7.6.7と明示Python3.11.9を確認した。既定python shimはversion未設定、明示interpreterにはDrive SDK未導入だった（過去の専用一時依存は再探索・再利用していない）。CIはPython3.12と既存requirements-runtimeを使う。認証情報・実設定・環境変数・隔離領域の有無は探索していない。
+
+利用者側の準備は、同一Google principal/アプリ/drive.file、各PCの安全な認証保管とconsent/refreshの扱い、非公開の対象対応表、専用folderと合成fixture、所有/共有/容量/対象可視性の確認。Codex側は今回、追跡コード・採用済み仕様・公開Google資料を読む静的確認と文書検証だけを実施する。認証情報の読取/取得/出力/保存更新、実API接続、合成fileの実Drive配置、後処理は実施しない。公開資料確認はDrive APIの実行ではない。
+
+次の具体的な作業は、未完の認証/store/service/実試験runnerの具体化・実装範囲を利用者が承認すること。これと分けて、非公開で指定する対象/両PC/操作上限/timeout/証拠保存先を固定した実試験計画への明示承認が必要。現状では接続許可だけで実行可能ではない。新規upload上限4件/16 KiB、準備fixtureを含むcloud合成bytes上限24 KiB、APIは指定対象のlist/metadata get/create/media getのみとする提案で、まだ未承認・未実施。所有/容量は利用者確認、about/permissions APIやscope/ACL変更は計画外。元/クラウド元の削除・S4への移行は禁止を維持する。
+
+S3条件①②の既存部分証拠を維持し、③④は未完・承認待ち。今回の文書PRは許可済みで、最新HEADのValidate/Package Validationと標準条件成立時だけsquashマージする。文書の統合は実試験の許可にしない。独立レビューは未実施、root自己点検のみ。検証結果とPR/CI結果は確認後に報告し、実試験を開始せず停止する。
+
+文書検証: 明示Python3.11.9で変更3文書の相対リンク54件・見出し参照13件を確認し欠落なし、git diff --check成功。差分は上記3文書だけで、コード・依存・AGENTS・正式AC・P0・承認済み要件/schemaは不変。文書のみのため無関係なローカル全体試験・package生成は実行しない。
+
+## S3 API模擬結合実装時点の記録
+
 2026-10-29、利用者の指示で[現在のスライス](../development/current-slice.md)をS3（実Google Driveアダプタの隔離結合検証）へ切り替えた。開始main/origin/main/GitHub mainは `bbb4871f9ccec37fdc7302f9c5a325827584847e`、作業ツリーはクリーン、worktreeは本checkoutのみ、originは正本。git fetchで最新mainとS2完了を確認し `feat/s3-drive-adapter` を作成した。今回の範囲は承認済みS3実装・API応答模擬/隔離試験・必要文書・PR/条件成立時のsquashマージ。開始2026-10-29 19:50:52 JST、上限はPR3件または30分。実ログ/本番Drive/元削除は禁止し、隔離実Driveも別の明示承認までは操作しない。S4へ進まない。
 
 実装: [DriveTransferAdapter.py](../../Common/DriveTransferAdapter.py)は呼出し側から渡される公式SDK serviceに対し、既存の全ページmetadata/list/content readerを再利用し、非上書きcreate upload・内容取得/hash・候補の一意性/版/内容の再観測を接続した。新規uploadは単試行、既存同内容は再利用、異内容/複数候補/不明は成功にしない。認証情報の探索/保存/refresh、既定認証、update/delete、実接続CLIは追加していない。SDK追加再試行は0とするが、将来の認証層/transportの資格やtimeoutは別途未確認。
