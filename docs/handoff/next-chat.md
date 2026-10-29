@@ -6,6 +6,22 @@
 
 ## 現在地
 
+2026-10-29、現在のスライスの残作業を確認した。最新main/origin/main/GitHub mainは `0ff49319503a87c598fcbb01f2972dc44c8bfe15` で、[PR #53](https://github.com/wasawo/eo-log-maintenance-public/pull/53)はsquashマージ済み。開始時の作業ツリーはクリーン、worktreeは本checkoutのみ、originは正本。利用者は現在のスライス内の必要作業とPR/条件付きマージを許可した。範囲外へ拡張せず、残っていた統合結果確認と本記録の更新だけを `docs/s2-closeout` で行う。
+
+現在のスライスはS2のまま。current-sliceの各完了条件を既存実装・試験・PR #53の結果と照合し、削除なし合成E2Eの実装残件はないと確認した。正式Archive入口から両種の列挙/期間判定/平坦化/コピー/hash照合/表示、PC-B拒否、B状態なしの処理、遅着分、競合/失敗時の元保持は検証済み。S1合成E2Eも維持する。今回、新しい実装・probe・schema・整理や次スライスの作業は開始しない。
+
+PR #53の最新HEAD `1c2c67b` の[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40856493925)・[Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40856493983)は成功。ローカルS2 51 assertion、S1 46 assertion、期間判定49 assertionとpackage回帰の結果は以下の実装時点の記録を維持する。今回の文書確認のために成功済みの全試験を再実行しない。
+
+マージ後main `0ff4931` の[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40857579358)・[Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40857579315)は両方成功し、S1/S2のE2Eステップも成功した。前回のCI未確定は解消済み。S2は合成環境の実装・一連検証・main統合まで完了とする。今回の記録更新PRは最新HEADの両CIと標準条件が成立した場合だけマージし、条件不成立時は報告して停止する。
+
+S2合成合格と正式ACの部分検証を区別する。AC-02/03/04/05/09/11とAC-06の既存部分証拠は維持し、元削除・実Driveの現在状態保証・結果不明回復・運用資格/永続詳細レポート・実環境/正式AC全体・配布は未完のまま。これらはS2の範囲外であり、今回の未完作業へ読み替えない。Common/__pycache__の既存17未追跡/Git除外ファイルと直接ビルドの制約も保全する。
+
+次の作業は利用者による新しいスライス/作業の明示指示待ち。現在のスライス完了を区切りとして停止し、S3へ自動移行しない。独立レビューは未実施、今回の確認はrootの自己点検と既存CI結果の照合である。
+
+文書検証: Python3.11.9で本書の相対リンク41件・見出し参照11件に欠落なし、git diff --check成功。変更がhandoffだけで、current-slice・正式AC・P0・要件・AGENTSの本文が開始HEADと一致することを確認した。文書のみのためローカルの無関係な全体試験・package生成は実行していない。
+
+## S2実装・PR #53統合前の記録
+
 2026-10-29、利用者の指示で[現在のスライス](../development/current-slice.md)をS2（PC-A Archiveの削除なし合成E2E）へ切り替えた。開始main/origin/main/GitHub mainは `6e15448f455c01839ef1d9cb753d61cb0478b82e`（PR #52統合済み）。git fetch後に最新mainとクリーンな単一worktree/正本originを確認し、`feat/s2-pc-a-archive` を作成した。今回の範囲はS2実装・合成検証・必要文書・PR作成と標準条件成立時のsquashマージまで。作業上限はPR3件または20分、開始は2026-10-29 19:11:25 JST。S3・実データ/本番Drive・元削除・安全/権限の変更は許可されていない。
 
 [ArchiveLogs.ps1](../../scripts/ArchiveLogs.ps1)からPC-A役割で現在の模擬cloudを列挙し、BattleLogは前年末以前、ErrorReportは前々年末以前の全適格分を選び、平坦化→模擬archiveへの非上書きコピー→SHA-256照合→JSON件数表示まで接続した。元と失敗コピーを削除せず、CompletedMoveCountは0。PC-Bを拒否し、PC-Bの完了記録がなくても進め、遅着分を次回コピーする。
