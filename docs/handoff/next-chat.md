@@ -18,6 +18,10 @@
 
 最終点検: workflow内の実コマンドを合成GITHUB_ENVへ適用し、短縮Tempからcanonical TEMP/TMPが設定されることを確認した。native childが終了値7を返す場合に後続へ進まないことも確認。Python AST、handoff相対リンク45件、git diff --check成功。既存skip1はhostのsymlink作成不能による既定のskipで、新たなskip/期待値緩和はない。AGENTS/current-slice/正式AC/P0/要件/schemaとlock本体は変更しない。
 
+a13552cの再CIではTemp/旧lock由来の失敗は解消し、途中失敗を伝播する設定によって既存の深いJSON試験が失敗として表面化した。原因は2048段でRecursionErrorになるという試験入力の仮定。追加で使用したローカルPython3.12.14では2048段が受理され10000段がRecursionErrorになることを実証した。既存仕様は固定深さ上限を選択せず、解析RecursionErrorの固定理由への変換を要求するため、artifact/markerの3入力だけを10000段へ変更した。期待するmalformed_json/marker拒否、CLI終了値2、元保持、パーサー本体は不変。Python3.12の既存読取/marker試験は成功（既存symlink skip1）。新たな深さ制限やschema変更は導入しない。最新CIは修正push後に確認する。
+
+追加回帰: Python3.12.14でも上記19群243試験が成功（既存symlink skip1）、Python3.11.9の変更2群55試験も成功（同skip1）。runtime依存は3.12専用一時領域へ既存requirementsから導入し、credential/APIは合成のまま。CIはPython3.12.10のため厳密な版一致ではない。失敗理由とfixture変更の根拠をPRに反映し、最新HEADの両CI成功を待つ。
+
 ## S3認証・接続実装とPR #57失敗時点の記録
 
 2026-10-29、最新main `c9dde74b8ca0d4a17baded5ffa025d43fcd05461`（PR #56統合済み）をfetch/GitHubと照合し `feat/s3-authenticated-runner` を作成した。開始時ツリーはクリーン、worktreeは本checkoutのみ、originは正本。利用者はS3認証store/service/明示runnerの実装・合成検証・必要文書・PR/標準条件成立時のsquashマージを許可した。開始20:35:29 JST、上限3 PRまたは30分。実OAuth/consent・実credentialの探索/読取/取得/保存/refresh・実Drive/実ログ操作は禁止を維持する。
