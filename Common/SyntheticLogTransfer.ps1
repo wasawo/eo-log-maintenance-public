@@ -17,6 +17,8 @@ function Invoke-EoSyntheticLogTransfer {
         [ValidateSet('none', 'copy_failed', 'hash_mismatch', 'enumeration_failed')]
         [string]$MockFault = 'none',
         [switch]$DriveApiMock,
+        [switch]$IsolatedDrive,
+        [string]$ConnectionConfig,
         [string]$PythonExecutable = 'python',
         [ValidateSet('none','auth_denied','api_error','upload_unknown','content_changed','version_changed','duplicate_name')]
         [string]$ApiFault = 'none',
@@ -30,16 +32,22 @@ function Invoke-EoSyntheticLogTransfer {
     $destinationSide = if ($Route -eq 'Sync') { 'mock-drive' } else { 'archive' }
     $results = [Collections.Generic.List[object]]::new()
     $fixtureLease = $null
+    $elapsed = [Diagnostics.Stopwatch]::StartNew()
+    $live = [bool]$IsolatedDrive
+    $connection = if ($live) { $ConnectionConfig } else { '' }
     try {
         # Reject unsupported routes before opening any supplied path.
         if ($Route -eq 'Sync') {
             if ($Operation -ne 'Sync') { throw 'archive_role_denied' }
-            if ($MachineId -ne 'PC-B') { throw 's1_pc_b_only' }
+            if ($MachineId -ne 'PC-B' -and -not $live) { throw 's1_pc_b_only' }
         }
         else {
             if ($MachineId -ne 'PC-A') { throw 'archive_role_denied' }
             if ($Operation -ne 'Archive') { throw 's2_archive_only' }
         }
+        if (($live -and ($DriveApiMock -or [string]::IsNullOrWhiteSpace($ConnectionConfig) -or $MockFault -ne 'none' -or $ApiFault -ne 'none')) -or
+            (-not $live -and $ConnectionConfig)) { throw 'drive_api_unconfirmed' }
+        if ($live) { $DriveApiMock = $true }
         if (-not $Synthetic -or [string]::IsNullOrWhiteSpace($SyntheticRoot)) { throw 'synthetic_fixture_required' }
         $root = [IO.Path]::GetFullPath($SyntheticRoot).TrimEnd([char[]]'\/')
         $temp = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([char[]]'\/')
@@ -83,8 +91,8 @@ function Invoke-EoSyntheticLogTransfer {
                     }
                     if ($MockFault -eq 'enumeration_failed' -and $side -eq $sourceSide) { throw 'enumeration_failed' }
                     if ($DriveApiMock -and -not $DryRun -and $Route -eq 'Archive' -and $side -eq $sourceSide) {
-                        $listed = Invoke-EoDriveApiFixture -PythonExecutable $PythonExecutable -Request @{
-                            root=$root;kind=$kind;fault=$ApiFault;operation='list'}
+                        $listed = Invoke-EoDriveApiFixture -PythonExecutable $PythonExecutable -ConnectionConfig $connection -RunClock $elapsed -Request @{
+                            root=$root;kind=$kind;fault=$ApiFault;operation='list';route=$Route;machine_id=$MachineId}
                         foreach ($item in $listed.items) {
                             if ($item -isnot [Collections.IDictionary] -or $item.Count -ne 2 -or
                                 $item.name -isnot [string] -or $item.id -isnot [string] -or
@@ -109,8 +117,8 @@ function Invoke-EoSyntheticLogTransfer {
                 if ($side -eq $destinationSide) {
                 $destinations[$kind] = $kindRoot
                 if ($DriveApiMock -and -not $DryRun -and $Route -eq 'Sync') {
-                    [void](Invoke-EoDriveApiFixture -PythonExecutable $PythonExecutable -Request @{
-                        root=$root;kind=$kind;fault=$ApiFault;operation='list'})
+                    [void](Invoke-EoDriveApiFixture -PythonExecutable $PythonExecutable -ConnectionConfig $connection -RunClock $elapsed -Request @{
+                        root=$root;kind=$kind;fault=$ApiFault;operation='list';route=$Route;machine_id=$MachineId})
                 }
             }
             }
@@ -141,8 +149,9 @@ function Invoke-EoSyntheticLogTransfer {
             try {
                 $result.Reason='copy_or_verification_failed'
                 if ($DriveApiMock -and $Route -eq 'Archive') {
-                    $downloaded = Invoke-EoDriveApiFixture -PythonExecutable $PythonExecutable -Request @{
-                        root=$root;kind=$source.LogType;fault=$ApiFault;operation='download';file_id=$source.ApiId}
+                    if ($live -and $elapsed.Elapsed.TotalSeconds -ge 600) { throw 'drive_api_unconfirmed' }
+                    $downloaded = Invoke-EoDriveApiFixture -PythonExecutable $PythonExecutable -ConnectionConfig $connection -RunClock $elapsed -Request @{
+                        root=$root;kind=$source.LogType;fault=$ApiFault;operation='download';file_id=$source.ApiId;route=$Route;machine_id=$MachineId}
                     if ($downloaded.Count -ne 2 -or $downloaded.content -isnot [string] -or
                         $downloaded.sha256 -cnotmatch '^[a-f0-9]{64}$' -or $downloaded.content.Length -gt 5592408) { throw 'drive_api_unconfirmed' }
                     $bytes = [Convert]::FromBase64String($downloaded.content)
@@ -160,9 +169,10 @@ function Invoke-EoSyntheticLogTransfer {
                     try {
                         if ($inputStream.Length -gt 4194304) { throw 'drive_api_unconfirmed' }
                         $inputStream.CopyTo($buffer)
-                        $copied = Invoke-EoDriveApiFixture -PythonExecutable $PythonExecutable -Request @{
+                        if ($live -and ($elapsed.Elapsed.TotalSeconds -ge 600 -or $inputStream.Length -gt 4096)) { throw 'drive_api_unconfirmed' }
+                        $copied = Invoke-EoDriveApiFixture -PythonExecutable $PythonExecutable -ConnectionConfig $connection -RunClock $elapsed -Request @{
                             root=$root;kind=$source.LogType;fault=$ApiFault;operation='sync';name=$file.Name
-                            content=[Convert]::ToBase64String($buffer.ToArray())}
+                            content=[Convert]::ToBase64String($buffer.ToArray());route=$Route;machine_id=$MachineId}
                     }
                     finally { $buffer.Dispose() }
                     if ($copied.Count -ne 4 -or $copied.status -cnotin @('success','held') -or
@@ -199,6 +209,7 @@ function Invoke-EoSyntheticLogTransfer {
                 }
             }
             catch {
+                if ($live) { throw 'drive_api_unconfirmed' }
                 $result.Status = if ($DriveApiMock) { 'held' } else { 'failure' }
                 if ($DriveApiMock) { $result.Reason='drive_api_unconfirmed' }
             }
@@ -224,7 +235,7 @@ function Invoke-EoSyntheticLogTransfer {
     $planned = @($results | Where-Object Status -eq 'planned').Count
     $status = if ($failed -gt 0) { 'failure' } elseif ($held -gt 0) { 'held' } elseif ($planned -gt 0) { 'planned' } elseif ($success -eq 0) { 'no_work' } else { 'success' }
     return [pscustomobject][ordered]@{
-        AdapterMode=$(if ($DriveApiMock) {'sdk_http_mock'}else{'filesystem_mock'}); CloudObserved=$false
+        AdapterMode=$(if ($live) {'isolated_drive'}elseif ($DriveApiMock) {'sdk_http_mock'}else{'filesystem_mock'}); CloudObserved=($live -and -not $DryRun -and $success -gt 0)
         Slice=$slice; SyntheticOnly=$true; MachineId=$MachineId; Operation=$Operation; Status=$status
         ProcessedCount=@($results | Where-Object { $null -ne $_.SourceRelativePath }).Count
         SuccessCount=$success; FailureCount=$failed; HeldCount=$held

@@ -280,6 +280,10 @@ jobs:
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_drive_adapter_integration.py" -v
 
+      - name: Run S3 synthetic authentication and isolated connection tests
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_drive_authentication.py" -v
+
       - name: Install PSScriptAnalyzer
         shell: pwsh
         run: |

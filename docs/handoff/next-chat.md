@@ -6,6 +6,20 @@
 
 ## 現在地
 
+2026-10-29、最新main `c9dde74b8ca0d4a17baded5ffa025d43fcd05461`（PR #56統合済み）をfetch/GitHubと照合し `feat/s3-authenticated-runner` を作成した。開始時ツリーはクリーン、worktreeは本checkoutのみ、originは正本。利用者はS3認証store/service/明示runnerの実装・合成検証・必要文書・PR/標準条件成立時のsquashマージを許可した。開始20:35:29 JST、上限3 PRまたは30分。実OAuth/consent・実credentialの探索/読取/取得/保存/refresh・実Drive/実ログ操作は禁止を維持する。
+
+実装判断: DPAPI current-user/UI禁止・user-only protected DACL、明示repo外storeの排他的lease、暗号化pendingのread-back後公開/更新を選んだ。既存ACL profileを再利用し、旧credentialは更新失敗時に保持する。PKCE/state/loopbackのcode交換library（browser/listener自動起動なし）と、単試行refresh→scope確認→保護保存後のservice生成を接続した。実Principalの証明は操作者確認と将来の実証に残し、単なる設定flagを認証証拠へ昇格させない。Google/Microsoft公式資料を必要な範囲だけ確認した。新依存は追加せず、runtime依存は専用一時領域を用いた。
+
+正式入口の別mode `-IsolatedDrive -ConnectionConfig` を既存合成root/marker/期間/元保持の経路へ接続し、Syncは承認済み両PC→cloud、ArchiveはPC-Aのみとした。従来modeは不変。非公開設定の未知/重複field・scope/root/role/確認flag不備はstore読取前に拒否する。transportは明示token・HTTP30秒/単試行/no redirect/no環境proxy、子process120秒/経路残り10分以内。cloud uploadは各種別許可名1件/4 KiB、GETは明示folderと取得済IDのみ。未確定upload意図が残る場合は次回API前に停止する。意図解除/診断回復は未実装で別途の判断が必要。元・cloud・途中物の削除は追加していない。
+
+検証: Python3.11.9/PowerShell7.6.7、合成credentialのDPAPI/ACL・PKCE・refresh/保存失敗・service・runnerと共有両経路の13試験が成功。最初は試験HTTPの記録形式混在、次にSync初期列挙への接続設定転送漏れで失敗し、修正して全成功を確認した。既存SDK/API模擬7試験、S1 46/S2 51 assertion、役割別package回帰が成功。変更PS4ファイルの構文/PSScriptAnalyzer Errorも成功。S1回帰の最初のコマンドはfile名誤記で未実行だったため、正しいTest-SyncLogsE2E.ps1で実行し成功した。最終差分の検証とCIは提出前後に再照合する。root自己点検のみ、独立レビュー未実施。
+
+S3条件③④は未完。実credential/実OAuth/実APIは一切実行せず、合成credential用の新規一時領域だけを使用した。各PCのuser-bound store/ACL・初回consent/callback受領・principal/client/scope・可視性/所有/容量/root資格と、PR #56の限定実試験への明示承認が残る。既存Common/__pycache__17除外fileは保全し、正式AC/P0/Q5/承認済み安全条件と運用IPC schemaを変更しない。今回の実装をPR/条件付き統合した後、実credential操作・実Drive試験は承認待ちで停止し、S4へ進まない。
+
+最終ローカル検証: 合成認証13試験と既存SDK/API模擬7試験が成功。Python AST、変更Markdown7文書の相対リンク147件/見出し参照25件、git diff --checkが成功。rootが累積差分を自己点検し、新依存・実token/ID/path・元/クラウド削除・承認条件緩和・正式AC/P0/schema変更がないことを確認した。通常の合成modeとpackage拒否は維持する。実credential/実Drive試験の成功とは報告しない。PR/CI/mergeは実施後に別途報告する。
+
+## S3実Drive試験準備・PR #56時点の記録
+
 2026-10-29、S3実Drive結合試験の準備だけを行う利用者指示で、最新main `473fedd931582ba49215f18ca8c428f2be1752f2` から `docs/s3-live-test-preparation` を作成した。開始時main/origin/main/GitHub mainが一致し、作業ツリーはクリーン、worktreeは本checkoutのみ、originは正本。PR #55は同SHAへsquashマージ済み。今回開始時のmain CIはPackage Validation成功・Validate実行中だったが、文書検証後の再確認で両方成功を確認した。
 
 今回の差分は[既存Drive文書の限定計画](../design/drive-metadata-reader.md#s3-実drive結合試験の限定計画未承認未実施)、current-sliceからの参照、本handoffのみ。具体的なfixture数/bytes上限、PC間の可視性確認、同内容再利用/異内容保留、失敗/応答不明/中断時の停止と元・途中物保持、後処理を利用者の別指示まで保留する順序が既存文書では不足していたため追記した。認証方式の新設・store API選定・接続runner実装は行わない。Q5/役割/安全仕様・正式AC・P0は変更しない。

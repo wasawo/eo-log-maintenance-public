@@ -44,8 +44,8 @@ SDKの追加再試行は`num_retries=0`とする。非2xxはSDKのretry診断へ
 ### 現在利用できる機能と実行前の不足
 
 - metadata/list/content readerと[転送adapter](../../Common/DriveTransferAdapter.py)は、呼出し側が明示的に渡す公式Drive v3 serviceを利用できる。新規uploadは1試行、既存同内容は再利用、異内容/複数候補/確認不能は保留する。転送adapterのbytes上限は4 MiB。
-- 正式Sync/Archive入口は合成root専用で、`-DriveApiMock`もtests専用HTTP workerに固定される。実Driveへ切り替える引数はない。このworkerへ実ID/tokenを渡したり、隔離ガードを外して実試験へ転用したりしない。
-- project用OAuthフロー、Windows user-bound暗号化専用fileのstore API/ACL/更新・失効手順、認証済みservice生成、実試験runnerは未実装・未認定。SDKの存在だけでは認証可能とはいえない。接続許可だけで直ちに実行できる状態ではなく、不足部分の具体化・実装範囲の承認を別に得る。今回は選定・実装しない。
+- 正式Sync/Archive入口は合成root専用で、`-DriveApiMock`はtests専用HTTP workerに固定される。追加承認された実装は別の `-IsolatedDrive -ConnectionConfig <非公開設定>` から明示runnerへ接続する。このmodeも固定の合成root/marker/期間/元保持を維持する。既存の模擬workerへ実ID/tokenを渡したり、隔離ガードを外したりしない。
+- 認証store/service/runnerは後述の合成検証済み部分実装を利用できる。実consent・初回保管・両PCのWindows保護/refresh/資格・実API接続は未実施で、実行には別の明示承認が必要。SDKやコードの存在だけで認証可能・S3完了とはいえない。
 - PowerShellは7.6.7、PythonはCIの3.12を基準とし、既存`requirements-runtime.txt`の依存を用いる。実施時は明示したinterpreterとSDK版を確認し、未設定の`python` shimや過去の一時依存を暗黙に利用しない。認証情報・環境変数・実設定を列挙して前提を調べない。
 
 ### 利用者が非公開で用意・確認する前提
@@ -66,7 +66,7 @@ SDKの追加再試行は`num_retries=0`とする。非2xxはSDKのretry診断へ
 | 3 | 各PCから各種別1件を新規uploadし、返されたIDのparent/name/size/versionを確認。内容をdownloadして元bytesのSHA-256と照合し、再列挙で同名候補一意を確認 | hash/版/親/名前の不一致・複数候補・部分列挙なら保留。新規uploadを追加しない |
 | 4 | PC-AがPC-B作成分を、PC-BがPC-A作成分を列挙・取得・照合。同じprincipalでもPC間可視性は実証する | 片方だけ成功なら③④の合格としない。PC-Bでarchiveを呼ばない |
 | 5 | 同じ名前/bytesを再度照合し同じIDを再利用。次に同名の異なるローカル合成bytesで照合し、競合保留・既存ID/内容の不変・元保持を確認 | 同名異内容でPOST/上書き/改名が生じたら即停止。競合fixtureのための追加cloud作成はしない |
-| 6 | 承認download領域への保存・hashとPC-A側経路を、資格確認済みrunnerが提供する範囲で検証 | 現在の`download_bytes`はメモリ取得で、正式入口のlive保存経路はない。未接続なら未実行として残し、library成功を正式E2E成功にしない |
+| 6 | 承認download領域への保存・hashとPC-A側経路を、資格確認済みrunnerが提供する範囲で検証 | `download_bytes`から既存Archive書込/hashへ接続する。模擬通信での共有経路成功を実接続/正式AC成功にしない |
 
 列挙は既存上限100 pages/4096 files以内、今回の転送は各4 KiB以下。大量データで上限を試さない。実試験のtimeout案はHTTP要求30秒、操作を扱う子process120秒、試験全体10分とし、超過時は停止・結果不明を維持する。実施runnerにはこの有限timeoutと、認証transportを含む暗黙再送の抑止の確認が必要（現行bridgeの30秒だけでlive transportが認定されたとはしない）。未実装/未合意なら開始しない。Dry Runはlive接続資格の代用にせず、認証・API・downloadを呼ばない。
 
@@ -80,3 +80,17 @@ SDKの追加再試行は`num_retries=0`とする。非2xxはSDKのretry診断へ
 ③は両PCの認証/store・principal・可視性/所有/容量・root資格の証拠、④は承認範囲内の実API結合結果で判断する。未完のproviderやlive正式入口を計画文書だけで完成扱いにしない。合成/API模擬の既存成功、実接続試験、正式ACを分け、S3は証拠が揃うまで未完、S4は未着手とする。
 
 公開資料の根拠: [drive.fileの対象範囲](https://developers.google.com/workspace/drive/api/guides/api-specific-auth)、[File metadataとcapabilities](https://developers.google.com/workspace/drive/api/reference/rest/v3/files)。folder IDや同一principalのみでは可視性・実能力の証明にならないため、上記の事前確認とPC間照合を置く。
+
+### 認証store・service・接続runnerの実装境界
+
+[DriveCredentialStore](../../Common/DriveCredentialStore.py)はWindows current-user DPAPI（UI禁止、machine-wide flagなし）と、現userだけの明示protected DACLで暗号化fileを扱う。既存のACL profile判定を再利用し、repo外の明示directoryだけを許可する。directoryは自動探索/自動修復せず、reparse/UNC/不明ACLを拒否。明示的な初期保管は`transaction()`内の`save(record, initial=True)`、更新は既存fileの検証と排他的lease、暗号化一時fileのflush/fsync・復号read-back後の置換とする。初期公開はno-replace。失敗時は旧storeを維持し、暗号化pending/lockを自動削除しない。暗号化中のPythonメモリ全体の消去、敵対的なprivileged process、電源断耐久性、他user/両PCの実資格は保証しない。
+
+[DriveAuthentication](../../Common/DriveAuthentication.py)の`DesktopAuthorization`はPKCE S256/state・loopback redirect・単回code交換を結ぶlibraryで、browserやlistenerを自動起動しない。操作者によるprincipal確認は必須だが、設定の`principal_verified`だけでtokenのGoogle identityが証明されたとはしない。実認証時の確認記録は条件③の残件。`create_service`は明示storeのprincipal/client/scopeを照合し、期限が近い場合は`allow_refresh`がtrueのときだけtoken endpointへ1試行し、scope確認・保護store保存が成功してからserviceを返す。失敗時はDrive要求へ進まない。Drive transportは期限/401でrefresh・再送せず、HTTP30秒、redirect/環境proxy/既定認証なし、応答上限64 KiBで停止する。認証code/token/header/error bodyを公開しない。
+
+[IsolatedDriveRunner](../../Common/IsolatedDriveRunner.py)は保護ACL付きのrepo外JSON設定をstdin経由の明示pathだけから読み、未知/重複field、未承認flag、scope/root/role不一致をcredential読取前に拒否する。必須keyは`version=1`、`mode=isolated_drive`、`machine_id`、`principal`、`client_id`、`scope`、`folders`（BattleLog/ErrorReportの別ID）、`store_directory`、`fixture_root`、`upload_names`（種別ごと最大1件）、`required_visible`（種別ごと最大6件）、`principal_verified`、`environment_verified`、`allow_refresh`、`execution_approved`。実値をrepoや引数例に埋め込まない。flagは実行前の操作者確認を表す条件であり、利用者の作業許可を自動生成しない。
+
+呼出しは既存正式入口の `-Synthetic -SyntheticRoot <隔離fixture> -IsolatedDrive -ConnectionConfig <非公開設定> -PythonExecutable <明示Python>`。既存S1/S2 fixture/markerを残し、Syncは承認済みの各PC→cloudに合わせ両PC、ArchiveはPC-Aだけ。PC-B拒否は認証より前。mock flagとの併用は拒否し、既存のfilesystem/API模擬modeを変えない。Dry Runは設定/store/Python/APIに触れない。workerの上限は120秒、経路全体の残り10分内で打ち切る。通常IPC1.0/schemaや配布拒否は変更しない。
+
+runnerは明示folder/許可名/required-visibleを確認して既存adapterを呼ぶ。未知/欠落候補・同名複数・API失敗で停止し、uploadは種別ごと許可名1件・各4 KiBのみ。同内容再利用/異内容保留は既存処理を維持する。POST前の意図をprivate storeにflushし、成功/既知の競合結果だけ確認済み記録を追記する。応答不明・強制終了後に未確定意図が残れば、次回はAPI前に停止し、自動再uploadしない。解除/読取照合の専用手順は未実装で、別途承認された診断・判断が必要。両PC合計4件/16 KiBの実試験予算は操作者の限定計画でも管理し、PC間のglobal quota機構を追加したとはしない。保留時も元/途中物/cloudを消さない。
+
+根拠: [Microsoft DPAPI](https://learn.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectdata)、[Google Desktop OAuth](https://developers.google.com/identity/protocols/oauth2/native-app)、[公式Credentials](https://google-auth.readthedocs.io/en/latest/reference/google.oauth2.credentials.html)。初回consentと安全なcallback受領、実principal/scope・所有/容量/可視性、両PC store/ACL/失効/復旧の実資格と本計画の実行承認は未完。新機能を実credentialに対して実行しない。

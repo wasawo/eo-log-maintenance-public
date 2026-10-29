@@ -39,6 +39,8 @@ SDKの[内容取得・hash・版再確認](../docs/design/drive-content-reader.m
 
 ## 詳細と検証
 
+S3の不足していた認証と明示接続のため、[DriveCredentialStore.py](DriveCredentialStore.py)・[DriveAuthentication.py](DriveAuthentication.py)・[IsolatedDriveRunner.py](IsolatedDriveRunner.py)を追加した。既存ACL profileとSDK reader/transferを再利用する。Windows DPAPI/保護ACLと合成credential、SDK/API模擬の検証に限定し、実認証/両PCの資格/実Drive受け入れは未完。[実装境界と操作承認](../docs/design/drive-metadata-reader.md#認証storeservice接続runnerの実装境界)を確認する。
+
 - 全モジュールの従来説明は[Commonモジュール参照ノート](../docs/design/reference/common-module-notes.md)へ移した。個別の観測条件/未実装境界を削っていない。
 - [helper参照索引](../docs/design/reference/README.md)、[現行schema](../contracts/)、[テスト手順](../tests/README.md)から必要な分野だけを読む。
 - 2026-10-27の配置整理ではruntime名/配置・schema・import・CI/配布allowlistを変更していない。その後の実装変更は各設計と引き継ぎで確認する。helperの未使用推測や旧方針を理由にコード/試験を削除しない。
