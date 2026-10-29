@@ -6,6 +6,28 @@
 
 ## 現在地
 
+2026-10-29、利用者のS1実装指示を受領し、最新main `9b47984820326679b59f358db329d1e303607952`（PR #50マージ済み）から `feat/s1-pc-b-sync` を作成した。開始時の作業ツリーはクリーン、worktreeは本checkoutのみ、originは正本。git fetch後にmain/origin/mainの一致を確認した。今回の許可はS1の実装・合成検証・関連文書・ローカルcommitまでで、push/PR/merge・実データ操作は許可されていない。
+
+[SyncLogs.ps1](../../scripts/SyncLogs.ps1)をPC-B限定の正式入口として追加し、隔離した合成fileの再帰列挙→期間判定→平坦化→模擬Driveへの非上書きコピー→SHA-256照合→JSON結果表示を実行した。Common/LogFunctions.ps1の既存判定を再利用する。メモリ上で削除まで扱う既存モデルはS1の書込経路へ呼び出さず、FileMode.CreateNewのコピーと保持した元streamのhashを入口へ接続した。成功はコピー検証であり、CompletedMoveCountは常に0。元削除・実Drive・実設定の入力は提供しない。
+
+判断記録: 合成rootはOS-temp直下の固定prefix/32桁GUID・専用marker・固定のsource/mock-drive構成に限定し、markerの排他openをrun中保持する。reparseと模擬Drive内の階層を拒否し、元は常に保持する。これはS1の隔離/二重起動防止で、正式runtimeの所有/回復/ACL資格や耐久性を完成したものではない。新helper/schema/probeは追加していない。
+
+具体的な追加変更の理由: 既存ビルダーはSyncLogs.ps1の存在だけでPC-Bを配布可能にするため、合成専用入口のEOLM-SYNTHETIC-ONLYマーカーを通常配布拒否へ結び付けた。実際の入口を隔離package fixtureへコピーした回帰で、通常配布拒否とレビュー成果物の非配布表示を確認する。CIにはS1の入口E2Eを登録したが、今回リモートCIは実行していない。
+
+検証: PowerShell 7.6.7で `pwsh -NoProfile -File tests/Test-SyncLogsE2E.ps1` の46 assertionが成功。最初に正常系4 assertionを通し、次に期間内/期間外/古い分・1月/うるう日・不正名/不正日付/大文字拡張子・対象0件・同内容再利用/平坦化・異内容非上書き・copy失敗・実際のコピーへの1byte付加によるhash不一致と元保全・再実行・archive/PC-A拒否・Dry Run・排他・marker/root拒否を確認した。試験の引数重複で一度失敗したが修正し、最終runは成功。混在ケースは処理8/成功3/対象外2/失敗3/保留0と表示する。失敗/保留は終了1、成功/正常な対象なしは終了0。
+
+既存の `pwsh -NoProfile -File tests/Test-LogFunctions.ps1` は49成功/0失敗、`pwsh -NoProfile -File tests/Test-ReleasePackage.ps1` は役割別回帰に成功した。変更PS4ファイルの構文解析とPSScriptAnalyzer Severity Errorは成功。PSScriptAnalyzerは専用一時領域に取得して使用し、repo依存や個人のmodule設定は変更していない。実checkoutの直接package検査は既存の未追跡Common/__pycache__をallowlistが拒否して先へ進まず、これを合成専用拒否の証拠にはしない。既存cacheは削除していない。
+
+S1の状態: current-sliceの範囲と定義は変更せず、合成E2Eの完了条件をローカルで満たした。正式ACはAC-01のPC-B対象選択/コピー（PC-A/元削除は未検証）、AC-04の合成での平坦化/元識別、AC-05の同内容再利用/異内容保留（元削除は未検証）、AC-09の対象0/不正名/列挙失敗（前回結果不明は未検証）を部分検証した。AC-06の失敗時元保全、AC-11のB archive拒否も一条件だけ確認した。正式AC全体の合格、実adapter統合、実環境受け入れ、配布/初回リリース完成は付与していない。P0の優先度・合格条件・未完状態は維持する。
+
+関連文書の不整合: scripts README/実装計画/runtimeゲート/P0台帳に残った入口不在を、S1合成入口の存在と運用runtime未完へ区別した。旧仕様や監査証拠は撤回しない。独立レビューは未実施で、root自己点検のみ。正式AC/承認済み要件の定義と削除境界は変更しない。
+
+最終文書検証: Python 3.11.9で変更Markdown6文書の相対リンク149件・見出し参照28件が成功。正式AC§2・current-slice・承認済み要件・AGENTSの本文とP0表の全行を開始HEADと比較し、不変を確認した。git diff --check成功。関連外のPython全体試験・実環境/電源断検証は実行していない。
+
+次の実装候補は、利用者がS2へ切り替える指示を出した後のPC-A archive削除なし合成E2E一本の接続。今回はS2へ進まない。S1の差分は本branchにローカルcommitし、次の指示を待つ。
+
+## 前回の方針更新（PR #50統合済み・以下は当時の記録）
+
 2026-10-29、開発方針と現在の作業範囲を更新した。開始HEADはmain `4aeedb6d14e8839e45fb148a6b9ea7698aa0e503`、開始時の作業ツリーはクリーン、worktreeは本checkoutのみ。originは正本リポジトリで、ローカルmain・origin/main・GitHub mainのSHA一致と[PR #49](https://github.com/wasawo/eo-log-maintenance-public/pull/49)のマージ済み状態を確認した。新しい作業branchは `docs/s1-development-policy`。前回のpush/PR/merge承認は今回へ引き継がない。
 
 利用者提示のAGENTS改訂案と[現在のスライス](../development/current-slice.md)を反映し、動く経路を優先する方針へ移行した。旧AGENTSからQ5・PC-Bの役割・archiveの両PC待機不要・削除と本番操作の明示承認・合成/隔離試験・秘密非公開・root単独・Git権限・検証限界を維持した。候補で省略されていた削除前の検証方法/対象制限/失敗・再試行/受け入れ試験の文書化と、単独作業手順への参照を補った。
@@ -394,7 +416,7 @@ Markdown94文書でMD001/MD033/MD051/MD056/MD060（any）の指摘0件。相対�
 
 アンカー整理後も、相対リンク909件・見出し参照109件に欠落・不一致なし。明示アンカーの残存0、コードブロックの変更0。作業前の本文と比較し、アンカー行の削除・記録したリンク更新・本引き継ぎの更新以外の変更がないことを確認した。今回の対象にはリポジトリ直下やCommon/testsのMarkdown内の参照も含む。実行コード・契約・設定は変更していない。`git diff --check`成功。root自己点検のみで、独立レビュー・実行時試験は行っていない。
 
-## 次の作業と未完
+## 方針更新時点の次作業と未完（履歴）
 
 - 次の実装候補は[現在のスライス](../development/current-slice.md)のS1。今回の指示では実装を開始せず、利用者の着手指示を待つ。
 - 未決API/FS能力・削除対象との結合・記録・経路間照合などの全体残件は保持し、S1の範囲外へ自動的に広げない。必須のP0条件を省略する必要が生じたら、根拠と影響を示して承認を待つ。
