@@ -141,7 +141,8 @@ class ArtifactReadStabilityTests(unittest.TestCase):
 class ArtifactReadBoundsTests(unittest.TestCase):
     def test_excessive_json_nesting_in_any_read_input_returns_fixed_rejection(self):
         paths = self.seed()
-        malformed = b'{"nested":'+b"["*2048+b"0"+b"]"*2048+b"}"
+        # Python 3.12 accepts depth 2048; trigger its parser's actual recursion guard.
+        malformed = b'{"nested":'+b"["*10000+b"0"+b"]"*10000+b"}"
         for path in paths:
             original = path.read_bytes()
             path.write_bytes(malformed)
@@ -174,7 +175,7 @@ class ArtifactReadBoundsTests(unittest.TestCase):
 
     def test_cli_malformed_nested_json_returns_json_exit_two_without_traceback(self):
         self.seed()
-        self.report_path.write_bytes(b'{"nested":'+b"["*2048+b"0"+b"]"*2048+b"}")
+        self.report_path.write_bytes(b'{"nested":'+b"["*10000+b"0"+b"]"*10000+b"}")
         result = subprocess.run([sys.executable, "-B", str(Path(validator.__file__)),
             "--root", str(self.root), "--report", str(self.report_path), "--contracts", str(self.contracts)],
             capture_output=True, text=True, check=False)

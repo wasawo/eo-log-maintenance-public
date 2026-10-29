@@ -59,6 +59,11 @@ jobs:
         shell: pwsh
         run: python -m pip install -r requirements-test.txt
 
+      - name: Canonicalize Windows temporary directory aliases
+        shell: pwsh
+        run: |
+          python -c "import os,tempfile; from pathlib import Path; root=str(Path(tempfile.gettempdir()).resolve(strict=True)); Path(os.environ['GITHUB_ENV']).open('a',encoding='utf-8').write('TEMP='+root+'\nTMP='+root+'\n')"
+
       - name: Validate PowerShell/Python JSON contracts
         shell: pwsh
         run: python -m unittest discover -s tests -p "test_contract_schemas.py" -v
@@ -115,6 +120,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           python -m pip install -r requirements-runtime.txt
           python -m unittest discover -s tests -p "test_aggregation_referenced_artifacts.py" -v
           python -m unittest discover -s tests -p "test_run_input_evidence_integrity.py" -v
@@ -279,6 +285,10 @@ jobs:
       - name: Run S3 official SDK adapter with isolated HTTP fixtures
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_drive_adapter_integration.py" -v
+
+      - name: Run S3 synthetic authentication and isolated connection tests
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_drive_authentication.py" -v
 
       - name: Install PSScriptAnalyzer
         shell: pwsh

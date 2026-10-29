@@ -90,7 +90,8 @@ class ArtifactSetDirectoryVerificationTests(unittest.TestCase):
 
     def test_excessive_marker_nesting_is_a_sanitized_parse_failure(self):
         self.write_complete_set()
-        content = b'{"nested":'+b"["*2048+b"0"+b"]"*2048+b"}"
+        # Exercise parser recursion rejection on both Python 3.11 and 3.12.
+        content = b'{"nested":'+b"["*10000+b"0"+b"]"*10000+b"}"
         path = self.root/"commit-marker.json"
         path.write_bytes(content)
         with self.assertRaisesRegex(ArtifactSetDirectoryVerificationError, "^commit_marker_json_invalid$"):

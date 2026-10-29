@@ -444,3 +444,5 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 `test_initial_inventory_summary.py`は初期inventoryの件数要約・共通保留と未比較の区別、機密原データ非露出・対応不整合拒否・I/Oなしを確認する。要約は実行許可/正式運用reportではない。
 
 `test_staging_residual_observation.py`は残存staging直下の件数・内容非読取/非再帰・変化/不明の保留と保全を合成検証する。metadata解析やcleanup、運用run statusの受け入れではない。
+
+`python -B -m unittest discover -s tests -p test_drive_authentication.py -v` はWindowsの専用一時領域で合成credentialだけをDPAPI暗号化し、protected ACL/排他/改ざん・保存失敗、PKCE/state、refreshの単試行/失敗/保存前の利用禁止、scope/principal不一致を確認する。実SDKへのHTTP注入で接続runnerと共有Sync/Archive経路も確認する（test専用bridge/worker注入であり、実serviceやcredentialではない）。正式入口のDry RunもPython/config未読を確認する。非Windowsはskipで、実認証・別Windows user/両PCの資格・実Drive受け入れを証明しない。

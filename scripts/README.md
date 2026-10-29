@@ -21,4 +21,6 @@
 
 S3のAPI模擬結合は、両入口へ`-DriveApiMock -PythonExecutable <Python>`を指定します。公式SDKと既存reader、[DriveTransferAdapter.py](../Common/DriveTransferAdapter.py)を呼び、Syncは新規upload/現在内容確認、ArchiveはAPI列挙/downloadから既存のローカルcopy/hashへ接続します。fixtureの構成と役割制限はS1/S2と同じです。`-ApiFault auth_denied|api_error|upload_unknown|content_changed|version_changed|duplicate_name`は完全オフラインの試験注入です。Dry RunではPythonを起動しません。
 
-このモードはtests専用HTTP workerに固定され、実Drive接続CLIや既定認証は提供しません。結果の`AdapterMode=sdk_http_mock`、`CloudObserved=false`は模擬結合を表し、実接続成功やS3完了の表示ではありません。libraryのSDK結合は追加しましたが、運用認証/service資格・実root・隔離実Drive受け入れは未完。実操作には利用者の別途の明示承認が必要です。
+このモードはtests専用HTTP workerに固定され、既定認証は提供しません。結果の`AdapterMode=sdk_http_mock`、`CloudObserved=false`は模擬結合を表し、実接続成功やS3完了の表示ではありません。運用認証/service資格・実root・隔離実Drive受け入れは未完。実操作には利用者の別途の明示承認が必要です。
+
+S3の追加実装は `-IsolatedDrive -ConnectionConfig <非公開設定> -PythonExecutable <明示Python>` で別の隔離接続runnerを選びます。`-Synthetic -SyntheticRoot`と上記fixture構造/markerは引き続き必須で、模擬modeとの併用・未知設定は拒否します。このmodeのSyncだけは承認済みの両PC→cloudを扱い、ArchiveはPC-A限定です。上記S1のPC-B制限/実接続非対応の説明は従来modeに適用します。設定・DPAPI/store・認証・単試行transport・上限・中断時の未確定意図は[実行前計画](../docs/design/drive-metadata-reader.md#認証storeservice接続runnerの実装境界)を参照してください。今回の認証/両経路試験は合成credential/API模擬だけで、実行許可・S3③④合格・配布可能の証拠ではありません。Dry Runは非公開設定/store/Python/APIを読みません。

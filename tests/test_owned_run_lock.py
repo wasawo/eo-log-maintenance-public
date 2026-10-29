@@ -330,7 +330,8 @@ class OwnedRunLockTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        # Match the production canonical parent even when TEMP is an 8.3 alias.
+        self.root = Path(self.temp.name).resolve()
         self.path = self.root / "run.lock"
         self.mutexes = []
 
