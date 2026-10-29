@@ -15,4 +15,6 @@
 
 再現は`pwsh -NoProfile -File tests/Test-SyncLogsE2E.ps1`で、試験自身が合成fixtureを作成し、入口を別プロセスで起動して後片付けします。入口単体は`pwsh -NoProfile -File scripts/SyncLogs.ps1 -Synthetic -SyntheticRoot <合成fixture> -ReferenceDate 2026-10-29`です。`-DryRun`は計画表示のみ、`-MockFault hash_mismatch|copy_failed|enumeration_failed`は合成環境限定の失敗注入です。失敗・保留時は終了コード1、成功・正常な対象なしは0です。入口自身は失敗コピーも元も削除しません。
 
-PC-A専用`ArchiveLogs.ps1`、実Drive adapter、実元削除、導入・更新入口は未実装です。S1入口には`EOLM-SYNTHETIC-ONLY`マーカーがあり、役割別ビルダーは配布可能と扱いません。[初回配布の棚卸し](../docs/development/implementation-workflow.md#9-既存の実装資産と不足)を参照してください。
+[ArchiveLogs.ps1](ArchiveLogs.ps1)はS2のPC-A限定・削除なし合成E2E入口です。`-Synthetic -SyntheticRoot <合成fixture>`を必須とし、OS-temp直下`eolm-s2-archive-<32桁GUID>`、marker内容`eolm-s2-synthetic-v1`、`mock-drive/BattleLog`・`mock-drive/ErrorReport`から`archive/BattleLog`・`archive/ErrorReport`へ同じコピー/照合処理を使います。BattleLogは前年末以前、ErrorReportは前々年末以前を選び、PC-Bの期間完了や実行は待ちません。遅着分は次回コピーし、既存の同内容archiveは再利用します。実行: `pwsh -NoProfile -File tests/Test-ArchiveLogsE2E.ps1`。PC-B、Sync操作、実設定の入力は受け付けません。
+
+両入口は[SyntheticLogTransfer.ps1](../Common/SyntheticLogTransfer.ps1)を再利用し、S1の入力・結果・役割制限は維持します。実Drive adapter、実元削除、導入・更新入口は未実装です。両入口の`EOLM-SYNTHETIC-ONLY`マーカーにより、役割別ビルダーは配布可能と扱いません。[初回配布の棚卸し](../docs/development/implementation-workflow.md#9-既存の実装資産と不足)を参照してください。

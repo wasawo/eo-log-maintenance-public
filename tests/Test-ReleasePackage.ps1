@@ -320,6 +320,22 @@ try {
     }
     finally { [IO.File]::WriteAllText($syncPath, $originalSync) }
 
+    # Archive must stay non-deployable even if Sync is already a runtime fixture.
+    $archivePath = Join-Path $fixture 'scripts/ArchiveLogs.ps1'
+    $originalArchive = [IO.File]::ReadAllText($archivePath)
+    try {
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../scripts/ArchiveLogs.ps1') -Destination $archivePath
+        $archiveSyntheticBlocked = $false
+        try {
+            & $builder -SourceRoot $fixture -TargetRole PC-A -OutputDirectory (Join-Path $tempRoot 'synthetic-archive-output') | Out-Null
+        }
+        catch { $archiveSyntheticBlocked = $_.Exception.Message -match 'synthetic-only' }
+        Assert-True $archiveSyntheticBlocked 'Synthetic-only ArchiveLogs must not unlock PC-A deployability.'
+        $archiveReview = & $builder -SourceRoot $fixture -TargetRole PC-A -OutputDirectory (Join-Path $tempRoot 'synthetic-archive-review') -AllowNonDeployable
+        Assert-True ($archiveReview.Status -eq 'non-deployable-review-artifact') 'Synthetic Archive review artifact remains non-deployable.'
+    }
+    finally { [IO.File]::WriteAllText($archivePath, $originalArchive) }
+
     # PC-A must not be treated as deployable without its archive entry point.
     $pcAWithoutArchive = Join-Path $tempRoot 'pc-a-without-archive'
     New-Item -ItemType Directory -Path $pcAWithoutArchive -Force | Out-Null
