@@ -146,7 +146,9 @@ class AuthenticationTests(unittest.TestCase):
     def factory(self,config,store): return create_service(config,store,http=self.http)
 
     def test_runner_upload_reuse_conflict_and_unknown_response_blocks_reentry(self):
-        result=execute(self.request(),service_factory=self.factory)
+        request=self.request()
+        request['root']=str(self.root.resolve())
+        result=execute(request,service_factory=self.factory)
         self.assertEqual(result['status'],'success')
         self.assertTrue(execute(self.request(),service_factory=self.factory)['reused'])
         req=self.request(); req['content']=base64.b64encode(b'conflict').decode()
@@ -162,6 +164,16 @@ class AuthenticationTests(unittest.TestCase):
         self.assertEqual(len(list((self.root/'mock-drive/BattleLog').iterdir())),1)
 
     def test_runner_rejects_role_unknown_config_and_unapproved_before_service(self):
+        wrong_root=self.request(); wrong_root['root']=str(self.private)
+        with self.assertRaises(Exception): execute(wrong_root,service_factory=lambda *_:self.fail('service called'))
+        original_lstat=Path.lstat
+        def reparse_root(path, *args, **kwargs):
+            if path == self.root:
+                from types import SimpleNamespace
+                return SimpleNamespace(st_file_attributes=0x400)
+            return original_lstat(path,*args,**kwargs)
+        with patch.object(Path,'lstat',reparse_root):
+            with self.assertRaises(Exception): execute(self.request(),service_factory=lambda *_:self.fail('service called'))
         req=self.request(); req['route']='Archive'
         with self.assertRaises(Exception): execute(req,service_factory=lambda *_:self.fail('service called'))
         for field,value in (('execution_approved',False),('extra',True),('scope','other')):

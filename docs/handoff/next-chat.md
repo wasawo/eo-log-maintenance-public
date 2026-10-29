@@ -6,6 +6,20 @@
 
 ## 現在地
 
+2026-10-29、利用者のPR #57 CI復旧指示で再開。開始21:07:49 JST、上限3 PRまたは30分。main/origin/main/GitHub mainは `c9dde74`、PR/ローカルHEADは `ab7302f`、branchは `feat/s3-authenticated-runner`、ツリーはクリーン、worktreeは本checkoutのみ、originは正本。最新main/branchをfetchしAGENTS/current-slice/既存承認を照合した。実credential/OAuth/実Drive・元/クラウド元削除は禁止、S3③④未完・S4未着手を維持する。
+
+原因確定: ab7302fのPackage Validation成功・Validate失敗。追加診断は共有Sync/ArchiveともIsolatedDriveRunnerのroot比較（旧49行）のValueErrorを示した。CIのTEMPは8.3短縮名、PowerShellが渡すrootは長い名で、同一directoryを字面で不一致にしていた。新規の合成TempにGetShortPathNameWで短縮名を作るだけで、ローカルPython3.11.9でも同じ2失敗と旧OwnedRunLockの4失敗/3エラーを再現した。credential/依存欠落や通信失敗ではない。
+
+旧lockの同一失敗はPR #57以前のmain c9dde74のValidateログにも存在し、今回の認証変更が発生原因ではない。さらに同じmainログには18群の失敗があったが、複数native Pythonコマンドを並べたステップが最後の終了値だけを返していた。必要最小限の復旧として、CIのTEMP/TMPを実体の長いpathへ正規化し、該当集約ステップにPSNativeCommandUseErrorActionPreference=trueを設定して途中の非zeroで停止させる。既存失敗をskip/無効化せず、全コマンドと期待値を維持する。
+
+修正: runnerは絶対path/..拒否とreparse拒否後に実体pathを比較し、承認root/Temp直下/prefix/役割/ACL条件を維持する。旧lockはテストfixtureのparentをproductionと同じcanonical pathへ揃え、mockの失敗注入が実際の対象へ届くようにした（lock本体は不変）。認証試験には長いroot表記の要求と別root/reparse拒否を含める。追加helper・実認証操作・仕様変更はない。
+
+回帰: 短縮名Tempのまま認証13+旧lock35の48試験が成功。canonical Tempでmainログの失敗群を含む19群243試験が成功（既存skip1、今回skip追加なし）。Python3.11.9/PowerShell7.6.7と専用一時依存、合成credential/模擬HTTPだけを使った。最新HEADの両CIはpush後に確認し、標準条件が揃うまでマージしない。root自己点検のみで独立レビュー未実施。現在地と統合結果は実Git/GitHubを優先する。
+
+最終点検: workflow内の実コマンドを合成GITHUB_ENVへ適用し、短縮Tempからcanonical TEMP/TMPが設定されることを確認した。native childが終了値7を返す場合に後続へ進まないことも確認。Python AST、handoff相対リンク45件、git diff --check成功。既存skip1はhostのsymlink作成不能による既定のskipで、新たなskip/期待値緩和はない。AGENTS/current-slice/正式AC/P0/要件/schemaとlock本体は変更しない。
+
+## S3認証・接続実装とPR #57失敗時点の記録
+
 2026-10-29、最新main `c9dde74b8ca0d4a17baded5ffa025d43fcd05461`（PR #56統合済み）をfetch/GitHubと照合し `feat/s3-authenticated-runner` を作成した。開始時ツリーはクリーン、worktreeは本checkoutのみ、originは正本。利用者はS3認証store/service/明示runnerの実装・合成検証・必要文書・PR/標準条件成立時のsquashマージを許可した。開始20:35:29 JST、上限3 PRまたは30分。実OAuth/consent・実credentialの探索/読取/取得/保存/refresh・実Drive/実ログ操作は禁止を維持する。
 
 実装判断: DPAPI current-user/UI禁止・user-only protected DACL、明示repo外storeの排他的lease、暗号化pendingのread-back後公開/更新を選んだ。既存ACL profileを再利用し、旧credentialは更新失敗時に保持する。PKCE/state/loopbackのcode交換library（browser/listener自動起動なし）と、単試行refresh→scope確認→保護保存後のservice生成を接続した。実Principalの証明は操作者確認と将来の実証に残し、単なる設定flagを認証証拠へ昇格させない。Google/Microsoft公式資料を必要な範囲だけ確認した。新依存は追加せず、runtime依存は専用一時領域を用いた。

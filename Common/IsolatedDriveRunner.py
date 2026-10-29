@@ -46,7 +46,16 @@ def configuration(path, request):
     if request['route'] not in ('Sync','Archive') or (request['route'] == 'Archive' and config['machine_id'] != 'PC-A'):
         raise ValueError('connection_unconfirmed')
     root = Path(config['fixture_root'])
-    if root != Path(request['root']) or root.parent != Path(tempfile.gettempdir()): raise ValueError('connection_unconfirmed')
+    supplied_root = Path(request['root'])
+    # Windows Temp can use an 8.3 alias in Python and a long name in .NET.
+    # Reject reparse paths first, then compare the same canonical directory.
+    for candidate in (root, supplied_root):
+        if not candidate.is_absolute() or '..' in candidate.parts: raise ValueError('connection_unconfirmed')
+        for p in (candidate, *candidate.parents):
+            if p.lstat().st_file_attributes & 0x400: raise ValueError('connection_unconfirmed')
+    root = root.resolve(strict=True)
+    if root != supplied_root.resolve(strict=True) or root.parent != Path(tempfile.gettempdir()).resolve(strict=True):
+        raise ValueError('connection_unconfirmed')
     prefix = 'eolm-s1-sync-' if request['route'] == 'Sync' else 'eolm-s2-archive-'
     if re.fullmatch(prefix + '[a-f0-9]{32}', root.name) is None or root.lstat().st_file_attributes & 0x400:
         raise ValueError('connection_unconfirmed')
