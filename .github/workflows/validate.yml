@@ -290,6 +290,10 @@ jobs:
         shell: pwsh
         run: python -B -m unittest discover -s tests -p "test_drive_authentication.py" -v
 
+      - name: Run S3 setup and Desktop Picker callback tests
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_drive_setup.py" -v
+
       - name: Install PSScriptAnalyzer
         shell: pwsh
         run: |

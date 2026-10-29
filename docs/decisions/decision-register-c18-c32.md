@@ -9,6 +9,8 @@
 
 ## 確定した判断
 
+- **S3③-A — Desktop Picker（2026-10-30利用者承認）:** A案を採用し、既存Desktop OAuth/PKCE/state/drive.fileとGoogle公式Desktop Pickerを結合する実装・合成試験を許可。`prompt=consent`、`trigger_onepick=true`、folder選択/filterを指定し、callbackの`picked_file_ids`が指定した2folderと完全一致することを検証する。Web JavaScript Picker、新scope、新外部依存は導入しない。[公式Desktop手順](https://developers.google.com/workspace/drive/picker/guides/desktop-mobile-picker)のGoogle Picker API有効化は利用者が別途承認後に行う。実consent/token操作・実folder認可・実Drive接続は未承認。folder選択だけで配下file可視性・同一principal・所有/容量の資格を満たしたとはしない。S3③④、正式AC/P0は未完を維持する。
+
 - **C-18 / C-29 — 再試行の担当:** Python は呼び出しごとに API を1回試行し、結果を1つ返す。Python 側、HTTPクライアント、ライブラリによる自動再試行・バックオフ・ジッターは禁止する。PowerShell だけが再試行可能な結果を分類し、最大合計4回、試行間に 1、5、15 分の待機を制御する。結果不明のアップロードを再試行する前にDriveの状態を照会する。
 - **C-19 / C-22 — テスト範囲 (改訂 2026-10-27):** 許可されたソースの削除、宛先の等価性とコピー後に変更されていないソース、さらに不確実性の保持/不一致/変更と間違った役割/ルート外のターゲットの拒否による両方の移動ルートをテストします。分離された合成ファイルと模擬ドライブを使用します。 Dry Run は非変異のままです。既存の非削除インターフェイス テストでは、新しいランタイムは検証されません。実際のデータ操作は許可されません。
 - **C-20 / C-21 — ドキュメント/構成:** 同期には `SyncLogs.ps1` を使用し、アーカイブには PC-A のみの `ArchiveLogs.ps1` を使用します。 `ArchiveAndUploadLogs.ps1` は正式なエントリ ポイントではありません。 `allowDelete` を削除します。 PC-B から `allowArchive` を省略します。 PC-A の `allowArchive` をアーカイブするには、明示的に true にする必要があります。不明な構成、欠落している構成、不正な形式の構成、または役割が不適切な構成は、処理する前に失敗します。正規の `BattleLog` ケーシングを使用します。

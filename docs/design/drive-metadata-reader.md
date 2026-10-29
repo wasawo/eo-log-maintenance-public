@@ -97,7 +97,7 @@ runnerは明示folder/許可名/required-visibleを確認して既存adapterを�
 
 ### PC-A/Bのセットアップ順序とコマンド（準備資料・未実行）
 
-以下は将来の承認後に操作者が使用する手順で、今回の文書変更から実行許可を得ない。現在は初回登録/対象folder認可の支援が不足しており、コマンドを順番に実行するだけで実接続まで完了する状態ではない。不足箇所では停止する。すべての値はダミーまたは私的な変数とし、実値をこの文書・チャット・PR・シェル引数の直書きへ移さない。
+以下は将来の承認後に操作者が使用する手順で、今回の文書変更から実行許可を得ない。初回登録/保護設定/Desktop Picker支援は下記のS3③-A手順を使う。実環境の資格・操作承認は別に必要であり、コマンドの成功だけでS3③④は完了しない。すべての値はダミーまたは私的な変数とし、実値をこの文書・チャット・PR・シェル引数の直書きへ移さない。
 
 #### 1. 両PCのローカル前提
 
@@ -128,11 +128,11 @@ if ($LASTEXITCODE -ne 0) { throw 'dependencies_unconfirmed' }
 
 | 順序 | 利用者が非公開で準備・確認する内容 | 既存実装と停止点 |
 | --- | --- | --- |
-| Cloud設定 | 試験用projectでGoogle Drive APIを有効化。Google Auth platformのアプリ情報/Audience/Data Accessを設定し、OAuth client種類はDesktop app。同じproject/アプリ/client IDを両PCで使用 | API有効化・アプリ登録・client情報取得を行うCLIはない。現taskではConsoleにもアクセスしない |
+| Cloud設定 | 試験用projectでGoogle Drive APIとGoogle Picker APIを有効化（別途承認後）。Google Auth platformのアプリ情報/Audience/Data Accessを設定し、OAuth client種類はDesktop app。同じproject/アプリ/client IDを両PCで使用 | API有効化・アプリ登録・client情報取得を行うCLIはない。現taskではConsoleにもアクセスしない |
 | principal/scope | 両PCで同じGoogle accountを使い、要求scopeは `https://www.googleapis.com/auth/drive.file` のみ。外部アプリのTestingの場合は該当accountをtest userへ追加。追加scopeは選ばない | account chooser/consent画面で利用者がaccountとscopeを確認し、非公開に証拠を残す。`login_hint`や設定のprincipal文字列だけでは本人性の証明にならない |
-| client/store | Desktop clientの情報をrepo/package/共有領域へ置かず、各PC専用の保護領域で扱う。Windows user-bound暗号化、current-userのprotected ACL、別PCへのtoken非コピーを維持 | `WindowsProtection.create_directory`、`CredentialStore.validate`、`transaction`/`save(..., initial=True)`はlibraryとしてある。安全な初期設定/登録用CLIはない |
-| consent/callback | 各PCで別々に初回consentを行い、`http://127.0.0.1:<明示port>/<path>`で受領。通常のnon-interactive実行中にloginを開始しない | `DesktopAuthorization`はPKCE/state付きURL生成とcode交換を行う。browser起動、loopback listener、callbackの安全な受渡し、client読込から初期保管までを結ぶ運用入口が不足。ここで停止し、追加実装の承認を得る |
-| token保存 | 承認後の登録支援でcode交換結果をメモリからDPAPI storeへ渡す。token JSONを手作業で端末/ファイル/チャットへ貼らない | `exchange`後にrecord検証→storeの排他transaction→`save(record, initial=True)`。store名は`credential.bin`。このAPI順序は存在するが、本書に新しいbootstrap scriptを実装しない |
+| client/store | Desktop clientの情報をrepo/package/共有領域へ置かず、各PC専用の保護領域で扱う。Windows user-bound暗号化、current-userのprotected ACL、別PCへのtoken非コピーを維持 | `WindowsProtection.create_directory`、`CredentialStore.validate`、`transaction`/`save(..., initial=True)`はlibraryとしてある。初期設定/登録は後述の`Common.DriveSetup`の明示CLIを使う |
+| consent/callback | 各PCで別々に初回consentを行い、`http://127.0.0.1:<明示port>/<path>`で受領。通常のnon-interactive実行中にloginを開始しない | `DesktopAuthorization`はPKCE/state付きURL生成とcode交換を行う。`Common.DriveSetup enroll`がbrowser・単回loopback・選択ID照合・初期保管を結ぶ。実操作は別途承認まで停止する |
+| token保存 | 承認後の登録支援でcode交換結果をメモリからDPAPI storeへ渡す。token JSONを手作業で端末/ファイル/チャットへ貼らない | `exchange`後にrecord検証→storeの排他transaction→`save(record, initial=True)`。store名は`credential.bin`。このAPI順序を`Common.DriveSetup enroll`が再利用し、既存credentialがあれば読取/交換前に拒否する |
 | refresh | 初回試験は`allow_refresh=false`。refresh試験を承認した段階だけtrueとし、期限が近いtokenの更新と保存を確認する | `create_service`は残り300秒以下で明示refreshを1回試行し、scope確認・保護保存後にserviceを返す。false/失敗/保存失敗は停止。Drive要求中の401/期限切れは再認証・自動再送しない |
 
 token発行/失効の条件はGoogle側にも依存し、Testing等の設定を恒久的なrefresh資格とみなさない。refreshが必要なら、OAuth token endpointへの接続とstore更新をDrive読取許可と分けて承認する。Windows保護storeを作成してもGoogleへの認証は行われない。API/client/scopeの準備根拠: [Google初期設定](https://developers.google.com/workspace/guides/configure-oauth-consent)、[Desktop OAuth](https://developers.google.com/identity/protocols/oauth2/native-app)、[tokenの失効条件](https://developers.google.com/identity/protocols/oauth2#expiration)。
@@ -174,7 +174,7 @@ token発行/失効の条件はGoogle側にも依存し、Testing等の設定を�
 | required_visible | 初回は既存の可視性確認fixture。A upload後の再照合ではA名も追加 | 既存可視fixtureと先にuploadしたB名 | 既存可視fixtureとA/B名をすべて含める |
 | fixture_root | OS-temp直下の生成済B rootと一致 | OS-temp直下の生成済A rootと一致 | OS-temp直下の生成済s2 rootと一致 |
 
-許可名は種別ごとupload最大1件、required-visible最大6件。既存fileをrequired-visibleから省略して隠さない。列挙結果に未知名/同名複数がある場合やrequired-visibleが欠ける場合は停止する。configはprotected ACLで新規作成し、その検証を行う操作が必要だが、現行runnerは設定ファイル作成・ACL修復を提供しない。既存の`open_private`/`validate_acl` APIを結ぶ安全な設定作成・検証導線を追加候補とし、平文credential入りの設定や不明なACLのeditor保存で代用しない。
+許可名は種別ごとupload最大1件、required-visible最大6件。既存fileをrequired-visibleから省略して隠さない。列挙結果に未知名/同名複数がある場合やrequired-visibleが欠ける場合は停止する。configは後述の`Common.DriveSetup prepare`でprotected ACL付きの新規fileとして作成し、`validate`で確認する。既存fileの上書きや不明ACLの修復は行わず、平文credential入り設定やeditor保存で代用しない。
 
 #### 4. fixture作成と正式入口のコマンド
 
@@ -242,9 +242,43 @@ $ArchiveConfig = Read-Host -MaskInput '準備済みの非公開Archive設定の�
 #### 5. owner・可視性・容量・秘密保全と不足機能
 
 - 操作者がGoogle Driveの非公開画面で同一account、My Driveの2専用folder、owner・共有/継承・limited-access例外、既存fileの全期待一覧、使用可能容量を確認する。両PCのOS-temp/archiveにも空き容量と書込権限を確認する。runnerはowner/quotaを自動照会せず、`about.get`/permissions APIも計画外。容量を枯渇させて検証しない。
-- `drive.file`はアプリごとの対象資格であり、所有/ACL/folder ID/同じprincipalだけでは既存folderと全配下の可視性を保証しない。現在は対象を当該OAuthアプリへ選択/開く導線（Picker等）がなく、readerはfolder metadataが見えるまでuploadできない。単なるDrive画面でのfolder作成/共有で解消したとは扱わず、見えなければ停止する。folder作成API・scope拡大・別アプリの認可を自動代用しない。[Googleのscope説明](https://developers.google.com/workspace/drive/api/guides/api-specific-auth)
+- `drive.file`はアプリごとの対象資格であり、所有/ACL/folder ID/同じprincipalだけでは既存folderと全配下の可視性を保証しない。Desktop Pickerで指定した2folderを選択する導線を実装したが、readerは実際にfolder metadataと必要fileが見えるまでuploadできない。単なるDrive画面でのfolder作成/共有で解消したとは扱わず、見えなければ停止する。folder作成API・scope拡大・別アプリの認可を自動代用しない。[Googleのscope説明](https://developers.google.com/workspace/drive/api/guides/api-specific-auth)
 - consent前/未認可の2対照fixtureもPR #56の計画どおり非公開に追跡する。見えない対象を不在に置き換えず、required-visibleとの不一致は想定された停止として扱う。必要な全対象の資格を確認できるまでupload段階へ進めない。
 - 保護store/設定/証拠はrepo/package/Drive同期外。storeは`credential.bin`と暗号化pending・lease/意図記録を保持する。copy/backup/別user/別PCの復号、失効や回復の資格は未検証で、自動cleanupしない。共有terminal/CI/Transcript/PSDebug/画面記録で実設定やcode/URL/tokenを扱わず、入力は非記録の私的な端末で行う。実値をコマンドへ埋め込まず、例外/HTTP body/credentialのprintをしない。環境変数・shell履歴・チャットでtokenを受け渡さない。
-- **追加実装候補（今回未着手）**: 既存PKCE/state/DPAPI APIを結ぶ安全な初回登録・loopback callback受領・秘密非表示の保管導線、保護ACL付き接続設定の新規作成/検証、当該OAuthアプリで既存試験folder/fileを認可対象にする選択導線。必要理由は、現libraryだけでは初回登録から可視な指定rootを持つrunnerまで安全にセットアップできないため。principalの自動的なGoogle identity証明もなく、手動確認で残す証拠/受け入れ判断が必要。新たなscopeやidentity APIを勝手に選ばない。
+- **S3③-Aの実装と残件**: 初回登録・loopback受領・DPAPI初期保存・保護設定・指定folderのDesktop Picker選択を実装し、合成検証する。実folder/配下fileへのアプリ資格と両PCの実証は残件。principalの自動的なGoogle identity証明もなく、手動確認で残す証拠/受け入れ判断が必要。新たなscopeやidentity APIを勝手に選ばない。
 
-次の承認は、まず上記不足を解消する具体的な実装範囲。その後、両PC・principal/client・2folder・非公開保存先を指定し、初回consent/code交換/DPAPI保存、credential読取、refresh、Drive読取、最大4件/16 KiBのupload/download/hash/競合検証を段階ごとに承認する。folder認可や共有の変更も別に範囲を明示する。合成準備分を含む24 KiB上限、非上書き/元保持、停止/結果不明/別途後処理というPR #56の制限を維持し、未承認の操作に進まない。
+次の実操作承認では、両PC・principal/client・2folder・非公開保存先を指定し、初回consent/code交換/DPAPI保存、credential読取、refresh、Drive読取、最大4件/16 KiBのupload/download/hash/競合検証を段階ごとに承認する。folder認可や共有の変更も別に範囲を明示する。合成準備分を含む24 KiB上限、非上書き/元保持、停止/結果不明/別途後処理というPR #56の制限を維持し、未承認の操作に進まない。
+
+
+### S3③-A セットアップ支援の操作（準備資料・実操作未承認）
+
+この節は両PCで将来実施する手順。今回実行するのは合成試験のみであり、実認証・保護設定の実値入力・Cloud変更・実Drive操作は開始しない。新規helperの追加理由は、既存libraryでは不足していた初回登録と保護設定の運用入口を接続するため。
+
+1. 利用者は別途承認後に同一projectのDesktop OAuth client、Google Drive APIとGoogle Picker API、同一Google principal/test userとdrive.fileのみのconsentを準備する。Web client/API key/JavaScript Pickerや追加scopeは不要。既存folderの所有/容量と試験用対応表を私的に確認する。Pickerの実選択も別途承認対象。
+2. PC-A/Bそれぞれ承認Windows user・上記venvで、隔離Sync/Archive fixtureと新規storeの既存parentを非公開に指定する。上記15項目JSONを1行で準備し、確認flagは未確認ならfalse、初回allow_refresh=false。PC-BはSync、PC-AのArchiveは既存の役割/root条件を満たす。principal/client/folderは共通、storeとfixtureはPC/経路別。
+3. 次のprepareで私的な設定pathとJSONを非表示入力する。出力先はrepo外のstore直下の新規ASCII名.json。storeのleafだけをcurrent-user protected ACLで作成し、既存directoryはACLを検証する。既存file・不明ACL・設定不整合は停止し、既存credentialは一切読まない。
+
+```powershell
+& $Python -B -m Common.DriveSetup prepare
+if ($LASTEXITCODE -ne 0) { throw 'setup_unconfirmed' }
+& $Python -B -m Common.DriveSetup validate
+if ($LASTEXITCODE -ne 0) { throw 'setup_unconfirmed' }
+```
+
+4. 実OAuth/code交換/DPAPI初期保存への明示承認が揃った段階でのみ、各PCで次を実行する。設定path/client secretは非表示入力。browserで実account・scopeと指定2folderを確認する。callback後、端末の非表示入力で実accountの確認にCONFIRMと答える。login_hintやこの確認はGoogle identityの暗号学的な証明ではなく、受け入れ記録は別に残す。既存credentialがあればbrowser/token交換前に拒否し、更新・削除・自動再登録しない。
+
+```powershell
+& $Python -B -m Common.DriveSetup enroll --execute --principal-verified
+if ($LASTEXITCODE -ne 0) { throw 'enrollment_unconfirmed' }
+```
+
+Desktop URLは既存PKCE/state/drive.fileにprompt=consent、trigger_onepick=true、allow_multiple=true、allow_folder_selection=true、mimetypes=application/vnd.google-apps.folder、file_ids=指定2IDを追加する。[公式Desktop Picker](https://developers.google.com/workspace/drive/picker/guides/desktop-mobile-picker)に従い、callbackのpicked_file_idsを重複なし・指定2ID完全一致で検証する。キャンセル/不足/追加ID/不正state/未知queryはtoken交換前に停止する。127.0.0.1の動的port・ランダムpath、Host/Origin検証、最大120秒・接続2秒・単回受領を用い、callback/code/token/secretを出力しない。入力の非表示が利用できなければ停止する。共有terminal/Transcript/画面記録・browser履歴の公開は避ける。
+
+5. 初期tokenは既存DPAPI storeへno-replace保存し、失敗時に旧credentialを変更しない。応答はstatusとgoogle_identity_verified=false/drive_visibility_verified=falseのみ。prepare/enrollは未確認flagをtrueに変更しない。両PCのprincipal/所有/容量/必要file可視性と当該実行許可を別途確認した場合だけ、事実を反映した新しい名前の保護設定をprepareで作成し、次でready条件を検証する。
+
+```powershell
+& $Python -B -m Common.DriveSetup validate --ready
+if ($LASTEXITCODE -ne 0) { throw 'qualification_unconfirmed' }
+```
+
+ready検証もcredential/Driveへ接続せず、設定flagは実証の代用品ではない。実Driveの列挙/upload/download/hashは上記限定計画の正式入口から別承認後に行う。folderの選択ID取得だけで配下fileを含む可視性やS3③④を合格にしない。refresh/失効/回復・実環境資格・実API結合は未検証のまま残す。新規設定/暗号化pending/試験物の後処理は自動化しない。

@@ -12,6 +12,8 @@ S1 SyncとS2 Archiveの正式入口・期間選択・競合/元保持を再利�
 - Dry Runは意図的な書込・download・認証副作用を行わない。元削除を提供しない。実接続経路は明示mode・非公開設定と別途の実操作承認を必要とし、今回の試験は合成credential/API模擬だけとする。
 
 ## S3完了条件と未検証の扱い
+S3③-Aは利用者のA案判断により、既存Desktop OAuth/PKCE/state/drive.fileにGoogle公式Desktop Pickerを接続する初回登録・保護設定支援と合成検証を含む。Web版Picker・scope拡大は行わない。`Common.DriveSetup`のprepare/validate/enrollを用意するが、CloudでのAPI有効化・実OAuth/token保存・実folder認可・実Drive操作の許可は含まない。callbackの選択ID一致を実環境資格の証明としない。
+
 1. S1/S2合成E2E回帰が成功し、正式入口から公式SDKと模擬HTTPによるupload/内容取得/照合の一連経路を確認できる。
 2. 秘密非表示、PC-Bのarchive拒否、非上書き/競合保留、API失敗や内容/版不一致時の元保全を確認する。
 3. 認証service/Windows保護store・同一Google principal・drive.file可視性/所有権/容量・対象rootなどの実環境資格を、別途承認された限定計画で確認する。
