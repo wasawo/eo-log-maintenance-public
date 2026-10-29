@@ -6,6 +6,16 @@
 
 ## 現在地
 
+2026-10-30 01:42:08 JST、利用者がA案（公式Desktop Picker）の実装・合成試験を承認して再開。上限02:12:08 JSTまたは3 PR/完了/追加判断。fetch後main/origin/main/GitHub mainは`21b9c761c47aa13c8616f517b6c63fd94262f3cb`。前回判断記録の未提出branch `feat/s3-setup-support`（local f5bb503、開始ツリーclean）を継続し、未コミット変更を上書きしていない。
+
+実装判断: 既存PKCE/state/DPAPI/ACL/設定validatorを再利用し、`Common.DriveSetup`へprepare/validate/enrollをまとめた。設定作成と初回登録の運用入口が不足していたための追加で、新依存・scope・Web Pickerを導入しない。指定2folderのDesktop Picker callbackを完全一致検証し、単回loopback/120秒期限/Host・Origin検証/秘密非表示・入力echo拒否、排他的store初期保存を接続した。既存credentialは読まずbrowser/token交換前に拒否し、上書きしない。確認flagの自動昇格や実Google identityの証明は行わない。
+
+ローカル検証: Python3.12.14と既存一時runtime依存、PowerShell7.6.7。`python -B -m unittest discover -s tests -p test_drive_setup.py -v`の新規13試験、同test_drive_authentication.pyの13試験、同test_drive_adapter_integration.pyの7試験がすべて成功。`pwsh -NoProfile -File tests/Test-SyncLogsE2E.ps1`の46項目、同Test-ArchiveLogsE2E.ps1の51項目、同Test-ReleasePackage.ps1の役割別package回帰が成功。変更PythonのAST、変更文書の相対リンク152件/見出し24件、git diff --checkも成功。Validateへ新規13試験を追加した。HTTPはlocalhost callbackと模擬token/SDK応答のみ。実browser/実credential/実Google API・実ログ・元/クラウド削除は実行していない。Common/__pycache__既存17除外fileを保全し、直接buildの既知制約を維持する。
+
+次の具体的作業: 利用者がGoogle CloudのPicker API/既存Desktop client・同一principal/drive.file・2folder・両PC非公開storeを準備し、初回OAuth/選択/code交換/DPAPI保存を対象限定で承認する。その後も所有/容量/必要file可視性・実API結合は別の限定承認と実証が必要。S3③④は未完、正式AC/P0/Q5/PC権限と安全仕様不変、S4未着手。root自己点検のみ、独立レビューなし。今回PR/mergeは標準条件確認後だけ実行し、成功を先取りしない。
+
+## S3③-A 初回判断待ち時点の記録（A案承認で判断解消）
+
 2026-10-30、利用者のS3③-Aセットアップ支援実装指示で再開。開始01:36:23 JST、上限3 PRまたは30分/承認待ち発生で停止。最新main/origin/main/GitHub mainは `21b9c761c47aa13c8616f517b6c63fd94262f3cb`、PR #58統合とmainのValidate/Package Validation両方成功を確認した。開始ツリーはクリーン、worktreeは本checkoutのみ、originは正本。AGENTS/current-slice/PC別手順とDesktopAuthorization/DPAPIを確認し、最新mainから `feat/s3-setup-support` を作成した。既存credential/実設定の存在は探索していない。
 
 **承認判断点のため実装前に停止。** 既存folderのdrive.file認可について、[GoogleのDesktop/mobile Picker公式手順](https://developers.google.com/workspace/drive/picker/guides/desktop-mobile-picker)を確認した。同手順はGoogle Picker APIの有効化を前提とし、既存Desktop OAuth URLへprompt=consent/trigger_onepick=trueを加え、file_ids等で選択対象を指定し、picked_file_idsをcallbackで返す。scopeはdrive.fileのみで、既存PKCE/state/loopbackに接続する候補となる。これは現在のDrive APIのみの前提に対する追加Google APIであるため、利用者の「新しいGoogle API/外部依存/追加認可方式が必要なら判断を待つ」に該当する。実APIを有効化/呼出しせず、コードや認可方式を未承認で追加しない。

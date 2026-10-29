@@ -17,7 +17,7 @@ from Common.DriveMetadataReader import read_drive_listing
 from Common.DriveTransferAdapter import sync_bytes, download_bytes
 
 
-def configuration(path, request):
+def configuration(path, request, *, require_approval=True):
     path = Path(path)
     protection = WindowsProtection()
     repo = Path(__file__).resolve().parents[1]
@@ -34,13 +34,17 @@ def configuration(path, request):
             result[key] = value
         return result
     config = json.loads(raw, object_pairs_hook=unique)
+    return validate_configuration(config, request, require_approval=require_approval)
+
+
+def validate_configuration(config, request, *, require_approval=True):
     keys = {'version','mode','machine_id','principal','client_id','scope','folders','store_directory',
         'fixture_root','upload_names','required_visible','principal_verified','environment_verified','allow_refresh','execution_approved'}
     if (type(config) is not dict or set(config) != keys or type(config['version']) is not int or config['version'] != 1
             or config['mode'] != 'isolated_drive' or config['scope'] != SCOPE
             or config['machine_id'] not in ('PC-A','PC-B') or config['machine_id'] != request['machine_id']
             or any(type(config[k]) is not bool for k in ('principal_verified','environment_verified','allow_refresh','execution_approved'))
-            or not all(config[k] for k in ('principal_verified','environment_verified','execution_approved'))
+            or (require_approval and not all(config[k] for k in ('principal_verified','environment_verified','execution_approved')))
             or any(type(config[k]) is not str or not config[k] for k in ('principal','client_id','store_directory','fixture_root'))):
         raise ValueError('connection_unconfirmed')
     if request['route'] not in ('Sync','Archive') or (request['route'] == 'Archive' and config['machine_id'] != 'PC-A'):

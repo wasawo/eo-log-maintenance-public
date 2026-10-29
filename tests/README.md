@@ -1,5 +1,7 @@
 # テスト計画
 
+`test_drive_setup.py`はS3③-Aの13合成試験。loopbackの単回callback・state/選択ID/Host/path/重複/timeout拒否、秘密非表示、DPAPI初期登録、ACL/役割/設定不整合、旧credential非読取・非上書き、token/保存失敗を確認する。HTTPはlocalhost callbackと模擬token endpointのみで、実browser/Google APIは呼ばない。実行: `python -B -m unittest discover -s tests -p test_drive_setup.py -v`。実principal/Drive資格を証明せず、S3③④は未完。
+
 `test_drive_adapter_integration.py`は正式Sync/Archive入口の`-DriveApiMock`から公式Drive SDKを起動し、tests内のネットワークを持たないHTTP実装で列挙/upload/download/hashを結合する。認証拒否/APIエラー、複数同名、内容/版変更、upload応答不明、次回の同内容再利用、非上書き、B拒否、Dry Runを確認する。実行: `python -B -m unittest discover -s tests -p test_drive_adapter_integration.py -v`。実認証・実Drive接続は未実施で、成功をS3完了にはしない。
 
 `Test-ArchiveLogsE2E.ps1`は[正式Archive入口](../scripts/ArchiveLogs.ps1)を子プロセスで起動するS2試験。前年末/前々年末・1月/うるう日・対象外/不正名/対象0・平坦化/同内容再利用/異内容保留・コピー/照合失敗時のcloud元保持・PC-B拒否・Dry Run/排他を実ファイルで確認する。PC-B完了記録なしでの処理と、遅着分の次回コピーも検証する。実行: `pwsh -NoProfile -File tests/Test-ArchiveLogsE2E.ps1`。実Drive・元削除・正式AC全体の合格は含まない。

@@ -5,6 +5,7 @@ import math
 import secrets
 import hashlib
 import base64
+import re
 from email.parser import BytesParser
 import email.policy
 from urllib.request import build_opener, ProxyHandler, HTTPRedirectHandler, Request
@@ -127,7 +128,7 @@ class BoundedBearerHttp:
 
 class DesktopAuthorization:
     """PKCE/state-bound enrollment primitive. Does not open browser/listener."""
-    def __init__(self, client_id, client_secret, principal, redirect_uri):
+    def __init__(self, client_id, client_secret, principal, redirect_uri, *, picker_folder_ids=None):
         url = urlsplit(redirect_uri)
         if (url.scheme != 'http' or url.hostname != '127.0.0.1' or not url.port
                 or url.username or url.password or url.query or url.fragment): raise DriveAuthenticationError()
@@ -135,20 +136,45 @@ class DesktopAuthorization:
         self.redirect_uri = redirect_uri
         self.state, self.verifier = secrets.token_urlsafe(32), secrets.token_urlsafe(48)
         self.used = False
+        self.picker_folder_ids = None
+        if picker_folder_ids is not None:
+            if (type(picker_folder_ids) not in (list, tuple) or len(picker_folder_ids) != 2
+                    or len(set(picker_folder_ids)) != 2
+                    or any(type(v) is not str or re.fullmatch(r'[A-Za-z0-9_-]{1,200}', v) is None for v in picker_folder_ids)):
+                raise DriveAuthenticationError()
+            self.picker_folder_ids = tuple(picker_folder_ids)
 
     def authorization_url(self):
         challenge = base64.urlsafe_b64encode(hashlib.sha256(self.verifier.encode()).digest()).rstrip(b'=').decode()
-        return 'https://accounts.google.com/o/oauth2/v2/auth?' + urlencode(dict(client_id=self.client_id,
+        params = dict(client_id=self.client_id,
             redirect_uri=self.redirect_uri, response_type='code', scope=SCOPE, access_type='offline',
-            state=self.state, code_challenge=challenge, code_challenge_method='S256', login_hint=self.principal))
+            state=self.state, code_challenge=challenge, code_challenge_method='S256', login_hint=self.principal)
+        if self.picker_folder_ids is not None:
+            params.update(prompt='consent', trigger_onepick='true', allow_multiple='true',
+                allow_folder_selection='true', mimetypes='application/vnd.google-apps.folder',
+                file_ids=','.join(self.picker_folder_ids))
+        return 'https://accounts.google.com/o/oauth2/v2/auth?' + urlencode(params)
+
+    def validate_callback(self, callback):
+        try:
+            url = urlsplit(callback); expected = urlsplit(self.redirect_uri)
+            query = parse_qs(url.query, keep_blank_values=True, strict_parsing=True)
+            allowed = {'state','code','scope','authuser','prompt'}
+            if self.picker_folder_ids is not None: allowed.add('picked_file_ids')
+            if (self.used or url._replace(query='') != expected or not {'state','code'} <= set(query)
+                    or set(query) - allowed or any(len(v) != 1 or not v[0] for v in query.values())
+                    or query['state'] != [self.state] or ('scope' in query and query['scope'] != [SCOPE])):
+                raise DriveAuthenticationError()
+            if self.picker_folder_ids is not None:
+                selected = query.get('picked_file_ids', [''])[0].split(',')
+                if len(selected) != 2 or set(selected) != set(self.picker_folder_ids): raise DriveAuthenticationError()
+            return query
+        except Exception: raise DriveAuthenticationError() from None
 
     def exchange(self, callback, http, *, principal_verified=False):
         try:
-            url = urlsplit(callback); expected = urlsplit(self.redirect_uri); query = parse_qs(url.query)
-            if (self.used or principal_verified is not True or url._replace(query='') != expected
-                    or not {'state','code'} <= set(query) or set(query) - {'state','code','scope','authuser','prompt'}
-                    or ('scope' in query and query['scope'] != [SCOPE]) or query['state'] != [self.state]
-                    or len(query['code']) != 1 or not query['code'][0]): raise DriveAuthenticationError()
+            if principal_verified is not True: raise DriveAuthenticationError()
+            query = self.validate_callback(callback)
             self.used = True  # Unknown response must not trigger a second code exchange.
             response, raw = http.request(TOKEN_URI, method='POST', headers={'content-type':'application/x-www-form-urlencoded'},
                 body=urlencode(dict(grant_type='authorization_code',code=query['code'][0],code_verifier=self.verifier,
