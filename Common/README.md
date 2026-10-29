@@ -4,6 +4,8 @@
 
 ## 機能から探す
 
+[SyntheticLogTransfer.ps1](SyntheticLogTransfer.ps1)はS1 Sync/S2 Archiveの合成E2Eだけで再利用する列挙・期間判定・非上書きコピー・SHA-256照合・件数集計。Archive入口の接続に同じ処理が必要なためS1から抽出した。固定の合成fixture/役割以外は拒否し、実設定・実Drive・元削除は提供しない。
+
 所有wrapperは[境界ごとの所有確認](../docs/design/owned-simulation-run.md#処理境界での所有確認)をモデルへ渡す。確認不能後は後続のモデルコピー/元除去・永続保存を止めるが、実providerの原子的な所有保証にはしない。
 
 [ファイルスナップショット接続](../docs/design/file-snapshot-simulation.md)は`SimulationFileSnapshot.py`/`.ps1`で合成フォルダを読取り、全列挙を確認してから所有ロック付きモデルへ渡す。物理ファイルは変更しない。

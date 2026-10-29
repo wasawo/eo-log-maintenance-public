@@ -6,6 +6,24 @@
 
 ## 現在地
 
+2026-10-29、利用者の指示で[現在のスライス](../development/current-slice.md)をS2（PC-A Archiveの削除なし合成E2E）へ切り替えた。開始main/origin/main/GitHub mainは `6e15448f455c01839ef1d9cb753d61cb0478b82e`（PR #52統合済み）。git fetch後に最新mainとクリーンな単一worktree/正本originを確認し、`feat/s2-pc-a-archive` を作成した。今回の範囲はS2実装・合成検証・必要文書・PR作成と標準条件成立時のsquashマージまで。作業上限はPR3件または20分、開始は2026-10-29 19:11:25 JST。S3・実データ/本番Drive・元削除・安全/権限の変更は許可されていない。
+
+[ArchiveLogs.ps1](../../scripts/ArchiveLogs.ps1)からPC-A役割で現在の模擬cloudを列挙し、BattleLogは前年末以前、ErrorReportは前々年末以前の全適格分を選び、平坦化→模擬archiveへの非上書きコピー→SHA-256照合→JSON件数表示まで接続した。元と失敗コピーを削除せず、CompletedMoveCountは0。PC-Bを拒否し、PC-Bの完了記録がなくても進め、遅着分を次回コピーする。
+
+新しい共通関数の理由: S2でS1と同じ列挙/コピー/照合/集計を再利用するため、S1の既存処理を[SyntheticLogTransfer.ps1](../../Common/SyntheticLogTransfer.ps1)へ抽出した。両入口は経路・役割・固定prefix/marker/一時領域を限定する。既存のLogFunctionsのファイル名/期間判定、S1の非上書き/元保持/hash/排他/Dry Runと終了コードを維持する。新schema・probe・実Drive接続や削除能力は追加していない。これは合成専用の処理共有で、運用providerや実効権限/回復/電源断の保証ではない。
+
+ローカル検証: PowerShell7.6.7でS2の正式入口E2Eが51 assertion成功。両ログ種別の年境界/1月/有効うるう日、対象外/不正名/不正日付/対象0、列挙失敗、平坦化/同内容再利用/異内容非上書き、copy失敗/hash不一致時のcloud元保持、再実行、PC-B拒否/操作限定、Dry Run/排他/marker/root拒否、PC-B状態なしと遅着分を確認した。S1入口E2E46 assertionとTest-LogFunctions49 assertionも成功。Test-ReleasePackageの役割別回帰で、実際のArchive入口をfixtureへ組み込んだPC-A配布拒否と非配布レビュー表示を追加して成功した。変更PS5ファイルの構文/PSScriptAnalyzer Severity Errorも成功。通常テストは合成file・隔離一時領域だけで、実ログ/本番Driveは使用していない。CIへS2 E2Eを登録し、リモート結果はPR後に別途確認する。
+
+S2のローカル合成E2E完了条件を満たした。AC-02/03/04/05/09/11の列挙/選択/コピー・現在cloud/遅着・平坦化/元の相対識別・再利用/競合・対象0/名前/列挙失敗・B拒否を部分検証し、AC-06のコピー/照合失敗時の元保全も確認した。元削除、実Driveの現在状態保証、結果不明回復、ローカル詳細レポート永続化/運用資格、正式AC全体と初回配布は未実装/未検証のまま。S1合成合格も維持し、正式AC合格へ昇格しない。P0の優先度・必須条件・未完状態とQ5/PC権限は変更しない。
+
+文書整合: scripts/Common/tests索引・実装計画・runtimeゲート/P0冒頭のArchive未実装を、S2合成入口と運用runtime未完へ区別した。参照表に残った以前の「今回文書変更だけ」を、現在の利用者指示で着手を判断する記述へ最小限更新した。正式AC/要件/安全仕様は変更せず、旧設計・監査証拠は保持した。Common/__pycache__の既存17未追跡/Git除外ファイルは保全し、直接ビルドの制約も継続する。独立レビューは未実施、rootの差分自己点検のみ。
+
+次は今回のPR最新HEADで両CIと標準マージ条件を確認する。条件不成立または作業上限時はマージせず記録して停止する。S2後のスライス切替/実装は新たな指示待ちであり、S3へ進まない。
+
+最終ローカル点検: 変更Markdown9文書の相対リンク232件・見出し参照31件に欠落なし、git diff --check成功。Python3.11.9で正式AC§2、AGENTS、承認済み要件/期間規則、P0表の本文不変を確認した。S2試験はCI相当のPowerShell起動でも51 assertion成功・終了0。文書/実装の新たな重大矛盾や、削除・安全・権限に利用者判断を要する変更は確認していない。コード・試験・関連文書を本branchの同じPRへまとめ、実施前のPR/CI/merge成功は先に記録しない。
+
+## 条件付きマージの恒久ルール化（PR #52統合済み・当時の記録）
+
 2026-10-29、条件付きマージの恒久ルール化を利用者から指示された。開始main/origin/main/GitHub mainは `e704d0bd5bb42921811f267595fcbe316f083251` で、PR #51の統合を確認済み。開始時の作業ツリーはクリーン、worktreeは本checkoutのみ、originは正本。最新mainから `docs/conditional-merge-policy` を作成した。
 
 今回の承認はこの運用文書変更のcommit・push・PR作成・標準条件成立時のsquashマージまで。重大な規則矛盾、想定外のコード変更、安全条件/利用者の承認権限の変更が必要な場合やCI失敗/未完了、その他の条件不成立時はマージせず報告する。将来の全PRへ権限を拡大せず、S2へも進まない。

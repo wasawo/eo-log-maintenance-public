@@ -272,6 +272,10 @@ jobs:
         shell: pwsh
         run: ./tests/Test-SyncLogsE2E.ps1
 
+      - name: Run S2 PC-A synthetic Archive entry E2E
+        shell: pwsh
+        run: ./tests/Test-ArchiveLogsE2E.ps1
+
       - name: Install PSScriptAnalyzer
         shell: pwsh
         run: |

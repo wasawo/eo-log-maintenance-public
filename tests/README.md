@@ -1,5 +1,7 @@
 # テスト計画
 
+`Test-ArchiveLogsE2E.ps1`は[正式Archive入口](../scripts/ArchiveLogs.ps1)を子プロセスで起動するS2試験。前年末/前々年末・1月/うるう日・対象外/不正名/対象0・平坦化/同内容再利用/異内容保留・コピー/照合失敗時のcloud元保持・PC-B拒否・Dry Run/排他を実ファイルで確認する。PC-B完了記録なしでの処理と、遅着分の次回コピーも検証する。実行: `pwsh -NoProfile -File tests/Test-ArchiveLogsE2E.ps1`。実Drive・元削除・正式AC全体の合格は含まない。
+
 `Test-SyncLogsE2E.ps1`は[正式Sync入口](../scripts/SyncLogs.ps1)を別プロセスで起動し、PC-Bの削除なしS1を検証する。合成fixtureと模擬Driveの実ファイルで、期間境界（1月/うるう日を含む）、平坦化、同内容再利用、異内容競合、不正名、対象0件、列挙失敗、コピー失敗、SHA-256不一致時の元保持、役割拒否、Dry Run、排他と件数表示を確認する。実行: `pwsh -NoProfile -File tests/Test-SyncLogsE2E.ps1`。失敗注入は本番ロジックの再実装ではなく、入口の模擬Driveへの書込内容を変える。正式ACの部分検証と実Drive/元削除/運用受け入れは区別する。
 
 `test_sdk_staging_observer.py`は[別プロセスによるstaging照合](../docs/design/sdk-download-staging.md#別プロセスでの現在状態照合)を検証する。子へ期待hash/判定を渡さず、現在のfileと記録を読み直す。候補/未完/owner保留を区別し、改変や実体差替えは確認不能とする。API・書込み・自動採用は行わない。
