@@ -6,6 +6,26 @@
 
 ## 現在地
 
+2026-10-29、利用者の指示で[現在のスライス](../development/current-slice.md)をS3（実Google Driveアダプタの隔離結合検証）へ切り替えた。開始main/origin/main/GitHub mainは `bbb4871f9ccec37fdc7302f9c5a325827584847e`、作業ツリーはクリーン、worktreeは本checkoutのみ、originは正本。git fetchで最新mainとS2完了を確認し `feat/s3-drive-adapter` を作成した。今回の範囲は承認済みS3実装・API応答模擬/隔離試験・必要文書・PR/条件成立時のsquashマージ。開始2026-10-29 19:50:52 JST、上限はPR3件または30分。実ログ/本番Drive/元削除は禁止し、隔離実Driveも別の明示承認までは操作しない。S4へ進まない。
+
+実装: [DriveTransferAdapter.py](../../Common/DriveTransferAdapter.py)は呼出し側から渡される公式SDK serviceに対し、既存の全ページmetadata/list/content readerを再利用し、非上書きcreate upload・内容取得/hash・候補の一意性/版/内容の再観測を接続した。新規uploadは単試行、既存同内容は再利用、異内容/複数候補/不明は成功にしない。認証情報の探索/保存/refresh、既定認証、update/delete、実接続CLIは追加していない。SDK追加再試行は0とするが、将来の認証層/transportの資格やtimeoutは別途未確認。
+
+正式入口接続: 両入口の明示的な `-DriveApiMock -PythonExecutable <Python>` から、既存の期間/役割/隔離root/元保持とcopy結果表示を保って公式SDK/API応答模擬へ接続する。[DriveAdapterBridge.ps1](../../Common/DriveAdapterBridge.ps1)はtests専用のHTTP workerへ要求ID付きJSONを渡し、終了値/版/ID/結果を確認し、不正/失敗/timeoutを保留とする。workerは固定の合成rootとdummy IDだけを使い、ネットワーク機能・credential factoryを持たない。既存の運用IPC1.0/schemaを置換せず、adapter成功を削除/移動完了の許可にしない。出力はAdapterMode=sdk_http_mock、CloudObserved=false、CompletedMoveCount=0。Dry RunはPython/API/認証を呼ばない。
+
+追加理由: S3で不足していたuploadと公式入口からSDKへの結合のために上記adapter/bridgeとtests用HTTP実装を追加した。周辺probe/schema/設計拡張は追加していない。uploadは[Google公式multipart create](https://developers.google.com/workspace/drive/api/guides/manage-uploads)と[SDK実装](https://googleapis.github.io/google-api-python-client/docs/epy/googleapiclient.http.MediaIoBaseUpload-class.html)を確認し、既存download/readの方式を再利用した。新依存は追加せず、既存requirements-runtimeを専用一時領域へ導入した。
+
+検証: Python3.11.9/PowerShell7.6.7で `python -B -m unittest discover -s tests -p test_drive_adapter_integration.py -v` の新規7試験が成功（認証拒否/APIエラー/複数同名/内容変更/版変更は両経路で確認）。正式入口→実SDK→完全オフラインHTTPでupload/read/hash、再実行/同内容再利用、異内容非上書き、upload応答不明時に自動再送せず元保持、次回の現存copy再利用、B archive拒否、Dry RunでPythonを起動しないこと、秘密非表示・SDK診断ログへの生のerror body非表示を確認した。最初のDry Run試験はPythonExecutable引数重複で失敗したが試験側を修正し、全7成功を確認した。既存metadata reader10試験、content reader8試験、S1 E2E46 assertion、S2 E2E51 assertion、役割別package回帰も成功。変更PS4ファイルの構文/PSScriptAnalyzer Severity Errorも成功。CIへAPI模擬結合を登録し、リモート結果はPR後に別途確認する。
+
+S3は未完。合成E2E/API応答模擬によるSDK結合は部分達成だが、実認証storeの具体契約/Windows保護・同一principal・drive.fileの可視性/所有権/容量・service/rootの資格と、承認された隔離実Driveでの実接続は未検証。認証情報や隔離環境の有無を探索せず、実API操作を行っていない。認証エラーの模擬成功を実認証成功へ読み替えない。正式ACはAC-01/02/04/05/06/09/11等の合成経路/コピー/保留条件の部分検証で、元削除・結果不明回復/運用・正式AC/P0全体は未完のまま。
+
+次に必要な利用者判断: 隔離実Drive領域で、合成fileを各ログ種別1件ずつ新規upload→list/get/download→SHA-256照合し、既存同内容/異内容の保留を確認する限定計画の明示承認が必要。削除・本番データ・scope自動拡張は含めず、使用principal/drive.file/認証storeと実環境資格を先に確認する。実値/credentialはGit/PR/ログ外で管理する。今回の承認済みの模擬結合差分を標準条件でPR提出/統合した後は、この未承認の実操作・資格確認へ進まず停止する。S4へ移行しない。
+
+文書整合: 「実Drive adapter未実装」をSDK結合の部分実装と運用認証/資格・実接続未完へ区別した。current-sliceは今回の切替指示以外の仕様を撤回せず、正式AC・P0条件・Q5・PC役割・承認済み安全仕様を変更しない。旧設計/証拠とCommon/__pycache__の既存17未追跡/Git除外file・直接ビルドの制約を維持する。独立レビュー未実施、root自己点検のみ。
+
+最終ローカル点検: Python構文、変更Markdown8文書の相対リンク210件・見出し参照27件、git diff --checkが成功。正式AC§2・AGENTS・P0・承認済み要件とDrive要求/応答schemaは開始HEADと本文一致。rootが差分を自己点検した。実Drive結合は未承認・未実行のためS3未完を維持し、今回の差分をPRへ提出して最新HEADのCIと標準条件を別途確認する。PR/CI/mergeの成功を実施前に記録しない。
+
+## S2完了確認・PR #54統合時点の記録
+
 2026-10-29、現在のスライスの残作業を確認した。最新main/origin/main/GitHub mainは `0ff49319503a87c598fcbb01f2972dc44c8bfe15` で、[PR #53](https://github.com/wasawo/eo-log-maintenance-public/pull/53)はsquashマージ済み。開始時の作業ツリーはクリーン、worktreeは本checkoutのみ、originは正本。利用者は現在のスライス内の必要作業とPR/条件付きマージを許可した。範囲外へ拡張せず、残っていた統合結果確認と本記録の更新だけを `docs/s2-closeout` で行う。
 
 現在のスライスはS2のまま。current-sliceの各完了条件を既存実装・試験・PR #53の結果と照合し、削除なし合成E2Eの実装残件はないと確認した。正式Archive入口から両種の列挙/期間判定/平坦化/コピー/hash照合/表示、PC-B拒否、B状態なしの処理、遅着分、競合/失敗時の元保持は検証済み。S1合成E2Eも維持する。今回、新しい実装・probe・schema・整理や次スライスの作業は開始しない。

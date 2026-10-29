@@ -276,6 +276,10 @@ jobs:
         shell: pwsh
         run: ./tests/Test-ArchiveLogsE2E.ps1
 
+      - name: Run S3 official SDK adapter with isolated HTTP fixtures
+        shell: pwsh
+        run: python -B -m unittest discover -s tests -p "test_drive_adapter_integration.py" -v
+
       - name: Install PSScriptAnalyzer
         shell: pwsh
         run: |

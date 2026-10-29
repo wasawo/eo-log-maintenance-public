@@ -31,3 +31,5 @@ HTTP非2xxの生のerror bodyはSDKのretry診断より前に拒否する。SDK�
 [8試験](../../tests/test_drive_content_reader.py)で公式SDKのHTTP応答だけを合成し、分割取得、空ファイル、metadata変更、取得可否、上限、不正Range/長さ/継続先、途中失敗、内容hash不一致を確認した。API hashなしの取得を既存plan/比較まで接続し、別版のhashを再利用できないことも確認した。
 
 新規8・関連9群97試験と役割別package回帰が成功。ローカルSDK2.201.0、Python3.11.9（CI定義3.12）、PowerShell7.6.7。SDKは前回用意した専用一時領域の依存を再利用した。実Drive通信、リモートCI、独立レビュー、実環境受け入れは未実施。実ファイルへのdownload保存、upload、元削除、service資格、正式入口、T0/T1/T4/AC全体は未完のまま。
+
+S3の[DriveTransferAdapter.py](../../Common/DriveTransferAdapter.py)はこの転送coreを再利用し、固定上限のbytes受取りとupload後の独立内容確認へ接続する。公式両入口からのtests専用HTTP結合であり、実認証/store・運用writer/root資格・実Drive接続の完成ではない。uploadは[Google公式multipart create](https://developers.google.com/workspace/drive/api/guides/manage-uploads)と[SDKのMediaIoBaseUpload](https://googleapis.github.io/google-api-python-client/docs/epy/googleapiclient.http.MediaIoBaseUpload-class.html)に従い、executeのSDK再試行は0とする。既存download readerは変更せず、サービスの認証層/timeoutの資格は呼出し側に残す。

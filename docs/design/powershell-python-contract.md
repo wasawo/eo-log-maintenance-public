@@ -10,6 +10,8 @@
   - [リクエストスキーマ](../../contracts/drive-request.schema.json)
   - [レスポンススキーマ](../../contracts/drive-response.schema.json)
 
+S3のDriveAdapterBridgeは、合成fixtureの公式SDK/API応答模擬だけを結ぶtests専用の内部接続であり、本書の1.0要求/応答schemaや運用IPCを置換しない。実認証/service・運用root・再試行/結果不明の正式runtime接続は引き続き未完。
+
 ## 1. 契約の基本原則
 
 1. 処理全体を制御する唯一の主体は PowerShell とする。ワークフローを続行できるかどうかを判断し、安全確認をすべて管理する。
