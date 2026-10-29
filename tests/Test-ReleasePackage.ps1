@@ -304,6 +304,22 @@ try {
     Assert-True ($siblingResult.Status -eq 'deployable') 'A separate sibling prefix must be accepted.'
 
 
+    # A synthetic-only official entry point must not unlock deployability.
+    $syncPath = Join-Path $fixture 'scripts/SyncLogs.ps1'
+    $originalSync = [IO.File]::ReadAllText($syncPath)
+    try {
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../scripts/SyncLogs.ps1') -Destination $syncPath
+        $syntheticBlocked = $false
+        try {
+            & $builder -SourceRoot $fixture -TargetRole PC-B -OutputDirectory (Join-Path $tempRoot 'synthetic-output') | Out-Null
+        }
+        catch { $syntheticBlocked = $_.Exception.Message -match 'synthetic-only' }
+        Assert-True $syntheticBlocked 'Synthetic-only SyncLogs must not unlock PC-B deployability.'
+        $syntheticReview = & $builder -SourceRoot $fixture -TargetRole PC-B -OutputDirectory (Join-Path $tempRoot 'synthetic-review') -AllowNonDeployable
+        Assert-True ($syntheticReview.Status -eq 'non-deployable-review-artifact') 'Synthetic entry review artifact remains non-deployable.'
+    }
+    finally { [IO.File]::WriteAllText($syncPath, $originalSync) }
+
     # PC-A must not be treated as deployable without its archive entry point.
     $pcAWithoutArchive = Join-Path $tempRoot 'pc-a-without-archive'
     New-Item -ItemType Directory -Path $pcAWithoutArchive -Force | Out-Null

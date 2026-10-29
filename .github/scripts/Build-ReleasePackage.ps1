@@ -101,10 +101,13 @@ $requiredRuntimeScripts = if ($TargetRole -eq 'PC-A') {
 else {
     @('scripts/SyncLogs.ps1')
 }
-$missingRuntimeScripts = @($requiredRuntimeScripts | Where-Object { $_ -notin $relativeFiles })
+$missingRuntimeScripts = @($requiredRuntimeScripts | Where-Object {
+    $_ -notin $relativeFiles -or
+    (Select-String -LiteralPath (Join-Path $source $_) -SimpleMatch '# EOLM-SYNTHETIC-ONLY:' -Quiet)
+})
 
 if ($missingRuntimeScripts.Count -gt 0 -and -not $AllowNonDeployable) {
-    throw "Required runtime entry point(s) for $TargetRole are missing: $($missingRuntimeScripts -join ', '). A deployable release cannot be built yet. Use -AllowNonDeployable only for a clearly marked review artifact."
+    throw "Required runtime entry point(s) for $TargetRole are missing or synthetic-only: $($missingRuntimeScripts -join ', '). A deployable release cannot be built yet. Use -AllowNonDeployable only for a clearly marked review artifact."
 }
 
 foreach ($exampleRole in @('PC-A', 'PC-B')) {
@@ -209,7 +212,7 @@ try {
         Set-Content -LiteralPath (Join-Path $stage 'PACKAGE-STATUS.txt') -Encoding utf8 -Value @(
             'STATUS: NON-DEPLOYABLE REVIEW ARTIFACT'
             "Target role: $TargetRole"
-            "Missing required runtime entry point(s): $($missingRuntimeScripts -join ', ')"
+            "Missing or synthetic-only required runtime entry point(s): $($missingRuntimeScripts -join ', ')"
             'This artifact is not deployable. Do not apply it to PC-A or PC-B.'
         )
     }

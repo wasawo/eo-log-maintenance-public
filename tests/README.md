@@ -1,5 +1,7 @@
 # テスト計画
 
+`Test-SyncLogsE2E.ps1`は[正式Sync入口](../scripts/SyncLogs.ps1)を別プロセスで起動し、PC-Bの削除なしS1を検証する。合成fixtureと模擬Driveの実ファイルで、期間境界（1月/うるう日を含む）、平坦化、同内容再利用、異内容競合、不正名、対象0件、列挙失敗、コピー失敗、SHA-256不一致時の元保持、役割拒否、Dry Run、排他と件数表示を確認する。実行: `pwsh -NoProfile -File tests/Test-SyncLogsE2E.ps1`。失敗注入は本番ロジックの再実装ではなく、入口の模擬Driveへの書込内容を変える。正式ACの部分検証と実Drive/元削除/運用受け入れは区別する。
+
 `test_sdk_staging_observer.py`は[別プロセスによるstaging照合](../docs/design/sdk-download-staging.md#別プロセスでの現在状態照合)を検証する。子へ期待hash/判定を渡さず、現在のfileと記録を読み直す。候補/未完/owner保留を区別し、改変や実体差替えは確認不能とする。API・書込み・自動採用は行わない。
 
 `test_sdk_download_staging.py`は[公式SDK→隔離staging](../docs/design/sdk-download-staging.md)を、実所有mutex・実fileと合成HTTPで検証する。非上書き、flush/fsync/読戻し、元の版変化、I/O故障、所有喪失と失敗試行の保持を確認する。対象rootはfixture自身が作るOS-temp領域だけである。

@@ -9,4 +9,10 @@
 
 これらはまだ実装されていません。実装後にテストと README を更新します。
 
-正式な `SyncLogs.ps1` / PC-A専用 `ArchiveLogs.ps1`、導入・更新入口は存在しません。概要表示コマンドやCommonの補助処理を、正式な移動入口として扱わないでください。[初回配布の棚卸し](../docs/development/implementation-workflow.md#9-既存の実装資産と不足)を参照してください。
+[SyncLogs.ps1](SyncLogs.ps1)はS1のPC-B専用・削除なし合成E2E入口です。既存のファイル名/期間判定を呼び、再帰列挙→平坦化→模擬Driveへの非上書きコピー→SHA-256照合→JSON結果表示まで実行します。成功はコピー検証の成功であり、`CompletedMoveCount`は常に0です。不正名/取得失敗は失敗、異内容は保留として理由と件数を表示します。
+
+`-Synthetic -SyntheticRoot <合成fixture>`が必須です。fixtureはOS一時領域直下の`eolm-s1-sync-<32桁GUID>`で、`.synthetic-fixture`の内容は`eolm-s1-synthetic-v1`、ディレクトリは`source/BattleLog`・`source/ErrorReport`・`mock-drive/BattleLog`・`mock-drive/ErrorReport`です。元のサブフォルダは許可します。reparse point、模擬Drive内のサブフォルダ、二重起動は拒否します。実設定・任意の実ログroot・実Drive接続は受け付けません。
+
+再現は`pwsh -NoProfile -File tests/Test-SyncLogsE2E.ps1`で、試験自身が合成fixtureを作成し、入口を別プロセスで起動して後片付けします。入口単体は`pwsh -NoProfile -File scripts/SyncLogs.ps1 -Synthetic -SyntheticRoot <合成fixture> -ReferenceDate 2026-10-29`です。`-DryRun`は計画表示のみ、`-MockFault hash_mismatch|copy_failed|enumeration_failed`は合成環境限定の失敗注入です。失敗・保留時は終了コード1、成功・正常な対象なしは0です。入口自身は失敗コピーも元も削除しません。
+
+PC-A専用`ArchiveLogs.ps1`、実Drive adapter、実元削除、導入・更新入口は未実装です。S1入口には`EOLM-SYNTHETIC-ONLY`マーカーがあり、役割別ビルダーは配布可能と扱いません。[初回配布の棚卸し](../docs/development/implementation-workflow.md#9-既存の実装資産と不足)を参照してください。
