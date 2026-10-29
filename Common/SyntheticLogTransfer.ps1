@@ -2,6 +2,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'LogFunctions.ps1')
+. (Join-Path $PSScriptRoot 'DriveAdapterBridge.ps1')
 
 # Shared only by the explicitly isolated, non-deployable S1/S2 entry points.
 function Invoke-EoSyntheticLogTransfer {
@@ -15,6 +16,10 @@ function Invoke-EoSyntheticLogTransfer {
         [datetime]$ReferenceDate = (Get-Date).Date,
         [ValidateSet('none', 'copy_failed', 'hash_mismatch', 'enumeration_failed')]
         [string]$MockFault = 'none',
+        [switch]$DriveApiMock,
+        [string]$PythonExecutable = 'python',
+        [ValidateSet('none','auth_denied','api_error','upload_unknown','content_changed','version_changed','duplicate_name')]
+        [string]$ApiFault = 'none',
         [switch]$DryRun
     )
 
@@ -77,6 +82,18 @@ function Invoke-EoSyntheticLogTransfer {
                         throw 'synthetic_reparse_denied'
                     }
                     if ($MockFault -eq 'enumeration_failed' -and $side -eq $sourceSide) { throw 'enumeration_failed' }
+                    if ($DriveApiMock -and -not $DryRun -and $Route -eq 'Archive' -and $side -eq $sourceSide) {
+                        $listed = Invoke-EoDriveApiFixture -PythonExecutable $PythonExecutable -Request @{
+                            root=$root;kind=$kind;fault=$ApiFault;operation='list'}
+                        foreach ($item in $listed.items) {
+                            if ($item -isnot [Collections.IDictionary] -or $item.Count -ne 2 -or
+                                $item.name -isnot [string] -or $item.id -isnot [string] -or
+                                $item.name.Contains('/') -or $item.name.Contains('\') -or
+                                $null -eq (ConvertTo-SafeDiagnosticRelativePath -Path $item.name)) { throw 'drive_api_unconfirmed' }
+                            $sources.Add(@{File=[pscustomobject]@{Name=$item.name};LogType=$kind;RelativePath=$item.name;ApiId=$item.id})
+                        }
+                        continue
+                    }
                     foreach ($child in @(Get-ChildItem -LiteralPath $directory -Force)) {
                         if ($child.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'synthetic_reparse_denied' }
                         if ($child.PSIsContainer) {
@@ -89,7 +106,13 @@ function Invoke-EoSyntheticLogTransfer {
                         }
                     }
                 }
-                if ($side -eq $destinationSide) { $destinations[$kind] = $kindRoot }
+                if ($side -eq $destinationSide) {
+                $destinations[$kind] = $kindRoot
+                if ($DriveApiMock -and -not $DryRun -and $Route -eq 'Sync') {
+                    [void](Invoke-EoDriveApiFixture -PythonExecutable $PythonExecutable -Request @{
+                        root=$root;kind=$kind;fault=$ApiFault;operation='list'})
+                }
+            }
             }
         }
 
@@ -117,10 +140,40 @@ function Invoke-EoSyntheticLogTransfer {
             $outputStream = $null
             try {
                 $result.Reason='copy_or_verification_failed'
-                $inputStream = [IO.File]::Open($file.FullName, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+                if ($DriveApiMock -and $Route -eq 'Archive') {
+                    $downloaded = Invoke-EoDriveApiFixture -PythonExecutable $PythonExecutable -Request @{
+                        root=$root;kind=$source.LogType;fault=$ApiFault;operation='download';file_id=$source.ApiId}
+                    if ($downloaded.Count -ne 2 -or $downloaded.content -isnot [string] -or
+                        $downloaded.sha256 -cnotmatch '^[a-f0-9]{64}$' -or $downloaded.content.Length -gt 5592408) { throw 'drive_api_unconfirmed' }
+                    $bytes = [Convert]::FromBase64String($downloaded.content)
+                    if ([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant() -cne $downloaded.sha256) { throw 'drive_api_unconfirmed' }
+                    $inputStream = [IO.MemoryStream]::new($bytes, $false)
+                }
+                else {
+                    $inputStream = [IO.File]::Open($file.FullName, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+                }
                 $result.SourceSha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($inputStream)).ToLowerInvariant()
                 $inputStream.Position = 0
                 $destination = Join-Path $destinations[$source.LogType] $file.Name
+                if ($DriveApiMock -and $Route -eq 'Sync') {
+                    $buffer = [IO.MemoryStream]::new()
+                    try {
+                        if ($inputStream.Length -gt 4194304) { throw 'drive_api_unconfirmed' }
+                        $inputStream.CopyTo($buffer)
+                        $copied = Invoke-EoDriveApiFixture -PythonExecutable $PythonExecutable -Request @{
+                            root=$root;kind=$source.LogType;fault=$ApiFault;operation='sync';name=$file.Name
+                            content=[Convert]::ToBase64String($buffer.ToArray())}
+                    }
+                    finally { $buffer.Dispose() }
+                    if ($copied.Count -ne 4 -or $copied.status -cnotin @('success','held') -or
+                        $copied.reason -cnotin @('existing_content_verified','copied_content_verified','content_conflict','drive_candidates_ambiguous') -or
+                        $copied.reused -isnot [bool] -or
+                        ($copied.status -eq 'success' -and $copied.sha256 -cne $result.SourceSha256)) { throw 'drive_api_unconfirmed' }
+                    $result.Status=$copied.status; $result.Reason=$copied.reason
+                    $result.DestinationSha256=$copied.sha256; $result.Reused=$copied.reused
+                    $results.Add([pscustomobject]$result)
+                    continue
+                }
                 if (Test-Path -LiteralPath $destination) {
                     $result.DestinationSha256 = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash.ToLowerInvariant()
                     if ($result.SourceSha256 -cne $result.DestinationSha256) {
@@ -145,7 +198,10 @@ function Invoke-EoSyntheticLogTransfer {
                     else { $result.Reason='hash_mismatch' }
                 }
             }
-            catch { $result.Status='failure' }
+            catch {
+                $result.Status = if ($DriveApiMock) { 'held' } else { 'failure' }
+                if ($DriveApiMock) { $result.Reason='drive_api_unconfirmed' }
+            }
             finally {
                 if ($null -ne $outputStream) { $outputStream.Dispose() }
                 if ($null -ne $inputStream) { $inputStream.Dispose() }
@@ -157,8 +213,8 @@ function Invoke-EoSyntheticLogTransfer {
         # Do not expose supplied absolute paths or exception text in public output.
         $reason = if ($_.Exception.Message -cin @('archive_role_denied','s1_pc_b_only','synthetic_fixture_required',
             'synthetic_root_invalid','synthetic_marker_invalid','synthetic_layout_invalid','synthetic_reparse_denied',
-            'mock_drive_layout_invalid','enumeration_failed','s2_archive_only')) { $_.Exception.Message } else { 'synthetic_run_failed' }
-        $results.Add([pscustomobject]@{SourceRelativePath=$null;DestinationRelativePath=$null;Status='failure';Reason=$reason})
+            'mock_drive_layout_invalid','enumeration_failed','s2_archive_only','drive_api_unconfirmed')) { $_.Exception.Message } else { 'synthetic_run_failed' }
+        $results.Add([pscustomobject]@{SourceRelativePath=$null;DestinationRelativePath=$null;Status=$(if ($reason -eq 'drive_api_unconfirmed') {'held'}else{'failure'});Reason=$reason})
     }
     finally { if ($null -ne $fixtureLease) { $fixtureLease.Dispose() } }
 
@@ -168,6 +224,7 @@ function Invoke-EoSyntheticLogTransfer {
     $planned = @($results | Where-Object Status -eq 'planned').Count
     $status = if ($failed -gt 0) { 'failure' } elseif ($held -gt 0) { 'held' } elseif ($planned -gt 0) { 'planned' } elseif ($success -eq 0) { 'no_work' } else { 'success' }
     return [pscustomobject][ordered]@{
+        AdapterMode=$(if ($DriveApiMock) {'sdk_http_mock'}else{'filesystem_mock'}); CloudObserved=$false
         Slice=$slice; SyntheticOnly=$true; MachineId=$MachineId; Operation=$Operation; Status=$status
         ProcessedCount=@($results | Where-Object { $null -ne $_.SourceRelativePath }).Count
         SuccessCount=$success; FailureCount=$failed; HeldCount=$held

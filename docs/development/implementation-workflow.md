@@ -17,6 +17,8 @@
 
 [ArchiveLogs.ps1](../../scripts/ArchiveLogs.ps1)にはS2のPC-A限定・削除なし合成E2Eを接続した。S1と合成専用の列挙/コピー/照合を共有し、現在cloudの適格分を両PCの完了待ちなしで処理する。両入口は合成専用マーカーで通常配布を拒否し、実Drive・実設定・元削除・正式AC全体の未完を維持する。
 
+S3では[DriveTransferAdapter.py](../../Common/DriveTransferAdapter.py)とtests専用のHTTP接続を追加し、正式両入口の明示的なAPI模擬モードから公式SDKの列挙/upload/download/hashへ接続する。実接続CLI・認証情報探索/store/refreshは提供せず、運用認証/実root/隔離実Driveの資格と操作承認は未完。API模擬結合の成功をS3完了や正式AC合格へ昇格しない。
+
 ## 2. 一連の受け入れ条件
 
 以下のACは本計画内の試験シナリオ識別子であり、恒久の要件IDを新設/置換しない。固定日時と合成ログ、隔離領域、模擬Driveでまず検証し、実環境の受け入れとは区別する。日時境界の判定方式・タイムゾーンは既存仕様と照合し、未決ならT0で確定する。
@@ -154,7 +156,7 @@ download試験候補には、[別プロセスでの記録と現在fileの照合]
 確認した具体的な配布阻害要因は次のとおり。
 
 - 当時は`SyncLogs.ps1`と`ArchiveLogs.ps1`が不在だった。現在のSync入口もS1合成専用のため、現ビルダーは配布可能なリリースを拒否する。レビュー用の非配布成果物は初回配布の代用にならない。
-- 実Drive通信adapterは未実装。現request schemaの操作はlist/metadata/upload/downloadの4種で、クラウド元の削除操作を含まない。新しい移動要件への契約拡張と実装が必要であり、旧schemaの存在を新要件との実装規約の不一致とは扱わない。
+- 運用可能な実Drive adapterは未完。SDKの模擬HTTP結合は追加したが、実認証/資格と実接続は未確認。現request schemaの操作はlist/metadata/upload/downloadの4種で、クラウド元の削除操作を含まない。新しい移動要件への契約拡張と実装が必要であり、旧schemaの存在を新要件との実装規約の不一致とは扱わない。
 - tests内のローカル削除候補とsecurity観測は、任意の実運用フォルダの利用許可・権限確認や正式providerを完成していない。
 - 配布設計のGitHub→Drive公開は、配布identity/認証/来歴の接続と所定の承認が残る。初回の実移動検証・本番適用も、別途具体的指示と限定計画に従う。
 

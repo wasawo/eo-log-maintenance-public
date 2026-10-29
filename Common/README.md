@@ -4,6 +4,8 @@
 
 ## 機能から探す
 
+[DriveTransferAdapter.py](DriveTransferAdapter.py)は呼出し側が渡す公式SDK serviceを使う単試行のupload/download結合。既存metadata/list/content readerを再利用し、新規createのみ行って内容と現在候補の一意性を再確認する。S3の不足していたupload接続のため追加した。認証情報の探索/保存/refresh・上書き・削除は行わず、service/認証/実環境の資格を確定しない。[DriveAdapterBridge.ps1](DriveAdapterBridge.ps1)は正式入口からtests専用の模擬HTTP workerを呼ぶ隔離試験用接続で、運用IPC schema/認証storeの完成ではない。
+
 [SyntheticLogTransfer.ps1](SyntheticLogTransfer.ps1)はS1 Sync/S2 Archiveの合成E2Eだけで再利用する列挙・期間判定・非上書きコピー・SHA-256照合・件数集計。Archive入口の接続に同じ処理が必要なためS1から抽出した。固定の合成fixture/役割以外は拒否し、実設定・実Drive・元削除は提供しない。
 
 所有wrapperは[境界ごとの所有確認](../docs/design/owned-simulation-run.md#処理境界での所有確認)をモデルへ渡す。確認不能後は後続のモデルコピー/元除去・永続保存を止めるが、実providerの原子的な所有保証にはしない。

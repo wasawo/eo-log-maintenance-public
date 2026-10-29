@@ -1,5 +1,7 @@
 # テスト計画
 
+`test_drive_adapter_integration.py`は正式Sync/Archive入口の`-DriveApiMock`から公式Drive SDKを起動し、tests内のネットワークを持たないHTTP実装で列挙/upload/download/hashを結合する。認証拒否/APIエラー、複数同名、内容/版変更、upload応答不明、次回の同内容再利用、非上書き、B拒否、Dry Runを確認する。実行: `python -B -m unittest discover -s tests -p test_drive_adapter_integration.py -v`。実認証・実Drive接続は未実施で、成功をS3完了にはしない。
+
 `Test-ArchiveLogsE2E.ps1`は[正式Archive入口](../scripts/ArchiveLogs.ps1)を子プロセスで起動するS2試験。前年末/前々年末・1月/うるう日・対象外/不正名/対象0・平坦化/同内容再利用/異内容保留・コピー/照合失敗時のcloud元保持・PC-B拒否・Dry Run/排他を実ファイルで確認する。PC-B完了記録なしでの処理と、遅着分の次回コピーも検証する。実行: `pwsh -NoProfile -File tests/Test-ArchiveLogsE2E.ps1`。実Drive・元削除・正式AC全体の合格は含まない。
 
 `Test-SyncLogsE2E.ps1`は[正式Sync入口](../scripts/SyncLogs.ps1)を別プロセスで起動し、PC-Bの削除なしS1を検証する。合成fixtureと模擬Driveの実ファイルで、期間境界（1月/うるう日を含む）、平坦化、同内容再利用、異内容競合、不正名、対象0件、列挙失敗、コピー失敗、SHA-256不一致時の元保持、役割拒否、Dry Run、排他と件数表示を確認する。実行: `pwsh -NoProfile -File tests/Test-SyncLogsE2E.ps1`。失敗注入は本番ロジックの再実装ではなく、入口の模擬Driveへの書込内容を変える。正式ACの部分検証と実Drive/元削除/運用受け入れは区別する。
