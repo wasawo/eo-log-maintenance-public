@@ -6,6 +6,16 @@
 
 ## 現在地
 
+2026-10-29、利用者の指示で `feat/s1-pc-b-sync` の `4cbd33c` をpushし、[PR #51](https://github.com/wasawo/eo-log-maintenance-public/pull/51)をmain向けに作成した。最新mainは`9b47984`、開始時の作業ツリーはクリーン。今回の許可はPR/CI確認とS1変更が原因の必要最小限の修正までで、merge・S2着手は未承認。
+
+Common/__pycache__は既存17ファイルで、すべて未追跡かつ.gitignore対象（追跡0）。削除/上書きせず、PRにも含めない。実checkoutの直接package検査は非allowlistの.pycで止まる状態を維持し、この問題を理由にコードを変更していない。隔離fixtureの[Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40830275675)は初回HEADで成功した。
+
+初回[Validate](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40830275657)はS1 E2Eステップで失敗した。ログでは46 assertionが全成功した後にプロセス終了1となり、最後の拒否試験の子プロセス終了値が残ることをローカルのCI相当起動で再現した。Test-SyncLogsE2E.ps1のtry/finallyの後へ正常終了0を明示し、例外時の失敗と入口の拒否時終了1は維持した。変更は試験の終了値と本記録だけで、Sync処理・schema・安全条件は変更しない。
+
+修正後、PowerShell7.6.7で `pwsh -NoProfile -Command '$ErrorActionPreference="Stop"; ./tests/Test-SyncLogsE2E.ps1; if (Test-Path variable:\LASTEXITCODE) { exit $LASTEXITCODE }'` と通常の `pwsh -NoProfile -File tests/Test-SyncLogsE2E.ps1` がどちらも46 assertion成功・終了0。最新HEADの両CIは修正push後に改めて確認する。旧HEADのPackage成功を新HEADの成功へ流用しない。独立レビュー未実施。正式ACの部分検証/未検証は以下の実装記録と同じで、正式合格は付与しない。
+
+## S1ローカル実装時の記録
+
 2026-10-29、利用者のS1実装指示を受領し、最新main `9b47984820326679b59f358db329d1e303607952`（PR #50マージ済み）から `feat/s1-pc-b-sync` を作成した。開始時の作業ツリーはクリーン、worktreeは本checkoutのみ、originは正本。git fetch後にmain/origin/mainの一致を確認した。今回の許可はS1の実装・合成検証・関連文書・ローカルcommitまでで、push/PR/merge・実データ操作は許可されていない。
 
 [SyncLogs.ps1](../../scripts/SyncLogs.ps1)をPC-B限定の正式入口として追加し、隔離した合成fileの再帰列挙→期間判定→平坦化→模擬Driveへの非上書きコピー→SHA-256照合→JSON結果表示を実行した。Common/LogFunctions.ps1の既存判定を再利用する。メモリ上で削除まで扱う既存モデルはS1の書込経路へ呼び出さず、FileMode.CreateNewのコピーと保持した元streamのhashを入口へ接続した。成功はコピー検証であり、CompletedMoveCountは常に0。元削除・実Drive・実設定の入力は提供しない。

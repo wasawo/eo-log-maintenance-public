@@ -150,3 +150,5 @@ finally {
         Remove-Item -LiteralPath $item.FullName -Recurse -Force
     }
 }
+# Expected failing child processes must not become the CI shell's final exit code.
+exit 0
