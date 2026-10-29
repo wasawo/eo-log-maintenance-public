@@ -6,6 +6,20 @@
 
 ## 現在地
 
+2026-10-29、条件付きマージの恒久ルール化を利用者から指示された。開始main/origin/main/GitHub mainは `e704d0bd5bb42921811f267595fcbe316f083251` で、PR #51の統合を確認済み。開始時の作業ツリーはクリーン、worktreeは本checkoutのみ、originは正本。最新mainから `docs/conditional-merge-policy` を作成した。
+
+今回の承認はこの運用文書変更のcommit・push・PR作成・標準条件成立時のsquashマージまで。重大な規則矛盾、想定外のコード変更、安全条件/利用者の承認権限の変更が必要な場合やCI失敗/未完了、その他の条件不成立時はマージせず報告する。将来の全PRへ権限を拡大せず、S2へも進まない。
+
+AGENTS.md §9に、範囲を指定した事前許可と7つのマージ条件、最新HEAD再確認/変更時再評価、CI90秒間隔・最大5回、失敗時停止と範囲内の最小修正、保護回避禁止、マージ後main確認/報告/次作業の許可境界を追加した。PR許可だけではマージ許可にならず、実データ/削除/本番Drive/配布/デプロイは別許可であることとQ5/役割制限を維持する。
+
+最小の整合性修正: agent-workflow手順5の「コミット後は次指示待ち」を、当該範囲のPR/条件付きマージが事前許可済みならAGENTS §9に従って続行する形へ揃えた。Git手順スキルの「PR permission is not merge permission」はPRだけの許可を拡張しない意味で維持し、両方の事前許可とは矛盾しない。重大な承認境界の矛盾は確認していない。
+
+S1合成E2E完了・正式AC部分検証・S2未着手を維持する。current-slice・正式AC・P0・要件・安全仕様・コードは変更しない。Common/__pycache__の既存17ファイルは未追跡/Git除外のまま保全し、ローカル直接ビルドがallowlistで止まる制約も継続する。文書のみのローカル検証後、今回のPR最新HEADでValidate/Package Validationと他の標準条件を確認して判断する。独立レビューは未実施。
+
+ローカル検証: 変更Markdown3文書の相対リンク46件・見出し参照12件に欠落なし、git diff --check成功。Python3.11.9でAGENTSの§9以外、current-slice・正式ACの計画文書・P0・承認済み要件が開始HEADと本文一致することを確認した。rootが指示された7条件と禁止事項を差分へ照合し、自己点検した。文書のみのため無関係な全体試験・package生成は再実行していない。リモートPR/CI/mergeは本記録時点では未実施で、成功を先に記録しない。
+
+## PR #51の提出・CI修正時点の記録（マージ済み）
+
 2026-10-29、利用者の指示で `feat/s1-pc-b-sync` の `4cbd33c` をpushし、[PR #51](https://github.com/wasawo/eo-log-maintenance-public/pull/51)をmain向けに作成した。最新mainは`9b47984`、開始時の作業ツリーはクリーン。今回の許可はPR/CI確認とS1変更が原因の必要最小限の修正までで、merge・S2着手は未承認。
 
 Common/__pycache__は既存17ファイルで、すべて未追跡かつ.gitignore対象（追跡0）。削除/上書きせず、PRにも含めない。実checkoutの直接package検査は非allowlistの.pycで止まる状態を維持し、この問題を理由にコードを変更していない。隔離fixtureの[Package Validation](https://github.com/wasawo/eo-log-maintenance-public/actions/runs/40830275675)は初回HEADで成功した。
