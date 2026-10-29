@@ -1,10 +1,24 @@
 # 現在の引き継ぎ
 
-更新日: 2026-10-29（日本時間）
+更新日: 2026-10-30（日本時間）
 恒久ルール: [AGENTS.md](../../AGENTS.md)。正本: `wasawo/eo-log-maintenance-public`。
 本書は記録時点。開始時は実Git/作業ツリーを優先する。
 
 ## 現在地
+
+2026-10-30、利用者のS3③セットアップ準備指示で再開。開始00:57:04 JST、上限3 PRまたは30分。fetch後のmain/origin/main/GitHub mainは `bbc114b030d6a621c725e2ccf8f8aa4b8da2a63a`、PR #57は同SHAへsquashマージ済み。mainのValidate/Package Validationも両方成功を確認した。開始ツリーはクリーン、worktreeは本checkoutのみ、originは正本。最新mainから `docs/s3-environment-setup` を作成し、AGENTS/current-sliceとPR #56の限定計画・実装を照合した。
+
+今回の差分は既存drive-metadata-reader文書のPC別セットアップ順序/コマンド/完全なダミーJSONと本handoffのみ。依存準備、初回登録のAPI順序、PCごとのstore/root/name/required-visibleの差、空source読取→B/A upload→B再照合→A Archive、秘密非記録の入力・保存境界を具体化した。実値や実credential/実設定の存在を探索せず、すべてのコマンドを将来の承認後の利用者手順として記載した。実行できない認証CLIを創作せず、不足段階を停止点にした。
+
+不足機能: PKCE/state/DPAPI/service libraryはあるが、安全な初回consent/browser/loopback callback受領から初期暗号化保存までを結ぶ運用入口、protected ACL付き設定の新規作成/検証導線、当該OAuthアプリで既存folder/fileを認可対象にする導線がない。drive.fileは同じprincipal/owner/ACL/IDだけでは既存対象へ届かず、folderが見えないままrunnerのuploadへ進めない。principalの自動的なGoogle identity証明もなく、手動確認の証拠/受け入れ判断が残る。追加scope/新しい認証機構/API操作を勝手に選定・実装しない。
+
+公開Google資料でDesktop OAuth、consent/client準備、drive.fileの対象範囲とtoken失効条件を必要な範囲で確認した。Google Console・実account・実APIへはアクセスしていない。実credentialの探索/読取/取得/保存/refresh、同意、実Drive/実ログ、元/cloud削除は未実施。S3③④・正式AC/P0・安全条件は不変、S4へ進まない。新規コード・依存・schema・機能は追加していない。
+
+次の利用者判断は、不足する初回登録/設定作成/対象認可支援の具体的な実装範囲。その後に、両PC/principal/client/2folder/非公開保存先を指定し、consent/code交換/store初期保存、credential読取/refresh、限定Drive読取、最大4件/16 KiB（準備fixture込み24 KiB）の転送を段階ごとに承認する。今回は文書PR/標準条件成立時のsquashマージだけが許可済みで、実認証/実Driveは開始しない。root自己点検のみで独立レビュー未実施。
+
+文書検証: 変更2文書の相対リンク56件/見出し参照12件、ダミーJSONの15 keyとrunnerの厳密key集合一致、PowerShell4ブロックのAST構文解析、合成4名×Sync/Archiveの8期間/名前判定、git diff --checkが成功。setup/認証/Driveコマンド自体は実行せず、文書のみのため無関係な全体試験・package生成を行わない。コード/依存/AGENTS/current-slice/正式AC/P0/要件/schemaは開始HEADと不変。最新HEADの両CIと標準条件を確認して文書PRを統合し、結果は実施後に報告する。
+
+## PR #57 CI復旧時点の記録
 
 2026-10-29、利用者のPR #57 CI復旧指示で再開。開始21:07:49 JST、上限3 PRまたは30分。main/origin/main/GitHub mainは `c9dde74`、PR/ローカルHEADは `ab7302f`、branchは `feat/s3-authenticated-runner`、ツリーはクリーン、worktreeは本checkoutのみ、originは正本。最新main/branchをfetchしAGENTS/current-slice/既存承認を照合した。実credential/OAuth/実Drive・元/クラウド元削除は禁止、S3③④未完・S4未着手を維持する。
 
