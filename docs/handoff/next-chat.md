@@ -6,6 +6,25 @@
 
 ## 現在地
 
+**環境再構築に向けて作業凍結。** 2026-10-31、利用者が新環境へ引き継ぐため、未コミット差分の整理と必要なPR統合後の凍結を指示した。開始時はmain/origin/main/GitHub mainが`2863c0a57adc7e669d4718ee1d338f5b456f4985`で一致し、PR #60とmainのValidate/Package Validationは両版成功、未コミット変更・通常の未追跡file・stash・open PRはなかった。worktreeは本checkoutのみ、originは正本。共有チャット本文は取得できなかったため、今回の直接指示だけを凍結の根拠とする。
+
+### 保全対象と確認結果
+
+- 正本のコード・仕様・テスト・追跡済みproject設定/skill・承認記録はGitHub mainに存在する。今回の`docs/environment-freeze`は本handoffとcurrent-sliceの凍結記録だけを変更し、新規実装・仕様整理を行わない。
+- remoteにない履歴は`docs/c01-lexical-candidate`（1 commit）、`docs/drive-auth-decision-options`（2）、`docs/drive-auth-options-after-pr34`（4）、`docs/remaining-contract-decisions`（1）の4branchに残る。旧提案を承認済み仕様へ昇格させず、mainへの統合・remote公開・branch削除は行わない。
+- 利用者指定のrepo外非公開保全先に、全Git参照のself-contained bundleを作成し、verifyと上記4branchの収録を確認した。Git除外47file（Python cache46、内容未確認の設定/証拠候補1）も相対配置を保ってコピーし、SHA-256一致と全保全file/directoryのcurrent-user protected ACLを確認した。元fileを削除・上書きしていない。実path・非公開file名・内容・保全manifestは公開Git/PRへ含めない。凍結commitを含む最終bundleはPR提出後に別名で保全する。
+- 通常cloneだけでは上記local履歴・除外資産は戻らない。bundleは参照から到達するGit履歴用で、reflog/到達不能object・repo外の資産や個人/global設定の完全backupではない。repo外のcredential/store/実設定/実ログ・Cloud資産は探索・読取・移行していない。既存DPAPI保存物はWindows userに依存し、コピーだけで新環境で復号できるとは保証しない。実認証/再登録は別途承認が必要。
+
+### 新環境へ引き継ぐ状態と再開条件
+
+S1/S2の削除なし合成E2EとS3 adapter/認証/セットアップ支援の合成検証を保全する。PowerShell許容版は7.6.7/7.6.9、Python要件は3.12系のまま。Python3.12.0自体の検証は未完で、旧一時依存・cache・venvを新環境の検証証拠や再利用の前提にしない。Common/__pycache__の既存17fileと直接package buildの既知制約も未解消のまま記録する。
+
+S3③④・正式AC全体・P0受け入れは未完、S4未着手。Q5/PC役割/非上書き/元保持と、実credential/OAuth/Drive/実ログ/元削除の承認境界は変更しない。新環境で正本main/remote/branchを確認し、非公開保全資産を自動適用せず、利用者の明示的な再開指示後に依存環境を新規構築して必要な合成回帰を実行する。実環境資格や実Drive試験を凍結解除と同時に許可済みにしない。
+
+今回の検証は文書リンク・整合性・差分と非公開backup照合に限定する。無関係な合成全試験/実API試験は起動しない。凍結記録PRは最新HEADの両CIと標準条件が揃った場合だけsquash mergeし、確認できなければ開いたまま停止する。本記録統合後は新環境での明示的な再開指示まで追加作業を行わない。root自己点検のみ、独立レビューなし。
+
+## PR #60のPowerShell互換性確認時点の記録
+
 2026-10-31 11:27:16 JST、利用者のPowerShell7.6.9互換性確認指示で再開。上限11:47:16 JSTまたは3 PR。最新main/origin/main/GitHub mainは`d7059cc7bd68886a8f0b9299987e70c1a617ebc8`で、PR #59とmainの両CI成功を確認。開始ツリーclean、worktreeは本checkoutのみ、origin正本、最新mainから`fix/powershell-769-compat`を作成した。
 
 調査: 既存7.6.7固定は要件/共通guard/テスト/CIの再現性確保の契約で、7.6.7固有のAPI依存や7.6.9での機能不具合は確認できなかった。修正前の実7.6.9ではLogFunctionsのexact guardが処理前に拒否することを再現。公式portable ZIPをSHA-256照合して新規一時領域へ展開し、既存のインストール/PATH永続設定を変更していない。公式7.6.8/7.6.9 release noteも確認した。
