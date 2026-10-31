@@ -10,7 +10,7 @@
 pwsh -NoProfile -File tests/Test-LogMoveSimulation.ps1
 ```
 
-実装は[LogMoveSimulation.ps1](../../Common/LogMoveSimulation.ps1)、従来のメモリ上の検証は[Test-LogMoveSimulation.ps1](../../tests/Test-LogMoveSimulation.ps1)。PowerShell 7.6.7で動かす。設定内のパスへアクセスせず、Drive接続、ログ本文のディスク読取、実ファイルのコピー・削除、ロック取得は行わない。JournalRootを省略した場合はメモリ上だけを変更する。指定時は[記録接続](simulation-journal-integration.md)に従って、用意済みの専用rootへ移動記録v1を保存する。
+実装は[LogMoveSimulation.ps1](../../Common/LogMoveSimulation.ps1)、従来のメモリ上の検証は[Test-LogMoveSimulation.ps1](../../tests/Test-LogMoveSimulation.ps1)。PowerShell 7.6.7または7.6.9で動かす。設定内のパスへアクセスせず、Drive接続、ログ本文のディスク読取、実ファイルのコピー・削除、ロック取得は行わない。JournalRootを省略した場合はメモリ上だけを変更する。指定時は[記録接続](simulation-journal-integration.md)に従って、用意済みの専用rootへ移動記録v1を保存する。
 
 正式な`SyncLogs.ps1`と`ArchiveLogs.ps1`は追加しない。実装基盤と運用入口を取り違えず、既存ビルダーの正式入口不在による配布拒否も維持する。
 

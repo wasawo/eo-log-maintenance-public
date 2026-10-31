@@ -9,7 +9,7 @@ Run from repo root under [AGENTS.md](../../../AGENTS.md); select specs via [spec
 
 1. Scope checks to the diff/requirements. Authoritative commands: [Validate](../../../.github/workflows/validate.yml) and [Package Validation](../../../.github/workflows/package-validation.yml).
 2. Docs-only: check links, consistency, and `git diff --check`; no unrelated suites or wording-matching tests.
-3. Code/schema: relevant existing tests. Packaging: role-specific package regression. Use PowerShell 7.6.7; Python per CI, recording local differences. Dependencies: `requirements-test.txt` / `requirements-runtime.txt`. Follow CI for parsing/PSScriptAnalyzer.
+3. Code/schema: relevant existing tests. Packaging: role-specific package regression. Use validated PowerShell 7.6.7 or 7.6.9 only; Python per CI, recording local differences. Dependencies: `requirements-test.txt` / `requirements-runtime.txt`. Follow CI for parsing/PSScriptAnalyzer.
 
 ```powershell
 python -m unittest discover -s tests -p "test_*.py"

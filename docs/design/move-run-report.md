@@ -4,7 +4,7 @@
 
 ## 起動方法と今回の範囲
 
-[Show-MoveRun.ps1](../../scripts/Show-MoveRun.ps1)で、指定した実行ID・PC・経路の記録を読む。PowerShell 7.6.7と、runtime依存を導入したPythonが必要である。次はダミー値の例で、実運用パスやIDを公開文書に転記しない。
+[Show-MoveRun.ps1](../../scripts/Show-MoveRun.ps1)で、指定した実行ID・PC・経路の記録を読む。PowerShell 7.6.7または7.6.9と、runtime依存を導入したPythonが必要である。次はダミー値の例で、実運用パスやIDを公開文書に転記しない。
 
 ```powershell
 pwsh -NoProfile -File scripts/Show-MoveRun.ps1 `

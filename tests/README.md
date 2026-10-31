@@ -138,7 +138,7 @@ GitHub Actions の `Validate` ワークフローでも同じテストを実行�
 
 `Test-C54PatternContract.ps1` checks the approved C-54 URI user-info, Bearer, GitHub token-like, AWS AKIA, and PEM private-key marker grammars using synthetic positive, negative, boundary, and case fixtures.
 
-Run with PowerShell 7.6.7:
+Run with PowerShell 7.6.7 or 7.6.9:
 
 ```powershell
 ./tests/Test-C54PatternContract.ps1
@@ -150,7 +150,7 @@ This is a contract-level regex test, not a runtime sanitizer test. It does not p
 
 The test script `Test-DiagnosticPathSanitization.ps1` checks the deterministic optional-path sanitizer against the approved C-53 syntax contract and C-54 sensitive-name/token/value-format policy, using synthetic paths only.
 
-Run with PowerShell 7.6.7:
+Run with PowerShell 7.6.7 or 7.6.9:
 
 ```powershell
 ./tests/Test-DiagnosticPathSanitization.ps1
@@ -160,7 +160,7 @@ These tests cover the standalone path sanitizer's return value. They do not yet 
 
 ## Diagnostic record schema-v1 finalizer tests
 
-Run the standalone C-47–C-53 schema-v1 finalizer tests with PowerShell 7.6.7 using:
+Run the standalone C-47–C-53 schema-v1 finalizer tests with PowerShell 7.6.7 or 7.6.9 using:
 
     ./tests/Test-DiagnosticRecordFinalizer.ps1
 
@@ -170,7 +170,7 @@ This is a pure structured-record finalizer and synthetic test suite. It does not
 
 ## Diagnostic event ID allocation tests
 
-Run the synthetic C-45/C-46 event ID allocation tests with PowerShell 7.6.7 using:
+Run the synthetic C-45/C-46 event ID allocation tests with PowerShell 7.6.7 or 7.6.9 using:
 
     ./tests/Test-DiagnosticErrorId.ps1
 
@@ -429,7 +429,7 @@ Windowsのmultiprocessingを含む試験は、stdinへPythonスクリプトを�
 
 `test_staging_size_observation.py`は凍結manifest/B2から明示size集合を取り出す純粋検査を確認する。file状態から残り対象を推測せず、巨大整数・空選択・不完全/改変/別scopeの境界を扱う。
 
-`test_staging_capacity_bridge.py` / `staging_capacity_bridge.ps1`は合成manifest/B2のsize射影→stdin JSON→PS 7.6.7容量観測→stdout整数を接続する。実行版を確認し、ローカルでは必要に応じEOLM_TEST_PWSHで固定版を指定する。tests専用で正式IPCや実容量取得ではない。
+`test_staging_capacity_bridge.py` / `staging_capacity_bridge.ps1`は合成manifest/B2のsize射影→stdin JSON→PS 7.6.7/7.6.9容量観測→stdout整数を接続する。実行版を確認し、ローカルでは必要に応じEOLM_TEST_PWSHで固定版を指定する。tests専用で正式IPCや実容量取得ではない。
 
 `Test-StagingFreeSpace.ps1`は自作OS-tempでWindows空きbytes観測、UInt64精度・不明/reparse/変更の保留と未資格の容量gate停止を検査する。実root/容量/FS受け入れやDry Run A資格ではない。
 

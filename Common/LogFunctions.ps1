@@ -14,24 +14,24 @@ function Assert-SupportedPowerShellVersion {
             $Version = $PSVersionTable.PSVersion
         }
         catch {
-            throw 'Unable to determine the running PowerShell version. Required version: 7.6.7.'
+            throw 'Unable to determine the running PowerShell version. Supported versions: 7.6.7, 7.6.9.'
         }
     }
 
     if ($null -eq $Version) {
-        throw 'Unable to determine the running PowerShell version. Required version: 7.6.7.'
+        throw 'Unable to determine the running PowerShell version. Supported versions: 7.6.7, 7.6.9.'
     }
 
     try {
         $actualVersion = [version]$Version
     }
     catch {
-        throw "Unable to parse the running PowerShell version '$Version'. Required version: 7.6.7."
+        throw "Unable to parse the running PowerShell version '$Version'. Supported versions: 7.6.7, 7.6.9."
     }
 
-    $requiredVersion = [version]'7.6.7'
-    if ($actualVersion -ne $requiredVersion) {
-        throw "Unsupported PowerShell version '$actualVersion'. Exactly PowerShell 7.6.7 is required."
+    $supportedVersions = @([version]'7.6.7', [version]'7.6.9')
+    if ($actualVersion -notin $supportedVersions) {
+        throw "Unsupported PowerShell version '$actualVersion'. Supported versions: 7.6.7, 7.6.9."
     }
 }
 
