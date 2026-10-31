@@ -12,20 +12,28 @@ permissions:
 jobs:
   validate:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - powershell: '7.6.7'
+            sha256: 'D2F952EBDBF24386CB8923553AA58E41A846DB35A6155EA04C58142A4B16DBB7'
+          - powershell: '7.6.9'
+            sha256: 'CE7484804C0F0AD4DDA10C958E71ACDAF7EEBFB22505C1B480F89E0E9F1DA94D'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install PowerShell 7.6.7
+      - name: Install PowerShell ${{ matrix.powershell }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $version = '7.6.7'
+          $version = '${{ matrix.powershell }}'
           $archive = Join-Path $env:RUNNER_TEMP "PowerShell-$version-win-x64.zip"
           $installDir = Join-Path $env:RUNNER_TEMP "PowerShell-$version"
           $uri = "https://github.com/PowerShell/PowerShell/releases/download/v$version/PowerShell-$version-win-x64.zip"
           Invoke-WebRequest -Uri $uri -OutFile $archive
-          $expectedHash = 'D2F952EBDBF24386CB8923553AA58E41A846DB35A6155EA04C58142A4B16DBB7'
+          $expectedHash = '${{ matrix.sha256 }}'
           $actualHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
           if ($actualHash -ne $expectedHash) {
             throw "PowerShell archive SHA-256 mismatch: $actualHash"
@@ -43,7 +51,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $expected = [version]'7.6.7'
+          $expected = [version]'${{ matrix.powershell }}'
           $actual = $PSVersionTable.PSVersion
           Write-Host "PowerShell version: $actual"
           if ($actual -ne $expected) {

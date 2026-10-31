@@ -56,14 +56,28 @@ catch {
     $acceptedVersionResult = 'rejected'
 }
 Assert-Equal 'PowerShell 7.6.7 accepted' 'accepted' $acceptedVersionResult
+$acceptedVersionResult = 'rejected'
+try {
+    Assert-SupportedPowerShellVersion -Version ([version]'7.6.9')
+    $acceptedVersionResult = 'accepted'
+}
+catch {
+    $acceptedVersionResult = 'rejected'
+}
+Assert-Equal 'PowerShell 7.6.9 accepted' 'accepted' $acceptedVersionResult
 Assert-Throws 'PowerShell 7.0 rejected' {
     Assert-SupportedPowerShellVersion -Version ([version]'7.0.0')
 }
 Assert-Throws 'PowerShell 7.6.6 rejected' {
     Assert-SupportedPowerShellVersion -Version ([version]'7.6.6')
 }
-Assert-Throws 'PowerShell 7.6.8 rejected because exact version is required' {
+Assert-Throws 'Untested PowerShell 7.6.8 rejected' {
     Assert-SupportedPowerShellVersion -Version ([version]'7.6.8')
+}
+foreach ($unsupported in @('7.6.10', '7.7.0', '8.0.0', '7.6.9-preview.1', '7.6.9.1')) {
+    Assert-Throws "Unlisted PowerShell $unsupported rejected" {
+        Assert-SupportedPowerShellVersion -Version $unsupported
+    }
 }
 Assert-Throws 'Unavailable PowerShell version rejected' {
     Assert-SupportedPowerShellVersion -Version $null

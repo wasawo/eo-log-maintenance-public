@@ -45,9 +45,13 @@
 | P0-011 | P0-B | 仕様差分・確認待ち | `docs/development/implementation-workflow.md` §4、README、`docs/decisions/decision-register-c18-c32.md`、`docs/requirements/p0-open-specification-decisions.md`、本台帳 | PR #101時点で `docs/development/implementation-workflow.md` §4 にP0 readiness/acceptance gateが存在し、READMEも同節を参照する。ゲートはP0-001〜012のcomplete/blocked/incomplete分類、未決OSD、runtime evidence不足、docs-only evidenceの限界を明記する。一方、decision registerの先頭ステータスとgap registerのP0-011説明がゲートの存在・P0未受入れ状態を明確に反映していなかった | §4を規範的なP0受け入れゲートとして維持し、README、decision register、gap register、traceabilityの状態説明を同期する。全P0とOSDの実態に合うよう、P0未受入れと未完了のruntime evidenceを明示する | P0-001〜012が証拠付きでcomplete、または理由付きblocked/incompleteに分類され、未解決OSDと実行時証拠不足が明示される。README・workflow・decision register・gap registerに矛盾がない。P0受け入れは未完了であり、文書追加だけで完了扱いにしない |
 | P0-012 | P0-A | 安全性確認 | 全ランタイム処理、テスト、配布物 | 2026-10-27要件改訂。現1.0 request schemaは4操作でdeleteを拒否し、設定例は汎用allowDeleteを拒否する。これらは現インターフェースの限定証拠で、新しい2経路のruntime完了ではない。正式入口・条件付き元削除・before/after runtime検証は未実装。過去PRの全面削除禁止監査は当時の範囲に保持。 | 2経路/Q5/役割と対象同一性・期間を契約化し、実装再開指示後に対応するsource/config/contract/package/runtimeの正負試験を追加する。文書見直し中は削除コード/schemaを追加しない。 | 許可した元だけ削除し、内容不一致/元変更/確認不能/対象外/誤役割は保全・拒否。Bのarchive/cloud削除拒否、Dry Run無変更、再実行/結果不明照合を隔離合成データで検証する。実データ削除/本番適用は別の具体的指示が必要。 |
 
+## PowerShell許容版の限定更新（2026-10-31）
+
+利用者の互換性確認指示に基づき、P0-001/002の版条件だけを7.6.7と7.6.9の明示集合へ更新する。上表のPR #10/#11と7.6.7固定は当時の証拠。現在は共通guardが未列挙版・取得不能・不正値をファイル処理前に拒否し、両CIがそれぞれの公式ZIP/SHA-256/実行版を検証する。優先度・未完状態・全入口適用・証拠の受け入れ基準は変えず、7.6.9追加をP0完了にはしない。
+
 ## 仕様書で既に明確な基準
 
-1. PowerShell 7.6.7必須。Windows PowerShell 5.1互換は対象外。
+1. PowerShell 7.6.7または7.6.9必須。それ以外は拒否。Windows PowerShell 5.1互換は対象外。
 2. バッチエントリーポイントは `pwsh.exe` を使用する。
 3. 実行開始時にPowerShellバージョンを検証し、要件を満たさなければファイル処理前に停止する。
 4. PythonはDrive APIアダプターとして1リクエストにつき1回だけAPIを試行し、再試行判断はPowerShellが担当する。
@@ -68,7 +72,7 @@
 ## 作業順序と依存関係
 
 1. P0-010：ソースと仕様条項の棚卸しを完成させる。
-2. P0-001〜003：7.6.7必須、起動方式、CIの実行環境検査を揃える。
+2. P0-001〜003：上記許容集合の検証必須、起動方式、CIの実行環境検査を揃える。
 3. P0-007〜008：既存PowerShellテストをCIへ組み込み、境界テストを補完する。
 4. P0-005：契約レビューと結合テスト条件を整理する。
 5. P0-006、P0-009：正式エントリーポイント確定後にパッケージ判定・役割別許可リストを修正する。

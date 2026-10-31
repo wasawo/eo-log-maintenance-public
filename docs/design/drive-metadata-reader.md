@@ -101,7 +101,9 @@ runnerは明示folder/許可名/required-visibleを確認して既存adapterを�
 
 #### 1. 両PCのローカル前提
 
-各PC内で承認済みのWindows userとしてログオンし、同じuserで準備・手動起動する。PC間のWindows user一致やtokenコピーは要求しない。リポジトリの確認済みmainを使い、公開用packageの配布拒否を解除しない。PowerShellは正確に7.6.7、Pythonは3.12系、venv/store/非公開設定はrepo・共有Drive・同期領域の外の明示領域とする。reparse/UNC・不明ACLの領域は使わない。
+PowerShellの許容集合は7.6.7と7.6.9の2版のみ。7.6系列すべてや将来patchを無条件に許容せず、7.6.8/7.6.10以降・previewは未検証として停止する。`#requires -Version 7.6.7`は最低版宣言であり、実際の許容集合は共通guardで検証する。CIは両版の公式ZIPをSHA-256照合し、版を厳密に確認して同じ検査を行う。下記のローカル依存環境構築は再開できるが、OAuth/credential/Driveの操作許可は増えない。
+
+各PC内で承認済みのWindows userとしてログオンし、同じuserで準備・手動起動する。PC間のWindows user一致やtokenコピーは要求しない。リポジトリの確認済みmainを使い、公開用packageの配布拒否を解除しない。PowerShellは検証済みの7.6.7または7.6.9、Pythonは3.12系、venv/store/非公開設定はrepo・共有Drive・同期領域の外の明示領域とする。reparse/UNC・不明ACLの領域は使わない。
 
 将来、各PCの非記録端末で実行するローカル依存準備の例（この作業では実行しない）。`py -3.12`がなければ停止し、Python/launcherの導入を利用者側で準備する。`$Repo`は確認済みcheckout、`$Venv`は新規のrepo外venvを非公開で指定する。既存の不明な環境を自動探索/上書きしない。
 
@@ -109,7 +111,8 @@ runnerは明示folder/許可名/required-visibleを確認して既存adapterを�
 $Repo = Read-Host -MaskInput '確認済みcheckoutの絶対パス'
 $Venv = Read-Host -MaskInput '新規のrepo外venvの絶対パス'
 Set-Location -LiteralPath $Repo
-if ($PSVersionTable.PSVersion -ne [version]'7.6.7') { throw 'powershell_version_unconfirmed' }
+. (Join-Path $Repo 'Common/LogFunctions.ps1')
+Assert-SupportedPowerShellVersion
 py -3.12 --version
 if ($LASTEXITCODE -ne 0) { throw 'python_unavailable' }
 if (Test-Path -LiteralPath $Venv) { throw 'new_environment_required' }

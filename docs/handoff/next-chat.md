@@ -1,10 +1,26 @@
 # 現在の引き継ぎ
 
-更新日: 2026-10-30（日本時間）
+更新日: 2026-10-31（日本時間）
 恒久ルール: [AGENTS.md](../../AGENTS.md)。正本: `wasawo/eo-log-maintenance-public`。
 本書は記録時点。開始時は実Git/作業ツリーを優先する。
 
 ## 現在地
+
+2026-10-31 11:27:16 JST、利用者のPowerShell7.6.9互換性確認指示で再開。上限11:47:16 JSTまたは3 PR。最新main/origin/main/GitHub mainは`d7059cc7bd68886a8f0b9299987e70c1a617ebc8`で、PR #59とmainの両CI成功を確認。開始ツリーclean、worktreeは本checkoutのみ、origin正本、最新mainから`fix/powershell-769-compat`を作成した。
+
+調査: 既存7.6.7固定は要件/共通guard/テスト/CIの再現性確保の契約で、7.6.7固有のAPI依存や7.6.9での機能不具合は確認できなかった。修正前の実7.6.9ではLogFunctionsのexact guardが処理前に拒否することを再現。公式portable ZIPをSHA-256照合して新規一時領域へ展開し、既存のインストール/PATH永続設定を変更していない。公式7.6.8/7.6.9 release noteも確認した。
+
+実装判断: 未検証patchまでの範囲許可を避け、許容集合を7.6.7/7.6.9の2版に限定した。共通guardの取得不能/不正値/未列挙版拒否と処理前の適用を維持。`#requires -Version 7.6.7`は最低版宣言として維持し、実許容集合は共通guardに集約。両CIは2版matrixで公式ZIPのSHA-256と実行版を厳密確認する。現行手順/環境要件/traceabilityを整合し、P0-001/002は版条件の限定更新だけを明記、優先度/未完状態/全入口適用等の受け入れ義務は不変。
+
+検証: 実7.6.9でTest-LogFunctions55項目、S1 E2E46、S2 E2E51、役割別package回帰、StagingCapacity67、StagingFreeSpace35（skip0）、MachineConfiguration285が成功。7.6.7でも版判定を含むLogFunctions55項目成功。7.6.9 AST/PSScriptAnalyzer Severity ErrorはPS47本すべて成功。Python3.12.14/既存一時SDK依存・子pwshも7.6.9で既存認証13/API模擬7/セットアップ13が成功。Python3.12.0そのものは今回未検証で、Python/OAuth/Driveコードと依存条件は変更しない。秘密情報の探索・実credential/OAuth/実API・実ログ・元/クラウド元削除は実行していない。
+
+最終点検: 変更Markdownの相対リンク189件/見出し23件とgit diff --check成功。workflowの2版matrix・既存checksum/版照合の維持を差分点検した。ローカルPyYAMLは未導入のためYAML専用parserは使わず、GitHub Actionsでの実行結果を別途確認する。
+
+PR #60を提出。223f50bのPackage Validationは両版成功、Validateは7.6.9の容量bridge4試験で失敗。原因はtest_staging_capacity_bridge.pyの出力版期待値が7.6.7に固定されたままだった更新漏れで、実際の返却値は7.6.9。許容集合を明示したassertInへ限定修正し、CI側の選択版の厳密照合と容量/整数精度/権限falseの期待値は不変。EOLM_TEST_PWSHで各実行版を指定し、同4試験が7.6.7/7.6.9で両方成功した。修正後の最新HEADで両CIを再確認し、未完/失敗なら統合しない。
+
+S3③④と正式AC全体は未完、Q5/役割/非上書き/元保持/承認境界不変、S4未着手。Common/__pycache__の既存17除外fileと直接buildの既知制約を保全。利用者は統合済みmain取得後、修正手順の共通guardで7.6.9を確認し、3-2のローカル環境構築を再開可能。実認証/Drive操作の新たな許可は含まない。今回のPR/CI/mergeは実施後に報告し、root自己点検のみで独立レビューなし。
+
+## PR #59のS3③-A実装時点の記録
 
 2026-10-30 01:42:08 JST、利用者がA案（公式Desktop Picker）の実装・合成試験を承認して再開。上限02:12:08 JSTまたは3 PR/完了/追加判断。fetch後main/origin/main/GitHub mainは`21b9c761c47aa13c8616f517b6c63fd94262f3cb`。前回判断記録の未提出branch `feat/s3-setup-support`（local f5bb503、開始ツリーclean）を継続し、未コミット変更を上書きしていない。
 

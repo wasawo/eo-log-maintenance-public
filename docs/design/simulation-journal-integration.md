@@ -8,7 +8,7 @@
 pwsh -NoProfile -File tests/Test-LogMoveJournalIntegration.ps1
 ```
 
-PowerShell 7.6.7とruntime依存を導入したPythonを使う。必要なら`-PythonExecutable`で実行ファイルを指定する。試験が自分で作った一時journalとメモリ上の合成ログだけを使用する。
+PowerShell 7.6.7または7.6.9とruntime依存を導入したPythonを使う。必要なら`-PythonExecutable`で実行ファイルを指定する。試験が自分で作った一時journalとメモリ上の合成ログだけを使用する。
 
 `Invoke-EoLogMoveSimulation`に、任意の`JournalRoot`、`PythonExecutable`、`RunId`を追加した。JournalRootを省略した従来のメモリ上の試験は維持する。指定した場合もrootを自動生成・認可せず、呼出し側が用意した専用領域へ記録だけを保存する。設定内の実ログrootへはアクセスしない。
 
