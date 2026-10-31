@@ -16,6 +16,8 @@
 
 最終点検: 変更Markdownの相対リンク189件/見出し23件とgit diff --check成功。workflowの2版matrix・既存checksum/版照合の維持を差分点検した。ローカルPyYAMLは未導入のためYAML専用parserは使わず、GitHub Actionsでの実行結果を別途確認する。
 
+PR #60を提出。223f50bのPackage Validationは両版成功、Validateは7.6.9の容量bridge4試験で失敗。原因はtest_staging_capacity_bridge.pyの出力版期待値が7.6.7に固定されたままだった更新漏れで、実際の返却値は7.6.9。許容集合を明示したassertInへ限定修正し、CI側の選択版の厳密照合と容量/整数精度/権限falseの期待値は不変。EOLM_TEST_PWSHで各実行版を指定し、同4試験が7.6.7/7.6.9で両方成功した。修正後の最新HEADで両CIを再確認し、未完/失敗なら統合しない。
+
 S3③④と正式AC全体は未完、Q5/役割/非上書き/元保持/承認境界不変、S4未着手。Common/__pycache__の既存17除外fileと直接buildの既知制約を保全。利用者は統合済みmain取得後、修正手順の共通guardで7.6.9を確認し、3-2のローカル環境構築を再開可能。実認証/Drive操作の新たな許可は含まない。今回のPR/CI/mergeは実施後に報告し、root自己点検のみで独立レビューなし。
 
 ## PR #59のS3③-A実装時点の記録

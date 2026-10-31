@@ -1,4 +1,4 @@
-"""TEST ONLY: exact Python manifest/B2 size projection -> PS 7.6.7 arithmetic."""
+"""TEST ONLY: exact Python manifest/B2 size projection -> validated PS arithmetic."""
 import json
 import os
 from pathlib import Path
@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PWSH = os.environ.get("EOLM_TEST_PWSH") or shutil.which("pwsh")
 
 
-@unittest.skipUnless(PWSH, "PowerShell 7.6.7 executable required")
+@unittest.skipUnless(PWSH, "PowerShell 7.6.7 or 7.6.9 executable required")
 class StagingCapacityBridgeTests(unittest.TestCase):
     def bridge(self, cases):
         result = subprocess.run([PWSH, "-NoProfile", "-NonInteractive", "-File",
@@ -25,7 +25,7 @@ class StagingCapacityBridgeTests(unittest.TestCase):
         self.assertEqual(0, result.returncode, "test capacity bridge failed")
         self.assertEqual("", result.stderr)
         value = json.loads(result.stdout)
-        self.assertEqual("7.6.7", value["PowerShellVersion"])
+        self.assertIn(value["PowerShellVersion"], ("7.6.7", "7.6.9"))
         self.assertEqual(len(cases), len(value["Observations"]))
         return value["Observations"]
 
